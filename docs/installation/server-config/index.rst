@@ -82,6 +82,8 @@ Common KSQL Configuration Parameters
 
 Here are some common configuration properties that you might want to customize.
 
+.. _ksql-auto-offset-reset:
+
 ^^^^^^^^^^^^^^^^^
 auto.offset.reset
 ^^^^^^^^^^^^^^^^^
@@ -95,6 +97,8 @@ to change it to earliest by using the KSQL command line:
     ksql> SET 'auto.offset.reset'='earliest';
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
+
+.. _ksql-bootstrap-servers:
 
 ^^^^^^^^^^^^^^^^^
 bootstrap.servers
@@ -110,6 +114,8 @@ by using the KSQL command line:
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
+.. _ksql-commit-interval-ms:
+
 ^^^^^^^^^^^^^^^^^^
 commit.interval.ms
 ^^^^^^^^^^^^^^^^^^
@@ -123,6 +129,8 @@ the value to ``5000`` by using the KSQL command line:
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
 
+.. _ksql-cache-max-bytes-buffering:
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 cache.max.bytes.buffering
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -135,6 +143,8 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
     ksql> SET 'cache.max.bytes.buffering'='20000000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
+
+.. _ksql-fail-on-deserialization-error:
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 fail.on.deserialization.error
@@ -150,6 +160,8 @@ properties file:
 .. code:: java
 
     fail.on.deserialization.error=false
+
+.. _ksql-command-topic-suffix:
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 ksql.command.topic.suffix
@@ -178,6 +190,8 @@ ksql.queries.file
 
 A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
 For an example, see :ref:`restrict-ksql-interactive`.
+
+.. _ksql-listeners:
 
 ^^^^^^^^^
 listeners

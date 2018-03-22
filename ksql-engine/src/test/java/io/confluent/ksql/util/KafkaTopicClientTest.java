@@ -233,7 +233,8 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteInternalTopicsResult());
+    expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
+        .andReturn(getDeleteInternalTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     String applicationId = String.format("%s%s",

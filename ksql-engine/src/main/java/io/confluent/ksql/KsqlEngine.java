@@ -56,10 +56,9 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -265,8 +264,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
                 getStatementString(singleStatementContext),
                 tempMetaStore,
                 tempMetaStoreForParser,
-                overriddenProperties,
-                false
+                overriddenProperties
             );
         if (queryPair != null) {
           queryList.add(queryPair);
@@ -283,48 +281,29 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       final String statementString,
       final MetaStore tempMetaStore,
       final MetaStore tempMetaStoreForParser,
-      final Map<String, Object> overriddenProperties,
-      final boolean enforceTopicExistence
+      final Map<String, Object> overriddenProperties
   ) {
 
     log.info("Building AST for {}.", statementString);
 
     if (statement instanceof Query) {
       return new Pair<>(statementString, statement);
-    } else if (statement instanceof CreateStreamAsSelect) {
-      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    } else if (statement instanceof CreateAsSelect) {
+      CreateAsSelect createAsSelect = (CreateAsSelect) statement;
       QuerySpecification querySpecification =
-          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+          (QuerySpecification) createAsSelect.getQuery().getQueryBody();
       Query query = addInto(
-          createStreamAsSelect.getQuery(),
+          createAsSelect.getQuery(),
           querySpecification,
-          createStreamAsSelect.getName().getSuffix(),
-          createStreamAsSelect.getProperties(),
-          createStreamAsSelect.getPartitionByColumn()
+          createAsSelect.getName().getSuffix(),
+          createAsSelect.getProperties(),
+          createAsSelect.getPartitionByColumn()
       );
       tempMetaStoreForParser.putSource(
           queryEngine.getResultDatasource(
               querySpecification.getSelect(),
-              createStreamAsSelect.getName().getSuffix()
+              createAsSelect.getName().getSuffix()
           ).cloneWithTimeKeyColumns());
-      return new Pair<>(statementString, query);
-    } else if (statement instanceof CreateTableAsSelect) {
-      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      QuerySpecification querySpecification =
-          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-
-      Query query = addInto(
-          createTableAsSelect.getQuery(),
-          querySpecification,
-          createTableAsSelect.getName().getSuffix(),
-          createTableAsSelect.getProperties(),
-          Optional.empty()
-      );
-
-      tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
-          querySpecification.getSelect(),
-          createTableAsSelect.getName().getSuffix()
-      ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.tryExecute(
@@ -347,7 +326,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateStream) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
@@ -356,7 +335,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateStream) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);
@@ -367,7 +346,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateTable) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
@@ -376,7 +355,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateTable) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);

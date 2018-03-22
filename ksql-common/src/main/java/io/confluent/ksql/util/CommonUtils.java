@@ -42,7 +42,10 @@ public class CommonUtils {
     // walk down the cause stack and append error messages
     e = e.getCause();
     while (e != null) {
-      msg += prefix + getErrorMessage(e);
+      String additionalMessage = getErrorMessage(e);
+      if (additionalMessage != null && !msg.contains(additionalMessage)) {
+        msg += prefix + additionalMessage;
+      }
       e = e.getCause();
       prefix = "\r\n" + prefix;
     }

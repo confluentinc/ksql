@@ -152,13 +152,17 @@ public class Cli implements Closeable, AutoCloseable {
         eof = true;
       } catch (Exception exception) {
         LOGGER.error(ExceptionUtils.getStackTrace(exception));
+        String exceptionMessage;
         if (exception.getMessage() != null) {
-          terminal.writer().println(exception.getMessage());
+          exceptionMessage = exception.getMessage();
         } else {
-          terminal.writer().println(exception.getClass().getName());
+          exceptionMessage = exception.getClass().getName();
           // TODO: Maybe ask the user if they'd like to see the stack trace here?
         }
         String causeMsg = CommonUtils.getErrorCauseMessage(exception);
+        if (!causeMsg.contains(exceptionMessage)) {
+          terminal.writer().println(exceptionMessage);
+        }
         if (!causeMsg.isEmpty()) {
           terminal.writer().println(causeMsg);
         }

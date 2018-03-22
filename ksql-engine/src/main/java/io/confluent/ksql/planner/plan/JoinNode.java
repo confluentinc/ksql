@@ -187,13 +187,15 @@ public class JoinNode extends PlanNode {
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient) {
 
-    Map<String, Object> joinTableProps = new HashMap<>();
-    joinTableProps.putAll(props);
+    Map<String, Object> joinTableProps = new HashMap<>(props);
     joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient,
+    final SchemaKStream schemaKStream = right.buildStream(
+        builder,
+        ksqlConfig,
+        kafkaTopicClient,
         functionRegistry,
-                                                          joinTableProps, schemaRegistryClient);
+        joinTableProps, schemaRegistryClient);
     if (!(schemaKStream instanceof SchemaKTable)) {
       throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
           + getLeft() + "-" + getRight());

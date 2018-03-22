@@ -120,13 +120,24 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public Set<String> listTopicNames() {
+    return listTopicNames(false);
+  }
+
+  private Set<String> listTopicNames(boolean includeInternalTopics) {
     try {
       RetryHelper<Set<String>> retryHelper = new RetryHelper<>();
-      return retryHelper.executeWithRetries(() -> adminClient.listTopics().names());
+      Set<String> topics = retryHelper.executeWithRetries(() -> adminClient.listTopics().names());
+      if (includeInternalTopics) {
+        return topics;
+      }
+      return topics.stream()
+          .filter((topic) -> !topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX))
+          .collect(Collectors.toSet());
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
   }
+
 
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
@@ -207,7 +218,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     try {
-      Set<String> topicNames = listTopicNames();
+      Set<String> topicNames = listTopicNames(true);
       List<String> internalTopics = new ArrayList<>();
       for (String topicName : topicNames) {
         if (isInternalTopic(topicName, applicationId)) {

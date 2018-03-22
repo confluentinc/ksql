@@ -191,6 +191,22 @@ ksql.queries.file
 A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
 For an example, see :ref:`restrict-ksql-interactive`.
 
+.. _ksql.sink.partitions:
+
+^^^^^^^^^^^^^^^^^^^^
+ksql.sink.partitions
+^^^^^^^^^^^^^^^^^^^^
+
+The default number of partitions for the topics created by KSQL. The default is four.
+
+.. _ksql.sink.replicas:
+
+^^^^^^^^^^^^^^^^^^
+ksql.sink.replicas
+^^^^^^^^^^^^^^^^^^
+
+The default number of replicas for the topics created by KSQL. The default is one. 
+
 .. _ksql-listeners:
 
 ^^^^^^^^^

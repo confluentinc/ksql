@@ -15,9 +15,11 @@ To connect the KSQL CLI to a cluster, run this command with your KSQL Server URL
 
     $ <path-to-confluent>/bin/ksql <ksql-server-URL>
 
-
 Configuring Per-session Properties
 ----------------------------------
+
+You can set the properties by using the KSQL CLI startup script argument ``/bin/ksql <server> --config-file <path/to/file>``
+or by using the SET statement from within the KSQL CLI session. For more information, see :ref:`install_ksql-cli`.
 
 Here are some common KSQL CLI properties that you can customize:
 

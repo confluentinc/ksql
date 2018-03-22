@@ -54,7 +54,6 @@ For example:
 .. code:: bash
 
     bootstrap.servers=localhost:9092
-    ksql.command.topic.suffix=commands
     listeners=http://localhost:8080
     ui.enabled=true
 
@@ -64,9 +63,9 @@ After you have configured your properties file, you can start KSQL with your pro
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. tip:: The KSQL Server command topic determines the resource pool. By default, KSQL Servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``.
+.. tip:: The command topic name is determined by the ``ksql.service.id`` configuration.
 
-For more information, see :ref:`ksql-queries-file`.
+.. _configuring-ksql:
 
 -----------
 JMX Metrics
@@ -161,19 +160,6 @@ properties file:
 
     fail.on.deserialization.error=false
 
-.. _ksql-command-topic-suffix:
-
-^^^^^^^^^^^^^^^^^^^^^^^^^
-ksql.command.topic.suffix
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The KSQL Server command topic determines the resource pool. By default, KSQL Servers use the ``ksql__commands`` command topic.
-To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``'production_commands'``, in the ``ksql-server.properties`` file, the command topic will be named ``ksql__production_commands``.
-
-.. code:: java
-
-    ksql.command.topic.suffix=production_commands
-
 .. _ksql-schema-registry-url:
 
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,6 +167,18 @@ ksql.schema.registry.url
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Schema Registry URL path to connect KSQL to.
+
+.. _ksql-service-id:
+
+^^^^^^^^^^^^^^^
+ksql.service.id
+^^^^^^^^^^^^^^^
+
+The service ID of the KSQL server. By default, the service ID of KSQL servers is ``ksql_``. KSQL servers that share the same
+``command`` topic belong to the same resource pool. Every internal topic has a fixed prefix of
+``_confluent-ksql-default__command_topic``. For example, if you set ``ksql.service.id`` to ``production_deployment``, the
+KSQL command topic will be ``_confluent-ksql-production_deployment__command_topic``.
+
 
 .. _ksql-queries-file:
 

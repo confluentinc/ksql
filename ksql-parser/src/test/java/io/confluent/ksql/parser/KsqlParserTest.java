@@ -37,6 +37,8 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Struct;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
@@ -357,7 +359,10 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 7);
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(6).getType()
-        .toString().equalsIgnoreCase("STRUCT<NUMBER VARCHAR,STREET VARCHAR,ZIP INTEGER,CITY VARCHAR,STATE VARCHAR>"));
+        .getKsqlType() == Type.KsqlType.STRUCT);
+    Struct struct = (Struct) createStream.getElements().get(6).getType();
+    assertThat(struct.getItems().size(), equalTo(5));
+    assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
     Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
   }
 

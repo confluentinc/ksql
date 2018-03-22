@@ -124,8 +124,8 @@ public final class ExpressionFormatter {
     protected String visitStruct(Struct node, Boolean unmangleNames) {
       return "STRUCT <" + Joiner.on(", ").join(node.getItems().stream()
                                                 .map((child) ->
-                                                         child.getLeft() +
-                                                         process(child.getRight(), unmangleNames))
+                                                         child.getLeft()
+                                                         + process(child.getRight(), unmangleNames))
                                                 .collect(toList())) + ">";
     }
 

@@ -34,7 +34,7 @@ public class Map extends Type {
   }
 
   private Map(Optional<NodeLocation> location, Type valueType) {
-    super(location, KsqlType.STRUCT);
+    super(location, KsqlType.MAP);
     requireNonNull(valueType, "itemType is null");
     this.valueType = valueType;
   }

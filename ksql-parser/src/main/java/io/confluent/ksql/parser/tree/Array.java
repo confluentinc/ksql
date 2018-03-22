@@ -17,6 +17,7 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Optional;
+
 import static java.util.Objects.requireNonNull;
 
 public class Array extends Type {
@@ -32,7 +33,7 @@ public class Array extends Type {
   }
 
   private Array(Optional<NodeLocation> location, Type itemType) {
-    super(location, KsqlType.STRUCT);
+    super(location, KsqlType.ARRAY);
     requireNonNull(itemType, "itemType is null");
     this.itemType = itemType;
   }

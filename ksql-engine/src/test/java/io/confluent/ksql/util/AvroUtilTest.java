@@ -33,8 +33,12 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Array;
+import io.confluent.ksql.parser.tree.Map;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
@@ -77,13 +81,13 @@ public class AvroUtilTest {
     Pair<AbstractStreamCreateStatement, String> checkResult = avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
     AbstractStreamCreateStatement newAbstractStreamCreateStatement = checkResult.getLeft();
     assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
-        new TableElement("ORDERTIME", "BIGINT"),
-        new TableElement("ORDERID", "BIGINT"),
-        new TableElement("ITEMID", "VARCHAR"),
-        new TableElement("ORDERUNITS", "DOUBLE"),
-        new TableElement("ARRAYCOL", "ARRAY<DOUBLE>"),
-        new TableElement("MAPCOL", "MAP<VARCHAR,DOUBLE>")
-        )));
+        new TableElement("ORDERTIME", new PrimitiveType(Type.KsqlType.BIGINT)),
+        new TableElement("ORDERID", new PrimitiveType(Type.KsqlType.BIGINT)),
+        new TableElement("ITEMID", new PrimitiveType(Type.KsqlType.STRING)),
+        new TableElement("ORDERUNITS", new PrimitiveType(Type.KsqlType.DOUBLE)),
+        new TableElement("ARRAYCOL", new Array(new PrimitiveType(Type.KsqlType.DOUBLE))),
+        new TableElement("MAPCOL", new Map(new PrimitiveType(Type.KsqlType.DOUBLE)))
+    )));
   }
 
   @Test

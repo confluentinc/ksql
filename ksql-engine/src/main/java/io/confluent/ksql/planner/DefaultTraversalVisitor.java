@@ -61,11 +61,13 @@ import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
+import io.confluent.ksql.util.Pair;
 
 import java.util.Set;
 
@@ -340,8 +342,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitStruct(Struct node, C context) {
-    for (Expression expression : node.getItems()) {
-      process(expression, context);
+    for (Pair<String, Type> structItem : node.getItems()) {
+      process(structItem.getRight(), context);
     }
     return null;
   }

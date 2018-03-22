@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -1488,43 +1487,18 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   private static Type getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      String signature = baseTypeToString(type.baseType());
-
-
-//      if (!type.typeParameter().isEmpty()) {
-//        String typeParameterSignature = type
-//            .typeParameter()
-//            .stream()
-//            .map(AstBuilder::typeParameterToString)
-//            .collect(Collectors.joining(","));
-//        signature += "(" + typeParameterSignature + ")";
-//      }
-      PrimitiveType t = getPrimitiveType(signature);
-      return t;
+      return getPrimitiveType(baseTypeToString(type.baseType()));
     }
 
     if (type.ARRAY() != null) {
-//      return "ARRAY(" + getType(type.type(0)) + ")";
       return new Array(getType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-//      return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
-      return new io.confluent.ksql.parser.tree.Map(getType(type.type(0)));
+      return new io.confluent.ksql.parser.tree.Map(getType(type.type(1)));
     }
 
     if (type.STRUCT() != null) {
-//      StringBuilder builder = new StringBuilder("<");
-//      for (int i = 0; i < type.identifier().size(); i++) {
-//        if (i != 0) {
-//          builder.append(",");
-//        }
-//        builder.append(getIdentifierText(type.identifier(i)))
-//            .append(" ")
-//            .append(getType(type.type(i)));
-//      }
-//      builder.append(">");
-//      return "STRUCT" + builder.toString();
       List<Pair<String, Type>> structItems = new ArrayList<>();
       for (int i = 0; i < type.identifier().size(); i++) {
         String itemName = getIdentifierText(type.identifier(i));
@@ -1536,16 +1510,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
   }
-
-//  private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter) {
-//    if (typeParameter.INTEGER_VALUE() != null) {
-//      return typeParameter.INTEGER_VALUE().toString();
-//    }
-//    if (typeParameter.type() != null) {
-//      return getType(typeParameter.type());
-//    }
-//    throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
-//  }
 
   private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
     if (baseType.identifier() != null) {

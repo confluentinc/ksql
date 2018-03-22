@@ -115,7 +115,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean isTopicExists(final String topic) {
     log.trace("Checking for existence of topic '{}'", topic);
-    return listTopicNames().contains(topic);
+    return listTopicNames(true).contains(topic);
   }
 
   @Override

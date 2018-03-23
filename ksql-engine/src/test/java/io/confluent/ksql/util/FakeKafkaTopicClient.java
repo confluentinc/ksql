@@ -17,13 +17,17 @@
 package io.confluent.ksql.util;
 
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -51,6 +55,16 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
     public short getReplicatonFactor() {
       return replicatonFactor;
+    }
+
+    public TopicDescription getDescription() {
+      List<TopicPartitionInfo> partitionInfoList = new LinkedList<>();
+      Node node = new Node(0, "localhost", 9091);
+      for (int i = 0; i < numPartitions; i++) {
+        partitionInfoList.add(
+            new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()));
+      }
+      return new TopicDescription(topicName, false, partitionInfoList);
     }
   }
 
@@ -82,7 +96,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    return Collections.emptyMap();
+    return listTopicNames()
+        .stream()
+        .filter(n -> topicNames.contains(n))
+        .collect(
+            Collectors.toMap(n -> n, n -> topicMap.get(n).getDescription()));
   }
 
   @Override

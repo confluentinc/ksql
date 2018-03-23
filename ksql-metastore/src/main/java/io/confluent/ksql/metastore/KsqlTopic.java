@@ -18,18 +18,28 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
+
+import java.util.OptionalLong;
 
 public class KsqlTopic implements DataSource {
 
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe ksqlTopicSerDe;
+  private final OptionalLong partitions;
 
-  public KsqlTopic(final String topicName, final String kafkaTopicName, final KsqlTopicSerDe
-      ksqlTopicSerDe) {
+  public KsqlTopic(final String topicName, final String kafkaTopicName,
+                   final KsqlTopicSerDe ksqlTopicSerDe, final OptionalLong partitions) {
     this.topicName = topicName;
     this.kafkaTopicName = kafkaTopicName;
     this.ksqlTopicSerDe = ksqlTopicSerDe;
+    this.partitions = partitions;
+  }
+
+  public KsqlTopic(final String topicName, final String kafkaTopicName,
+                   final KsqlTopicSerDe ksqlTopicSerDe) {
+    this(topicName, kafkaTopicName, ksqlTopicSerDe, OptionalLong.empty());
   }
 
   public KsqlTopicSerDe getKsqlTopicSerDe() {
@@ -52,5 +62,11 @@ public class KsqlTopic implements DataSource {
   @Override
   public DataSourceType getDataSourceType() {
     return DataSourceType.KTOPIC;
+  }
+
+  public Long getPartitions() {
+    return partitions.orElseThrow(() -> new KsqlException(
+        "KsqlTopic does not have partitions specified")
+    );
   }
 }

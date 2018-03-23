@@ -232,8 +232,9 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream selectKey(final Field newKeyField, boolean updateRowKey) {
-    if (keyField != null
+  public SchemaKStream selectKey(final Field newKeyField, boolean updateRowKey, boolean force) {
+    if (!force
+        && keyField != null
         && keyField.name().equals(newKeyField.name())) {
       return this;
     }

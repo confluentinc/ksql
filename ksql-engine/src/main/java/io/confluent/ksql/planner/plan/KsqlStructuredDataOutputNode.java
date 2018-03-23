@@ -179,7 +179,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField, false);
+      return result.selectKey(keyField, false, false);
     }
     return result;
   }

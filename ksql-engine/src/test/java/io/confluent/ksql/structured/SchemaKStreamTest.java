@@ -49,6 +49,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.sameInstance;
+
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
@@ -162,9 +165,22 @@ public class SchemaKStreamTest {
                                              SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
-                                                                            .get(1), true);
+                                                                            .get(1), true, false);
     Assert.assertTrue(rekeyedSchemaKStream.getKeyField().name().equalsIgnoreCase("TEST1.COL1"));
+  }
 
+  @Test
+  public void testSelectKeyForce() throws Exception {
+    String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+    SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
+        .getSchema().fields()
+        .get(1), true, true);
+    Assert.assertThat(rekeyedSchemaKStream, not(sameInstance(initialSchemaKStream)));
   }
 
   @Test

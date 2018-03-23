@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.planner.plan;
 
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -24,11 +27,14 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,11 +70,12 @@ public class JoinNodeTest {
   private SchemaKStream stream;
   private JoinNode joinNode;
 
+  public void buildJoin() {
+    buildJoin("SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
+        + "ON t1.col1 = t2.col1;");
+  }
 
-  @Before
-  public void before() {
-    String queryString = "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
-        + "ON t1.col1 = t2.col1;";
+  public void buildJoin(String queryString) {
     buildJoinNode(queryString);
     stream = buildStream();
   }
@@ -78,8 +85,18 @@ public class JoinNodeTest {
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
   }
 
+  private SchemaKStream buildStream() {
+    builder = new StreamsBuilder();
+    return joinNode.buildStream(builder,
+        ksqlConfig,
+        topicClient,
+        new FunctionRegistry(),
+        new HashMap<>(), new MockSchemaRegistryClient());
+  }
+
   @Test
   public void shouldBuildSourceNode() {
+    buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -89,6 +106,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
+    buildJoin();
 
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
@@ -129,7 +147,11 @@ public class JoinNodeTest {
         } else {
           throw new KsqlException("auto.offset.reset should be set to EARLIEST.");
         }
+      }
 
+      @Override
+      protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+        return 1;
       }
     }
 
@@ -145,6 +167,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldHaveLeftJoin() {
+    buildJoin();
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
         = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
@@ -154,7 +177,39 @@ public class JoinNodeTest {
   }
 
   @Test
+  public void shouldRepartitionOnPartitionMismatch() {
+    Node node = new Node(0, "localhost", 9091);
+    // Setup stream with one partition
+    List<TopicPartitionInfo> streamPartitionInfoList = Arrays.asList(
+        new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()));
+    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test1")))
+        .andReturn(
+            Collections.singletonMap(
+                "test1",
+                new TopicDescription("test1", false, streamPartitionInfoList)));
+    // Setup table with 2 partitions
+    List<TopicPartitionInfo> tablePartitionInfoList = Arrays.asList(
+        new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()),
+        new TopicPartitionInfo(1, node, new LinkedList<>(), new LinkedList<>()));
+    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test2")))
+        .andReturn(
+            Collections.singletonMap(
+                "test2",
+                new TopicDescription("test2", false, tablePartitionInfoList)));
+    EasyMock.replay(topicClient);
+
+    buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
+
+    final Topology topology = builder.build();
+    final TopologyDescription description = topology.describe();
+    Assert.assertThat(description.subtopologies().size(), equalTo(2));
+
+    EasyMock.verify(topicClient);
+  }
+
+  @Test
   public void shouldHaveAllFieldsFromJoinedInputs() {
+    buildJoin();
     final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
     final StructuredDataSource source1
         = metaStore.getSource("TEST1");
@@ -167,14 +222,4 @@ public class JoinNodeTest {
     final Set<String> fields = stream.getSchema().fields().stream().map(Field::name).collect(Collectors.toSet());
     assertThat(fields, equalTo(expected));
   }
-
-  private SchemaKStream buildStream() {
-    builder = new StreamsBuilder();
-    return joinNode.buildStream(builder,
-        ksqlConfig,
-        topicClient,
-        new FunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
-  }
-
 }

@@ -173,7 +173,7 @@ Can KSQL connect to an Apache Kafka cluster over SSL?
 
 Yes. Internally, KSQL uses standard Kafka consumers and producers.
 The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka. For more information,
-see :ref:`ksql-security`.
+see :ref:`config-security-kafka`.
 
 =================================================================================
 Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?
@@ -182,7 +182,7 @@ Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL
 Yes. Internally, KSQL uses standard Kafka consumers and producers.
 The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
 
-For more information, see :ref:`ksql-security`.
+For more information, see :ref:`config-security-ssl-sasl`.
 
 ====================================
 Will KSQL work with Confluent Cloud?
@@ -194,11 +194,11 @@ Running KSQL against an Apache Kafka cluster running in the cloud is pretty stra
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 ====================================================================
 
-Yes. For more information, see :ref:`ksql-security`.
+Yes. For more information, see :ref:`config-security-ksql-acl`.
 
 ======================================================
 Will KSQL work with a HTTPS Confluent Schema Registry?
 ======================================================
 
 KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
-:ref:`ksql-security`.
+:ref:`config-security-ksql-sr`.

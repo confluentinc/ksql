@@ -24,6 +24,8 @@ Configuring KSQL for |ccloud|
 
 You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
 
+.. _config-security-ksql-sr:
+
 Configuring KSQL for Secured Confluent Schema Registry
 ------------------------------------------------------
 
@@ -46,11 +48,15 @@ The following configuration is connecting KSQL with the Confluent Schema Registr
 The exact settings you need depend on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
 are signed. For more information, see :ref:`schemaregistry_security`.
 
+.. _config-security-kafka:
+
 Configuration KSQL for Secured Apache Kafka clusters
 ----------------------------------------------------
 
 To connect to a secured Kafka cluster, Kafka client applications must provide their security credentials. The following
 are common configuration examples.
+
+.. _config-security-ssl-sasl:
 
 ----------------------------------------------------------
 Configuring Encrypted Communication between KSQL and Kafka
@@ -97,6 +103,8 @@ using the :ref:`Control Center interceptors <controlcenter_clients>`.
 
 The exact settings you need depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates
 are signed. For more information, see the `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
+
+.. _config-security-ksql-acl:
 
 -------------------------------------------------
 Configuring Authorization of KSQL with Kafka ACLs

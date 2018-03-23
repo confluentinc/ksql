@@ -118,7 +118,3 @@ listeners
     ksql> SET 'cache.max.bytes.buffering'='20000000';
 
    For more information, see the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
-
-
-
-

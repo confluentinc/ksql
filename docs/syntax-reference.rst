@@ -99,7 +99,7 @@ RUN SCRIPT
 
 You can run a list of predefined queries and commands from in a file by using the RUN SCRIPT command.
 
-The RUN SCRIPT command supports a subset of KSQL CLI commands:
+The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`

@@ -111,7 +111,7 @@ It cannot show output for statements, such as:
 - TERMINATE
 - Non-persistent queries: SELECT etc
 
-For example syntax, see :ref:``.
+For example syntax, see :ref:`running-ksql-command-line`.
 
 ===============
 KSQL statements

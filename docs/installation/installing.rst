@@ -36,7 +36,7 @@ After KSQL is started, your terminal should resemble this.
     :end-line: 38
 
 Tip
-    You can view the KSQL CLI startup script help by running ``<path-to-confluent>/bin/ksql --help``.
+    You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.
 
          .. code:: bash
 
@@ -128,7 +128,7 @@ Tip
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. tip:: You can view the KSQL server startup script help by running ``<path-to-confluent>/bin/ksql-server-start --help``.
+.. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 
          .. code:: bash
 

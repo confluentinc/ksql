@@ -10,14 +10,13 @@ Configuring KSQL Server
     ccloud-ksql
     avro-schema
 
-KSQL configuration parameters can be set for Admin Client, KSQL Query, KSQL Server, Kafka Streams, and Kafka Client. The
-KSQL Server parameters are configured via the ``/etc/ksql/ksql-server.properties`` file. The KSQL CLI parameters are
-configured via the ``/etc/ksql/ksql-server.properties`` file or the SET statement in the KSQL CLI.
+KSQL configuration parameters can be set for Admin Client, KSQL Query, KSQL Server, Kafka Streams, and Kafka Clients. The
+KSQL Server parameters are configured via the ``/etc/ksql/ksql-server.properties`` file. 
 
-You can set the following parameters for the KSQL Server and KSQL CLI.
+You can set the following parameters for the KSQL Server.
 
 .. important:: KSQL Server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
-               for ``ksql.service.id`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
+               for ``ksql.streams.replication.factor`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
 
 KSQL Query
     These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For
@@ -174,11 +173,12 @@ The Schema Registry URL path to connect KSQL to.
 ksql.service.id
 ^^^^^^^^^^^^^^^
 
-The service ID of the KSQL server. By default, the service ID of KSQL servers is ``ksql_``. KSQL servers that share the same
-``command`` topic belong to the same resource pool. Every internal topic has a fixed prefix of
-``_confluent-ksql-default__command_topic``. For example, if you set ``ksql.service.id`` to ``production_deployment``, the
-KSQL command topic will be ``_confluent-ksql-production_deployment__command_topic``.
-
+The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. This determines the prefix of
+the internal topics created by KSQL. With the default value for ``ksql.service.id``, the prefix for KSQL internal topics will be 
+``_confluent-ksql-default_``. One example of an internal topic is the command topic, which distributes queries across a KSQL 
+server pool. With the default ``ksql.service.id``, the command topic would be ``_confluent-ksql-default__command_topic``. On 
+the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will 
+be ``_confluent-ksql-production_deployment__command_topic``.
 
 .. _ksql-queries-file:
 

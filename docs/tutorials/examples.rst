@@ -334,6 +334,7 @@ The following examples show common usage:
         > exit
         > EOF
 
-    .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, such as running persistent queries (CREATE
-              STREAM, CREATE TABLE), and setting configuration options (SET statement). It cannot show output for statements,
-              such as ``SHOW TOPICS``, ``SHOW STREAMS``, ``CREATE STREAM AS SELECT``, and ``CREATE TABLE AS SELECT``.
+    .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements
+              (CREATE STREAM, CREATE TABLE), persistent queries (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and
+              setting configuration options (SET statement). Other statements and commands such as ``SHOW TOPICS``and
+              ``SHOW STREAMS`` will be ignored.

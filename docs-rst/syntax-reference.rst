@@ -3,8 +3,10 @@
 Syntax Reference
 ================
 
-The KSQL CLI provides a terminal-based interactive shell for running
-queries.
+KSQL has similar semantics to SQL:
+
+- Terminate KSQL statements with a semicolon ``;``
+- Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
 
 .. contents:: Contents
     :local:

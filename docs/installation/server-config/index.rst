@@ -173,11 +173,12 @@ The Schema Registry URL path to connect KSQL to.
 ksql.service.id
 ^^^^^^^^^^^^^^^
 
-The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. This is used to determine the prefix of
+The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. This determines the prefix of
 the internal topics created by KSQL. With the default value for ``ksql.service.id``, the prefix for KSQL internal topics will be 
-``_confluent-ksql-default_``. One example of an internal topic is the command topic, which is used to build KSQL server pools. With the
-default ``ksql.service.id``, the command topic would be ``_confluent-ksql-default__command_topic``. On the other hand, if you set 
-``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will be ``_confluent-ksql-production_deployment__command_topic``.
+``_confluent-ksql-default_``. One example of an internal topic is the command topic, which distributes queries across a KSQL 
+server pool. With the default ``ksql.service.id``, the command topic would be ``_confluent-ksql-default__command_topic``. On 
+the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will 
+be ``_confluent-ksql-production_deployment__command_topic``.
 
 .. _ksql-queries-file:
 

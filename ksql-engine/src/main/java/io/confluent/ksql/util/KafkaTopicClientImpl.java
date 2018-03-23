@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,7 +98,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         validateTopicProperties(topic, numPartitions, replicationFactor);
         return;
       }
-      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic" + topic,
+      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " + topic,
                                                 e);
     }
   }
@@ -208,7 +208,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (InterruptedException | ExecutionException ex) {
       log.error("Failed to initialize TopicClient: {}", ex.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
-                              + "AdminClient.");
+                              + "AdminClient.", ex);
     }
   }
 

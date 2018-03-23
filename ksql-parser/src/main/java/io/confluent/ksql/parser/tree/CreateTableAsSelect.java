@@ -25,30 +25,39 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateTableAsSelect
-    extends Statement implements CreateAsSelect{
+public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public CreateTableAsSelect(QualifiedName name, Query query, boolean notExists,
-                             Map<String, Expression> properties) {
+  public CreateTableAsSelect(
+      QualifiedName name,
+      Query query,
+      boolean notExists,
+      Map<String, Expression> properties
+  ) {
     this(Optional.empty(), name, query, notExists, properties);
   }
 
-  public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
-                             boolean notExists,
-                             Map<String, Expression> properties
-                             ) {
+  public CreateTableAsSelect(
+      NodeLocation location,
+      QualifiedName name,
+      Query query,
+      boolean notExists,
+      Map<String, Expression> properties
+  ) {
     this(Optional.of(location), name, query, notExists, properties);
   }
 
-  private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
-                              boolean notExists,
-                              Map<String, Expression> properties
-                              ) {
+  private CreateTableAsSelect(
+      Optional<NodeLocation> location,
+      QualifiedName name,
+      Query query,
+      boolean notExists,
+      Map<String, Expression> properties
+  ) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");

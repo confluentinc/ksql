@@ -34,7 +34,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -49,6 +48,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -61,7 +61,6 @@ public class PhysicalPlanBuilder {
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
-  private final MetastoreUtil metastoreUtil;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
@@ -73,7 +72,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -84,7 +82,6 @@ public class PhysicalPlanBuilder {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
     this.functionRegistry = functionRegistry;
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
@@ -97,7 +94,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -108,7 +104,6 @@ public class PhysicalPlanBuilder {
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         overriddenStreamsProperties,
         updateMetastore,
@@ -127,7 +122,6 @@ public class PhysicalPlanBuilder {
             builder,
             ksqlConfig,
             kafkaTopicClient,
-            metastoreUtil,
             functionRegistry,
             overriddenStreamsProperties,
             schemaRegistryClient
@@ -146,7 +140,7 @@ public class PhysicalPlanBuilder {
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String serviceId = getServiceId();
     String
         persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
@@ -359,6 +353,12 @@ public class PhysicalPlanBuilder {
         ProducerCollector.class.getCanonicalName()
     );
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+  }
+
+  // Package private because of test
+  String getServiceId() {
+    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+           + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }
 }
 

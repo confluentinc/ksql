@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -37,6 +38,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.*;
 
@@ -50,6 +52,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@Category({IntegrationTest.class})
 public class CliTest extends TestRunner {
 
   @ClassRule
@@ -85,7 +88,7 @@ public class CliTest extends TestRunner {
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
-    commandTopicName = restServerConfig.getCommandTopic();
+    commandTopicName = restServerConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
@@ -246,14 +249,24 @@ public class CliTest extends TestRunner {
     test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
     test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
     test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'AVROSCHEMA' = 'schema'", EMPTY_RESULT);
+    test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
+    test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
+    test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
+    test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
+    test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
 
     test("unset 'application.id'", EMPTY_RESULT);
     test("unset 'producer.batch.size'", EMPTY_RESULT);
     test("unset 'max.request.size'", EMPTY_RESULT);
     test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
     test("unset 'enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'AVROSCHEMA'", EMPTY_RESULT);
+    test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
+    test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
+    test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
+    test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
+    test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
+    test("unset 'ksql.service.id'", EMPTY_RESULT);
 
     testListOrShow("properties", build(validStartUpConfigs()), false);
   }

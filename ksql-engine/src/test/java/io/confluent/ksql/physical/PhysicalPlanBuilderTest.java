@@ -17,7 +17,6 @@ package io.confluent.ksql.physical;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -26,6 +25,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -109,7 +109,6 @@ public class PhysicalPlanBuilderTest {
     return new PhysicalPlanBuilder(streamsBuilder,
         new KsqlConfig(configMap),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         functionRegistry,
         overrideProperties,
         false,
@@ -304,5 +303,11 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
     Assert.assertEquals(DummyConsumerInterceptor2.class.getName(), consumerInterceptors.get(1));
     Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(2)));
+  }
+  @Test
+  public void shouldCreateExpectedServiceId() {
+    String serviceId = physicalPlanBuilder.getServiceId();
+    assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+                                  + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
   }
 }

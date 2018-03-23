@@ -53,17 +53,13 @@ are signed. For more information, see :ref:`schemaregistry_security`.
 Configuration KSQL for Secured Apache Kafka clusters
 ----------------------------------------------------
 
-To connect to a secured Kafka cluster, Kafka client applications must provide their security credentials. The following
-are common configuration examples.
+The following are common configuration examples.
 
 .. _config-security-ssl-sasl:
 
 ----------------------------------------------------------
 Configuring Encrypted Communication between KSQL and Kafka
 ----------------------------------------------------------
-
-You can connect to a secure Kafka cluster using PLAIN SASL and SSL, where the certificates have been signed by a CA trusted by
-the default JVM trust store.
 
 This configuration enables KSQL to connect to a secure Kafka cluster using PLAIN SASL, where the SSL certificates have been
 signed by a CA trusted by the default JVM trust store. Other options include GSSAPI and Kerberos.
@@ -74,8 +70,25 @@ signed by a CA trusted by the default JVM trust store. Other options include GSS
     sasl.mechanism=PLAIN
     sasl.jaas.config=\
         org.apache.kafka.common.security.plain.PlainLoginModule required `
-        username="<authenticated-ksql-user>" `
+        username="<ksql-user>" `
         password="<password>";
+
+.. _config-security-ssl anchor:
+
+Configuring Encrypted Communication Between KSQL and Kafka
+----------------------------------------------------------
+
+This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
+
+.. code:: bash
+
+    security.protocol=SSL
+    ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+    ssl.truststore.password=confluent
+
+The exact settings required will vary depending on the security settings the Kafka brokers are using and how your SSL
+certificates are signed. For full details, and instructions on how to create a suitable trust store, see the
+`Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
 
 -------------------------------------------
 Configuring Authentication of KSQL to Kafka

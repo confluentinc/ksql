@@ -173,7 +173,7 @@ Can KSQL connect to an Apache Kafka cluster over SSL?
 
 Yes. Internally, KSQL uses standard Kafka consumers and producers.
 The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka. For more information,
-see :ref:`config-security-kafka`.
+see :ref:`config-security-ssl`.
 
 =================================================================================
 Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?

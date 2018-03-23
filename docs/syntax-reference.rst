@@ -105,7 +105,7 @@ The RUN SCRIPT command supports a subset of KSQL CLI commands:
 - :ref:`drop-stream` and :ref:`drop-table`
 - SET statement
 
-It cannot show output for statements, such as:
+It does not support statements such as:
 
 - SHOW TOPICS and SHOW STREAMS etc
 - TERMINATE

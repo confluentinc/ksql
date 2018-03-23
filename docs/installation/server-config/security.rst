@@ -102,7 +102,7 @@ using the :ref:`Control Center interceptors <controlcenter_clients>`.
     confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 
 The exact settings you need depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates
-are signed. For more information, see the `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
+are signed. For more information, see the :ref:`security`.
 
 .. _config-security-ksql-acl:
 

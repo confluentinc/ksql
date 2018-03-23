@@ -18,13 +18,14 @@ KSQL currently supports Avro data in the Kafka message values.
 The following functionality is not supported yet:
 
 -  Message keys in Avro format are not supported. Message keys in KSQL are always interpreted as STRING format, which means
-   KSQL will ignore Avro schemas that have been registered for message keys.
--  Avro schemas with nested fields are not supported yet. This is because KSQL does not yet support nested columns.
+   KSQL will ignore Avro schemas that have been registered for message keys and the key will be read using StringDeserializer.
+-  Avro schemas with nested fields are not supported yet. This is because KSQL does not yet support nested columns. This
+   functionality is coming soon.
 
 Configuring KSQL for Avro
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You must configure the API endpoint of |sr| by setting ``ksql.schema.registry.url`` (default: ``http://localhost:8081``)
+You must configure the REST endpoint of |sr| by setting ``ksql.schema.registry.url`` (default: ``http://localhost:8081``)
 in the KSQL server configuration file (``<path-to-confluent>/etc/ksql/ksql-server.properties``). For more information,
 see :ref:`install_ksql-server`.
 
@@ -34,10 +35,13 @@ Using Avro in KSQL
 ^^^^^^^^^^^^^^^^^^
 
 Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql.schema.registry.url`` is set correctly
-in the KSQL properties file. |sr| is :ref:`included by default <quickstart>` with |cp|.
+in the KSQL properties file (defaults to ``http://localhost:8081``). |sr| is :ref:`included by default <quickstart>` with
+|cp|.
 
-- Read from Kafka topics with Avro-formatted data by using ``CREATE STREAM`` and ``CREATE TABLE`` statements.
-- Write Avro-formatted data into Kafka topics by using ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements.
+Here's what you can do with Avro in KSQL:
+
+- Declare streams and tables on Kafka topics with Avro-formatted data by using ``CREATE STREAM`` and ``CREATE TABLE`` statements.
+- Read from and write into Avro-formatted data by using ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements.
 - Create derived streams and tables from existing streams and tables with ``CREATE STREAM AS SELECT`` and
   ``CREATE TABLE AS SELECT`` statements.
 - Convert data to different formats with ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements. For example,

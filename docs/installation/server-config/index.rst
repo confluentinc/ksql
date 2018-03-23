@@ -295,7 +295,7 @@ When deploying KSQL to production, the following settings are recommended in you
 
     # Set the replication factor for internal topics, the command topic, and
     # output topics to be 3 for better fault tolerance and durability. Note:
-    # the value 3 requires at least 3 brokers in your kafka cluster.
+    # the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.streams.replication.factor=3
     ksql.sink.replicas=3
 

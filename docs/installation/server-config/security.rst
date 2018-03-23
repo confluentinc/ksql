@@ -57,12 +57,12 @@ The following are common configuration examples.
 
 .. _config-security-ssl-sasl:
 
-----------------------------------------------------------
-Configuring Encrypted Communication between KSQL and Kafka
-----------------------------------------------------------
+--------------------------------
+Configuring Kafka Authentication
+--------------------------------
 
 This configuration enables KSQL to connect to a secure Kafka cluster using PLAIN SASL, where the SSL certificates have been
-signed by a CA trusted by the default JVM trust store. Other options include GSSAPI and Kerberos.
+signed by a CA trusted by the default JVM trust store.
 
 .. code:: bash
 
@@ -72,6 +72,9 @@ signed by a CA trusted by the default JVM trust store. Other options include GSS
         org.apache.kafka.common.security.plain.PlainLoginModule required `
         username="<ksql-user>" `
         password="<password>";
+
+The exact settings required depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
+signed. For more information, see the `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
 
 .. _config-security-ssl anchor:
 
@@ -90,12 +93,12 @@ The exact settings required will vary depending on the security settings the Kaf
 certificates are signed. For full details, and instructions on how to create a suitable trust store, see the
 `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
 
--------------------------------------------
-Configuring Authentication of KSQL to Kafka
--------------------------------------------
+----------------------------------------------
+Configuring |c3-short| Monitoring Interceptors
+----------------------------------------------
 
-This configuration connects to an Apache Kafka cluster using SASL and SSL and integrate with |c3-short|
-using the :ref:`Control Center interceptors <controlcenter_clients>`.
+This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
+with |c3-short|.
 
 
 .. code:: bash
@@ -114,9 +117,6 @@ using the :ref:`Control Center interceptors <controlcenter_clients>`.
     confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="client" password="client-secret";
     confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 
-The exact settings you need depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates
-are signed. For more information, see the :ref:`security`.
-
 .. _config-security-ksql-acl:
 
 -------------------------------------------------
@@ -130,8 +130,8 @@ The :ref:`Kafka Authorizer <kafka_authorization>` (``SimpleAclAuthorizer``) term
 Each ACL is made up of these parts:
 
 Resource
-    A resource is an object that adheres to the permissions defined by the ACL. A resource is comprised of a resource type
-    and resource name:
+    ACLs define rules allowing (``ALLOW``) or denying (``DENY``) access to resources. A resource is comprised of a resource
+    type and resource name:
 
     - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
     - Resource name, where the name is either specific or the wildcard ``*``, meaning all resources of this type.
@@ -145,11 +145,10 @@ Permission
     The type of access an ACL allows (``ALLOW``) or denies (``DENY``) access.
 
 Principal
-    An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``. The identity of Kafka clients
-    is the user principal which represents a specific authenticated user in a secure cluster.
+    An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``. 
 
 
-The ACLs described below list a ``RESOURCE_TYPE``, resource name, and OPERATION. All ACLs described are ``ALLOW`` ACLs, where
+The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATION``. All ACLs described are ``ALLOW`` ACLs, where
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 

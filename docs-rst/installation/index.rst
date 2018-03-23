@@ -32,7 +32,6 @@ For advanced installation and configuration, see the following topics.
 
     architecture
     installing
-    standalone
     server-config/index
     cli-config
     common-scenarios

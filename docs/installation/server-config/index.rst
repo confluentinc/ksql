@@ -262,9 +262,50 @@ Start the KSQL Server in via the ``ksql-server.properties`` file
           # Define the location of the queries file to execute
           ksql.queries.file=path/to/queries.sql
 
-
    #. Start the KSQL with the properties file specified.
-
       .. code:: bash
 
             $ <path-to-confluent>/bin/ksql-start-server <path-to-confluent>/etc/ksql/ksql-server.properties
+
+-----------------------------
+Production Settings
+-----------------------------
+
+When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
+
+.. code:: bash
+
+    # Set the retries to Integer.MAX_VALUE to ensure that transient failures
+    # will not result in data loss.
+    producer.retries=2147483647
+
+    # Set the batch expiry to Long.MAX_VALUE to ensure that queries will not
+    # terminate if the underlying Kafka cluster is unavailable for a period of
+    # time.  
+    producer.confluent.batch.expiry.ms=9223372036854775807
+
+    # Allows more frequent retries of requests when there are failures,
+    # enabling quicker recovery.
+    producer.request.timeout.ms=300000
+
+    # Set the maximum allowable time for the producer to block to
+    # Long.MAX_VALUE. This allows KSQL to pause processing if the underlying
+    # Kafka cluster is unavailable.  
+    producer.max.block.ms=9223372036854775807
+
+    # Set the replication factor for internal topics, the command topic, and
+    # output topics to be 3 for better fault tolerance and durability. Note:
+    # the value 3 requires at least 3 brokers in your Kafka cluster.
+    ksql.streams.replication.factor=3
+    ksql.sink.replicas=3
+
+    # Set the storage directory for stateful operations like aggregations and
+    # joins to be at a durable location. By default, they are stored in /tmp.
+    ksql.streams.state.dir=/some/non-temporary-storage-path/
+    
+    # Bump the number of replicas for state storage for stateful operations
+    # like aggregations and joins. By having two replicas (one main and one
+    # standby) recovery from node failures is quicker since the state doesn't
+    # have to be rebuilt from scratch.
+    ksql.streams.num.standby.replicas=1
+

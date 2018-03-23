@@ -26,13 +26,13 @@ your local host.
 
 .. code:: bash
 
-    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:4.1 bash
+    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:0.5 bash
 
 Your output should resemble:
 
 .. code:: bash
 
-    Unable to find image 'confluentinc/ksql-clickstream-demo:4.1' locally
+    Unable to find image 'confluentinc/ksql-clickstream-demo:0.5' locally
     latest: Pulling from confluentinc/ksql-clickstream-demo
     ad74af05f5a2: Already exists
     d02e292e7b5e: Already exists

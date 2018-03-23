@@ -1,7 +1,7 @@
 .. Avro note
 
 .. note:: To use Avro, you must have Confluent Schema Registry enabled and set :ref:```ksql.schema.registry.url`` in your
-          KSQL configuration file <install_ksql-avro-schema>`.
+          KSQL server configuration file <install_ksql-avro-schema>`.
 .. demo
 
 Learn More

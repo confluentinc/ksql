@@ -25,8 +25,8 @@ Configuring KSQL for Avro
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You must configure the API endpoint of |sr| by setting ``ksql.schema.registry.url`` (default: ``http://localhost:8081``)
-in the KSQL configuration file (``<path-to-confluent>/etc/ksql/ksql-server.properties``) that you use to start the KSQL
-Server. For more information, see :ref:`install_ksql-server`.
+in the KSQL server configuration file (``<path-to-confluent>/etc/ksql/ksql-server.properties``). For more information,
+see :ref:`install_ksql-server`.
 
 .. important:: Do not use the SET statement in the KSQL CLI to configure the registry endpoint.
 
@@ -34,7 +34,7 @@ Using Avro in KSQL
 ^^^^^^^^^^^^^^^^^^
 
 Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql.schema.registry.url`` is set correctly
-in the KSQL properties file. |sr| is :ref:`installed by default <quickstart>` with |cp|.
+in the KSQL properties file. |sr| is :ref:`included by default <quickstart>` with |cp|.
 
 - Read from Kafka topics with Avro-formatted data by using ``CREATE STREAM`` and ``CREATE TABLE`` statements.
 - Write Avro-formatted data into Kafka topics by using ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements.

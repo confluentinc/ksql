@@ -290,6 +290,8 @@ zipcode for each user:
              regionid \
       FROM pageviews_enriched;
 
+.. _running-ksql-command-line:
+
 Running Single KSQL Statements From the Command Line
 ----------------------------------------------------
 

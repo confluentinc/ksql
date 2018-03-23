@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.util;
 
 import org.apache.kafka.common.TopicPartition;
@@ -66,6 +67,4 @@ public interface KafkaConsumerGroupClient extends AutoCloseable {
       return partitions;
     }
   }
-
-
 }

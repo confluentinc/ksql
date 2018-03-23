@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -58,7 +57,6 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = queriesFile;
   }
 
-
   public void start() throws Exception {
     try {
       executeStatements(readQueriesFile(queriesFile));
@@ -87,7 +85,7 @@ public class StandaloneExecutor implements Executable {
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if(!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       streamsProperties.put(
           StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
@@ -102,19 +100,21 @@ public class StandaloneExecutor implements Executable {
         queriesFile);
   }
 
-
   private void showWelcomeMessage() {
     final Console console = System.console();
     if (console == null) {
       return;
     }
-    try (PrintWriter writer =
-             new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
-      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
-      writer.printf("Server %s started with query file %s. Interactive mode is disabled.\n",
-          Version.getVersion(),
-          queriesFile);
-    }
+
+    final PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+
+    WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+    writer.printf("Server %s started with query file %s. Interactive mode is disabled.%n",
+                  Version.getVersion(),
+                  queriesFile);
+
+    writer.flush();
   }
 
   private void executeStatements(final String queries) throws Exception {
@@ -126,7 +126,7 @@ public class StandaloneExecutor implements Executable {
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
-                + "\nOnly CREATE statements can run in standalone mode.",
+            + "%nOnly CREATE statements can run in standalone mode.",
             queryMetadata.getStatementString()
         );
         System.err.println(message);
@@ -134,8 +134,6 @@ public class StandaloneExecutor implements Executable {
       }
     }
   }
-
-
 
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();

@@ -42,7 +42,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore, isValidatePhase);
     }
@@ -63,6 +63,6 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putSource(ksqlStream.cloneWithTimeKeyColumns());
-    return new DDLCommandResult(true, "Stream created");
+    return new DdlCommandResult(true, "Stream created");
   }
 }

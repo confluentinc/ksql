@@ -366,11 +366,11 @@ public class KsqlResourceTest {
         StreamsList.class
     );
 
-    List<StreamsList.StreamInfo> testStreams = streamsList.getStreams();
+    List<SourceInfo.Stream> testStreams = streamsList.getStreams();
     assertEquals(1, testStreams.size());
 
-    StreamsList.StreamInfo expectedStream =
-        new StreamsList.StreamInfo((KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
+    SourceInfo expectedStream =
+        new SourceInfo.Stream((KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
 
     assertEquals(expectedStream, testStreams.get(0));
   }
@@ -389,11 +389,11 @@ public class KsqlResourceTest {
         TablesList.class
     );
 
-    List<TablesList.TableInfo> testTables = tablesList.getTables();
+    List<SourceInfo.Table> testTables = tablesList.getTables();
     assertEquals(1, testTables.size());
 
-    TablesList.TableInfo expectedTable =
-        new TablesList.TableInfo((KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
+    SourceInfo expectedTable =
+        new SourceInfo.Table((KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
 
     assertEquals(expectedTable, testTables.get(0));
   }

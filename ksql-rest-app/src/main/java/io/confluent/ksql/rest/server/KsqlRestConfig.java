@@ -47,7 +47,7 @@ public class KsqlRestConfig extends RestConfig {
   public static final ConfigDef.Type
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
-      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 1000L;
+      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 5000L;
   public static final ConfigDef.Importance
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String
@@ -69,6 +69,8 @@ public class KsqlRestConfig extends RestConfig {
   public static final String INSTALL_DIR_CONFIG = "ksql.server.install.dir";
   public static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
+
+  public static final String COMMAND_TOPIC_SUFFIX = "command_topic";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -133,9 +135,10 @@ public class KsqlRestConfig extends RestConfig {
 
   public String getCommandTopic(String ksqlServiceId) {
     return String.format(
-        "%s-%s",
+        "%s%s_%s",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-        ksqlServiceId
+        ksqlServiceId,
+        COMMAND_TOPIC_SUFFIX
     );
   }
 

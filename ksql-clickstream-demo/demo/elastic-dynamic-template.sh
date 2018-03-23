@@ -2,6 +2,8 @@
 
 echo "Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp"
 
+curl -XDELETE "http://localhost:9200/_template/kafkaconnect/"
+
 curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: application/json' -d'
 {
   "template": "*",
@@ -12,9 +14,9 @@ curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: app
   "mappings": {
     "_default_": {
       "dynamic_templates": [
-{
+        {
           "dates": {
-            "match": "*_TS",
+            "match": "EVENT_TS",
             "mapping": {
               "type": "date"
             }
@@ -25,7 +27,7 @@ curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: app
             "match": "*",
             "match_mapping_type": "string",
             "mapping": {
-              "type": "string",
+              "type": "keyword",
               "index": "not_analyzed"
             }
           }

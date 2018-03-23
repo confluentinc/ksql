@@ -57,9 +57,9 @@ public class PrintMetrics {
   }
 
   private static void printMetrics(int port) throws IOException {
-    JMXServiceURL jmxURL = new JMXServiceURL(
+    JMXServiceURL jmxUrl = new JMXServiceURL(
         String.format("service:jmx:rmi:///jndi/rmi://localhost:%d/jmxrmi", port));
-    JMXConnector connector = JMXConnectorFactory.connect(jmxURL);
+    JMXConnector connector = JMXConnectorFactory.connect(jmxUrl);
     connector.connect();
     MBeanServerConnection connection = connector.getMBeanServerConnection();
 

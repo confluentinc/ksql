@@ -17,7 +17,7 @@ configured via the ``/etc/ksql/ksql-server.properties`` file or the SET statemen
 You can set the following parameters for the KSQL Server and KSQL CLI.
 
 .. important:: KSQL Server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
-               for ``ksql.server.id`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
+               for ``ksql.service.id`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
 
 KSQL Query
     These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For

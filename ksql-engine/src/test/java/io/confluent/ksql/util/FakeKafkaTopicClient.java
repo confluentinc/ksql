@@ -59,10 +59,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
     public TopicDescription getDescription() {
       List<TopicPartitionInfo> partitionInfoList = new LinkedList<>();
+
       Node node = new Node(0, "localhost", 9091);
       for (int i = 0; i < numPartitions; i++) {
         partitionInfoList.add(
-            new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()));
+            new TopicPartitionInfo(0, node, Collections.emptyList(), Collections.emptyList()));
       }
       return new TopicDescription(topicName, false, partitionInfoList);
     }

@@ -225,13 +225,16 @@ public class JoinNode extends PlanNode {
 
   private SchemaKStream streamForJoin(final SchemaKStream stream, final String leftKeyFieldName,
                                       KafkaTopicClient kafkaTopicClient) {
-    boolean forceRepartition
-        = left.getPartitions(kafkaTopicClient) != getPartitions(kafkaTopicClient);
+    if (left.getPartitions(kafkaTopicClient) != getPartitions(kafkaTopicClient)) {
+      throw new KsqlException(
+          "Stream and Table have different number of partitions. Either the stream or the table" +
+          "must be repartitioned such that both have the same number of partitions.");
+    }
     final Field field = SchemaUtil.getFieldByName(stream.getSchema(),
         leftKeyFieldName).orElseThrow(() -> new KsqlException("couldn't find key field: "
         + leftKeyFieldName
         + " in schema:"
         + schema));
-    return stream.selectKey(field, true, forceRepartition);
+    return stream.selectKey(field, true);
   }
 }

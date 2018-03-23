@@ -165,22 +165,8 @@ public class SchemaKStreamTest {
                                              SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
-                                                                            .get(1), true, false);
+                                                                            .get(1), true);
     Assert.assertTrue(rekeyedSchemaKStream.getKeyField().name().equalsIgnoreCase("TEST1.COL1"));
-  }
-
-  @Test
-  public void testSelectKeyForce() throws Exception {
-    String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
-        .getSchema().fields()
-        .get(1), true, true);
-    Assert.assertThat(rekeyedSchemaKStream, not(sameInstance(initialSchemaKStream)));
   }
 
   @Test

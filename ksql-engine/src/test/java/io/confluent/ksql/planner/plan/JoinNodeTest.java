@@ -177,7 +177,7 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldRepartitionOnPartitionMismatch() {
+  public void shouldThrowOnPartitionMismatch() {
     Node node = new Node(0, "localhost", 9091);
     // Setup stream with one partition
     List<TopicPartitionInfo> streamPartitionInfoList = Arrays.asList(
@@ -198,7 +198,14 @@ public class JoinNodeTest {
                 new TopicDescription("test2", false, tablePartitionInfoList)));
     EasyMock.replay(topicClient);
 
-    buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
+    try {
+      buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
+    } catch (KsqlException e) {
+      Assert.assertThat(e.getMessage(), equalTo(
+          "Stream and Table have different number of partitions. Either the stream or the table" +
+              "must be repartitioned such that both have the same number of partitions."
+      ));
+    }
 
     final Topology topology = builder.build();
     final TopologyDescription description = topology.describe();

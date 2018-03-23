@@ -127,7 +127,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream selectKey(Field newKeyField, boolean updateRowKey, boolean force) {
+  public SchemaKStream selectKey(Field newKeyField, boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 

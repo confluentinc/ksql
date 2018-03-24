@@ -210,9 +210,10 @@ listeners
 ^^^^^^^^^
 
 Set the port for the KSQL Server to listen on. This defaults to http://localhost:8088. To listen for requests from all
-servers on port 80, set this to:
+servers on port 80, updated it accordingly in your ``ksql-server.properties`` file.
 
 .. code:: bash
+
     # Set which port to listen on.
     listeners=http://0.0.0.0:80 
     

@@ -10,24 +10,20 @@ Configuring KSQL Server
     ccloud-ksql
     avro-schema
 
-KSQL configuration parameters can be set for Admin Client, KSQL Query, KSQL Server, Kafka Streams, and Kafka Clients. The
-KSQL Server parameters are configured via the ``/etc/ksql/ksql-server.properties`` file. 
+Configuration parameters can be set for KSQL queries, the Kafka Admin Client, the KSQL Server, the Kafka Streams API, the Kafka Producer, and the Kafka Consumer. 
 
-You can set the following parameters for the KSQL Server.
+These can all be configured via the ``/etc/ksql/ksql-server.properties`` file. 
 
 .. important:: KSQL Server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
 
-KSQL Query
+KSQL Query Parameters
     These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For
     example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
 
 Kafka Streams and Kafka Client
     These configurations control how Kafka Streams executes queries. These can be provided with the optional ``ksql.streams``
     prefix. For example,  ``ksql.streams.auto.offset.reset`` and ``ksql.streams.cache.max.bytes.buffering``.
-
-
-You can set the following parameters for the KSQL Server only.
 
 Admin Client
     These configurations control the KSQL admin client and use the same parameters as Kafka Streams. These can be provided
@@ -62,10 +58,6 @@ After you have configured your properties file, you can start KSQL with your pro
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. tip:: The command topic name is determined by the :ref:`ksql-service-id` configuration.
-
-.. _configuring-ksql:
-
 -----------
 JMX Metrics
 -----------
@@ -73,6 +65,8 @@ JMX Metrics
 .. include:: ../../includes/ksql-includes.rst
     :start-line: 320
     :end-line: 327
+
+.. _configuring-ksql:
 
 ------------------------------------
 Common KSQL Configuration Parameters

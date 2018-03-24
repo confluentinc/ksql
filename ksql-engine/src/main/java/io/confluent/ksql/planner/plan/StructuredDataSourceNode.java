@@ -32,6 +32,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,6 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -77,7 +77,8 @@ public class StructuredDataSourceNode
         return row;
       };
 
-  private final WindowedSerde windowedSerde = new WindowedSerde();
+  private final Serde<Windowed<String>> windowedSerde
+          = WindowedSerdes.timeWindowedSerdeFrom(String.class);
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
 

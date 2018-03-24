@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,9 +65,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicatonFactor
+      final short replicatonFactor,
+      boolean isCompacted
   ) {
-    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap());
+    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap(), isCompacted);
   }
 
   @Override
@@ -74,14 +76,20 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, String> configs
+      final Map<String, String> configs,
+      boolean isCompacted
   ) {
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
-    newTopic.configs(configs);
+    Map<String, String> newTopicConfigs = new HashMap<>();
+    newTopicConfigs.putAll(configs);
+    if (isCompacted) {
+      newTopicConfigs.put("cleanup.policy", "compact");
+    }
+    newTopic.configs(newTopicConfigs);
     try {
       log.info("Creating topic '{}'", topic);
       RetryHelper<Void> retryHelper = new RetryHelper<>();
@@ -127,6 +135,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics", e);
     }
+  }
+
+  @Override
+  public DescribeConfigsResult describeConfigs(String topicName) {
+    return adminClient.describeConfigs(
+        Collections.singleton(new ConfigResource(ConfigResource.Type.TOPIC, topicName)));
   }
 
   @Override

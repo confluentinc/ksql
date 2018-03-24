@@ -55,7 +55,7 @@ public class BrokerCompatibilityCheck implements Closeable {
     Set<String> topicNames = topicClient.listTopicNames();
     // the offsetsForTime call needs a partition that exists else it can block forever
     if (topicNames.isEmpty()) {
-      topicClient.createTopic(KSQL_COMPATIBILITY_CHECK, 1, (short) 1);
+      topicClient.createTopic(KSQL_COMPATIBILITY_CHECK, 1, (short) 1, false);
       topicNames = Utils.mkSet(KSQL_COMPATIBILITY_CHECK);
     }
     final Map<String, Object> consumerConfigs = new StreamsConfig(streamsConfig)

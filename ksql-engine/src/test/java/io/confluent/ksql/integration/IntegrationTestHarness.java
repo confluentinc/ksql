@@ -64,10 +64,10 @@ public class IntegrationTestHarness {
 
   // Topic generation
   public void createTopic(String topicName) {
-    topicClient.createTopic(topicName, 1, (short) 1);
+    topicClient.createTopic(topicName, 1, (short) 1, false);
   }
   public void createTopic(String topicName, int numPartitions, short replicatonFactor) {
-    topicClient.createTopic(topicName, numPartitions, replicatonFactor);
+    topicClient.createTopic(topicName, numPartitions, replicatonFactor, false);
   }
 
 

@@ -49,6 +49,7 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyShort;
 import static org.easymock.EasyMock.eq;
@@ -92,7 +93,7 @@ public class KsqlStructuredDataOutputNodeTest {
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
     createOutputNode(props);
-    topicClient.createTopic(eq("output"), anyInt(), anyShort());
+    topicClient.createTopic(eq("output"), anyInt(), anyShort(), anyBoolean());
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
     stream = buildStream();

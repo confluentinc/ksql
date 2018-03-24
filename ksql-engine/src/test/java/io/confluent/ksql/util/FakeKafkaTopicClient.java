@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
@@ -34,11 +35,16 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     final String topicName;
     final int numPartitions;
     final short replicatonFactor;
+    final String cleanupPolicy;
 
-    public FakeTopic(String topicName, int numPartitions, short replicatonFactor) {
+    public FakeTopic(String topicName,
+                     int numPartitions,
+                     short replicatonFactor,
+                     String cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
+      this.cleanupPolicy = cleanupPolicy;
     }
 
     public String getTopicName() {
@@ -52,21 +58,30 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     public short getReplicatonFactor() {
       return replicatonFactor;
     }
+
+    public String getCleanupPolicy() {
+      return cleanupPolicy;
+    }
   }
 
   Map<String, FakeTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
+                                                                                "compact":
+                                                                                "delete"));
     }
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String,
+      String> configs, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
+                                                                                "compact":
+                                                                                "delete"));
     }
   }
 
@@ -83,6 +98,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     return Collections.emptyMap();
+  }
+
+  @Override
+  public DescribeConfigsResult describeConfigs(String topicName) {
+    return null;
   }
 
   @Override

@@ -9,7 +9,10 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -26,7 +29,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -111,6 +116,18 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+
+    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
+        (streamName).all().get(1000, TimeUnit.MILLISECONDS);
+    assertThat(configResourceConfigMap.values().size(), equalTo(1));
+    Object[] configEntries =
+        configResourceConfigMap.values().stream().findFirst().get()
+            .entries()
+            .stream()
+            .filter
+                (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
+    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
+    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("compact"));
   }
 
 

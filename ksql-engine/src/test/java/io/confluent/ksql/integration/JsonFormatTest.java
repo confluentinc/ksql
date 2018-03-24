@@ -19,7 +19,12 @@ package io.confluent.ksql.integration;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
@@ -50,12 +56,15 @@ import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 public class JsonFormatTest {
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
+  private static final String usersTopic = "users_topic";
+  private static final String usersTable = "USERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
 
@@ -92,8 +101,9 @@ public class JsonFormatTest {
   }
 
   private void createInitTopics() {
-    topicClient.createTopic(inputTopic, 1, (short)1);
-    topicClient.createTopic(messageLogTopic, 1, (short)1);
+    topicClient.createTopic(inputTopic, 1, (short)1, false);
+    topicClient.createTopic(usersTopic, 1, (short)1, false);
+    topicClient.createTopic(messageLogTopic, 1, (short)1, false);
   }
 
   private void produceInitData() throws Exception {
@@ -121,10 +131,16 @@ public class JsonFormatTest {
         + "kafka_topic='%s' , "
         + "key='ordertime');", inputStream, inputTopic);
 
+    String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
+                                         + "(value_format = 'json', kafka_topic='%s', "
+                                         + "key='userid');",
+                                         usersTable, usersTopic);
+
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
     ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(usersTableStr, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(messageStreamStr, Collections.emptyMap());
   }
 
@@ -187,6 +203,44 @@ public class JsonFormatTest {
     assertThat(
         topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
         hasSize(3));
+    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
+        (streamName).all().get(1000, TimeUnit.MILLISECONDS);
+    assertThat(configResourceConfigMap.values().size(), equalTo(1));
+    Object[] configEntries =
+        configResourceConfigMap.values().stream().findFirst().get()
+            .entries()
+            .stream()
+            .filter
+            (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
+    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
+    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("delete"));
+  }
+
+  @Test
+  public void testSinkCleanupPolicy() throws Exception {
+    final String tableName = "SinkCleanupTable".toUpperCase();
+    final int resultPartitionCount = 3;
+    final String queryString = String.format("CREATE TABLE %s AS SELECT * "
+                                             + "FROM %s;",
+                                             tableName, usersTable);
+    executePersistentQuery(queryString);
+
+    TestUtils.waitForCondition(
+        () -> topicClient.isTopicExists(tableName),
+        "Wait for async topic creation"
+    );
+
+    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
+        (tableName).all().get(1000, TimeUnit.MILLISECONDS);
+    assertThat(configResourceConfigMap.values().size(), equalTo(1));
+    Object[] configEntries =
+        configResourceConfigMap.values().stream().findFirst().get()
+            .entries()
+            .stream()
+            .filter
+                (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
+    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
+    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("compact"));
   }
 
   @Test

@@ -116,18 +116,7 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-
-    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
-        (streamName).all().get(1000, TimeUnit.MILLISECONDS);
-    assertThat(configResourceConfigMap.values().size(), equalTo(1));
-    Object[] configEntries =
-        configResourceConfigMap.values().stream().findFirst().get()
-            .entries()
-            .stream()
-            .filter
-                (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
-    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
-    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("compact"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("compact"));
   }
 
 
@@ -174,6 +163,7 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -226,6 +216,7 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
   }
 
   @Test
@@ -273,6 +264,7 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
 
   }
 

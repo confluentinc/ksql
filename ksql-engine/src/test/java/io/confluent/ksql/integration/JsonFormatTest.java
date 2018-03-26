@@ -133,7 +133,7 @@ public class JsonFormatTest {
 
     String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
                                          + "(value_format = 'json', kafka_topic='%s', "
-                                         + "key='userid');",
+                                         + "KEY='userid');",
                                          usersTable, usersTopic);
 
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
@@ -203,21 +203,11 @@ public class JsonFormatTest {
     assertThat(
         topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
         hasSize(3));
-    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
-        (streamName).all().get(1000, TimeUnit.MILLISECONDS);
-    assertThat(configResourceConfigMap.values().size(), equalTo(1));
-    Object[] configEntries =
-        configResourceConfigMap.values().stream().findFirst().get()
-            .entries()
-            .stream()
-            .filter
-            (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
-    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
-    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("delete"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
   }
 
   @Test
-  public void testSinkCleanupPolicy() throws Exception {
+  public void testTableSinkCleanupProperty() throws Exception {
     final String tableName = "SinkCleanupTable".toUpperCase();
     final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE TABLE %s AS SELECT * "
@@ -230,17 +220,7 @@ public class JsonFormatTest {
         "Wait for async topic creation"
     );
 
-    Map<ConfigResource, Config> configResourceConfigMap = topicClient.describeConfigs
-        (tableName).all().get(1000, TimeUnit.MILLISECONDS);
-    assertThat(configResourceConfigMap.values().size(), equalTo(1));
-    Object[] configEntries =
-        configResourceConfigMap.values().stream().findFirst().get()
-            .entries()
-            .stream()
-            .filter
-                (configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy")).toArray();
-    assertThat(configEntries[0], instanceOf(ConfigEntry.class));
-    assertThat(((ConfigEntry) configEntries[0]).value(), equalTo("compact"));
+    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo("compact"));
   }
 
   @Test

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
@@ -74,11 +73,12 @@ public interface KafkaTopicClient extends Closeable {
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
   /**
-   * [warn] synchronous call to get the response
+   * [warn] Asynchronous call to get the response
    *
-   * @param topicName topicName to describe
+   * @param topicName topicNames to describe
    */
-  DescribeConfigsResult describeConfigs(String topicName);
+  public String getTopicCleanupPolicy(String topicName);
+
 
   /**
    * Delete the list of the topics in the given list.

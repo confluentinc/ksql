@@ -84,7 +84,7 @@ public class KafkaTopicClientTest {
   }
 
   @Test
-  public void shouldUseExistingTopicWIthTheSameSpecsInsteadOfCreate() {
+  public void shouldUseExistingTopicWithTheSameSpecsInsteadOfCreate() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
@@ -320,11 +320,8 @@ public class KafkaTopicClientTest {
   private DescribeConfigsResult getDescribeConfigsResult(boolean isCompacted) {
     DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
-    ConfigEntry configEntryIsCompacted = new ConfigEntry("cleanup.policy",
-                                                         isCompacted? "compact": "delete");
     List<ConfigEntry> configEntries = new ArrayList<>();
     configEntries.add(configEntryDeleteEnable);
-    configEntries.add(configEntryIsCompacted);
     Map<ConfigResource, Config> config = new HashMap<>();
     config.put(new ConfigResource(ConfigResource.Type.BROKER, "1"), new Config(configEntries));
     expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));

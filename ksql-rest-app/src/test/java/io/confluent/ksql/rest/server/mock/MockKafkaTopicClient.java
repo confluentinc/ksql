@@ -65,7 +65,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
 
 
   @Override
-  public DescribeConfigsResult describeConfigs(String topicName) {
+  public String getTopicCleanupPolicy(String topicName) {
     return null;
   }
 

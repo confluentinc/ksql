@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
@@ -137,10 +138,34 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+
+
   @Override
-  public DescribeConfigsResult describeConfigs(String topicName) {
-    return adminClient.describeConfigs(
-        Collections.singleton(new ConfigResource(ConfigResource.Type.TOPIC, topicName)));
+  public String getTopicCleanupPolicy(String topicName) {
+    RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
+    Map<ConfigResource, Config> configMap = null;
+    try {
+      configMap = retryHelper.executeWithRetries(
+          () -> {
+            return adminClient.describeConfigs(Collections.singleton(
+                new ConfigResource(ConfigResource.Type.TOPIC, topicName)))
+                .all();
+          });
+    } catch (Exception e) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName, e);
+    }
+    if (configMap == null) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
+    }
+    Object[] configValues = configMap.values().stream().findFirst().get()
+        .entries()
+        .stream()
+        .filter(configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy"))
+        .toArray();
+    if (configValues == null || configValues.length ==0) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
+    }
+    return ((ConfigEntry) configValues[0]).value();
   }
 
   @Override

@@ -111,7 +111,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;
-  private final VersionCheckerAgent versionChckerAgent;
+  private final VersionCheckerAgent versionCheckerAgent;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -137,7 +137,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
 
-    this.versionChckerAgent = versionCheckerAgent;
+    this.versionCheckerAgent = versionCheckerAgent;
     this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
@@ -181,7 +181,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
 
     return super.getStaticResources();
-
   }
 
   @Override
@@ -190,8 +189,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     commandRunnerThread.start();
     Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
-    if (versionChckerAgent != null) {
-      versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+    if (versionCheckerAgent != null) {
+      versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
 
     displayWelcomeMessage();

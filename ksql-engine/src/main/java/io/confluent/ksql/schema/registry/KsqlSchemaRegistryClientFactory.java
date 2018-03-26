@@ -37,8 +37,7 @@ public class KsqlSchemaRegistryClientFactory {
   private final Supplier<RestService> serviceSupplier;
 
   public KsqlSchemaRegistryClientFactory(final KsqlConfig config) {
-    this(config,
-         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
+    this(config, () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
          new SslFactory(Mode.CLIENT));
 
     // Force config exception now:

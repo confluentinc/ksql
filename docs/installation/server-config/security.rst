@@ -6,7 +6,7 @@ Configuring Security for KSQL
 KSQL supports many of the security features of both Apache Kafka and the |sr|.
 
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
-  :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`Authorization with ACLs <kafka_authorization>`.
+  :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such as SSL and SASL.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
@@ -29,7 +29,7 @@ You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :re
 Configuring KSQL for Secured Confluent Schema Registry
 ------------------------------------------------------
 
-The following configuration is connecting KSQL with the Confluent Schema Registry over HTTPS.
+The following configuration will connect KSQL with the Confluent Schema Registry over HTTPS.
 
 #. Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
    KSQL server configuration file:
@@ -38,8 +38,11 @@ The following configuration is connecting KSQL with the Confluent Schema Registr
 
         ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-#. If the Schema Registry's SSL certificate is not signed by a CA that is recognized by the JVM by default, then you
-   must provide a suitable truststore when starting KSQL via the command line:
+#. Specify any SSL or SASL configuration the Schema Registry client requires using the ``KSQL_OPTS``
+   environment variable.
+
+   For example, if the Schema Registry's SSL certificate is not signed by a CA that is recognized by
+   the JVM by default, then you can provide a suitable truststore when starting KSQL via the command line:
 
    .. code:: bash
 
@@ -54,6 +57,22 @@ Configuration KSQL for Secured Apache Kafka clusters
 ----------------------------------------------------
 
 The following are common configuration examples.
+
+.. _config-security-ssl:
+
+Configuring Kafka Encrypted Communication
+-----------------------------------------
+
+This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
+
+.. code:: bash
+    security.protocol=SSL
+    ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+    ssl.truststore.password=confluent
+
+The exact settings you will need will vary depending on the security settings of the Kafka brokers,
+and how your SSL certificates are signed. For full details, and instructions on how to create
+suitable trust stores, please refer to the :ref:`Security Guide <security>`.
 
 .. _config-security-ssl-sasl:
 
@@ -74,24 +93,7 @@ signed by a CA trusted by the default JVM trust store.
         password="<password>";
 
 The exact settings required depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
-signed. For more information, see the `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
-
-.. _config-security-ssl anchor:
-
-Configuring Encrypted Communication Between KSQL and Kafka
-----------------------------------------------------------
-
-This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
-
-.. code:: bash
-
-    security.protocol=SSL
-    ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
-    ssl.truststore.password=confluent
-
-The exact settings required will vary depending on the security settings the Kafka brokers are using and how your SSL
-certificates are signed. For full details, and instructions on how to create a suitable trust store, see the
-`Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
+signed. For more information, please refer to the :ref:`Security Guide <security>`.
 
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
@@ -114,7 +116,7 @@ with |c3-short|.
     confluent.monitoring.interceptor.ssl.keystore.location=/etc/kafka/secrets/kafka.client.keystore.jks
     confluent.monitoring.interceptor.ssl.keystore.password=confluent
     confluent.monitoring.interceptor.ssl.key.password=confluent
-    confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="client" password="client-secret";
+    confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="ksql-user" password="ksql-user-secret";
     confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 
 .. _config-security-ksql-acl:
@@ -123,18 +125,19 @@ with |c3-short|.
 Configuring Authorization of KSQL with Kafka ACLs
 -------------------------------------------------
 
-You can use KSQL with Apache Kafka clusters that are secured with ACLs. The behavior depends on whether the KSQL cluster is
-interactive or non-interactive.
+Kafka clusters can use ACLs to control access to resources. Such clusters require each clients to authenticate as a particular user.
+To work with such clusters, KSQL must be configured to :ref:`authenticate with the Kafka cluster <config-security-ssl-sasl>`,
+and certain ACLs must be defined in the Kafka cluster to allow the user KSQL is authenticating as access to resources.
+The list of ACLs that must be defined depends on whether the KSQL cluster is interactive or non-interactive, and are covered below.
 
-The :ref:`Kafka Authorizer <kafka_authorization>` (``SimpleAclAuthorizer``) terminology is used to describe the ACLs.
-Each ACL is made up of these parts:
+This section uses the terminology used by the :ref:`Kafka Authorizer <kafka_authorization>` (``SimpleAclAuthorizer``)
+to describe the required ACLs. Each ACL is made up of these parts:
 
 Resource
-    ACLs define rules allowing (``ALLOW``) or denying (``DENY``) access to resources. A resource is comprised of a resource
-    type and resource name:
+    A resource is comprised of a resource type and resource name:
 
     - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
-    - Resource name, where the name is either specific or the wildcard ``*``, meaning all resources of this type.
+    - Resource name, where the name is either specific, e.g. ``users``, or the wildcard ``*``, meaning all resources of this type.
 
     The ``CLUSTER`` resource type does not require a resource name because it refers to the entire Kafka cluster.
 
@@ -142,11 +145,12 @@ Operation
     The operation that is performed on the resource, for example ``READ``.
 
 Permission
-    The type of access an ACL allows (``ALLOW``) or denies (``DENY``) access.
+    Defines if the ACL allows (``ALLOW``) or denies (``DENY``) access to the resource.
 
 Principal
     An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``. 
 
+An example ACL might ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` named ``users``.
 
 The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATION``. All ACLs described are ``ALLOW`` ACLs, where
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
@@ -159,16 +163,15 @@ non-interactive queries, see :ref:`restrict-ksql-interactive`.
 Interactive KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Kafka clusters that use ACLs to control access to resources require clients to authenticate as a particular user. Interactive
-KSQL clusters require that this authenticated KSQL user has open access to create, read, write, delete topics, and use any
-consumer group.
+Interactive KSQL clusters require that the authenticated KSQL user has open access to create, read, write, delete topics, and use any
+consumer group:
 
 :ref:`Interactive KSQL clusters <restrict-ksql-interactive>` require these ACLs:
 
 - Permission for the ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
 - Permission for the ``CREATE`` operation on the ``CLUSTER`` resource type.
 - Permissions for ``DESCRIBE``, ``READ``, ``WRITE`` and ``DELETE`` operations on all ``TOPIC`` resource types.
-- Permissions for ``DESCRIBE`` and ``READ`` operations  on all ``GROUP`` resource types.
+- Permissions for ``DESCRIBE`` and ``READ`` operations on all ``GROUP`` resource types.
 
 It is still possible to restrict the authenticated KSQL user from accessing specific resources using ``DENY`` ACLs. For
 example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic that contains sensitive data.
@@ -177,8 +180,9 @@ example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic 
 Non-Interactive (headless) KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>` can be run with much more restrictive ACLs, though it
-currently requires a bit of effort to determine what ACLs are required. This will be improved in future KSQL releases.
+:ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>` can be run with much more restrictive ACLs
+as the list of queries to be run are known up front. Determining the list of ACLs currently requires a bit
+of effort. This will be improved in future KSQL releases.
 
 Standard ACLs
     The authenticated KSQL user always requires:
@@ -187,49 +191,50 @@ Standard ACLs
     - ``DESCRIBE`` permission on the ``__consumer_offsets`` topic.
 
 Input topics
-    The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each input topic. The topic should already exist
-    when KSQL is started.
+    An input topic is a topic that is imported into KSQL using a ``CREATE STREAM`` or ``CREATE TABLE``
+    statement. The topic should already exist when KSQL is started.
+
+    The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each input topic.
 
 Output topics
-    KSQL creates output topics when you run persistent CREATE TABLE AS STREAM and CREATE TABLE AS STREAM queries. The
-    authenticated KSQL user requires ``DESCRIBE`` and ``WRITE`` permissions on each output topic.
+    KSQL creates output topics when you run persistent ``CREATE TABLE AS SELECT`` or ``CREATE TABLE AS SELECT`` queries.
 
-    By default, KSQL will attempt to create any output topics that do not exist. To allow this the authenticated KSQL user requires
+    The authenticated KSQL user requires ``DESCRIBE`` and ``WRITE`` permissions on each output topic.
+
+    By default, KSQL will attempt to create any output topics that do not exist. To allow this, the authenticated KSQL user requires
     ``CREATE`` permissions on the ``CLUSTER`` resource type. Alternatively, topics can be created manual before running KSQL. To determine
-    the list of output topics and their required configuration, for example, partition count, replication factor,
-    retention policy, etc, you can run KSQL on an open cluster first.
-
-    If you want KSQL to create output topics, then the authenticated KSQL user should be granted ``CREATE`` permission on the ``CLUSTER`` resource type. KSQL
-    will create output topics whenever you are doing a persistent CTAS/CTAS query.
+    the list of output topics and their required configuration, (partition count, replication factor,
+    retention policy, etc), you can run KSQL on a Kafka cluster with no, or open, ACLs first.
 
 Change-log and repartition topics
-    Internally KSQL uses repartition topics and changelog topics for selected operations. KSQL requires repartition topics
+    Internally, KSQL uses repartition and changelog topics for selected operations. KSQL requires repartition topics
     when using either ``PARTITION BY``, or using ``GROUP BY`` on non-key values, and requires changelog topics for any
     ``CREATE TABLE x AS`` statements.
 
-    The authenticated KSQL user minimally requires a ``DESCRIBE``, ``READ``, and ``WRITE`` permissions for each changelog
-    and repartition the ``TOPIC`` resource type.
+    The authenticated KSQL user requires ``DESCRIBE``, ``READ``, and ``WRITE`` permissions for each changelog
+    and repartition ``TOPIC``.
 
-    KSQL will attempt to create any repartition or changelog topics that do not exist. To allow this, the authenticated
+    By default, KSQL will attempt to create any repartition or changelog topics that do not exist. To allow this, the authenticated
     KSQL user requires ``CREATE`` permissions on the ``CLUSTER`` resource type. Alternatively, you can create topics manually
-    before running KSQL. To determine the list of topics and their required configuration, you can run KSQL on an open
-    cluster first (e.g. partition count, replication factor, and retention policy).
+    before running KSQL. To determine the list of output topics and their required configuration, (partition count,
+    replication factor, retention policy, etc), you can run KSQL on a Kafka cluster with no, or open, ACLs first.
 
-    All changelog and repartition topics are prefixed with ``confluent-ksql-query`` where ``ksql.service.id`` defaults to
-    ``default_``. For more information, see :ref:`ksql-service-id`.
+    All changelog and repartition topics are prefixed with ``confluent-ksql-<ksql-service-id>`` where ``ksql.service.id`` defaults to
+    ``default_``, (for more information, see :ref:`ksql-service-id`), and postfixed with either ``-changelog`` or ``-repartition``,
+    respectively.
 
 Consumer groups
     KSQL uses Kafka consumer groups when consuming input, change-log and repartition topics. The set of consumer groups
-    that KSQL requires depends on the queries that are being executed. The easiest way to
-    determine the list of consumer groups is to first run the queries on an open Kafka cluster and list the
-    groups created. For more information about how to list groups, see
+    that KSQL requires depends on the queries that are being executed.
+
+    The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each consumer ``GROUP``.
+
+    The easiest way to determine the list of consumer groups is to first run the queries on a Kafka cluster with no,
+    or open, ACLs first and then list the groups created. For more information about how to list groups, see
     `Managing Consumer Groups <http://kafka.apache.org/documentation.html#basic_ops_consumer_group>`__.
 
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``ksql_``.
-
-    Authenticated KSQL users require a minimum of ``DESCRIBE`` and ``READ`` permissions for the ``GROUP`` resource type.
-
 
 Learn More
     See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__

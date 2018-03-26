@@ -70,6 +70,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.stream.Collectors.joining;
+import static io.confluent.ksql.parser.FormatterUtil.escapeIfLiteral;
 
 public final class SqlFormatter {
 
@@ -342,7 +343,7 @@ public final class SqlFormatter {
           } else {
             addComma = true;
           }
-          builder.append(tableElement.getName())
+          builder.append(escapeIfLiteral(tableElement.getName()))
               .append(" ")
               .append(tableElement.getType());
         }
@@ -379,7 +380,7 @@ public final class SqlFormatter {
           } else {
             addComma = true;
           }
-          builder.append(tableElement.getName())
+          builder.append(escapeIfLiteral(tableElement.getName()))
               .append(" ")
               .append(tableElement.getType());
         }

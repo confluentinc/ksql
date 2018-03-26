@@ -125,10 +125,11 @@ with |c3-short|.
 Configuring Authorization of KSQL with Kafka ACLs
 -------------------------------------------------
 
-Kafka clusters can use ACLs to control access to resources. Such clusters require each clients to authenticate as a particular user.
+Kafka clusters can use ACLs to control access to resources. Such clusters require each client to authenticate as a particular user.
 To work with such clusters, KSQL must be configured to :ref:`authenticate with the Kafka cluster <config-security-ssl-sasl>`,
 and certain ACLs must be defined in the Kafka cluster to allow the user KSQL is authenticating as access to resources.
-The list of ACLs that must be defined depends on whether the KSQL cluster is interactive or non-interactive, and are covered below.
+The list of ACLs that must be defined depends on whether the KSQL cluster is configured for
+:ref:`interactive <config-security-ksql-acl-interactive>` or :ref:`non-interactive (headless) <config-security-ksql-acl-headless>`.
 
 This section uses the terminology used by the :ref:`Kafka Authorizer <kafka_authorization>` (``SimpleAclAuthorizer``)
 to describe the required ACLs. Each ACL is made up of these parts:
@@ -159,14 +160,16 @@ that includes the authenticated KSQL user.
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
 non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
+.. _config-security-ksql-acl-interactive:
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Interactive KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Interactive KSQL clusters require that the authenticated KSQL user has open access to create, read, write, delete topics, and use any
-consumer group:
+:ref:`Interactive KSQL clusters <restrict-ksql-interactive>`, (which is the default configuration),
+require that the authenticated KSQL user has open access to create, read, write, delete topics, and use any consumer group:
 
-:ref:`Interactive KSQL clusters <restrict-ksql-interactive>` require these ACLs:
+Interactive KSQL clusters require these ACLs:
 
 - Permission for the ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
 - Permission for the ``CREATE`` operation on the ``CLUSTER`` resource type.
@@ -175,6 +178,8 @@ consumer group:
 
 It is still possible to restrict the authenticated KSQL user from accessing specific resources using ``DENY`` ACLs. For
 example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic that contains sensitive data.
+
+.. _config-security-ksql-acl-headless:
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Non-Interactive (headless) KSQL clusters

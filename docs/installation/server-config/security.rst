@@ -29,7 +29,7 @@ You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :re
 Configuring KSQL for Secured Confluent Schema Registry
 ------------------------------------------------------
 
-The following configuration will connect KSQL with the Confluent Schema Registry over HTTPS.
+The following configuration connects KSQL with the Confluent Schema Registry over HTTPS.
 
 #. Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
    KSQL server configuration file:

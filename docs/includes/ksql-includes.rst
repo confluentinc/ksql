@@ -75,7 +75,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-cli local
+       $ <path-to-confluent>/bin/ksql
 
    After KSQL is started, your terminal should resemble this.
 
@@ -83,7 +83,8 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
       :start-line: 17
       :end-line: 38
 
-    #. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
+#. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
+
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
    and ``ROWKEY``, which corresponds to the Kafka message key.
 

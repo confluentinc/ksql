@@ -48,7 +48,7 @@ The following configuration will connect KSQL with the Confluent Schema Registry
 
       $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>
 
-The exact settings you need depend on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
+The exact settings will vary depending on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
 are signed. For more information, see :ref:`schemaregistry_security`.
 
 .. _config-security-kafka:
@@ -70,7 +70,7 @@ This configuration enables KSQL to connect to a Kafka cluster over SSL, with a u
     ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
     ssl.truststore.password=confluent
 
-The exact settings you will need will vary depending on the security settings of the Kafka brokers,
+The exact settings will vary depending on the security settings of the Kafka brokers,
 and how your SSL certificates are signed. For full details, and instructions on how to create
 suitable trust stores, please refer to the :ref:`Security Guide <security>`.
 
@@ -92,8 +92,8 @@ signed by a CA trusted by the default JVM trust store.
         username="<ksql-user>" `
         password="<password>";
 
-The exact settings required depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
-signed. For more information, please refer to the :ref:`Security Guide <security>`.
+The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
+signed. For more information, see the :ref:`Security Guide <security>`.
 
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
@@ -185,9 +185,9 @@ example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic 
 Non-Interactive (headless) KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>` can be run with much more restrictive ACLs
-as the list of queries to be run are known up front. Determining the list of ACLs currently requires a bit
-of effort. This will be improved in future KSQL releases.
+Because the list of queries are known ahead of time, you can run
+:ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>`  with more restrictive ACLs.
+Determining the list of ACLs currently requires a bit of effort. This will be improved in future KSQL releases.
 
 Standard ACLs
     The authenticated KSQL user always requires:
@@ -196,7 +196,7 @@ Standard ACLs
     - ``DESCRIBE`` permission on the ``__consumer_offsets`` topic.
 
 Input topics
-    An input topic is a topic that is imported into KSQL using a ``CREATE STREAM`` or ``CREATE TABLE``
+    An input topic is one that has been imported into KSQL using a ``CREATE STREAM`` or ``CREATE TABLE``
     statement. The topic should already exist when KSQL is started.
 
     The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each input topic.
@@ -207,9 +207,9 @@ Output topics
     The authenticated KSQL user requires ``DESCRIBE`` and ``WRITE`` permissions on each output topic.
 
     By default, KSQL will attempt to create any output topics that do not exist. To allow this, the authenticated KSQL user requires
-    ``CREATE`` permissions on the ``CLUSTER`` resource type. Alternatively, topics can be created manual before running KSQL. To determine
+    ``CREATE`` permissions on the ``CLUSTER`` resource type. Alternatively, topics can be created manually before running KSQL. To determine
     the list of output topics and their required configuration, (partition count, replication factor,
-    retention policy, etc), you can run KSQL on a Kafka cluster with no, or open, ACLs first.
+    retention policy, etc), you can run initially run KSQL on a Kafka cluster with none or open ACLs first.
 
 Change-log and repartition topics
     Internally, KSQL uses repartition and changelog topics for selected operations. KSQL requires repartition topics
@@ -222,7 +222,7 @@ Change-log and repartition topics
     By default, KSQL will attempt to create any repartition or changelog topics that do not exist. To allow this, the authenticated
     KSQL user requires ``CREATE`` permissions on the ``CLUSTER`` resource type. Alternatively, you can create topics manually
     before running KSQL. To determine the list of output topics and their required configuration, (partition count,
-    replication factor, retention policy, etc), you can run KSQL on a Kafka cluster with no, or open, ACLs first.
+    replication factor, retention policy, etc), you can run initially run KSQL on a Kafka cluster with none or open ACLs first.
 
     All changelog and repartition topics are prefixed with ``confluent-ksql-<ksql-service-id>`` where ``ksql.service.id`` defaults to
     ``default_``, (for more information, see :ref:`ksql-service-id`), and postfixed with either ``-changelog`` or ``-repartition``,
@@ -234,8 +234,8 @@ Consumer groups
 
     The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each consumer ``GROUP``.
 
-    The easiest way to determine the list of consumer groups is to first run the queries on a Kafka cluster with no,
-    or open, ACLs first and then list the groups created. For more information about how to list groups, see
+    The easiest way to determine the list of consumer groups is to initially run the queries on a Kafka cluster
+    with none or open ACLS and then list the groups created. For more information about how to list groups, see
     `Managing Consumer Groups <http://kafka.apache.org/documentation.html#basic_ops_consumer_group>`__.
 
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,

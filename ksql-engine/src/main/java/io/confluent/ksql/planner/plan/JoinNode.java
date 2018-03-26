@@ -168,7 +168,7 @@ public class JoinNode extends PlanNode {
         ksqlConfig,
         kafkaTopicClient,
         functionRegistry,
-        props, schemaRegistryClient), getLeftKeyFieldName());
+        props, schemaRegistryClient), getLeftKeyFieldName(), kafkaTopicClient);
 
     final KsqlTopicSerDe joinSerDe = getResultTopicSerde(this);
     return stream.leftJoin(table,
@@ -218,17 +218,23 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private SchemaKStream streamForJoin(final SchemaKStream stream, final String leftKeyFieldName) {
-    if (stream.getKeyField() == null
-        || !stream.getKeyField().name().equals(leftKeyFieldName)) {
-      final Field field = SchemaUtil.getFieldByName(stream.getSchema(),
-          leftKeyFieldName).orElseThrow(() -> new KsqlException("couldn't find key field: "
-          + leftKeyFieldName
-          + " in schema:"
-          + schema));
-      return
-          stream.selectKey(field, true);
+  @Override
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return right.getPartitions(kafkaTopicClient);
+  }
+
+  private SchemaKStream streamForJoin(final SchemaKStream stream, final String leftKeyFieldName,
+                                      KafkaTopicClient kafkaTopicClient) {
+    if (left.getPartitions(kafkaTopicClient) != getPartitions(kafkaTopicClient)) {
+      throw new KsqlException(
+          "Stream and Table have different number of partitions. Either the stream or the table"
+              + "must be repartitioned such that both have the same number of partitions.");
     }
-    return stream;
+    final Field field = SchemaUtil.getFieldByName(stream.getSchema(),
+        leftKeyFieldName).orElseThrow(() -> new KsqlException("couldn't find key field: "
+        + leftKeyFieldName
+        + " in schema:"
+        + schema));
+    return stream.selectKey(field, true);
   }
 }

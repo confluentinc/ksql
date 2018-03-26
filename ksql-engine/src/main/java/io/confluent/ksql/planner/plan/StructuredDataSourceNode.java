@@ -19,6 +19,8 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -35,6 +37,7 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,6 +117,17 @@ public class StructuredDataSourceNode
 
   public StructuredDataSource getStructuredDataSource() {
     return structuredDataSource;
+  }
+
+  @Override
+  public int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
+    Map<String, TopicDescription> descriptions
+        = kafkaTopicClient.describeTopics(Arrays.asList(topicName));
+    if (!descriptions.containsKey(topicName)) {
+      throw new KsqlException("Could not get topic description for " + topicName);
+    }
+    return descriptions.get(topicName).partitions().size();
   }
 
   @Override

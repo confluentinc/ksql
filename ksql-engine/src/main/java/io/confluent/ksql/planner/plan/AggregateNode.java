@@ -260,6 +260,10 @@ public class AggregateNode extends PlanNode {
     return result.select(getFinalSelectExpressions());
   }
 
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
+  }
+
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(
       final SchemaKStream aggregateArgExpanded,
       final SchemaBuilder aggregateSchema

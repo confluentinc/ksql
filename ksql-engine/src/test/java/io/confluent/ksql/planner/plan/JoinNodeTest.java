@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -94,8 +95,37 @@ public class JoinNodeTest {
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
+  private void
+  setupTopicClientExpectations(int streamPartitions, int tablePartitions) {
+    Node node = new Node(0, "localhost", 9091);
+
+    List<TopicPartitionInfo> streamPartitionInfoList =
+        IntStream.range(0, streamPartitions)
+            .mapToObj(
+                p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
+            .collect(Collectors.toList());
+    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test1")))
+        .andReturn(
+            Collections.singletonMap(
+                "test1",
+                new TopicDescription("test1", false, streamPartitionInfoList)));
+
+    List<TopicPartitionInfo> tablePartitionInfoList =
+        IntStream.range(0, tablePartitions)
+        .mapToObj(
+            p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
+        .collect(Collectors.toList());
+    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test2")))
+        .andReturn(
+            Collections.singletonMap(
+                "test2",
+                new TopicDescription("test2", false, tablePartitionInfoList)));
+    EasyMock.replay(topicClient);
+  }
+
   @Test
   public void shouldBuildSourceNode() {
+    setupTopicClientExpectations(1, 1);
     buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
@@ -106,6 +136,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
+    setupTopicClientExpectations(1, 1);
     buildJoin();
 
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
@@ -167,6 +198,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldHaveLeftJoin() {
+    setupTopicClientExpectations(1, 1);
     buildJoin();
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
@@ -178,25 +210,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldThrowOnPartitionMismatch() {
-    Node node = new Node(0, "localhost", 9091);
-    // Setup stream with one partition
-    List<TopicPartitionInfo> streamPartitionInfoList = Arrays.asList(
-        new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()));
-    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test1")))
-        .andReturn(
-            Collections.singletonMap(
-                "test1",
-                new TopicDescription("test1", false, streamPartitionInfoList)));
-    // Setup table with 2 partitions
-    List<TopicPartitionInfo> tablePartitionInfoList = Arrays.asList(
-        new TopicPartitionInfo(0, node, new LinkedList<>(), new LinkedList<>()),
-        new TopicPartitionInfo(1, node, new LinkedList<>(), new LinkedList<>()));
-    EasyMock.expect(topicClient.describeTopics(Arrays.asList("test2")))
-        .andReturn(
-            Collections.singletonMap(
-                "test2",
-                new TopicDescription("test2", false, tablePartitionInfoList)));
-    EasyMock.replay(topicClient);
+    setupTopicClientExpectations(1, 2);
 
     try {
       buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
@@ -207,15 +221,12 @@ public class JoinNodeTest {
       ));
     }
 
-    final Topology topology = builder.build();
-    final TopologyDescription description = topology.describe();
-    Assert.assertThat(description.subtopologies().size(), equalTo(2));
-
     EasyMock.verify(topicClient);
   }
 
   @Test
   public void shouldHaveAllFieldsFromJoinedInputs() {
+    setupTopicClientExpectations(1, 1);
     buildJoin();
     final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
     final StructuredDataSource source1

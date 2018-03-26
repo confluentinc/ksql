@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -58,13 +59,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
 
     public TopicDescription getDescription() {
-      List<TopicPartitionInfo> partitionInfoList = new LinkedList<>();
-
       Node node = new Node(0, "localhost", 9091);
-      for (int i = 0; i < numPartitions; i++) {
-        partitionInfoList.add(
-            new TopicPartitionInfo(0, node, Collections.emptyList(), Collections.emptyList()));
-      }
+      List<TopicPartitionInfo> partitionInfoList =
+          IntStream.range(0, numPartitions)
+              .mapToObj(
+                  p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
+              .collect(Collectors.toList());
       return new TopicDescription(topicName, false, partitionInfoList);
     }
   }

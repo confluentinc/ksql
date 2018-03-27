@@ -19,6 +19,7 @@ package io.confluent.ksql.datagen;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
@@ -112,7 +113,7 @@ public class DataGen {
       if (ret < 0) {
         break;
       }
-      schema += new String(b);
+      schema += new String(b, Charset.forName("UTF-8"));
     }
     return schema;
   }

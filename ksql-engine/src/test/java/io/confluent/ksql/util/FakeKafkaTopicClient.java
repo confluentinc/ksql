@@ -101,7 +101,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public String getTopicCleanupPolicy(String topicName) {
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
     return null;
   }
 

@@ -55,6 +55,7 @@ import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyShort;
 import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -95,7 +96,7 @@ public class KsqlStructuredDataOutputNodeTest {
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
     createOutputNode(props);
-    topicClient.createTopic(eq("output"), anyInt(), anyShort(), anyBoolean());
+    topicClient.createTopic(eq("output"), anyInt(), anyShort(), eq(false));
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
     stream = buildStream();
@@ -192,8 +193,64 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldCreateSinkWithCorrectCleanupPolicy() {
-    KafkaTopicClient topicClientForNonWindowTable = EasyMock.createNiceMock(KafkaTopicClient.class);
+  public void shouldCreateSinkWithCorrectCleanupPolicyNonWindowedTable() {
+    KafkaTopicClient topicClientForNonWindowTable = EasyMock.mock(KafkaTopicClient.class);
+    KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(false);
+    StreamsBuilder streamsBuilder = new StreamsBuilder();
+    topicClientForNonWindowTable.createTopic("output", 4, (short) 3, true);
+    EasyMock.replay(topicClientForNonWindowTable);
+    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
+                                                                      ksqlConfig,
+                                                                      topicClientForNonWindowTable,
+                                                                      new MetastoreUtil(),
+                                                                      new FunctionRegistry(),
+                                                                      new HashMap<>(),
+                                                                      new MockSchemaRegistryClient());
+    assertThat(schemaKStream, instanceOf(SchemaKTable.class));
+    EasyMock.verify();
+
+  }
+
+  @Test
+  public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
+    KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
+    KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(true);
+
+    StreamsBuilder streamsBuilder = new StreamsBuilder();
+    topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
+    EasyMock.replay(topicClientForWindowTable);
+    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
+                                                         ksqlConfig,
+                                                         topicClientForWindowTable,
+                                                         new MetastoreUtil(),
+                                                         new FunctionRegistry(),
+                                                         new HashMap<>(),
+                                                         new MockSchemaRegistryClient());
+    assertThat(schemaKStream, instanceOf(SchemaKTable.class));
+    EasyMock.verify();
+
+  }
+
+  @Test
+  public void shouldCreateSinkWithCorrectCleanupPolicyStream() {
+    KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
+
+    StreamsBuilder streamsBuilder = new StreamsBuilder();
+    topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
+    EasyMock.replay(topicClientForWindowTable);
+    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
+                                                         ksqlConfig,
+                                                         topicClientForWindowTable,
+                                                         new MetastoreUtil(),
+                                                         new FunctionRegistry(),
+                                                         new HashMap<>(),
+                                                         new MockSchemaRegistryClient());
+    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
+    EasyMock.verify();
+
+  }
+
+  private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNode(boolean isWindowed) {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
@@ -205,12 +262,12 @@ public class KsqlStructuredDataOutputNodeTest {
                       schema.field("key"),
                       schema.field("timestamp"),
                       new KsqlTopic("input", "input",
-                                     new KsqlJsonTopicSerDe()),
+                                    new KsqlJsonTopicSerDe()),
                       "TableStateStore",
-                      false),
+                      isWindowed),
         schema);
 
-    outputNode = new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
+    return new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
                                                   tableSourceNode,
                                                   schema,
                                                   schema.field("timestamp"),
@@ -219,19 +276,6 @@ public class KsqlStructuredDataOutputNodeTest {
                                                   "output",
                                                   props,
                                                   Optional.empty());
-
-    StreamsBuilder streamsBuilder = new StreamsBuilder();
-    SchemaKTable schemaKTable = (SchemaKTable) outputNode.buildStream(streamsBuilder,
-                                                                      ksqlConfig,
-                                                                      topicClientForNonWindowTable,
-                                                                      new MetastoreUtil(),
-                                                                      new FunctionRegistry(),
-                                                                      new HashMap<>(),
-                                                                      new MockSchemaRegistryClient());
-    topicClientForNonWindowTable.createTopic(eq("output"), anyInt(), anyShort(), eq(true));
-    EasyMock.expectLastCall();
-    EasyMock.replay(topicClientForNonWindowTable);
-
   }
 
 }

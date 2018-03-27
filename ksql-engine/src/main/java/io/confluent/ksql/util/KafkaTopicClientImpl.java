@@ -141,7 +141,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
 
   @Override
-  public String getTopicCleanupPolicy(String topicName) {
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
     RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
     Map<ConfigResource, Config> configMap = null;
     try {
@@ -165,7 +165,16 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (configValues == null || configValues.length ==0) {
       throw new KsqlException("Could not get the topic configs for : " + topicName);
     }
-    return ((ConfigEntry) configValues[0]).value();
+    switch (((ConfigEntry) configValues[0]).value().toString().toLowerCase()) {
+      case "compact":
+        return TopicCleanupPolicy.COMPACT;
+      case "delete":
+        return TopicCleanupPolicy.DELETE;
+      case "compact+delete":
+        return TopicCleanupPolicy.COMPACT_DELETE;
+      default:
+        throw new KsqlException("Could not get the topic configs for : " + topicName);
+    }
   }
 
   @Override

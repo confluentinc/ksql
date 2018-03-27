@@ -25,7 +25,8 @@ Stream
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
 be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
-derived from an existing table. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
+derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a
+Kafka topic on the Kafka
 brokers.
 
 Table
@@ -174,10 +175,11 @@ Property                  Description
  KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream. You must
                           | be sure that the record key corresponds to the value in the key column and is in the right
                           | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
-                          | in the KSQL stream. If not supplied, the timestamp of the Kafka message, from the source
-                          | stream, will be used. Time-based operations such as windowing will process
+ TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
+                          | column in the KSQL stream. Time-based operations such as windowing will process
                           | a record according to the timestamp in ``ROWTIME``.
+                          |
+                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
 ========================= ============================================================================================
 
 
@@ -233,13 +235,14 @@ Property                  Description
  KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.
  VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
- KEY                      | Associates the message key in the Kafka topic with a column in the KSQL table. You must be
+ KEY (required)           | Associates the message key in the Kafka topic with a column in the KSQL table. You must be
                           | sure that the record key corresponds to the value in the key column and is in the right
                           | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
-                          | in the KSQL table. If not supplied, the timestamp of the Kafka message, from the source
-                          | stream, will be used. Time-based operations such as windowing will process
+ TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
+                          | column in the KSQL table. Time-based operations such as windowing will process
                           | a record according to the timestamp in ``ROWTIME``.
+                          |
+                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
 ========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
@@ -266,7 +269,8 @@ CREATE STREAM AS SELECT
     CREATE STREAM stream_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item [, ...]
+      FROM from_item
+      [ LEFT JOIN join_table ON join_criteria ]
       [ WHERE condition ]
       [PARTITION BY column_name];
 
@@ -279,13 +283,13 @@ its corresponding topic.
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key.
 
-The WITH clause supports the following properties:
+The WITH clause for the result supports the following properties:
 
 ========================= ============================================================================================
 Property                  Description
 ========================= ============================================================================================
  KAFKA_TOPIC              | The name of the Kafka topic that backs this stream. If this property is not set, then the
-                          | name of the stream will be used as default.
+                          | name of the stream in upper case will be used as default.
  VALUE_FORMAT             | Specifies the serialization format of the message value in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not
                           | set, then the format of the input stream/table is used.
@@ -295,8 +299,17 @@ Property                  Description
                           | properties file the KSQL server is started with, or by using the ``SET`` statement.
  REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
                           | replicas of the input stream or table will be used.
- TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
-                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+ TIMESTAMP                | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for
+                          | any downstream queries. Downstream queries that use time-based operations, such as windowing,
+                          | will process records in this stream based on the timestamp in this field. By default,
+                          | such queries will also use this field to set the timestamp on any records emitted to Kafka.
+                          |
+                          | If not supplied, the ``ROWTIME`` of the source stream will be used.
+                          |
+                          | **NOTE**: this does _not_ affect the processing of the query that populates this stream,
+                          | e.g. given the statement ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,
+                          | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``,
+                          | not ``t2``.
 ========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
@@ -314,10 +327,10 @@ CREATE TABLE AS SELECT
 
 .. code:: sql
 
-    CREATE TABLE stream_name
+    CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item [, ...]
+      FROM from_item
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
@@ -327,6 +340,7 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
+Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
 
 The WITH clause supports the following properties:
 
@@ -344,8 +358,16 @@ Property                  Description
                           | properties file the KSQL server is started with, or by using the ``SET`` statement.
  REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
                           | replicas of the input stream or table will be used.
- TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
-                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+ TIMESTAMP                | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for
+                          | any downstream queries. Downstream queries that use time-based operations, such as windowing,
+                          | will process records in this stream based on the timestamp in this field.
+                          |
+                          | If not supplied, the ``ROWTIME`` of the source stream will be used.
+                          |
+                          | **NOTE**: this does _not_ affect the processing of the query that populates this table,
+                          | e.g. given the statement ``CREATE TABLE foo WITH (TIMESTAMP='t2') AS SELECT host, count(*) FROM bar WINDOW TUMBLING (size 10 seconds) GROUP BY host;``,
+                          | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``,
+                          | not ``t2``.
 ========================= ============================================================================================
 
 .. note::
@@ -527,7 +549,8 @@ SELECT
 .. code:: sql
 
     SELECT select_expr [, ...]
-      FROM from_item [, ...]
+      FROM from_item
+      [ LEFT JOIN join_table ON join_criteria ]
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
@@ -538,6 +561,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
+Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -740,10 +764,6 @@ TERMINATE
 Terminate a persistent query. Persistent queries run continuously until
 they are explicitly terminated.
 
--  In standalone mode, exiting the CLI will stop (think: “pause”) any
-   persistent queries because exiting the CLI will also stop the KSQL
-   server. When the CLI is restarted, the server will be restarted, too,
-   and any previously defined persistent queries will resume processing.
 -  In client-server mode, exiting the CLI will not stop persistent
    queries because the KSQL server(s) will continue to process the
    queries.

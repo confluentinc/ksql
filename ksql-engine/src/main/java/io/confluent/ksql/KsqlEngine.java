@@ -522,7 +522,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   @Override
   public void close() {
-    for (QueryMetadata queryMetadata : livePersistentQueries) {
+    for (QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     topicClient.close();

@@ -29,6 +29,7 @@ import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
@@ -56,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -281,6 +283,25 @@ public class KafkaTopicClientImplTest {
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
     assertThat(config.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("producer"));
+  }
+
+
+  @Test
+  public void shouldSetTopicCleanupPolicyToCompact() throws InterruptedException,
+                                                            ExecutionException {
+    AdminClient adminClient = mock(AdminClient.class);
+  //  expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+ //   expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+//    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+
+    // Verify that the new topic configuration being passed to the admin client is what we expect.
+    NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
+    newTopic.configs(Collections.singletonMap("cleanup.policy", "compact"));
+    expect(adminClient.createTopics(singleNewTopic(newTopic))).andReturn(getCreateTopicsResult());
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1, true);
+    verify(adminClient);
   }
 
   @Test
@@ -579,6 +600,33 @@ public class KafkaTopicClientImplTest {
       }
     }
     EasyMock.reportMatcher(new ConfigMatcher());
+    return null;
+  }
+
+  private static Collection<NewTopic> singleNewTopic(final NewTopic expected) {
+    class NewTopicsMatcher implements IArgumentMatcher {
+      @SuppressWarnings("unchecked")
+      @Override
+      public boolean matches(final Object argument) {
+        final Collection<NewTopic> newTopics = (Collection<NewTopic>) argument;
+        if (newTopics.size() != 1) {
+          return false;
+        }
+
+        final NewTopic actual = newTopics.iterator().next();
+        return Objects.equals(actual.name(), expected.name())
+               && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
+               && Objects.equals(actual.numPartitions(), expected.numPartitions())
+               && Objects.equals(actual.configs(), expected.configs());
+      }
+
+      @Override
+      public void appendTo(final StringBuffer buffer) {
+        buffer.append("{NewTopic").append(expected).append("}");
+      }
+    }
+
+    EasyMock.reportMatcher(new NewTopicsMatcher());
     return null;
   }
 }

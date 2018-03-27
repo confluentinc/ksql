@@ -310,11 +310,8 @@ public class SecureIntegrationTest {
         (hostname, sslSession) -> hostname.equals("localhost"));
 
     try {
-      System.setProperty("javax.net.ssl.trustStore", ClientTrustStore.trustStorePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "password");
-
       final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
-      ksqlConfig.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://localhost:8481");
+      ksqlConfig.put("ksql.schema.registry.url", "https://localhost:8481");
       givenTestSetupWithConfig(ksqlConfig);
 
       // Then:

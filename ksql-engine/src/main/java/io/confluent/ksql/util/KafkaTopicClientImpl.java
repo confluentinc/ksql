@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,9 +66,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicatonFactor
+      final short replicatonFactor,
+      boolean isCompacted
   ) {
-    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap());
+    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap(), isCompacted);
   }
 
   @Override
@@ -74,14 +77,20 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, String> configs
+      final Map<String, String> configs,
+      boolean isCompacted
   ) {
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
-    newTopic.configs(configs);
+    Map<String, String> newTopicConfigs = new HashMap<>();
+    newTopicConfigs.putAll(configs);
+    if (isCompacted) {
+      newTopicConfigs.put("cleanup.policy", "compact");
+    }
+    newTopic.configs(newTopicConfigs);
     try {
       log.info("Creating topic '{}'", topic);
       RetryHelper<Void> retryHelper = new RetryHelper<>();
@@ -126,6 +135,45 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return retryHelper.executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics", e);
+    }
+  }
+
+
+
+  @Override
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+    RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
+    Map<ConfigResource, Config> configMap = null;
+    try {
+      configMap = retryHelper.executeWithRetries(
+          () -> {
+            return adminClient.describeConfigs(Collections.singleton(
+                new ConfigResource(ConfigResource.Type.TOPIC, topicName)))
+                .all();
+          });
+    } catch (Exception e) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName, e);
+    }
+    if (configMap == null) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
+    }
+    Object[] configValues = configMap.values().stream().findFirst().get()
+        .entries()
+        .stream()
+        .filter(configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy"))
+        .toArray();
+    if (configValues == null || configValues.length == 0) {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
+    }
+    switch (((ConfigEntry) configValues[0]).value().toString().toLowerCase()) {
+      case "compact":
+        return TopicCleanupPolicy.COMPACT;
+      case "delete":
+        return TopicCleanupPolicy.DELETE;
+      case "compact+delete":
+        return TopicCleanupPolicy.COMPACT_DELETE;
+      default:
+        throw new KsqlException("Could not get the topic configs for : " + topicName);
     }
   }
 

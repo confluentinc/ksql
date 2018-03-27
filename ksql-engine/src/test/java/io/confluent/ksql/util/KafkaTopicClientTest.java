@@ -73,6 +73,9 @@ public class KafkaTopicClientTest {
                                                       "default",
                                                       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
                                                       + "-STATE-STORE-0000000006-changelog");
+  private final String confluentInternalTopic =
+      String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
+                    "confluent-control-center");
 
 
   @Before
@@ -341,7 +344,8 @@ public class KafkaTopicClientTest {
   private ListTopicsResult getListTopicsResultWithInternalTopics() {
     ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
-                                                internalTopic1, internalTopic2);
+                                                internalTopic1, internalTopic2,
+                                                confluentInternalTopic);
     expect(listTopicsResult.names()).andReturn(KafkaFuture.completedFuture(new HashSet<>
                                                                                (topicNamesList)));
     replay(listTopicsResult);

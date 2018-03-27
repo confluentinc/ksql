@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server;
 
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
@@ -31,6 +33,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
+import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
@@ -46,7 +49,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
+import javax.websocket.DeploymentException;
+import javax.websocket.server.ServerEndpoint;
+import javax.websocket.server.ServerEndpointConfig;
+import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -77,6 +85,7 @@ import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -213,10 +222,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
-    ObjectMapper jsonMapper = getJsonMapper();
-    new SchemaMapper().registerToObjectMapper(jsonMapper);
-
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(getJsonMapper());
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
 
@@ -225,6 +231,52 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     if (isUiEnabled) {
       loadUiWar();
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
+    }
+  }
+
+  @Override
+  protected ObjectMapper getJsonMapper() {
+    // superclass creates a new json mapper on every call
+    // we should probably ony create one per application
+    ObjectMapper jsonMapper = super.getJsonMapper();
+    new SchemaMapper().registerToObjectMapper(jsonMapper);
+    return jsonMapper;
+  }
+
+  @Override
+  protected void registerWebSocketEndpoints(ServerContainer container) {
+    try {
+      container.addEndpoint(
+          ServerEndpointConfig.Builder
+              .create(
+                  WSQueryEndpoint.class,
+                  WSQueryEndpoint.class.getAnnotation(ServerEndpoint.class).value()
+              )
+              .configurator(new Configurator() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public <T> T getEndpointInstance(Class<T> endpointClass)
+                    throws InstantiationException {
+                  return (T) new WSQueryEndpoint(
+                      getJsonMapper(),
+                      new StatementParser(ksqlEngine),
+                      ksqlEngine,
+                      MoreExecutors.listeningDecorator(
+                          Executors.newScheduledThreadPool(
+                              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+                              new ThreadFactoryBuilder()
+                                  .setDaemon(true)
+                                  .setNameFormat("websockets-query-thread-%d")
+                                  .build()
+                          )
+                      )
+                  );
+                }
+              })
+              .build()
+      );
+    } catch (DeploymentException e) {
+      log.error("Unable to create websockets endpoint", e);
     }
   }
 

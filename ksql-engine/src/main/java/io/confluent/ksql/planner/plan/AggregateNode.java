@@ -181,6 +181,11 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClient
     );
 
+    if (sourceSchemaKStream instanceof SchemaKTable) {
+      throw new KsqlException(
+          "Unsupported aggregation. KSQL currently only supports aggregation on a Stream.");
+    }
+
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
     final Map<String, Integer> expressionNames = new HashMap<>();

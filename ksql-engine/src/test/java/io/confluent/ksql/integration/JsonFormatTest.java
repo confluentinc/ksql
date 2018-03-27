@@ -203,7 +203,8 @@ public class JsonFormatTest {
     assertThat(
         topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
         hasSize(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test
@@ -220,7 +221,8 @@ public class JsonFormatTest {
         "Wait for async topic creation"
     );
 
-    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo("compact"));
+    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
   @Test

@@ -116,7 +116,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("compact"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
 
@@ -163,7 +164,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -216,7 +218,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test
@@ -264,7 +267,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo("delete"));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
 
   }
 

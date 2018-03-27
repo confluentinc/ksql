@@ -199,13 +199,14 @@ public class KsqlStructuredDataOutputNodeTest {
     StreamsBuilder streamsBuilder = new StreamsBuilder();
     topicClientForNonWindowTable.createTopic("output", 4, (short) 3, true);
     EasyMock.replay(topicClientForNonWindowTable);
-    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
-                                                                      ksqlConfig,
-                                                                      topicClientForNonWindowTable,
-                                                                      new MetastoreUtil(),
-                                                                      new FunctionRegistry(),
-                                                                      new HashMap<>(),
-                                                                      new MockSchemaRegistryClient());
+    SchemaKStream schemaKStream = outputNode.buildStream(
+        streamsBuilder,
+        ksqlConfig,
+        topicClientForNonWindowTable,
+        new MetastoreUtil(),
+        new FunctionRegistry(),
+        new HashMap<>(),
+        new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -219,13 +220,14 @@ public class KsqlStructuredDataOutputNodeTest {
     StreamsBuilder streamsBuilder = new StreamsBuilder();
     topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
     EasyMock.replay(topicClientForWindowTable);
-    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
-                                                         ksqlConfig,
-                                                         topicClientForWindowTable,
-                                                         new MetastoreUtil(),
-                                                         new FunctionRegistry(),
-                                                         new HashMap<>(),
-                                                         new MockSchemaRegistryClient());
+    SchemaKStream schemaKStream = outputNode.buildStream(
+        streamsBuilder,
+        ksqlConfig,
+        topicClientForWindowTable,
+        new MetastoreUtil(),
+        new FunctionRegistry(),
+        new HashMap<>(),
+        new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -238,13 +240,14 @@ public class KsqlStructuredDataOutputNodeTest {
     StreamsBuilder streamsBuilder = new StreamsBuilder();
     topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
     EasyMock.replay(topicClientForWindowTable);
-    SchemaKStream schemaKStream = outputNode.buildStream(streamsBuilder,
-                                                         ksqlConfig,
-                                                         topicClientForWindowTable,
-                                                         new MetastoreUtil(),
-                                                         new FunctionRegistry(),
-                                                         new HashMap<>(),
-                                                         new MockSchemaRegistryClient());
+    SchemaKStream schemaKStream = outputNode.buildStream(
+        streamsBuilder,
+        ksqlConfig,
+        topicClientForWindowTable,
+        new MetastoreUtil(),
+        new FunctionRegistry(),
+        new HashMap<>(),
+        new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
     EasyMock.verify();
 
@@ -257,25 +260,26 @@ public class KsqlStructuredDataOutputNodeTest {
 
     StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable("sqlExpression", "datasource",
-                      schema,
-                      schema.field("key"),
-                      schema.field("timestamp"),
-                      new KsqlTopic("input", "input",
-                                    new KsqlJsonTopicSerDe()),
-                      "TableStateStore",
-                      isWindowed),
+        new KsqlTable(
+            "sqlExpression", "datasource",
+            schema,
+            schema.field("key"),
+            schema.field("timestamp"),
+            new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
+            "TableStateStore",
+            isWindowed),
         schema);
 
-    return new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
-                                                  tableSourceNode,
-                                                  schema,
-                                                  schema.field("timestamp"),
-                                                  schema.field("key"),
-                                                  new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
-                                                  "output",
-                                                  props,
-                                                  Optional.empty());
+    return new KsqlStructuredDataOutputNode(
+        new PlanNodeId("0"),
+        tableSourceNode,
+        schema,
+        schema.field("timestamp"),
+        schema.field("key"),
+        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
+        "output",
+        props,
+        Optional.empty());
   }
 
 }

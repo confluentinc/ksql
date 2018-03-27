@@ -87,15 +87,15 @@ types, a column of ``array`` type, and a column of ``map`` type:
             VALUE_FORMAT='JSON',
             KEY = 'userid');
 
-
+Note that specifying KEY is required in table declaration.
 
 Working with streams and tables
 -------------------------------
 
 Now that you have the ``pageviews`` stream and ``users`` table, take a
 look at some example queries that you can write in KSQL. The focus is on
-two types of KSQL statements: CREATE STREAM AS SELECT and CREATE TABLE
-AS SELECT. For these statements KSQL persists the results of the query
+two types of KSQL statements: CREATE STREAM AS SELECT (a.k.a CSAS) and CREATE TABLE
+AS SELECT (a.k.a CTAS). For these statements KSQL persists the results of the query
 in a new stream or table, which is backed by a Kafka topic.
 
 Transforming

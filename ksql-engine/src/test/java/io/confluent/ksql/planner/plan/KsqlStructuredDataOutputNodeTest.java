@@ -201,7 +201,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForNonWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
@@ -222,7 +221,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
@@ -242,7 +240,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());

@@ -7,8 +7,8 @@ Interoperability
     KSQL code is open source `https://github.com/confluentinc/ksql <https://github.com/confluentinc/ksql>`_. 
 
     .. include:: ../../../includes/installation.rst
-        :start-line: 84
-        :end-line: 95
+        :start-line: 127
+        :end-line: 134
 
 .. toctree:: Contents
     :maxdepth: 2

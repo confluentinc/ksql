@@ -162,7 +162,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         .stream()
         .filter(configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy"))
         .toArray();
-    if (configValues == null || configValues.length ==0) {
+    if (configValues == null || configValues.length == 0) {
       throw new KsqlException("Could not get the topic configs for : " + topicName);
     }
     switch (((ConfigEntry) configValues[0]).value().toString().toLowerCase()) {

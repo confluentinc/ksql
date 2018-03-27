@@ -75,7 +75,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(true));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
 
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -88,7 +88,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -103,7 +103,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -117,7 +117,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.createTopics(anyObject())).andReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
@@ -132,7 +132,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(true));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.createTopics(anyObject())).andReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject()))
         .andReturn(describeTopicReturningUnknownPartitionException()).once();
@@ -150,7 +150,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.describeTopics(anyObject()))
         .andReturn(describeTopicReturningUnknownPartitionException())
         .andReturn(describeTopicReturningUnknownPartitionException())
@@ -169,7 +169,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(listTopicResultWithNotControllerException()).once();
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     Set<String> names = kafkaTopicClient.listTopicNames();
@@ -182,7 +182,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     Set<String> names = kafkaTopicClient.listTopicNames();
@@ -194,7 +194,7 @@ public class KafkaTopicClientTest {
   public void testDeleteTopics() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -208,7 +208,7 @@ public class KafkaTopicClientTest {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult(false));
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -317,7 +317,7 @@ public class KafkaTopicClientTest {
     return describeClusterResult;
   }
 
-  private DescribeConfigsResult getDescribeConfigsResult(boolean isCompacted) {
+  private DescribeConfigsResult getDescribeConfigsResult() {
     DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
     List<ConfigEntry> configEntries = new ArrayList<>();

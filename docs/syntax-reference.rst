@@ -542,6 +542,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
+Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -744,10 +745,6 @@ TERMINATE
 Terminate a persistent query. Persistent queries run continuously until
 they are explicitly terminated.
 
--  In standalone mode, exiting the CLI will stop (think: “pause”) any
-   persistent queries because exiting the CLI will also stop the KSQL
-   server. When the CLI is restarted, the server will be restarted, too,
-   and any previously defined persistent queries will resume processing.
 -  In client-server mode, exiting the CLI will not stop persistent
    queries because the KSQL server(s) will continue to process the
    queries.

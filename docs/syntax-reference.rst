@@ -174,10 +174,11 @@ Property                  Description
  KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream. You must
                           | be sure that the record key corresponds to the value in the key column and is in the right
                           | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
-                          | in the KSQL stream. If not supplied, the timestamp of the Kafka message, from the source
-                          | stream, will be used. Time-based operations such as windowing will process
+ TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
+                          | column in the KSQL stream. Time-based operations such as windowing will process
                           | a record according to the timestamp in ``ROWTIME``.
+                          |
+                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
 ========================= ============================================================================================
 
 
@@ -236,10 +237,11 @@ Property                  Description
  KEY                      | Associates the message key in the Kafka topic with a column in the KSQL table. You must be
                           | sure that the record key corresponds to the value in the key column and is in the right
                           | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
-                          | in the KSQL table. If not supplied, the timestamp of the Kafka message, from the source
-                          | stream, will be used. Time-based operations such as windowing will process
+ TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
+                          | column in the KSQL table. Time-based operations such as windowing will process
                           | a record according to the timestamp in ``ROWTIME``.
+                          |
+                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
 ========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
@@ -295,8 +297,17 @@ Property                  Description
                           | properties file the KSQL server is started with, or by using the ``SET`` statement.
  REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
                           | replicas of the input stream or table will be used.
- TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
-                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+ TIMESTAMP                | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for
+                          | any downstream queries. Downstream queries that use time-based operations, such as windowing,
+                          | will process records in this stream based on the timestamp in this field. By default,
+                          | such queries will also use this field to set the timestamp on any records emitted to Kafka.
+                          |
+                          | If not supplied, the ``ROWTIME`` of the source stream will be used.
+                          |
+                          | **NOTE**: this does _not_ affect the processing of the query that populates this stream,
+                          | e.g. given the statement ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,
+                          | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``,
+                          | not ``t2``.
 ========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
@@ -344,8 +355,16 @@ Property                  Description
                           | properties file the KSQL server is started with, or by using the ``SET`` statement.
  REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
                           | replicas of the input stream or table will be used.
- TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
-                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+ TIMESTAMP                | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for
+                          | any downstream queries. Downstream queries that use time-based operations, such as windowing,
+                          | will process records in this stream based on the timestamp in this field.
+                          |
+                          | If not supplied, the ``ROWTIME`` of the source stream will be used.
+                          |
+                          | **NOTE**: this does _not_ affect the processing of the query that populates this table,
+                          | e.g. given the statement ``CREATE TABLE foo WITH (TIMESTAMP='t2') AS SELECT host, count(*) FROM bar WINDOW TUMBLING (size 10 seconds) GROUP BY host;``,
+                          | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``,
+                          | not ``t2``.
 ========================= ============================================================================================
 
 .. note::

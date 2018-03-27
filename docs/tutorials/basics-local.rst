@@ -32,7 +32,7 @@ command.
 
 .. code:: bash
 
-    $ confluent stop
+    $ <path-to-confluent>/bin/confluent stop
 
 ----------
 Next steps

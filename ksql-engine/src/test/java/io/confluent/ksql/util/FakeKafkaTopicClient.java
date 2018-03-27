@@ -40,12 +40,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     final String topicName;
     final int numPartitions;
     final short replicatonFactor;
-    final String cleanupPolicy;
+    final TopicCleanupPolicy cleanupPolicy;
 
     public FakeTopic(String topicName,
                      int numPartitions,
                      short replicatonFactor,
-                     String cleanupPolicy) {
+                     TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
@@ -73,7 +73,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
               .collect(Collectors.toList());
       return new TopicDescription(topicName, false, partitionInfoList);
     }
-    public String getCleanupPolicy() {
+    public TopicCleanupPolicy getCleanupPolicy() {
       return cleanupPolicy;
     }
   }
@@ -84,8 +84,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
       topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                "compact":
-                                                                                "delete"));
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 
@@ -94,8 +94,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       String> configs, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
       topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                "compact":
-                                                                                "delete"));
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 

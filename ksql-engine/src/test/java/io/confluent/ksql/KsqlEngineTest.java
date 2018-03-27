@@ -97,7 +97,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldEnforceTopicExistenceCorrectly() throws Exception {
-    topicClient.createTopic("s1_topic", 1, (short) 1);
+    topicClient.createTopic("s1_topic", 1, (short) 1, false);
     StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");

@@ -49,6 +49,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.sameInstance;
+
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
@@ -164,7 +167,6 @@ public class SchemaKStreamTest {
                                                                             .getSchema().fields()
                                                                             .get(3), true);
     Assert.assertTrue(rekeyedSchemaKStream.getKeyField().name().equalsIgnoreCase("TEST1.COL1"));
-
   }
 
   @Test

@@ -181,6 +181,11 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClient
     );
 
+    if (sourceSchemaKStream instanceof SchemaKTable) {
+      throw new KsqlException(
+          "Unsupported aggregation. KSQL currently only supports aggregation on a Stream.");
+    }
+
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
     final Map<String, Integer> expressionNames = new HashMap<>();
@@ -258,6 +263,10 @@ public class AggregateNode extends PlanNode {
     }
 
     return result.select(getFinalSelectExpressions());
+  }
+
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
   }
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(

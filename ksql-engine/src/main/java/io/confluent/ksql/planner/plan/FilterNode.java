@@ -87,6 +87,11 @@ public class FilterNode
   }
 
   @Override
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
   public SchemaKStream buildStream(final StreamsBuilder builder,
                                    final KsqlConfig ksqlConfig,
                                    final KafkaTopicClient kafkaTopicClient,

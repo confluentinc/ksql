@@ -48,7 +48,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        commandTopicConfig);
+        commandTopicConfig, false);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
@@ -79,7 +79,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 3,
-        commandTopicConfig);
+        commandTopicConfig, false);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
@@ -100,7 +100,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        commandTopicConfig);
+        commandTopicConfig, false);
 
     EasyMock.expectLastCall().andThrow(new KafkaTopicException("blah"));
     EasyMock.replay(topicClient);

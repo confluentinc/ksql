@@ -1,7 +1,7 @@
 .. Avro note
 
-.. note:: To use Avro, you must have Confluent Schema Registry enabled and set ``ksql.schema.registry.url`` in your KSQL configuration file.
-
+.. note:: To use Avro, you must have Confluent Schema Registry enabled and set :ref:```ksql.schema.registry.url`` in your
+          KSQL server configuration file <install_ksql-avro-schema>`.
 .. demo
 
 Learn More
@@ -30,7 +30,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v0.5, Server v0.5 located at http://localhost:8090
+        CLI v4.1, Server v4.1 located at http://localhost:8090
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -75,7 +75,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-cli local
+       $ <path-to-confluent>/bin/ksql
 
    After KSQL is started, your terminal should resemble this.
 
@@ -83,7 +83,8 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
       :start-line: 17
       :end-line: 38
 
-    #. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
+#. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
+
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
    and ``ROWKEY``, which corresponds to the Kafka message key.
 

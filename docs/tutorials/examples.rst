@@ -87,7 +87,7 @@ types, a column of ``array`` type, and a column of ``map`` type:
             VALUE_FORMAT='JSON',
             KEY = 'userid');
 
-Note that specifying KEY is required in table declaration.
+Note that specifying KEY is required in table declaration, see :ref:`ksql_key_constraints`
 
 Working with streams and tables
 -------------------------------

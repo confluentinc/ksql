@@ -27,7 +27,7 @@ You can start the KSQL CLI by providing the connection information to the KSQL s
 
 .. code:: bash
 
-    $ <path-to-confluent>/bin/ksql http://localhost:8088
+    $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql http://localhost:8088
 
 After KSQL is started, your terminal should resemble this.
 

@@ -81,12 +81,6 @@ Your output should resemble:
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
 
-=============================
-Capacity Planning and Scaling
-=============================
-
-TBD
-
 ===============
 Troubleshooting
 ===============

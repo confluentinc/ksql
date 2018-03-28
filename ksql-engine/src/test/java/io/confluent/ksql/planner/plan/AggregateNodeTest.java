@@ -80,18 +80,19 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
     buildRequireRekey();
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(node.topics(), containsString("[KSQL_Agg_Query_"));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
+    assertThat(node.topics(), containsString("[KSTREAM-AGGREGATE-STATE-STORE-0000000006"));
+    assertThat(node.topics(), containsString("-repartition]"));
   }
 
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
     buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
   }
@@ -132,16 +133,16 @@ public class AggregateNodeTest {
 
   private SchemaKStream build() {
     return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "WHERE col0 > 100 GROUP BY col0;");
+                      + "size 2 "
+                      + "second) "
+                      + "WHERE col0 > 100 GROUP BY col0;");
   }
 
   private SchemaKStream buildRequireRekey() {
     return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "GROUP BY col1;");
+                      + "size 2 "
+                      + "second) "
+                      + "GROUP BY col1;");
   }
 
   private SchemaKStream buildQuery(String queryString) {
@@ -156,10 +157,10 @@ public class AggregateNodeTest {
 
   private SchemaKStream buildStream(AggregateNode aggregateNode) {
     return aggregateNode.buildStream(builder,
-        ksqlConfig,
-        topicClient,
-        new FunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+                                     ksqlConfig,
+                                     topicClient,
+                                     new FunctionRegistry(),
+                                     new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 }

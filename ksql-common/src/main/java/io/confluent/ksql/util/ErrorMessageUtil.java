@@ -22,12 +22,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ErrorMessageUtil {
+
   private static final String PREFIX = "Caused by: ";
 
   /**
    * Build an error message containing the message of each throwable in the chain.
    *
-   * Throwable messages are separated by new lines.
+   * <p>Throwable messages are separated by new lines.
    *
    * @param throwable the top level error.
    * @return the error message.

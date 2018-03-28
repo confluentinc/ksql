@@ -19,7 +19,8 @@ These can all be configured via a properties file.
 
 KSQL Query Parameters
     These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For
-    example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
+    example, ``ksql.service.id`` and ``ksql.persistent.prefix``. A full list of configurations can be found in our `source file`_.
+    .. _source file: https://github.com/confluentinc/ksql/blob/4.1.x/ksql-common/src/main/java/io/confluent/ksql/util/KsqlConfig.java#L86
 
 Kafka Streams and Kafka Client
     These configurations control how Kafka Streams executes queries. These can be provided with the optional ``ksql.streams``
@@ -81,9 +82,9 @@ ksql.streams.auto.offset.reset
 ^^^^^^^^^^^^^^^^^
 
 Determines what to do when a KSQL query has not committed any offsets and has thus not marked progress on its 
-input Kafka topic(s). The default value in KSQL is ``latest``, which means KSQL queries will read Kafka topics 
+input Kafka topic. The default value in KSQL is ``latest``, which means KSQL queries will read Kafka topics 
 from the latest available offset when they are first started. This means they will only process data produced 
-after the query starts. To process data in input topic(s) from the first available message, set the value to 
+after the query starts. To process data in input topics from the first available message, set the value to 
 ``earliest``  as follows:
 
 .. code:: bash
@@ -175,8 +176,8 @@ server pool. With the default ``ksql.service.id``, the command topic would be ``
 the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will 
 be ``_confluent-ksql-production_deployment__command_topic``.
 
-By setting the ``ksql.service.id`` appropriately, you can have isolated pools of KSQL servers sharing the same underlying 
-Kafka cluster. Each pool will execute an independent set of KSQL queries.
+You can configure ``ksql.service.id`` so that your environment has isolated pools of KSQL servers sharing the same underlying 
+Kafka cluster.
 
 .. _ksql-queries-file:
 

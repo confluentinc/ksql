@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
@@ -98,6 +97,16 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     return Collections.emptyMap();
+  }
+
+  @Override
+  public Map<String, String> getTopicConfig(String topicName) {
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public boolean addTopicConfig(String topicName, Map<String, Object> overrides) {
+    return false;
   }
 
   @Override

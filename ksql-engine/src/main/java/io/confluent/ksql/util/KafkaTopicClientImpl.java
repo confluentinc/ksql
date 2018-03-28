@@ -27,6 +27,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -85,17 +87,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
-    Map<String, String> newTopicConfigs = new HashMap<>();
-    newTopicConfigs.putAll(configs);
+    Map<String, String> newTopicConfigs = new HashMap<>(configs);
     if (isCompacted) {
       newTopicConfigs.put("cleanup.policy", "compact");
     }
     newTopic.configs(newTopicConfigs);
     try {
       log.info("Creating topic '{}'", topic);
-      RetryHelper<Void> retryHelper = new RetryHelper<>();
-      retryHelper.executeWithRetries(() -> adminClient.createTopics(Collections.singleton(newTopic))
-          .all());
+      executeWithRetries(() -> adminClient.createTopics(Collections.singleton(newTopic)).all());
     } catch (InterruptedException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
@@ -121,8 +120,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     try {
-      RetryHelper<Set<String>> retryHelper = new RetryHelper<>();
-      return retryHelper.executeWithRetries(() -> adminClient.listTopics().names());
+      return executeWithRetries(() -> adminClient.listTopics().names());
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
@@ -131,41 +129,54 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
-      RetryHelper<Map<String, TopicDescription>> retryHelper = new RetryHelper<>();
-      return retryHelper.executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
+      return executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
     } catch (InterruptedException | ExecutionException e) {
-      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics", e);
+      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
     }
   }
 
-
+  @Override
+  public Map<String, String> getTopicConfig(final String topicName) {
+    return getTopicConfig(topicName, true);
+  }
 
   @Override
-  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
-    RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
-    Map<ConfigResource, Config> configMap = null;
+  public boolean addTopicConfig(final String topicName, final Map<String, Object> overrides) {
+    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+
     try {
-      configMap = retryHelper.executeWithRetries(
-          () -> {
-            return adminClient.describeConfigs(Collections.singleton(
-                new ConfigResource(ConfigResource.Type.TOPIC, topicName)))
-                .all();
-          });
-    } catch (Exception e) {
-      throw new KsqlException("Could not get the topic configs for : " + topicName, e);
+      final Map<String, String> existingConfig = getTopicConfig(topicName, false);
+
+      final boolean changed = overrides.entrySet().stream()
+          .anyMatch(e -> !Objects.equals(existingConfig.get(e.getKey()), e.getValue()));
+      if (!changed) {
+        return false;
+      }
+
+      overrides.forEach((k,v) -> existingConfig.put(k, v.toString()));
+
+      final List<ConfigEntry> entries = existingConfig.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
+          .collect(Collectors.toList());
+
+      final Map<ConfigResource, Config> request =
+          Collections.singletonMap(resource, new Config(entries));
+
+      executeWithRetries(() -> adminClient.alterConfigs(request).all());
+
+      return true;
+    } catch (InterruptedException | ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to set config for Kafka Topic " + topicName, e);
     }
-    if (configMap == null) {
-      throw new KsqlException("Could not get the topic configs for : " + topicName);
-    }
-    Object[] configValues = configMap.values().stream().findFirst().get()
-        .entries()
-        .stream()
-        .filter(configEntry -> configEntry.name().equalsIgnoreCase("cleanup.policy"))
-        .toArray();
-    if (configValues == null || configValues.length == 0) {
-      throw new KsqlException("Could not get the topic configs for : " + topicName);
-    }
-    switch (((ConfigEntry) configValues[0]).value().toString().toLowerCase()) {
+  }
+
+  @Override
+  public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
+    final String policy = getTopicConfig(topicName)
+        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
+
+    switch (policy) {
       case "compact":
         return TopicCleanupPolicy.COMPACT;
       case "delete":
@@ -234,12 +245,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
             String.valueOf(nodes.get(0).id())
         );
 
-        RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
-        DescribeConfigsResult
-            describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
-        Map<ConfigResource, Config> config = retryHelper.executeWithRetries(
-            () -> describeConfigsResult.all()
-        );
+        DescribeConfigsResult describeConfigsResult =
+            adminClient.describeConfigs(Collections.singleton(resource));
+
+        Map<ConfigResource, Config> config = executeWithRetries(describeConfigsResult::all);
 
         this.isDeleteTopicEnabled = config.get(resource)
             .entries()
@@ -295,30 +304,47 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     );
   }
 
-  private static class RetryHelper<T> {
-    T executeWithRetries(Supplier<KafkaFuture<T>> supplier) throws  InterruptedException,
-                                                                    ExecutionException {
-      int retries = 0;
-      Exception lastException = null;
-      while (retries < NUM_RETRIES) {
-        try {
-          if (retries != 0) {
-            Thread.sleep(RETRY_BACKOFF_MS);
-          }
-          return supplier.get().get();
-        } catch (ExecutionException e) {
-          if (e.getCause() instanceof  RetriableException) {
-            retries++;
-            log.info("Retrying admin request due to retriable exception. Retry no: "
-                     + retries, e);
-            lastException = e;
-          } else {
-            throw e;
-          }
-        }
-      }
-      throw new ExecutionException(lastException);
+  private Map<String, String> getTopicConfig(final String topicName,
+                                             final boolean includeDefaults) {
+    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+    final List<ConfigResource> request = Collections.singletonList(resource);
+
+    try {
+      final Config config = executeWithRetries(() -> adminClient.describeConfigs(request).all())
+          .get(resource);
+
+      return config.entries().stream()
+          .filter(e -> includeDefaults
+                       || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
+          .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
+    } catch (InterruptedException | ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get config for Kafka Topic " + topicName, e);
     }
   }
 
+  private static <T> T executeWithRetries(
+      final Supplier<KafkaFuture<T>> supplier) throws InterruptedException,
+                                                      ExecutionException {
+    int retries = 0;
+    Exception lastException = null;
+    while (retries < NUM_RETRIES) {
+      try {
+        if (retries != 0) {
+          Thread.sleep(RETRY_BACKOFF_MS);
+        }
+        return supplier.get().get();
+      } catch (ExecutionException e) {
+        if (e.getCause() instanceof RetriableException) {
+          retries++;
+          log.info("Retrying admin request due to retriable exception. Retry no: "
+                   + retries, e);
+          lastException = e;
+        } else {
+          throw e;
+        }
+      }
+    }
+    throw new ExecutionException(lastException);
+  }
 }

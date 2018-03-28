@@ -17,6 +17,8 @@
 package io.confluent.ksql.rest.server;
 
 
+import com.google.common.collect.ImmutableMap;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
@@ -244,7 +246,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     String commandTopic =
         restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
-    createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
+    ensureCommandTopic(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -345,10 +347,19 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     );
   }
 
-  static void createCommandTopicIfNecessary(final KsqlRestConfig restConfig,
-                                            final KafkaTopicClient topicClient,
-                                            final String commandTopic) {
+  static void ensureCommandTopic(final KsqlRestConfig restConfig,
+                                 final KafkaTopicClient topicClient,
+                                 final String commandTopic) {
+    final long requiredTopicRetention = Long.MAX_VALUE;
     if (topicClient.isTopicExists(commandTopic)) {
+      final ImmutableMap<String, Object> requiredConfig =
+          ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
+
+      if (topicClient.addTopicConfig(commandTopic, requiredConfig)) {
+        log.info("Corrected retention.ms on command topic. topic:{}, retention.ms:{}",
+                 commandTopic, requiredTopicRetention);
+      }
+
       return;
     }
 
@@ -369,11 +380,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
       // for now we create the command topic with infinite retention so that we
       // don't lose any data in case of fail over etc.
-      topicClient.createTopic(commandTopic,
-                              1,
-                              replicationFactor,
-                              Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-                                                       String.valueOf(Long.MAX_VALUE)), false);
+      topicClient.createTopic(
+          commandTopic,
+          1,
+          replicationFactor,
+          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
+                                   String.valueOf(requiredTopicRetention)),
+          false);
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }

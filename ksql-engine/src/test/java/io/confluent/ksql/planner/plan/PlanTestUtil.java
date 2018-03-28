@@ -35,7 +35,7 @@ public class PlanTestUtil {
 
   static TopologyDescription.Node getNodeByName(final Topology topology, final String nodeName) {
     final TopologyDescription description = topology.describe();
-    System.out.println(description);
+
     final Set<TopologyDescription.Subtopology> subtopologies = description.subtopologies();
     List<TopologyDescription.Node> nodes = subtopologies.stream().flatMap(subtopology -> subtopology.nodes().stream()).collect(Collectors.toList());
     final Map<String, List<TopologyDescription.Node>> nodesByName = nodes.stream().collect(Collectors.groupingBy(TopologyDescription.Node::name));

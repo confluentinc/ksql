@@ -133,16 +133,16 @@ public class AggregateNodeTest {
 
   private SchemaKStream build() {
     return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-                      + "size 2 "
-                      + "second) "
-                      + "WHERE col0 > 100 GROUP BY col0;");
+        + "size 2 "
+        + "second) "
+        + "WHERE col0 > 100 GROUP BY col0;");
   }
 
   private SchemaKStream buildRequireRekey() {
     return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-                      + "size 2 "
-                      + "second) "
-                      + "GROUP BY col1;");
+        + "size 2 "
+        + "second) "
+        + "GROUP BY col1;");
   }
 
   private SchemaKStream buildQuery(String queryString) {
@@ -157,10 +157,10 @@ public class AggregateNodeTest {
 
   private SchemaKStream buildStream(AggregateNode aggregateNode) {
     return aggregateNode.buildStream(builder,
-                                     ksqlConfig,
-                                     topicClient,
-                                     new FunctionRegistry(),
-                                     new HashMap<>(), new MockSchemaRegistryClient());
+        ksqlConfig,
+        topicClient,
+        new FunctionRegistry(),
+        new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 }

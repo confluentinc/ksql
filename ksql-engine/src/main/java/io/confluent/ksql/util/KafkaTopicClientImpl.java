@@ -256,7 +256,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (InterruptedException | ExecutionException ex) {
       log.error("Failed to initialize TopicClient: {}", ex.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
-                              + "AdminClient.");
+                              + "AdminClient.", ex);
     }
   }
 

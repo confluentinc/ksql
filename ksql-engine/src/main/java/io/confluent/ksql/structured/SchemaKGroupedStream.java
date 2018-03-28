@@ -74,7 +74,7 @@ public class SchemaKGroupedStream {
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
-          Serdes.String(), topicValueSerDe);
+              Serdes.String(), topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
       aggKtable = ksqlWindowExpression.applyAggregate(

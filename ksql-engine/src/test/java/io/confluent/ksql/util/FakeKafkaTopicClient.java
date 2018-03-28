@@ -37,10 +37,10 @@ import java.util.stream.IntStream;
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   class FakeTopic {
-    final String topicName;
-    final int numPartitions;
-    final short replicatonFactor;
-    final TopicCleanupPolicy cleanupPolicy;
+    private final String topicName;
+    private final int numPartitions;
+    private final short replicatonFactor;
+    private final TopicCleanupPolicy cleanupPolicy;
 
     public FakeTopic(String topicName,
                      int numPartitions,

@@ -19,6 +19,8 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -32,8 +34,10 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,11 +48,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -78,7 +80,8 @@ public class StructuredDataSourceNode
         return row;
       };
 
-  private final WindowedSerde windowedSerde = new WindowedSerde();
+  private final Serde<Windowed<String>> windowedSerde
+          = WindowedSerdes.timeWindowedSerdeFrom(String.class);
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
 
@@ -117,6 +120,17 @@ public class StructuredDataSourceNode
   }
 
   @Override
+  public int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
+    Map<String, TopicDescription> descriptions
+        = kafkaTopicClient.describeTopics(Arrays.asList(topicName));
+    if (!descriptions.containsKey(topicName)) {
+      throw new KsqlException("Could not get topic description for " + topicName);
+    }
+    return descriptions.get(topicName).partitions().size();
+  }
+
+  @Override
   public List<PlanNode> getSources() {
     return null;
   }
@@ -131,7 +145,6 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient

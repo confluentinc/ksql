@@ -26,6 +26,8 @@ import io.confluent.ksql.util.KsqlException;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;
@@ -40,6 +42,31 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 public class ArrayContainsKudf implements Kudf {
   private static final JsonFactory JSON_FACTORY =
       new JsonFactory().disable(CANONICALIZE_FIELD_NAMES);
+
+
+  interface Matcher {
+    boolean matches(final JsonParser parser,
+                    final Object searchValue) throws IOException;
+  }
+
+  private final Map<JsonToken, Matcher> matchers = new HashMap<>();
+
+
+  ArrayContainsKudf() {
+    matchers.put(JsonToken.VALUE_NULL, (parser, value) -> value == null);
+    matchers.put(JsonToken.VALUE_STRING,
+        (parser, value) -> parser.getText().equals(value));
+    final Matcher booleanMatcher =
+        (parser, value) -> parser.getBooleanValue() == (boolean) value;
+    matchers.put(JsonToken.VALUE_FALSE, booleanMatcher);
+    matchers.put(JsonToken.VALUE_TRUE, booleanMatcher);
+    matchers.put(JsonToken.VALUE_NUMBER_INT,
+        (parser, value) ->
+            value instanceof Integer && parser.getIntValue() == (int) value
+                || value instanceof Long && parser.getLongValue() == (long) value);
+    matchers.put(JsonToken.VALUE_NUMBER_FLOAT,
+        (parser, value) -> parser.getDoubleValue() == (double) value);
+  }
 
   @Override
   public Object evaluate(Object... args) {
@@ -73,21 +100,8 @@ public class ArrayContainsKudf implements Kudf {
         }
         parser.skipChildren();
         if (valueType == token) {
-          if (valueType == VALUE_NULL && searchValue == null) {
-            return true;
-          } else if ((valueType == VALUE_STRING) && parser.getText().equals(searchValue)) {
-            return true;
-          } else if ((valueType == VALUE_FALSE || valueType == VALUE_TRUE)
-                  && (parser.getBooleanValue() == (boolean)searchValue)) {
-            return true;
-          } else if ((valueType == VALUE_NUMBER_INT)) {
-            if (searchValue instanceof Integer && parser.getIntValue() == (int) searchValue) {
-              return true;
-            } else if (searchValue instanceof Long && parser.getLongValue() == (long) searchValue) {
-              return true;
-            }
-          } else if ((valueType == VALUE_NUMBER_FLOAT)
-                     && parser.getDoubleValue() == (double)searchValue) {
+          final Matcher matcher = matchers.get(valueType);
+          if (matcher != null &&  matcher.matches(parser, searchValue)) {
             return true;
           }
         }

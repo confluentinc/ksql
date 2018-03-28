@@ -109,33 +109,39 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
           return fieldJsonNode.toString();
         }
       case ARRAY:
-        ArrayNode arrayNode = (ArrayNode) fieldJsonNode;
-        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-        Object[] arrayField =
-            (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
-        for (int i = 0; i < arrayNode.size(); i++) {
-          arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
-        }
-        return arrayField;
+        return handleArray(fieldSchema, (ArrayNode) fieldJsonNode);
       case MAP:
-        Map<String, Object> mapField = new HashMap<>();
-        Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
-        while (iterator.hasNext()) {
-          Map.Entry<String, JsonNode> entry = iterator.next();
-          mapField.put(
-              entry.getKey(),
-              enforceFieldType(
-                fieldSchema.valueSchema(),
-                entry.getValue()
-            )
-          );
-        }
-        return mapField;
+        return handleMap(fieldSchema, fieldJsonNode);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
-
     }
+  }
 
+  private Object handleMap(Schema fieldSchema, JsonNode fieldJsonNode) {
+    Map<String, Object> mapField = new HashMap<>();
+    Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
+    while (iterator.hasNext()) {
+      Map.Entry<String, JsonNode> entry = iterator.next();
+      mapField.put(
+          entry.getKey(),
+          enforceFieldType(
+            fieldSchema.valueSchema(),
+            entry.getValue()
+        )
+      );
+    }
+    return mapField;
+  }
+
+  private Object handleArray(Schema fieldSchema, ArrayNode fieldJsonNode) {
+    ArrayNode arrayNode = fieldJsonNode;
+    Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
+    Object[] arrayField =
+        (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
+    for (int i = 0; i < arrayNode.size(); i++) {
+      arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
+    }
+    return arrayField;
   }
 
   static class CaseInsensitiveJsonNode {

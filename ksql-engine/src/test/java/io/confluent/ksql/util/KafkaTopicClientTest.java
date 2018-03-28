@@ -37,6 +37,7 @@ import org.apache.kafka.common.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -78,12 +79,12 @@ public class KafkaTopicClientTest {
 
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic("test", 1, (short)1);
+    kafkaTopicClient.createTopic("test", 1, (short)1, true);
     verify(adminClient);
   }
 
   @Test
-  public void shouldUseExistingTopicWIthTheSameSpecsInsteadOfCreate() {
+  public void shouldUseExistingTopicWithTheSameSpecsInsteadOfCreate() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
@@ -91,7 +92,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short)1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1, false);
     verify(adminClient);
   }
 
@@ -106,7 +107,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short)2);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)2, false);
     verify(adminClient);
   }
 
@@ -121,7 +122,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short)1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1, false);
     verify(adminClient);
   }
 
@@ -139,7 +140,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult()).once();
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short)1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1, true);
     verify(adminClient);
   }
 
@@ -318,10 +319,11 @@ public class KafkaTopicClientTest {
 
   private DescribeConfigsResult getDescribeConfigsResult() {
     DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
-    ConfigEntry configEntry = new ConfigEntry("delete.topic.enable", "true");
+    ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
+    List<ConfigEntry> configEntries = new ArrayList<>();
+    configEntries.add(configEntryDeleteEnable);
     Map<ConfigResource, Config> config = new HashMap<>();
-    config.put(new ConfigResource(ConfigResource.Type.BROKER, "1"), new Config
-        (Collections.singletonList(configEntry)));
+    config.put(new ConfigResource(ConfigResource.Type.BROKER, "1"), new Config(configEntries));
     expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));
     replay(describeConfigsResult);
     return describeConfigsResult;

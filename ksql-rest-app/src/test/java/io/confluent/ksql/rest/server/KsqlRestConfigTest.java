@@ -83,7 +83,8 @@ public class KsqlRestConfigTest {
   public void ensureCorrectCommandTopicName() {
     KsqlRestConfig config = new KsqlRestConfig(getBaseProperties());
     String commandTopicName = config.getCommandTopic("TestKSql");
-    assertThat(commandTopicName, equalTo("_confluent-ksql--TestKSql"));
+    assertThat(commandTopicName,
+               equalTo("_confluent-ksql-TestKSql_" + KsqlRestConfig.COMMAND_TOPIC_SUFFIX));
   }
 
 }

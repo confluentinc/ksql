@@ -505,10 +505,10 @@ public class Cli implements Closeable, AutoCloseable {
         try {
           topicPrintFuture.get();
         } catch (CancellationException exception) {
+          topicResponse.getResponse().close();
           terminal.writer().println("Topic printing ceased");
           terminal.flush();
         }
-        topicResponse.getResponse().close();
       }
     } else {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());
@@ -538,24 +538,10 @@ public class Cli implements Closeable, AutoCloseable {
       parsedProperty = property;
     } else if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
       parsedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      ConfigDef.ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
-      if (configKey == null) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid consumer property: '%s'",
-            parsedProperty
-        ));
-      }
-      type = configKey.type;
+      type = parseConsumerProperty(parsedProperty);
     } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
       parsedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      ConfigDef.ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
-      if (configKey == null) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid producer property: '%s'",
-            parsedProperty
-        ));
-      }
-      type = configKey.type;
+      type = parseProducerProperty(parsedProperty);
     } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
       restClient.setProperty(property, value);
       return;
@@ -589,6 +575,32 @@ public class Cli implements Closeable, AutoCloseable {
         parsedValue
     );
     terminal.flush();
+  }
+
+  private ConfigDef.Type parseProducerProperty(String parsedProperty) {
+    ConfigDef.Type type;
+    ConfigDef.ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
+    if (configKey == null) {
+      throw new IllegalArgumentException(String.format(
+          "Invalid producer property: '%s'",
+          parsedProperty
+      ));
+    }
+    type = configKey.type;
+    return type;
+  }
+
+  private ConfigDef.Type parseConsumerProperty(String parsedProperty) {
+    ConfigDef.Type type;
+    ConfigDef.ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
+    if (configKey == null) {
+      throw new IllegalArgumentException(String.format(
+          "Invalid consumer property: '%s'",
+          parsedProperty
+      ));
+    }
+    type = configKey.type;
+    return type;
   }
 
   private StringBuilder unsetProperty(

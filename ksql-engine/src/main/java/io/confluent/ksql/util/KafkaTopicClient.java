@@ -26,13 +26,20 @@ import java.util.Set;
 
 public interface KafkaTopicClient extends Closeable {
 
+  enum TopicCleanupPolicy {
+    COMPACT,
+    DELETE,
+    COMPACT_DELETE
+  }
+
+
   /**
    * Create a new topic with the specified name, numPartitions and replicatonFactor.
    * [warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor);
+  void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted);
 
   /**
    * Create a new topic with the specified name, numPartitions and replicatonFactor.
@@ -45,7 +52,8 @@ public interface KafkaTopicClient extends Closeable {
       String topic,
       int numPartitions,
       short replicatonFactor,
-      Map<String, String> configs
+      Map<String, String> configs,
+      boolean isCompacted
   );
 
   /**
@@ -69,6 +77,14 @@ public interface KafkaTopicClient extends Closeable {
    * @param topicNames topicNames to describe
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
+
+  /**
+   * [warn] synchronous call to get the response
+   *
+   * @param topicName topicNames to describe
+   */
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
+
 
   /**
    * Delete the list of the topics in the given list.

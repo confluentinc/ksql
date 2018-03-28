@@ -30,7 +30,6 @@ import java.util.HashMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -49,7 +48,6 @@ public class ProjectNodeTest {
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final FakeKafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-  private final MetastoreUtil metastoreUtil = new MetastoreUtil();
   private final FunctionRegistry functionRegistry = new FunctionRegistry();
   private final HashMap<String, Object> props = new HashMap<>();
 
@@ -71,7 +69,6 @@ public class ProjectNodeTest {
     node.buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props, new MockSchemaRegistryClient());
   }
@@ -99,7 +96,6 @@ public class ProjectNodeTest {
     node.buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props, new MockSchemaRegistryClient());
 
@@ -111,7 +107,6 @@ public class ProjectNodeTest {
     EasyMock.expect(source.buildStream(anyObject(StreamsBuilder.class),
         anyObject(KsqlConfig.class),
         anyObject(KafkaTopicClient.class),
-        anyObject(MetastoreUtil.class),
         anyObject(FunctionRegistry.class),
         eq(props), anyObject(SchemaRegistryClient.class))).andReturn(stream);
   }

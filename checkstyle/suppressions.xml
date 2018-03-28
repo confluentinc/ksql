@@ -9,14 +9,20 @@
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
     <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
 
+    <!-- TODO: Fix Me!-->
     <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
+    <suppress files="(PersistentQueryMetadata|SourceDescription).java" checks="ParameterNumber"/>
+    <suppress files="(Console|Main|Generator).java" checks="JavaNCSSCheck"/>
+    <suppress files="Generator.java" checks="NPathComplexity"/>
+    <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(KafkaConsumerGroupClientImpl.java)" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(DataGenProducer|DataGen|Generator).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(ExpressionTypeManager|KsqlResource|Console).java" checks="CyclomaticComplexityCheck"/>
 
-    <suppress files="(PersistentQueryMetadata.java|SourceDescription.java)" checks="ParameterNumber"/>
-
-    <!-- Semantics may not be well checked by rules -->
-    <suppress files="." checks="NPathComplexity"/>
-    <suppress files="." checks="JavaNCSSCheck"/>
-    <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="." checks="CyclomaticComplexityCheck"/>
+    <!-- EXAMPLES! -->
+    <suppress files="(DataGenProducer|DataGen|Main|Generator).java" checks="CyclomaticComplexityCheck"/>
 
 </suppressions>

@@ -384,7 +384,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                               1,
                               replicationFactor,
                               Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-                                                       String.valueOf(Long.MAX_VALUE)));
+                                                       String.valueOf(Long.MAX_VALUE)), false);
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }
@@ -437,27 +437,28 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       return;
     }
 
-    try (PrintWriter writer =
-             new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+    final PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 
-      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+    WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
-      final String version = Version.getVersion();
-      final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
-          .get(0)
-          .replace("0.0.0.0", "localhost");
+    final String version = Version.getVersion();
+    final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
+        .get(0)
+        .replace("0.0.0.0", "localhost");
 
-      writer.printf("Server %s listening on %s%n", version, listener);
+    writer.printf("Server %s listening on %s%n", version, listener);
+    writer.println();
+    writer.println("To access the KSQL CLI, run:");
+    writer.println("ksql " + listener);
+    writer.println();
+
+    if (isUiEnabled) {
+      writer.println("To access the UI, point your browser at:");
+      writer.printf(listener + "/index.html");
       writer.println();
-      writer.println("To access the KSQL CLI, run:");
-      writer.println("ksql " + listener);
-      writer.println();
-
-      if (isUiEnabled) {
-        writer.println("To access the UI, point your browser at:");
-        writer.printf(listener + "/index.html");
-        writer.println();
-      }
     }
+
+    writer.flush();
   }
 }

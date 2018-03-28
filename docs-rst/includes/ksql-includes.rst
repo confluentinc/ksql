@@ -75,7 +75,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql
+       $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
 
    After KSQL is started, your terminal should resemble this.
 

@@ -105,6 +105,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final KsqlResource ksqlResource;
   private final boolean isUiEnabled;
   private final String uiFolder;
+
   private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;

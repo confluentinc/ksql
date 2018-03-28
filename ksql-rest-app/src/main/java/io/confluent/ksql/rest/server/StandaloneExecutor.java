@@ -100,7 +100,6 @@ public class StandaloneExecutor implements Executable {
         queriesFile);
   }
 
-
   private void showWelcomeMessage() {
     final Console console = System.console();
     if (console == null) {

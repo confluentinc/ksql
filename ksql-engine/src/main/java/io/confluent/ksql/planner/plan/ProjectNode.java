@@ -88,6 +88,11 @@ public class ProjectNode
   }
 
   @Override
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
   public Field getKeyField() {
     return keyField;
   }

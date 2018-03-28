@@ -3,32 +3,15 @@
 Installation and Configuration
 ------------------------------
 
-KSQL is a component of |cp| and is automatically installed and running when you install |cp|. For |cp| installation,
-see the :ref:`quickstart`.
-
 Interoperability
+    KSQL code is open source `https://github.com/confluentinc/ksql <https://github.com/confluentinc/ksql>`_. 
+
     .. include:: ../../../includes/installation.rst
-        :start-line: 84
-        :end-line: 95
+        :start-line: 127
+        :end-line: 134
 
-
-To start the KSQL CLI, enter this command:
-
-.. code:: bash
-
-    $ <path-to-confluent>/bin/ksql
-
-After KSQL is started, your terminal should resemble this.
-
-.. include:: ../../includes/ksql-includes.rst
-    :start-line: 17
-    :end-line: 38
-
-
-For advanced installation and configuration, see the following topics.
-
-.. toctree::
-    :maxdepth: 1
+.. toctree:: Contents
+    :maxdepth: 2
 
     architecture
     installing
@@ -36,5 +19,3 @@ For advanced installation and configuration, see the following topics.
     cli-config
     common-scenarios
     upgrading
-    
-

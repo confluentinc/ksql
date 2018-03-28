@@ -130,7 +130,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
-    createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+    createSinkTopic(noRowKey.getKafkaTopicName(),
+                    ksqlConfig,
+                    kafkaTopicClient,
+                    shoulBeCompacted(result));
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -144,6 +147,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
             .build());
     return result;
+  }
+
+  private boolean shoulBeCompacted(SchemaKStream result) {
+    return (result instanceof SchemaKTable)
+           && !((SchemaKTable) result).isWindowed();
   }
 
   private SchemaKStream createOutputStream(
@@ -197,13 +205,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private void createSinkTopic(
       final String kafkaTopicName,
       KsqlConfig ksqlConfig,
-      KafkaTopicClient kafkaTopicClient
+      KafkaTopicClient kafkaTopicClient,
+      boolean isCompacted
   ) {
     int numberOfPartitions =
         (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     short numberOfReplications =
         (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+    kafkaTopicClient.createTopic(kafkaTopicName,
+                                 numberOfPartitions,
+                                 numberOfReplications,
+                                 isCompacted);
   }
 
   public Field getTimestampField() {

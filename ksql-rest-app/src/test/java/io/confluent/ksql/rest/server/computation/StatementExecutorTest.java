@@ -259,10 +259,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus1
             .get()
             .getMessage()
-            .startsWith("io.confluent.ksql.util.KsqlException: Cannot drop the data source. "
-                        + "The following queries read from this source: [CSAS_USER1PV, CTAS_TABLE1]"
-                        + " and the following queries write into this source: []. "
-                        + "You need to terminate them before dropping this source."));
+            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop the data source. The following queries read from this source: [CSAS_USER1PV, CTAS_TABLE1] and the following queries write into this source: []. You need to terminate them before dropping this source."));
 
 
     Command dropStreamCommand2 = new Command("drop stream user1pv;", new HashMap<>());
@@ -280,10 +277,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertTrue(
         dropStreamCommandStatus2.get()
             .getMessage()
-            .startsWith("io.confluent.ksql.util.KsqlException: Cannot drop the data source. "
-                        + "The following queries read from this source: [] and the following "
-                        + "queries write into this source: [CSAS_USER1PV]. You need to terminate "
-                        + "them before dropping this source."));
+            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CSAS_USER1PV]. You need to terminate them before dropping this source."));
 
     Command dropTableCommand1 = new Command("drop table table1;", new HashMap<>());
     CommandId dropTableCommandId1 =
@@ -299,11 +293,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                CoreMatchers.equalTo(CommandStatus.Status.ERROR));
     Assert.assertTrue(dropTableCommandStatus1
             .get().getMessage()
-            .startsWith("io.confluent.ksql.util.KsqlException: "
-                        + "Cannot drop the data source. The following queries read "
-                        + "from this source: [] and the following queries write into this"
-                        + " source: [CTAS_TABLE1]. You need to terminate them before "
-                        + "dropping this source."));
+            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CTAS_TABLE1]. You need to terminate them before dropping this source."));
 
 
     // Terminate the queries using the stream/table

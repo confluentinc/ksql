@@ -38,7 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
@@ -73,6 +72,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -92,7 +92,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
   );
 
-  private KsqlConfig ksqlConfig;
+  private final KsqlConfig ksqlConfig;
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
   private final DdlCommandExec ddlCommandExec;
@@ -109,10 +109,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this(
         ksqlConfig,
         topicClient,
-        new CachedSchemaRegistryClient(
-            (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-            1000
-        ),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
         new MetaStoreImpl()
     );
   }
@@ -527,7 +524,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   @Override
   public void close() {
-    for (QueryMetadata queryMetadata : livePersistentQueries) {
+    for (QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     topicClient.close();

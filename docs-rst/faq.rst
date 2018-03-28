@@ -78,9 +78,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro (requires Confluent Schema Registry and setting ``ksql.schema.registry.url`` in the KSQL configuration file)
-
-*Support for Apache Avro is expected soon.*
+-  Avro (requires Confluent Schema Registry and :ref:`setting ``ksql.schema.registry.url`` in the KSQL server configuration file <install_ksql-avro-schema>`)
 
 ====================================
 Is KSQL fully compliant to ANSI SQL?
@@ -136,7 +134,8 @@ Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
 How do I add KSQL servers to an existing KSQL cluster?
 ======================================================
 
-Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`install_ksql-client-server`.
+Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers``. For more
+information, see :ref:`install_ksql-server`.
 
 ====================================================================================
 How can I secure KSQL servers for production and prevent interactive client access?
@@ -149,9 +148,9 @@ flag. For more information, see :ref:`common-configs`.
 How do I use Avro data and integrate with Confluent Schema Registry?
 ====================================================================
 
-Configure the ``ksql.schema.registry.url`` to point to Schema Registry (see :ref:`common-configs`).
+Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to Schema Registry (see :ref:`install_ksql-avro-schema`).
 
-.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cpe|.
+.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
 
 =========================
 How can I scale out KSQL?
@@ -172,22 +171,8 @@ Can KSQL connect to an Apache Kafka cluster over SSL?
 =====================================================
 
 Yes. Internally, KSQL uses standard Kafka consumers and producers.
-The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
-
-For example, you can add the following entries to the KSQL server configuration file
-(ksql-server.properties). This configuration enables KSQL to connect to a Kafka
-cluster over SSL, given a trust store that will validate the SSL certificates being used
-by the Kafka Brokers.
-
-.. code:: bash
-    security.protocol=SSL
-    ssl.truststore.location=<path to trust store that trusts broker certificates>
-    ssl.truststore.password=<trust store secret>
-
-The exact settings you will need will vary depending on the security settings the Kafka brokers
-are using and how your SSL certificates are signed. For full details, please refer to the
-`Security section of the Kafka documentation
-<http://kafka.apache.org/documentation.html#security>`__.
+The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka. For more information,
+see :ref:`config-security-ssl`.
 
 =================================================================================
 Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?
@@ -196,138 +181,23 @@ Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL
 Yes. Internally, KSQL uses standard Kafka consumers and producers.
 The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
 
-For example, you can add the following entries to the KSQL server configuration file
-(ksql-server.properties). This configuration enables KSQL to connect to a secure Kafka
-cluster using _PLAIN_ SASL (other options include GSSAPI / Kerberos), where the SSL
-certificates have been signed by a CA trusted by the default JVM trust store:
-
-.. code:: bash
-    security.protocol=SASL_SSL
-    sasl.mechanism=PLAIN
-    sasl.jaas.config=\
-        org.apache.kafka.common.security.plain.PlainLoginModule required `
-        username="<name of the user KSQL should use>" `
-        password="<the password>";
-
-The exact settings you will need will vary depending on what SASL mechanism your
-Kafka cluster is using and how your SSL certificates are signed. For full details,
-please refer to the `Security section of the Kafka documentation
-<http://kafka.apache.org/documentation.html#security>`__.
+For more information, see :ref:`config-security-ssl-sasl`.
 
 ====================================
 Will KSQL work with Confluent Cloud?
 ====================================
 
-Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward.
-To do so, add the following to the KSQL configuration file, (ksql-server.properties):
-
-... code:: bash
-    bootstrap.servers=<a comma separated list of the the ccloud broker endpoints. eg. r0.great-app.confluent.aws.prod.cloud:9092,r1.great-app.confluent.aws.prod.cloud:9093,r2.great-app.confluent.aws.prod.cloud:9094>
-    ksql.sink.replicas=3
-    replication.factor=3
-    security.protocol=SASL_SSL
-    sasl.mechanism=PLAIN
-    sasl.jaas.config=\
-        org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="<confluent cloud access key>" \
-        password="<confluent cloud secret>";
-
-For more information, see :ref:`install_ksql-ccloud`.
+Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
 
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 ====================================================================
 
-Interactive KSQL clusters
--------------------------
-
-Interactive KSQL clusters currently require that the KSQL user has open access to
-create, read, write and delete topics and use any consumer group.
-
-The required ACLs are:
-- *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
-- *CREATE* permission on the *CLUSTER*.
-- *DESCRIBE*, *READ*, *WRITE* and *DELETE* permissions on the *<any>* *TOPIC*.
-- *DESCRIBE* and *READ* permissions  on the *<any>* *GROUP*.
-
-It is still possible to restrict the KSQL user from accessing specific resources
-using *DENY* ACLs, e.g. adding a *DENY* ACL to stop KSQL queries from accessing a
-topic containing sensitive data.
-
-Non-interactive KSQL clusters
------------------------------
-
-Non-interactive KSQL clusters will run with much more restrictive ACLs,
-though it currently requires a little effort to work out what ACLs are required.
-This will be improved in upcoming releases.
-
-Standard ACLs
-    The KSQL user will always require:
-    - *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
-    - *DESCRIBE* permission on the *__consumer_offsets* topic.
-
-    If you would prefer KSQL to be able to create internal and/or sink topics then
-    the KSQL user should also be granted:
-    - *CREATE* permission on the *CLUSTER*.
-
-Source topics
-    For each source/input topic, the KSQL user will require *DESCRIBE* and *READ* permissions.
-    The topic should already exist when KSQL is started.
-
-Sink topics
-    For each sink/output topic, the KSQL user will require *DESCRIBE* and *WRITE* permissions.
-    If the topic does not already exist, then the user will also require *CREATE* permissions
-    on the *CLUSTER*.
-
-Change-log and repartition topics
-    The set of change-log and repartitioning topics that KSQL will require will depend on the
-    queries being executed. The easiest way to determine the list of topics is to first run
-    the queries on an open Kafka cluster and list the topics created.
-
-    All change-log and repartition topics are prefixed with
-    ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>_``
-    where the default of ``ksql.service.id`` is ``ksql_``.
-
-    The KSQL user will require a minimum of *DESCRIBE*, *READ* and *WRITE* permissions for
-    each change-log and repartition *TOPIC*.
-
-    If the KSQL user does not have *CREATE* permissions on the *CLUSTER*, then all change-log and
-    repartition topics must already exist, with the same number of partitions as the source topic,
-    and ``replication.factor`` replicas.
-
-Consumer groups
-    The set of consumer groups that KSQL will require will depend on the queries being executed.
-    The easiest way to determine the list of consumer groups is to first run the queries on an
-    open Kafka cluster and list the groups created.
-
-    All consumer groups are have a name in the format:
-    ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``
-    where the default of ``ksql.service.id`` is ``ksql_``.
-
-    The KSQL user will require a minimum of *DESCRIBE* and *READ* permissions for *GROUP*.
+Yes. For more information, see :ref:`config-security-ksql-acl`.
 
 ======================================================
 Will KSQL work with a HTTPS Confluent Schema Registry?
 ======================================================
 
-KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS.
-To achieve this you will need to:
-
--  Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
-   KSQL configuration file:
-
-    ... code:: bash
-        ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
-
--  If the Schema Registry's SSL certificate is not signed by a CA that is recognised by the JVM
-   by default, then you will need to provide a suitable truststore via the ``KSQL_OPTS``
-   environment variable:
-
-   ... code:: bash
-      $ export KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store>
-                          -Djavax.net.ssl.trustStorePassword=<store-password>"
-
-   or on the commandline when starting KSQL:
-
-   ... code:: bash
-      $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>
+KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
+:ref:`config-security-ksql-sr`.

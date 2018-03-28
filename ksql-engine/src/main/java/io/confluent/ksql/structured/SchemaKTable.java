@@ -24,6 +24,8 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +38,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
@@ -76,6 +77,8 @@ public class SchemaKTable extends SchemaKStream {
       Set<Integer> rowkeyIndexes
   ) {
     if (isWindowed) {
+      final Serde<Windowed<String>> windowedSerde
+              = WindowedSerdes.timeWindowedSerdeFrom(String.class);
       ktable.toStream()
           .mapValues(
               (ValueMapper<GenericRow, GenericRow>) row -> {
@@ -90,7 +93,7 @@ public class SchemaKTable extends SchemaKStream {
                 }
                 return new GenericRow(columns);
               }
-          ).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
+          ).to(kafkaTopicName, Produced.with(windowedSerde, topicValueSerDe));
     } else {
       ktable.toStream()
           .mapValues((ValueMapper<GenericRow, GenericRow>) row -> {

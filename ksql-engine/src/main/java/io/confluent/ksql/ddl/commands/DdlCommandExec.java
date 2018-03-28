@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 
 /**
  * Execute DDL Commands
@@ -57,6 +58,10 @@ public class DdlCommandExec {
     // TODO: create new task to run
     try {
       return ddlCommand.run(metaStore);
+    } catch (KsqlReferentialIntegrityException referentialIntegrityException) {
+      LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand),
+                  referentialIntegrityException);
+      throw referentialIntegrityException;
     } catch (Exception e) {
       LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
       return new DdlCommandResult(false, e.getMessage());

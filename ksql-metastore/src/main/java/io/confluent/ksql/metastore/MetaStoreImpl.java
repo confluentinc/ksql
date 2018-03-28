@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.Pair;
 
 public class MetaStoreImpl implements MetaStore, Cloneable {
@@ -102,11 +103,12 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
           .getSinkForQueries()
           .stream()
           .collect(Collectors.joining(", "));
-      throw new KsqlException(String.format("Cannot drop the data source. The following queries "
-                                            + "read from this source: [%s] and the following "
-                                            + "queries write into this source: [%s]. You need to "
-                                            + "terminate them before dropping this source.",
-                                            sourceForQueriesMessage, sinkForQueriesMessage));
+      throw new KsqlReferentialIntegrityException(
+          String.format("Cannot drop the data source. The following queries "
+                        + "read from this source: [%s] and the following "
+                        + "queries write into this source: [%s]. You need to "
+                        + "terminate them before dropping this source.",
+                        sourceForQueriesMessage, sinkForQueriesMessage));
     }
     dataSourceMap.remove(sourceName);
   }

@@ -262,7 +262,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isInternalTopic(final String topicName, String applicationId) {
     return topicName.startsWith(applicationId + "-")
-           && (topicName.endsWith("-changelog") || topicName.endsWith("-repartition"));
+           && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
+               || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
   public void close() {

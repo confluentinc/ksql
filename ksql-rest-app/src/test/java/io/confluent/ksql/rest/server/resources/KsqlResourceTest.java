@@ -157,7 +157,7 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
 
       addTestTopicAndSources(ksqlEngine.getMetaStore());
@@ -185,20 +185,20 @@ public class KsqlResourceTest {
       KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic1);
       metaStore.putSource(new KsqlTable("statementText", "TEST_TABLE", schema1, schema1.field("S1_F1"), null,
-          ksqlTopic1, "statestore", false));
+                                        ksqlTopic1, "statestore", false));
 
       Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA).field("S2_F2", Schema.INT32_SCHEMA);
       KsqlTopic ksqlTopic2 = new KsqlTopic("KSQL_TOPIC_2", "KAFKA_TOPIC_2", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic2);
       metaStore.putSource(new KsqlStream("statementText", "TEST_STREAM", schema2, schema2.field("S2_F2"), null,
-          ksqlTopic2));
+                                         ksqlTopic2));
     }
 
     private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
       Deserializer<T> result = new KafkaJsonDeserializer<>();
       String typeConfigProperty = isKey
-          ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-          : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+                                  ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+                                  : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
 
       Map<String, ?> props = Collections.singletonMap(
           typeConfigProperty,
@@ -445,7 +445,7 @@ public class KsqlResourceTest {
     assertThat(result2.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity2 = (ErrorMessageEntity) result2.get(0);
     assertThat("", errorMessageEntity2.getErrorMessage().getMessage(), equalTo("Invalid "
-                                                                                   + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
+                                                                               + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
   }
 
   @Test
@@ -474,7 +474,7 @@ public class KsqlResourceTest {
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
     assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
-                                                                   + " is STREAM, but statement was DROP TABLE"));
+                                                                                  + " is STREAM, but statement was DROP TABLE"));
   }
 
   @Test
@@ -488,7 +488,7 @@ public class KsqlResourceTest {
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
     assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
-                                                                   + " is TABLE, but statement was DROP STREAM"));
+                                                                                  + " is TABLE, but statement was DROP STREAM"));
   }
 
   @Test
@@ -536,5 +536,7 @@ public class KsqlResourceTest {
     org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
                                   avroSchema);
+
   }
+
 }

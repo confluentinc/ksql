@@ -57,7 +57,6 @@ import static org.hamcrest.Matchers.hasSize;
 
 @Category({IntegrationTest.class})
 public class JsonFormatTest {
-
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
   private static final String usersTopic = "users_topic";

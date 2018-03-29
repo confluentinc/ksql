@@ -129,6 +129,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
+  public Set<String> listNonInternalTopicNames() {
+    return listTopicNames().stream()
+        .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
+                             || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+        .collect(Collectors.toSet());
+  }
+
+  @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       RetryHelper<Map<String, TopicDescription>> retryHelper = new RetryHelper<>();

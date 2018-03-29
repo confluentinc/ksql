@@ -91,7 +91,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldSetTopicConfigWhenNothingChanged() {
+  public void shouldNotSetTopicConfigWhenNothingChanged() {
     // Given:
     client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
 

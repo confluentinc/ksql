@@ -67,7 +67,7 @@ KSQL Server
     the target Kafka cluster.
 
     KSQL servers form KSQL clusters and can run in containers, virtual machines, and bare-metal machines. You can add or
-    remove multiple servers to/from the same KSQL cluster during live operations elastically scale query processing in
+    remove servers to/from the same KSQL cluster during live operations elastically scale query processing in
     or out. You can deploy different KSQL clusters to achieve workload isolation.
 
 KSQL CLI

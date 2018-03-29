@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
@@ -62,6 +64,7 @@ import static org.hamcrest.Matchers.greaterThan;
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
+@Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 
   private static final String INPUT_TOPIC = "orders_topic";

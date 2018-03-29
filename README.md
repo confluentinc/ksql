@@ -96,6 +96,7 @@ Whether you need help, want to contribute, or are just looking for the latest ne
 Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).
 
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
+- Read the [Developer notes](./DEVELOPMENT.md)
 
 # License
 The project is licensed under the Apache License, version 2.0.

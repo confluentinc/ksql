@@ -396,9 +396,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
           commandTopic,
           1,
           replicationFactor,
-          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-                                   String.valueOf(requiredTopicRetention)),
-          false);
+          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
+      );
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }

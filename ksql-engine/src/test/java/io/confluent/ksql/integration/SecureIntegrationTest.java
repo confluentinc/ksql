@@ -389,7 +389,7 @@ public class SecureIntegrationTest {
       return;
     }
 
-    topicClient.createTopic(INPUT_TOPIC, 1, (short) 1, false);
+    topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 

@@ -16,12 +16,13 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.Lists;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
@@ -33,10 +34,8 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,24 +53,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private static final int NUM_RETRIES = 5;
   private static final int RETRY_BACKOFF_MS = 500;
+
   private final AdminClient adminClient;
-
-
-  private boolean isDeleteTopicEnabled = false;
+  private final boolean isDeleteTopicEnabled;
 
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = adminClient;
-    init();
+    this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
   }
 
   @Override
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicatonFactor,
-      boolean isCompacted
+      final short replicationFactor
   ) {
-    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap(), isCompacted);
+    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
   @Override
@@ -79,35 +76,33 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, String> configs,
-      boolean isCompacted
+      final Map<String, ?> configs
   ) {
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
-    NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
-    Map<String, String> newTopicConfigs = new HashMap<>(configs);
-    if (isCompacted) {
-      newTopicConfigs.put("cleanup.policy", "compact");
-    }
-    newTopic.configs(newTopicConfigs);
+
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
+    newTopic.configs(toStringConfigs(configs));
+
     try {
       log.info("Creating topic '{}'", topic);
       executeWithRetries(() -> adminClient.createTopics(Collections.singleton(newTopic)).all());
-    } catch (InterruptedException e) {
+
+    } catch (final InterruptedException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof TopicExistsException) {
-        // if the topic already exists, it is most likely because another node just created it.
-        // ensure that it matches the partition count and replication factor before returning
-        // success
-        validateTopicProperties(topic, numPartitions, replicationFactor);
-        return;
-      }
-      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " + topic,
-                                                e);
+
+    } catch (final TopicExistsException e) {
+      // if the topic already exists, it is most likely because another node just created it.
+      // ensure that it matches the partition count and replication factor before returning
+      // success
+      validateTopicProperties(topic, numPartitions, replicationFactor);
+
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to guarantee existence of topic " + topic, e);
     }
   }
 
@@ -121,7 +116,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Set<String> listTopicNames() {
     try {
       return executeWithRetries(() -> adminClient.listTopics().names());
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
   }
@@ -138,22 +133,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       return executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
     }
   }
 
   @Override
   public Map<String, String> getTopicConfig(final String topicName) {
-    return getTopicConfig(topicName, true);
+    return topicConfig(topicName, true);
   }
 
   @Override
-  public boolean addTopicConfig(final String topicName, final Map<String, Object> overrides) {
+  public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
 
     try {
-      final Map<String, String> existingConfig = getTopicConfig(topicName, false);
+      final Map<String, String> existingConfig = topicConfig(topicName, false);
 
       final boolean changed = overrides.entrySet().stream()
           .anyMatch(e -> !Objects.equals(existingConfig.get(e.getKey()), e.getValue()));
@@ -161,11 +156,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         return false;
       }
 
-      overrides.forEach((k,v) -> existingConfig.put(k, v.toString()));
+      existingConfig.putAll(toStringConfigs(overrides));
 
-      final List<ConfigEntry> entries = existingConfig.entrySet().stream()
+      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
           .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
-          .collect(Collectors.toList());
+          .collect(Collectors.toSet());
 
       final Map<ConfigResource, Config> request =
           Collections.singletonMap(resource, new Config(entries));
@@ -173,7 +168,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       executeWithRetries(() -> adminClient.alterConfigs(request).all());
 
       return true;
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
     }
@@ -204,7 +199,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
-    List<String> failList = new ArrayList<>();
+    List<String> failList = Lists.newArrayList();
 
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
       try {
@@ -227,7 +222,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     try {
       Set<String> topicNames = listTopicNames();
-      List<String> internalTopics = new ArrayList<>();
+      List<String> internalTopics = Lists.newArrayList();
       for (String topicName : topicNames) {
         if (isInternalTopic(topicName, applicationId)) {
           internalTopics.add(topicName);
@@ -243,41 +238,36 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private void init() {
+  private static boolean isTopicDeleteEnabled(final AdminClient adminClient) {
     try {
       DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-      List<Node> nodes = new ArrayList<>(describeClusterResult.nodes().get());
-      if (!nodes.isEmpty()) {
-        ConfigResource resource = new ConfigResource(
-            ConfigResource.Type.BROKER,
-            String.valueOf(nodes.get(0).id())
-        );
-
-        DescribeConfigsResult describeConfigsResult =
-            adminClient.describeConfigs(Collections.singleton(resource));
-
-        Map<ConfigResource, Config> config = executeWithRetries(describeConfigsResult::all);
-
-        this.isDeleteTopicEnabled = config.get(resource)
-            .entries()
-            .stream()
-            .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-                                     && configEntry.value().equalsIgnoreCase("true"));
-
-
-      } else {
+      Collection<Node> nodes = describeClusterResult.nodes().get();
+      if (nodes.isEmpty()) {
         log.warn("No available broker found to fetch config info.");
-        throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
-                                + "AdminCLient.");
+        throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
       }
-    } catch (InterruptedException | ExecutionException ex) {
-      log.error("Failed to initialize TopicClient: {}", ex.getMessage());
-      throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
-                              + "AdminClient.", ex);
+
+      ConfigResource resource = new ConfigResource(
+          ConfigResource.Type.BROKER,
+          String.valueOf(nodes.iterator().next().id())
+      );
+
+      Map<ConfigResource, Config> config = executeWithRetries(
+          () -> adminClient.describeConfigs(Collections.singleton(resource)).all());
+
+      return config.get(resource)
+          .entries()
+          .stream()
+          .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
+                                   && configEntry.value().equalsIgnoreCase("true"));
+
+    } catch (final Exception e) {
+      log.error("Failed to initialize TopicClient: {}", e.getMessage());
+      throw new KsqlException("Could not fetch broker information. KSQL cannot initialize", e);
     }
   }
 
-  private boolean isInternalTopic(final String topicName, String applicationId) {
+  private boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
            && (topicName.endsWith("-changelog") || topicName.endsWith("-repartition"));
   }
@@ -286,7 +276,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     this.adminClient.close();
   }
 
-  private void validateTopicProperties(String topic, int numPartitions, short replicationFactor) {
+  private void validateTopicProperties(final String topic,
+                                       final int numPartitions,
+                                       final short replicationFactor) {
     Map<String, TopicDescription> topicDescriptions =
         describeTopics(Collections.singletonList(topic));
     TopicDescription topicDescription = topicDescriptions.get(topic);
@@ -302,7 +294,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           replicationFactor
       ));
     }
-    // Topic with the partitons and replicas exists, reuse it!
+    // Topic with the partitions and replicas exists, reuse it!
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it already "
         + "exists",
@@ -312,8 +304,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     );
   }
 
-  private Map<String, String> getTopicConfig(final String topicName,
-                                             final boolean includeDefaults) {
+  private Map<String, String> topicConfig(final String topicName,
+                                          final boolean includeDefaults) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
     final List<ConfigResource> request = Collections.singletonList(resource);
 
@@ -325,15 +317,20 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .filter(e -> includeDefaults
                        || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);
     }
   }
 
-  private static <T> T executeWithRetries(
-      final Supplier<KafkaFuture<T>> supplier) throws InterruptedException,
-                                                      ExecutionException {
+  private static Map<String, String> toStringConfigs(Map<String, ?> configs) {
+    return configs.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+  }
+
+  private static <T> T executeWithRetries(final Supplier<KafkaFuture<T>> supplier)
+      throws Exception {
+
     int retries = 0;
     Exception lastException = null;
     while (retries < NUM_RETRIES) {
@@ -345,14 +342,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       } catch (ExecutionException e) {
         if (e.getCause() instanceof RetriableException) {
           retries++;
-          log.info("Retrying admin request due to retriable exception. Retry no: "
-                   + retries, e);
+          log.info("Retrying admin request due to retriable exception. Retry no: " + retries, e);
           lastException = e;
+        } else if (e.getCause() instanceof Exception) {
+          throw (Exception) e.getCause();
         } else {
           throw e;
         }
       }
     }
-    throw new ExecutionException(lastException);
+    throw lastException;
   }
 }

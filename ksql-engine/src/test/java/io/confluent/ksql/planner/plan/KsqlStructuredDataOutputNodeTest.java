@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
+
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -50,16 +53,16 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyShort;
 import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class KsqlStructuredDataOutputNodeTest {
+
+  private static final short EXPECTED_RF = 3;
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private static final String MAPVALUES_OUTPUT_NODE = "KSTREAM-MAPVALUES-0000000003";
   private static final String OUTPUT_NODE = "KSTREAM-SINK-0000000004";
@@ -75,14 +78,14 @@ public class KsqlStructuredDataOutputNodeTest {
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       new KsqlStream("sqlExpression", "datasource",
-          schema,
-          schema.field("key"),
-          schema.field("timestamp"),
-          new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe())),
+                     schema,
+                     schema.field("key"),
+                     schema.field("timestamp"),
+                     new KsqlTopic("input", "input",
+                                   new KsqlJsonTopicSerDe())),
       schema);
 
-  private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
+  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder = new StreamsBuilder();
   private KsqlStructuredDataOutputNode outputNode;
 
@@ -93,9 +96,9 @@ public class KsqlStructuredDataOutputNodeTest {
   public void before() {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
-    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
+    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
     createOutputNode(props);
-    topicClient.createTopic(eq("output"), anyInt(), anyShort(), eq(false));
+    topicClient.createTopic(eq("output"), anyInt(), anyShort(), eq(Collections.emptyMap()));
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
     stream = buildStream();
@@ -146,7 +149,8 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldHaveCorrectOutputNodeSchema() {
-    final List<Field> expected = Arrays.asList(new Field("ROWTIME", 0, Schema.INT64_SCHEMA),
+    final List<Field> expected = Arrays.asList(
+        new Field("ROWTIME", 0, Schema.INT64_SCHEMA),
         new Field("ROWKEY", 1, Schema.STRING_SCHEMA),
         new Field("field1", 2, Schema.STRING_SCHEMA),
         new Field("field2", 3, Schema.STRING_SCHEMA),
@@ -183,7 +187,8 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private SchemaKStream buildStream() {
     builder = new StreamsBuilder();
-    return outputNode.buildStream(builder,
+    return outputNode.buildStream(
+        builder,
         ksqlConfig,
         topicClient,
         new FunctionRegistry(),
@@ -195,7 +200,9 @@ public class KsqlStructuredDataOutputNodeTest {
     KafkaTopicClient topicClientForNonWindowTable = EasyMock.mock(KafkaTopicClient.class);
     KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(false);
     StreamsBuilder streamsBuilder = new StreamsBuilder();
-    topicClientForNonWindowTable.createTopic("output", 4, (short) 3, true);
+    Map<String, String> topicConfig = ImmutableMap.of(
+        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
+    topicClientForNonWindowTable.createTopic("output", 4, (short) 3, topicConfig);
     EasyMock.replay(topicClientForNonWindowTable);
     SchemaKStream schemaKStream = outputNode.buildStream(
         streamsBuilder,
@@ -215,7 +222,7 @@ public class KsqlStructuredDataOutputNodeTest {
     KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(true);
 
     StreamsBuilder streamsBuilder = new StreamsBuilder();
-    topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
+    topicClientForWindowTable.createTopic("output", 4, EXPECTED_RF, Collections.emptyMap());
     EasyMock.replay(topicClientForWindowTable);
     SchemaKStream schemaKStream = outputNode.buildStream(
         streamsBuilder,
@@ -234,7 +241,7 @@ public class KsqlStructuredDataOutputNodeTest {
     KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
 
     StreamsBuilder streamsBuilder = new StreamsBuilder();
-    topicClientForWindowTable.createTopic("output", 4, (short) 3, false);
+    topicClientForWindowTable.createTopic("output", 4, EXPECTED_RF, Collections.emptyMap());
     EasyMock.replay(topicClientForWindowTable);
     SchemaKStream schemaKStream = outputNode.buildStream(
         streamsBuilder,
@@ -251,7 +258,7 @@ public class KsqlStructuredDataOutputNodeTest {
   private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNode(boolean isWindowed) {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
-    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
+    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
 
     StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
         new PlanNodeId("0"),

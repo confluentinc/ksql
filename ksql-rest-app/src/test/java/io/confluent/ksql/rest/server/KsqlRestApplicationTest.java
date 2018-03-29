@@ -39,9 +39,8 @@ public class KsqlRestApplicationTest {
 
   private static final String COMMAND_TOPIC = "command_topic";
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
-  private final Map<String, String> commandTopicConfig = Collections.singletonMap(
-      TopicConfig.RETENTION_MS_CONFIG,
-      String.valueOf(Long.MAX_VALUE));
+  private final Map<String, ?> commandTopicConfig = Collections.singletonMap(
+      TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE);
   private final KsqlRestConfig restConfig =
       new KsqlRestConfig(
           Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
@@ -52,7 +51,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        commandTopicConfig, false);
+        commandTopicConfig);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
@@ -101,7 +100,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 3,
-        commandTopicConfig, false);
+        commandTopicConfig);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
@@ -122,7 +121,7 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        commandTopicConfig, false);
+        commandTopicConfig);
 
     EasyMock.expectLastCall().andThrow(new KafkaTopicException("blah"));
     EasyMock.replay(topicClient);

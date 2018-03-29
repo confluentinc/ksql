@@ -34,26 +34,24 @@ public interface KafkaTopicClient extends Closeable {
   }
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted);
+  void createTopic(String topic, int numPartitions, short replicationFactor);
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
-   *
    * @param topic   name of the topic to create
    * @param configs any additional topic configs to use
    */
   void createTopic(
       String topic,
       int numPartitions,
-      short replicatonFactor,
-      Map<String, String> configs,
-      boolean isCompacted
+      short replicationFactor,
+      Map<String, ?> configs
   );
 
   /**
@@ -103,10 +101,10 @@ public interface KafkaTopicClient extends Closeable {
    * <p>Note: each broker will pick up this change asynchronously.
    *
    * @param topicName the name of the topic.
-   * @param overrides new overrides to add.
+   * @param overrides new config overrides to add.
    * @return {@code true} if any of the {@code overrides} did not already exist
    */
-  boolean addTopicConfig(String topicName, Map<String, Object> overrides);
+  boolean addTopicConfig(String topicName, Map<String, ?> overrides);
 
   /**
    * Synchronous call to get a topic's cleanup policy

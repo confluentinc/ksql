@@ -76,6 +76,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;

@@ -23,12 +23,14 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
+import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -77,24 +79,24 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
   }
 
-  Map<String, FakeTopic> topicMap = new HashMap<>();
+  private Map<String, FakeTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted) {
+  public void createTopic(String topic, int numPartitions, short replicationFactor) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                TopicCleanupPolicy.COMPACT:
-                                                                                TopicCleanupPolicy.DELETE));
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicationFactor, TopicCleanupPolicy.DELETE));
     }
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String,
-      String> configs, boolean isCompacted) {
+  public void createTopic(String topic, int numPartitions, short replicationFactor, Map<String, ?> configs) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                TopicCleanupPolicy.COMPACT:
-                                                                                TopicCleanupPolicy.DELETE));
+      final TopicCleanupPolicy cleanUpPolicy =
+          CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
+          ? TopicCleanupPolicy.COMPACT
+          : TopicCleanupPolicy.DELETE;
+
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy));
     }
   }
 
@@ -131,7 +133,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public boolean addTopicConfig(String topicName, Map<String, Object> overrides) {
+  public boolean addTopicConfig(String topicName, Map<String, ?> overrides) {
     return false;
   }
 

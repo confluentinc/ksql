@@ -34,16 +34,14 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void createTopic(String topic,
                           int numPartitions,
-                          short replicatonFactor,
-                          boolean isCompacted) {
+                          short replicationFactor) {
   }
 
   @Override
   public void createTopic(String topic,
                           int numPartitions,
-                          short replicatonFactor,
-                          Map<String, String> configs,
-                          boolean isCompacted) {
+                          short replicationFactor,
+                          Map<String, ?> configs) {
 
   }
 
@@ -73,7 +71,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public boolean addTopicConfig(String topicName, Map<String, Object> overrides) {
+  public boolean addTopicConfig(String topicName, Map<String, ?> overrides) {
     return false;
   }
 

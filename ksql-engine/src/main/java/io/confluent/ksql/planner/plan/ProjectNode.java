@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -89,6 +88,11 @@ public class ProjectNode
   }
 
   @Override
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
   public Field getKeyField() {
     return keyField;
   }
@@ -114,12 +118,11 @@ public class ProjectNode
   public SchemaKStream buildStream(final StreamsBuilder builder,
                                    final KsqlConfig ksqlConfig,
                                    final KafkaTopicClient kafkaTopicClient,
-                                   final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
                                    final Map<String, Object> props,
                                    final SchemaRegistryClient schemaRegistryClient) {
-    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil,
-                                   functionRegistry, props, schemaRegistryClient)
+    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient,
+        functionRegistry, props, schemaRegistryClient)
         .select(getProjectNameExpressionPairList());
   }
 }

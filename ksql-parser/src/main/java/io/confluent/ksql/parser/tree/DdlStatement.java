@@ -14,12 +14,10 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.metastore.MetaStore;
-
-public interface DDLCommand {
-
-  DDLCommandResult run(MetaStore metaStore);
-
+/**
+ * A Marker interface to signal that a Statement is a DDLStatement
+ */
+public interface DdlStatement {
 }

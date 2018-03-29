@@ -34,7 +34,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -62,7 +61,6 @@ public class PhysicalPlanBuilder {
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
-  private final MetastoreUtil metastoreUtil;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
@@ -74,7 +72,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -85,7 +82,6 @@ public class PhysicalPlanBuilder {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
     this.functionRegistry = functionRegistry;
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
@@ -98,7 +94,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -109,7 +104,6 @@ public class PhysicalPlanBuilder {
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         overriddenStreamsProperties,
         updateMetastore,
@@ -128,7 +122,6 @@ public class PhysicalPlanBuilder {
             builder,
             ksqlConfig,
             kafkaTopicClient,
-            metastoreUtil,
             functionRegistry,
             overriddenStreamsProperties,
             schemaRegistryClient

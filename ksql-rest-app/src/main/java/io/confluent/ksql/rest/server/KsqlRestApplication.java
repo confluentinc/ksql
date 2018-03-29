@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
@@ -80,6 +81,7 @@ import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -106,6 +108,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final boolean isUiEnabled;
   private final String uiFolder;
 
+  private final ServerInfo serverInfo;
+
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
 
@@ -122,7 +126,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
       boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+      VersionCheckerAgent versionCheckerAgent,
+      ServerInfo serverInfo
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -133,6 +138,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.ksqlResource = ksqlResource;
 
     this.versionChckerAgent = versionCheckerAgent;
+    this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
     final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
@@ -141,7 +147,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       log.warn("System property {} is not set. User interface will be disabled",
           KsqlRestConfig.INSTALL_DIR_CONFIG);
       this.uiFolder = null;
-    } else if (isUiEnabled){
+    } else if (isUiEnabled) {
       this.uiFolder = ksqlInstallDir + "/ui";
     } else {
       this.uiFolder = null;
@@ -152,7 +158,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(new ServerInfo(Version.getVersion())));
+    config.register(new ServerInfoResource(serverInfo));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -239,9 +245,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    try (BrokerCompatibilityCheck compatibilityCheck =
-             BrokerCompatibilityCheck.create(ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
-      compatibilityCheck.checkCompatibility();
+    final String kafkaClusterId;
+    try {
+      kafkaClusterId = adminClient.describeCluster().clusterId().get();
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
     }
 
     String commandTopic =
@@ -258,13 +269,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         new StringLiteral(commandTopic)
     );
 
-    ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
     )));
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(
+    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
         new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
@@ -343,7 +354,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         streamedQueryResource,
         ksqlResource,
         isUiEnabled,
-        versionCheckerAgent
+        versionCheckerAgent,
+        new ServerInfo(Version.getVersion(), kafkaClusterId)
     );
   }
 

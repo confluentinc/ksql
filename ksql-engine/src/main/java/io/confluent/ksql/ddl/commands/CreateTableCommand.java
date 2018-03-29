@@ -63,7 +63,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore) {
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore);
     }
@@ -85,7 +85,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
-    return new DDLCommandResult(true, "Table created");
+    return new DdlCommandResult(true, "Table created");
   }
 
 }

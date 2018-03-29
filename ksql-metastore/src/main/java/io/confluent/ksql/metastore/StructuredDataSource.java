@@ -34,7 +34,6 @@ public abstract class StructuredDataSource implements DataSource {
   final KsqlTopic ksqlTopic;
   final String sqlExpression;
 
-
   public StructuredDataSource(
       String sqlExpression,
       final String datasourceName,
@@ -53,6 +52,16 @@ public abstract class StructuredDataSource implements DataSource {
     this.ksqlTopic = ksqlTopic;
   }
 
+  @Override
+  public String getName() {
+    return this.dataSourceName;
+  }
+
+  @Override
+  public DataSourceType getDataSourceType() {
+    return this.dataSourceType;
+  }
+
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
     switch (dataSourceTypeName) {
       case "STREAM":
@@ -64,22 +73,12 @@ public abstract class StructuredDataSource implements DataSource {
     }
   }
 
-  @Override
-  public String getName() {
-    return this.dataSourceName;
-  }
-
   public Schema getSchema() {
     return this.schema;
   }
 
   public Field getKeyField() {
     return this.keyField;
-  }
-
-  @Override
-  public DataSourceType getDataSourceType() {
-    return this.dataSourceType;
   }
 
   public KsqlTopic getKsqlTopic() {

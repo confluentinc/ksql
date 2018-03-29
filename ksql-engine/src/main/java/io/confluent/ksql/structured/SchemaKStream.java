@@ -53,7 +53,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class SchemaKStream {
 
-  public enum Type {SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM}
+  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
   protected final Schema schema;
   protected final KStream<String, GenericRow> kstream;
@@ -233,11 +233,9 @@ public class SchemaKStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream selectKey(final Field newKeyField, boolean updateRowKey) {
-    if (keyField != null
-        && keyField.name().equals(newKeyField.name())) {
+    if (keyField != null && keyField.name().equals(newKeyField.name())) {
       return this;
     }
-
 
     KStream keyedKStream = kstream.filter((key, value) ->
         value != null
@@ -338,7 +336,6 @@ public class SchemaKStream {
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to
     //       repartition.
-
     Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,

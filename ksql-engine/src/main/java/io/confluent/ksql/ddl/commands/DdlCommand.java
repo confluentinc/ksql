@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package io.confluent.ksql.parser.tree;
 
-/**
- * A Marker interface to signal that a Statement is a DDLStatement
- */
-public interface DDLStatement {
+package io.confluent.ksql.ddl.commands;
+
+import io.confluent.ksql.metastore.MetaStore;
+
+public interface DdlCommand {
+
+  DdlCommandResult run(MetaStore metaStore);
+
 }

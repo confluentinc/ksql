@@ -39,7 +39,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -187,7 +186,6 @@ public class KsqlStructuredDataOutputNodeTest {
     return outputNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
@@ -203,7 +201,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForNonWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
@@ -224,7 +221,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
@@ -244,7 +240,6 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());

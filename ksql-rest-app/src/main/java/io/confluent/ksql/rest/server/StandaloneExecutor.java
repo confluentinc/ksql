@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -58,7 +57,6 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = queriesFile;
   }
 
-
   public void start() throws Exception {
     try {
       executeStatements(readQueriesFile(queriesFile));
@@ -87,7 +85,7 @@ public class StandaloneExecutor implements Executable {
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if(!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       streamsProperties.put(
           StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
@@ -101,7 +99,6 @@ public class StandaloneExecutor implements Executable {
         ksqlEngine,
         queriesFile);
   }
-
 
   private void showWelcomeMessage() {
     final Console console = System.console();
@@ -137,8 +134,6 @@ public class StandaloneExecutor implements Executable {
       }
     }
   }
-
-
 
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();

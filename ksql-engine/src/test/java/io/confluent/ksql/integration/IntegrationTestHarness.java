@@ -44,7 +44,7 @@ public class IntegrationTestHarness {
 
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
-  public static final long RESULTS_POLL_MAX_TIME_MS = 30000;
+  public static final long RESULTS_POLL_MAX_TIME_MS = 60000;
   public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
 
   public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Integration_Test_Consumer_";

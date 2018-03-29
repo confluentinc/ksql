@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -121,6 +120,17 @@ public class AggregateNodeTest {
     assertTrue(((SchemaKTable)stream).isWindowed());
   }
 
+  @Test
+  public void shouldFailAggregationOfTable() {
+    try {
+      buildQuery("SELECT col1, count(col3) FROM test2 GROUP BY col1;");
+    } catch (KsqlException e) {
+      assertThat(
+          e.getMessage(),
+          equalTo("Unsupported aggregation. KSQL currently only supports aggregation on a Stream."));
+    }
+  }
+
   private SchemaKStream build() {
     return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
         + "size 2 "
@@ -149,7 +159,6 @@ public class AggregateNodeTest {
     return aggregateNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

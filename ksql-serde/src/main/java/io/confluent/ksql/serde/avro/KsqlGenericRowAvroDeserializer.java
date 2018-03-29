@@ -120,30 +120,37 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
         }
 
       case ARRAY:
-        GenericData.Array genericArray = (GenericData.Array) value;
-        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-        Object[] arrayField =
-            (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
-        for (int i = 0; i < genericArray.size(); i++) {
-          Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
-          arrayField[i] = obj;
-        }
-        return arrayField;
+        return handleArray(fieldSchema, (GenericData.Array) value);
       case MAP:
-        Map valueMap = (Map) value;
-        Map<String, Object> ksqlMap = new HashMap<>();
-        Set<Map.Entry> entrySet = valueMap.entrySet();
-        for (Map.Entry avroMapEntry : entrySet) {
-          ksqlMap.put(
-              avroMapEntry.getKey().toString(),
-              enforceFieldType(fieldSchema.valueSchema(), avroMapEntry.getValue())
-          );
-        }
-        return ksqlMap;
+        return handleMap(fieldSchema, (Map) value);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.schema());
 
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Object handleMap(Schema fieldSchema, Map valueMap) {
+    Map<String, Object> ksqlMap = new HashMap<>();
+    Set<Map.Entry> entrySet = valueMap.entrySet();
+    for (Map.Entry avroMapEntry : entrySet) {
+      ksqlMap.put(
+          avroMapEntry.getKey().toString(),
+          enforceFieldType(fieldSchema.valueSchema(), avroMapEntry.getValue())
+      );
+    }
+    return ksqlMap;
+  }
+
+  private Object handleArray(Schema fieldSchema, GenericData.Array genericArray) {
+    Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
+    Object[] arrayField =
+        (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
+    for (int i = 0; i < genericArray.size(); i++) {
+      Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
+      arrayField[i] = obj;
+    }
+    return arrayField;
   }
 
   Map<String, String> getCaseInsensitiveFieldMap(GenericRecord genericRecord) {

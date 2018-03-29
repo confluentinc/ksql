@@ -25,19 +25,19 @@ import io.confluent.ksql.util.KsqlException;
 /**
  * Execute DDL Commands
  */
-public class DDLCommandExec {
+public class DdlCommandExec {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DDLCommandExec.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DdlCommandExec.class);
   private final MetaStore metaStore;
 
-  public DDLCommandExec(MetaStore metaStore) {
+  public DdlCommandExec(MetaStore metaStore) {
     this.metaStore = metaStore;
   }
 
   /**
    * execute on temp metaStore
    */
-  public DDLCommandResult tryExecute(DDLCommand ddlCommand, MetaStore tempMetaStore) {
+  public DdlCommandResult tryExecute(DdlCommand ddlCommand, MetaStore tempMetaStore) {
     if (tempMetaStore == metaStore) {
       throw new KsqlException(
           "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
@@ -49,17 +49,17 @@ public class DDLCommandExec {
   /**
    * execute on real metaStore
    */
-  public DDLCommandResult execute(DDLCommand ddlCommand) {
+  public DdlCommandResult execute(DdlCommand ddlCommand) {
     return executeOnMetaStore(ddlCommand, this.metaStore);
   }
 
-  private static DDLCommandResult executeOnMetaStore(DDLCommand ddlCommand, MetaStore metaStore) {
+  private static DdlCommandResult executeOnMetaStore(DdlCommand ddlCommand, MetaStore metaStore) {
     // TODO: create new task to run
     try {
       return ddlCommand.run(metaStore);
     } catch (Exception e) {
       LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
-      return new DDLCommandResult(false, e.getMessage());
+      return new DdlCommandResult(false, e.getMessage());
     }
   }
 }

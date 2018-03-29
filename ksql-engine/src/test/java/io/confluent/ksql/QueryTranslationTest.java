@@ -26,9 +26,9 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
@@ -38,7 +38,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -57,6 +60,7 @@ import io.confluent.ksql.util.QueryMetadata;
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
 
+  private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
   private final MetaStore metaStore = new MetaStoreImpl();
   private final Map<String, Object> config = new HashMap<String, Object>() {{
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
@@ -129,7 +133,7 @@ public class QueryTranslationTest {
       if (window == null) {
         return Serdes.String().deserializer();
       }
-      return new WindowedDeserializer<>(Serdes.String().deserializer(), window.size());
+      return new TimeWindowedDeserializer(Serdes.String().deserializer(), window.size());
     }
 
     @SuppressWarnings("unchecked")
@@ -143,15 +147,18 @@ public class QueryTranslationTest {
 
 
   static class Query {
+    private final String testPath;
     private final String name;
     private final List<String> statements;
     private final List<Record> inputs;
     private final List<Record> expectedOutputs;
 
-    Query(final String name,
+    Query(final String testPath,
+          final String name,
           final List<String> statements,
           final List<Record> inputs,
           final List<Record> expectedOutputs) {
+      this.testPath = testPath;
       this.name = name;
       this.statements = statements;
       this.inputs = inputs;
@@ -184,6 +191,7 @@ public class QueryTranslationTest {
         } catch (AssertionError assertionError) {
           throw new AssertionError("Query name: "
               + name
+              + " in file: " + testPath
               + " failed due to: "
               + assertionError.getMessage());
         }
@@ -211,34 +219,56 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
-    final ObjectMapper objectMapper = new ObjectMapper();
-    final JsonNode tests = objectMapper.readTree(
-        QueryTranslationTest.class.getClassLoader().
-            getResourceAsStream("query-validation-tests.json"));
-    final List<Query> queries = new ArrayList<>();
-
-    tests.findValue("tests").elements().forEachRemaining(query -> {
+    final List<String> testFiles = findTests();
+    return testFiles.stream().flatMap(test -> {
+      final ObjectMapper objectMapper = new ObjectMapper();
+      final String testPath = QUERY_VALIDATION_TEST_DIR + "/" + test;
+      final JsonNode tests;
       try {
-        final String name = query.findValue("name").asText();
-        final List<String> statements = new ArrayList<>();
-        final List<Record> inputs = new ArrayList<>();
-        final List<Record> outputs = new ArrayList<>();
-        query.findValue("statements").elements()
-            .forEachRemaining(statement -> statements.add(statement.asText()));
-        query.findValue("inputs").elements()
-            .forEachRemaining(input -> inputs.add(createRecordFromNode(input)));
-        query.findValue("outputs").elements()
-            .forEachRemaining(output -> outputs.add(createRecordFromNode(output)));
-        queries.add(new Query(name, statements, inputs, outputs));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+        tests = objectMapper.readTree(
+            QueryTranslationTest.class.getClassLoader().
+                getResourceAsStream(testPath));
+      } catch (IOException e) {
+        throw new RuntimeException("Unable to load test at path " + testPath);
       }
-    });
-    final Collection<Object[]> result = new ArrayList<>();
-    for (final Query query : queries) {
-      result.add(new Object[]{query.name, query});
+      final List<Query> queries = new ArrayList<>();
+      tests.findValue("tests").elements().forEachRemaining(query -> {
+        try {
+          final String name = query.findValue("name").asText();
+          final List<String> statements = new ArrayList<>();
+          final List<Record> inputs = new ArrayList<>();
+          final List<Record> outputs = new ArrayList<>();
+          query.findValue("statements").elements()
+              .forEachRemaining(statement -> statements.add(statement.asText()));
+          query.findValue("inputs").elements()
+              .forEachRemaining(input -> inputs.add(createRecordFromNode(input)));
+          query.findValue("outputs").elements()
+              .forEachRemaining(output -> outputs.add(createRecordFromNode(output)));
+          queries.add(new Query(testPath, name, statements, inputs, outputs));
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+      return queries.stream()
+          .map(query -> new Object[]{query.name, query});
+    }).collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  private static List<String> findTests() throws IOException {
+    final List<String> tests = new ArrayList<>();
+    try (final BufferedReader reader =
+             new BufferedReader(
+                 new InputStreamReader(QueryTranslationTest.class.getClassLoader().
+                     getResourceAsStream(QUERY_VALIDATION_TEST_DIR)))) {
+
+      String test;
+      while ((test = reader.readLine()) != null) {
+        if (test.endsWith(".json")) {
+          tests.add(test);
+        }
+      }
     }
-    return result;
+    return tests;
   }
 
   @Test

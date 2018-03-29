@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.ddl.commands;
 
-public class DDLCommandResult {
+public class DdlCommandResult {
 
   private final boolean success;
   private final String message;
 
-  public DDLCommandResult(boolean success, String message) {
+  public DdlCommandResult(boolean success, String message) {
     this.success = success;
     this.message = message;
   }

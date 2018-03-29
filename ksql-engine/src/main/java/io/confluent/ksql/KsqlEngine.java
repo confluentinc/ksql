@@ -38,14 +38,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandExec;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -56,11 +55,10 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -74,6 +72,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -92,11 +91,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
   );
 
-  private KsqlConfig ksqlConfig;
+  private final KsqlConfig ksqlConfig;
 
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
-  private final DDLCommandExec ddlCommandExec;
+  private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
@@ -109,15 +108,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   private SchemaRegistryClient schemaRegistryClient;
 
-
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     this(
         ksqlConfig,
         topicClient,
-        new CachedSchemaRegistryClient(
-            (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-            1000
-        ),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
         new MetaStoreImpl()
     );
   }
@@ -134,16 +129,16 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ksqlConfig = ksqlConfig;
     this.metaStore = metaStore;
     this.topicClient = topicClient;
-    this.ddlCommandExec = new DDLCommandExec(this.metaStore);
+    this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, this, true));
+        new CommandFactories(topicClient, this, true)
+    );
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
     this.schemaRegistryClient = schemaRegistryClient;
-
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(
@@ -176,8 +171,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     // Multiple queries submitted as the same time should success or fail as a whole,
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
-
     MetaStore tempMetaStore = metaStore.clone();
+
     // Build query AST from the query string
     List<Pair<String, Statement>> queries = parseQueries(
         queriesString,
@@ -266,8 +261,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
                 getStatementString(singleStatementContext),
                 tempMetaStore,
                 tempMetaStoreForParser,
-                overriddenProperties,
-                false
+                overriddenProperties
             );
         if (queryPair != null) {
           queryList.add(queryPair);
@@ -284,48 +278,29 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       final String statementString,
       final MetaStore tempMetaStore,
       final MetaStore tempMetaStoreForParser,
-      final Map<String, Object> overriddenProperties,
-      final boolean enforceTopicExistence
+      final Map<String, Object> overriddenProperties
   ) {
 
     log.info("Building AST for {}.", statementString);
 
     if (statement instanceof Query) {
       return new Pair<>(statementString, statement);
-    } else if (statement instanceof CreateStreamAsSelect) {
-      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    } else if (statement instanceof CreateAsSelect) {
+      CreateAsSelect createAsSelect = (CreateAsSelect) statement;
       QuerySpecification querySpecification =
-          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+          (QuerySpecification) createAsSelect.getQuery().getQueryBody();
       Query query = addInto(
-          createStreamAsSelect.getQuery(),
+          createAsSelect.getQuery(),
           querySpecification,
-          createStreamAsSelect.getName().getSuffix(),
-          createStreamAsSelect.getProperties(),
-          createStreamAsSelect.getPartitionByColumn()
+          createAsSelect.getName().getSuffix(),
+          createAsSelect.getProperties(),
+          createAsSelect.getPartitionByColumn()
       );
       tempMetaStoreForParser.putSource(
           queryEngine.getResultDatasource(
               querySpecification.getSelect(),
-              createStreamAsSelect.getName().getSuffix()
+              createAsSelect.getName().getSuffix()
           ).cloneWithTimeKeyColumns());
-      return new Pair<>(statementString, query);
-    } else if (statement instanceof CreateTableAsSelect) {
-      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      QuerySpecification querySpecification =
-          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-
-      Query query = addInto(
-          createTableAsSelect.getQuery(),
-          querySpecification,
-          createTableAsSelect.getName().getSuffix(),
-          createTableAsSelect.getProperties(),
-          Optional.empty()
-      );
-
-      tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
-          querySpecification.getSelect(),
-          createTableAsSelect.getName().getSuffix()
-      ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.tryExecute(
@@ -348,7 +323,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateStream) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
@@ -357,7 +332,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateStream) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);
@@ -368,7 +343,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateTable) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
@@ -377,7 +352,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               (CreateTable) statement,
               overriddenProperties,
               topicClient,
-              enforceTopicExistence),
+              false),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);
@@ -477,7 +452,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return topicClient;
   }
 
-  public DDLCommandExec getDDLCommandExec() {
+  public DdlCommandExec getDdlCommandExec() {
     return ddlCommandExec;
   }
 
@@ -544,7 +519,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   @Override
   public void close() {
-    for (QueryMetadata queryMetadata : livePersistentQueries) {
+    for (QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     topicClient.close();
@@ -552,29 +527,13 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     aggregateMetricsCollector.shutdown();
   }
 
-  @Override
-  public boolean terminateAllQueries() {
-    try {
-      for (QueryMetadata queryMetadata : livePersistentQueries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.close();
-        }
-        allLiveQueries.remove(queryMetadata);
-      }
-    } catch (Exception e) {
-      return false;
-    }
-
-    return true;
-  }
-
   public void removeTemporaryQuery(QueryMetadata queryMetadata) {
     this.allLiveQueries.remove(queryMetadata);
   }
 
-  public DDLCommandResult executeDdlStatement(
-      String sqlExpression, final DDLStatement statement,
+
+  public DdlCommandResult executeDdlStatement(
+      String sqlExpression, final DdlStatement statement,
       final Map<String, Object> overriddenProperties
   ) {
     return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);

@@ -17,22 +17,15 @@ These can all be configured via a properties file.
 .. important:: KSQL Server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
 
-KSQL Query Parameters
-    These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For
-    example, ``ksql.service.id`` and ``ksql.persistent.prefix``. A full list of configurations can be found in our `source file`_.
+General KSQL parameters
+    General KSQL configurations have the required ``ksql`` prefix. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``. A full list of configurations can be found in our `source file`_.
     .. _source file: https://github.com/confluentinc/ksql/blob/4.1.x/ksql-common/src/main/java/io/confluent/ksql/util/KsqlConfig.java#L86
 
-Kafka Streams and Kafka Client
-    These configurations control how Kafka Streams executes queries. These can be provided with the optional ``ksql.streams``
-    prefix. For example,  ``ksql.streams.auto.offset.reset`` and ``ksql.streams.cache.max.bytes.buffering``.
-
-Admin Client
-    These configurations control the KSQL admin client and use the same parameters as Kafka Streams. These can be provided
-    via the properties file with the optional ``ksql.streams`` prefix.
-
 KSQL Server
-    These configurations control the general behavior of the KSQL Server. For example, ``ksql.command.topic.suffix`` and
-    ``ui.enabled``
+    These configurations control the general behavior of the KSQL Server. For example, ``ksql.command.topic.suffix`` and ``ui.enabled``
+
+Kafka Streams and Kafka Clients
+    These configurations control how Kafka Streams executes queries. They also control the behavior of the underlying Kafka clients, viz. the producer, the consumer, and the admin client. These configs have the optional ``ksql.streams`` prefix. For example,  ``ksql.streams.auto.offset.reset`` and ``ksql.streams.cache.max.bytes.buffering``.
 
 --------------------
 KSQL Properties File
@@ -77,9 +70,9 @@ Here are some common configuration properties that you might want to customize.
 
 .. _ksql-auto-offset-reset:
 
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ksql.streams.auto.offset.reset
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Determines what to do when a KSQL query has not committed any offsets and has thus not marked progress on its 
 input Kafka topic. The default value in KSQL is ``latest``, which means KSQL queries will read Kafka topics 
@@ -111,9 +104,9 @@ For more information, see :ref:`Streams parameter reference <streams_developer-g
 
 .. _ksql-commit-interval-ms:
 
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ksql.streams.commit.interval.ms
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The frequency to save the state of a KSQL query.  The default value in KSQL is ``2000``, which means that KSQL will commit offsets (and thus mark progress), flush producer buffers (and hence materialize outputs to downstream consumers), and flush local state every 2 seconds.  A longer duration will allow more batching and thus higher throughput, at the cost of higher end-to-end processing latency. A lower value will have lower end-to-end processing latency but also lower throughput. Here is an example to commit offsets every 5 seconds:
 
@@ -125,9 +118,9 @@ For more information, see the :ref:`Streams parameter reference <streams_develop
 
 .. _ksql-cache-max-bytes-buffering:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ksql.streams.cache.max.bytes.buffering
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is a size based version of ``ksql.streams.commit.interval.ms``. It controls the amount of data to cache before flushing local state in the streams app. A higher value will allow more throughput at the cost of higher end-to-end processing latency. A lower value will enable lower processing latency at the cost of lower throughput. The default value in KSQL is ``10000000`` (~ 10 MB).
 Here is an example to change the value to ``20000000`` by using the KSQL command line:

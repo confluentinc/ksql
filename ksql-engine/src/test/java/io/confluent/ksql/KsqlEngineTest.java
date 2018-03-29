@@ -36,7 +36,6 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -94,7 +93,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldEnforceTopicExistenceCorrectly() throws Exception {
-    topicClient.createTopic("s1_topic", 1, (short) 1, false);
+    topicClient.createTopic("s1_topic", 1, (short) 1);
     StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");

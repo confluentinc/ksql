@@ -16,31 +16,6 @@
 
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.PropertiesList;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.CommonUtils;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Version;
-import io.confluent.ksql.util.WelcomeMsgUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -74,6 +49,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.ProcessingException;
+
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.cli.console.CliSpecificCommand;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 
 public class Cli implements Closeable, AutoCloseable {
 
@@ -131,7 +131,7 @@ public class Cli implements Closeable, AutoCloseable {
         writer.println();
         writer.println("**************** WARNING ******************");
         writer.println("Remote server address may not be valid:");
-        writer.println(CommonUtils.getErrorMessageWithCause(exception));
+        writer.println(ErrorMessageUtil.buildErrorMessage(exception));
         writer.println("*******************************************");
         writer.println();
       } else {
@@ -151,17 +151,8 @@ public class Cli implements Closeable, AutoCloseable {
         terminal.writer().println("Exiting KSQL.");
         eof = true;
       } catch (Exception exception) {
-        LOGGER.error(ExceptionUtils.getStackTrace(exception));
-        if (exception.getMessage() != null) {
-          terminal.writer().println(exception.getMessage());
-        } else {
-          terminal.writer().println(exception.getClass().getName());
-          // TODO: Maybe ask the user if they'd like to see the stack trace here?
-        }
-        String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-        if (!causeMsg.isEmpty()) {
-          terminal.writer().println(causeMsg);
-        }
+        LOGGER.error("", exception);
+        terminal.writer().println(ErrorMessageUtil.buildErrorMessage(exception));
       }
       terminal.flush();
     }

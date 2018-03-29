@@ -16,34 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.rest.entity.*;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
-import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.rest.RestConfig;
-
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -58,7 +30,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,9 +41,62 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.core.Response;
+
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.serializers.KafkaJsonDeserializer;
+import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ListQueries;
+import io.confluent.ksql.parser.tree.ListRegisteredTopics;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlTopicInfo;
+import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
+import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.rest.RestConfig;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class KsqlResourceTest {
   private KsqlRestConfig ksqlRestConfig;
@@ -133,7 +157,7 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
 
       addTestTopicAndSources(ksqlEngine.getMetaStore());
@@ -161,20 +185,20 @@ public class KsqlResourceTest {
       KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic1);
       metaStore.putSource(new KsqlTable("statementText", "TEST_TABLE", schema1, schema1.field("S1_F1"), null,
-          ksqlTopic1, "statestore", false));
+                                        ksqlTopic1, "statestore", false));
 
       Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA).field("S2_F2", Schema.INT32_SCHEMA);
       KsqlTopic ksqlTopic2 = new KsqlTopic("KSQL_TOPIC_2", "KAFKA_TOPIC_2", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic2);
       metaStore.putSource(new KsqlStream("statementText", "TEST_STREAM", schema2, schema2.field("S2_F2"), null,
-          ksqlTopic2));
+                                         ksqlTopic2));
     }
 
     private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
       Deserializer<T> result = new KafkaJsonDeserializer<>();
       String typeConfigProperty = isKey
-          ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-          : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+                                  ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+                                  : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
 
       Map<String, ?> props = Collections.singletonMap(
           typeConfigProperty,
@@ -421,7 +445,7 @@ public class KsqlResourceTest {
     assertThat(result2.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity2 = (ErrorMessageEntity) result2.get(0);
     assertThat("", errorMessageEntity2.getErrorMessage().getMessage(), equalTo("Invalid "
-                                                                                   + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
+                                                                               + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
   }
 
   @Test
@@ -450,7 +474,7 @@ public class KsqlResourceTest {
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
     assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
-                                                                   + " is STREAM, but statement was DROP TABLE"));
+                                                                                  + " is STREAM, but statement was DROP TABLE"));
   }
 
   @Test
@@ -464,7 +488,7 @@ public class KsqlResourceTest {
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
     assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
-                                                                   + " is TABLE, but statement was DROP STREAM"));
+                                                                                  + " is TABLE, but statement was DROP STREAM"));
   }
 
   @Test

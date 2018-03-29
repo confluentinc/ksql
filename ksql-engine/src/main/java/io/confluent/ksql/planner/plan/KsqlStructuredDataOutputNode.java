@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -204,18 +207,24 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void createSinkTopic(
       final String kafkaTopicName,
-      KsqlConfig ksqlConfig,
-      KafkaTopicClient kafkaTopicClient,
-      boolean isCompacted
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean isCompacted
   ) {
     int numberOfPartitions =
         (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     short numberOfReplications =
         (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+
+    final Map<String, ?> config = isCompacted
+        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+        : Collections.emptyMap();
+
     kafkaTopicClient.createTopic(kafkaTopicName,
                                  numberOfPartitions,
                                  numberOfReplications,
-                                 isCompacted);
+                                 config
+    );
   }
 
   public Field getTimestampField() {

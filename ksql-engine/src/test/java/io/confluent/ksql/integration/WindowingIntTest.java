@@ -1,10 +1,7 @@
 package io.confluent.ksql.integration;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
@@ -20,7 +17,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -30,10 +26,8 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
 public class WindowingIntTest {

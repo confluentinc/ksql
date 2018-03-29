@@ -36,15 +36,15 @@ import java.util.stream.IntStream;
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   class FakeTopic {
-    final String topicName;
-    final int numPartitions;
-    final short replicatonFactor;
-    final String cleanupPolicy;
+    private final String topicName;
+    private final int numPartitions;
+    private final short replicatonFactor;
+    private final TopicCleanupPolicy cleanupPolicy;
 
     public FakeTopic(String topicName,
                      int numPartitions,
                      short replicatonFactor,
-                     String cleanupPolicy) {
+                     TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
@@ -72,7 +72,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
               .collect(Collectors.toList());
       return new TopicDescription(topicName, false, partitionInfoList);
     }
-    public String getCleanupPolicy() {
+    public TopicCleanupPolicy getCleanupPolicy() {
       return cleanupPolicy;
     }
   }
@@ -83,8 +83,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
       topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                "compact":
-                                                                                "delete"));
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 
@@ -93,8 +93,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       String> configs, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
       topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
-                                                                                "compact":
-                                                                                "delete"));
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 
@@ -106,6 +106,14 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     return topicMap.keySet();
+  }
+
+  @Override
+  public Set<String> listNonInternalTopicNames() {
+    return topicMap.keySet().stream()
+        .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
+                            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+        .collect(Collectors.toSet());
   }
 
   @Override

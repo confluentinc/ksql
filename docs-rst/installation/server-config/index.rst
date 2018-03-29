@@ -10,32 +10,22 @@ Configuring KSQL Server
     ccloud-ksql
     avro-schema
 
-KSQL configuration parameters can be set for Admin Client, KSQL Query, KSQL Server, Kafka Streams, and Kafka Clients. The
-KSQL Server parameters are configured via the ``/etc/ksql/ksql-server.properties`` file. 
+Configuration parameters can be set for KSQL queries, the Kafka Admin Client, the KSQL Server, the Kafka Streams API, the Kafka Producer, and the Kafka Consumer. 
 
-You can set the following parameters for the KSQL Server.
+These can all be configured via a properties file. 
 
 .. important:: KSQL Server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL Server and KSQL CLI, the KSQL Server value is used.
 
-KSQL Query
-    These configurations control how KSQL executes queries. These can be provided with the required ``ksql`` prefix. For
-    example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
-
-Kafka Streams and Kafka Client
-    These configurations control how Kafka Streams executes queries. These can be provided with the optional ``ksql.streams``
-    prefix. For example,  ``ksql.streams.auto.offset.reset`` and ``ksql.streams.cache.max.bytes.buffering``.
-
-
-You can set the following parameters for the KSQL Server only.
-
-Admin Client
-    These configurations control the KSQL admin client and use the same parameters as Kafka Streams. These can be provided
-    via the properties file with the optional ``ksql.streams`` prefix.
+General KSQL parameters
+    General KSQL configurations have the required ``ksql`` prefix. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``. A full list of configurations can be found in our `source file`_.
+    .. _source file: https://github.com/confluentinc/ksql/blob/4.1.x/ksql-common/src/main/java/io/confluent/ksql/util/KsqlConfig.java#L86
 
 KSQL Server
-    These configurations control the general behavior of the KSQL Server. For example, ``ksql.command.topic.suffix`` and
-    ``ui.enabled``
+    These configurations control the general behavior of the KSQL Server. For example, ``ksql.command.topic.suffix`` and ``ui.enabled``
+
+Kafka Streams and Kafka Clients
+    These configurations control how Kafka Streams executes queries. They also control the behavior of the underlying Kafka clients, viz. the producer, the consumer, and the admin client. These configs have the optional ``ksql.streams`` prefix. For example,  ``ksql.streams.auto.offset.reset`` and ``ksql.streams.cache.max.bytes.buffering``.
 
 --------------------
 KSQL Properties File
@@ -62,10 +52,6 @@ After you have configured your properties file, you can start KSQL with your pro
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. tip:: The command topic name is determined by the :ref:`ksql-service-id` configuration.
-
-.. _configuring-ksql:
-
 -----------
 JMX Metrics
 -----------
@@ -73,6 +59,8 @@ JMX Metrics
 .. include:: ../../includes/ksql-includes.rst
     :start-line: 320
     :end-line: 327
+
+.. _configuring-ksql:
 
 ------------------------------------
 Common KSQL Configuration Parameters
@@ -82,17 +70,19 @@ Here are some common configuration properties that you might want to customize.
 
 .. _ksql-auto-offset-reset:
 
-^^^^^^^^^^^^^^^^^
-auto.offset.reset
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ksql.streams.auto.offset.reset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Determines what to do when there is no initial offset in Kafka or if the current offset does not exist on the server. The
-default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
-to change it to earliest by using the KSQL command line:
+Determines what to do when a KSQL query has not committed any offsets and has thus not marked progress on its 
+input Kafka topic. The default value in KSQL is ``latest``, which means KSQL queries will read Kafka topics 
+from the latest available offset when they are first started. This means they will only process data produced 
+after the query starts. To process data in input topics from the first available message, set the value to 
+``earliest``  as follows:
 
 .. code:: bash
 
-    ksql> SET 'auto.offset.reset'='earliest';
+    ksql> SET 'ksql.streams.auto.offset.reset'='earliest';
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
@@ -102,7 +92,7 @@ For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|cli
 bootstrap.servers
 ^^^^^^^^^^^^^^^^^
 
-A list of host and port pairs that is used for establishing the initial connection to the Kafka cluster. This list should be
+A comma-separated list of host and port pairs that is used for connecting with a Kafka cluster. This list should be
 in the form ``host1:port1,host2:port2,...`` The default value in KSQL is ``localhost:9092``. For example, to change it to ``9095``
 by using the KSQL command line:
 
@@ -114,12 +104,11 @@ For more information, see :ref:`Streams parameter reference <streams_developer-g
 
 .. _ksql-commit-interval-ms:
 
-^^^^^^^^^^^^^^^^^^
-commit.interval.ms
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ksql.streams.commit.interval.ms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The frequency to save the position of the processor. The default value in KSQL is ``2000``. Here is an example to change
-the value to ``5000`` by using the KSQL command line:
+The frequency to save the state of a KSQL query.  The default value in KSQL is ``2000``, which means that KSQL will commit offsets (and thus mark progress), flush producer buffers (and hence materialize outputs to downstream consumers), and flush local state every 2 seconds.  A longer duration will allow more batching and thus higher throughput, at the cost of higher end-to-end processing latency. A lower value will have lower end-to-end processing latency but also lower throughput. Here is an example to commit offsets every 5 seconds:
 
 .. code:: bash
 
@@ -129,11 +118,11 @@ For more information, see the :ref:`Streams parameter reference <streams_develop
 
 .. _ksql-cache-max-bytes-buffering:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^
-cache.max.bytes.buffering
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ksql.streams.cache.max.bytes.buffering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).
+This is a size based version of ``ksql.streams.commit.interval.ms``. It controls the amount of data to cache before flushing local state in the streams app. A higher value will allow more throughput at the cost of higher end-to-end processing latency. A lower value will enable lower processing latency at the cost of lower throughput. The default value in KSQL is ``10000000`` (~ 10 MB).
 Here is an example to change the value to ``20000000`` by using the KSQL command line:
 
 .. code:: bash
@@ -180,6 +169,9 @@ server pool. With the default ``ksql.service.id``, the command topic would be ``
 the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will 
 be ``_confluent-ksql-production_deployment__command_topic``.
 
+You can configure ``ksql.service.id`` so that your environment has isolated pools of KSQL servers sharing the same underlying 
+Kafka cluster.
+
 .. _ksql-queries-file:
 
 ^^^^^^^^^^^^^^^^^
@@ -211,15 +203,14 @@ The default number of replicas for the topics created by KSQL. The default is on
 listeners
 ^^^^^^^^^
 
-The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).
-Here is an example to change the value to ``20000000`` by using the KSQL command line:
+Set the port for the KSQL Server to listen on. This defaults to http://localhost:8088. To listen for on port 80, update it accordingly
+in your ``ksql-server.properties`` file.
 
 .. code:: bash
 
-    ksql> SET 'cache.max.bytes.buffering'='20000000';
-
-For more information, see the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
-
+    # Set which port to listen on.
+    listeners=http://0.0.0.0:80 
+    
 .. _restrict-ksql-interactive:
 
 ----------------------------------

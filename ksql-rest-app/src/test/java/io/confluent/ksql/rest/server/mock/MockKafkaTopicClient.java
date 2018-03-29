@@ -58,6 +58,11 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public Set<String> listNonInternalTopicNames() {
+    return Collections.EMPTY_SET;
+  }
+
+  @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     return Collections.emptyMap();
   }

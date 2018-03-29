@@ -61,8 +61,22 @@ public class KafkaTopicClientTest {
   private Node node;
 
   private final String topicName1 = "topic1";
-  private final String topicName2 = "ksql_query_2-KSTREAM-MAP-0000000012-repartition";
-  private final String topicName3 = "ksql_query_2-KSTREAM-REDUCE-STATE-STORE-0000000003-changelog";
+  private final String topicName2 = "topic2";
+  private final String topicName3 = "topic3";
+  private final String internalTopic1 = String.format("%s%s_%s",
+                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+                                                      "default",
+                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+                                                      + "-STATE-STORE-0000000006-repartition");
+  private final String internalTopic2 = String.format("%s%s_%s",
+                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+                                                      "default",
+                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+                                                      + "-STATE-STORE-0000000006-changelog");
+  private final String confluentInternalTopic =
+      String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
+                    "confluent-control-center");
+
 
   @Before
   public void init() {
@@ -178,6 +192,19 @@ public class KafkaTopicClientTest {
   }
 
   @Test
+  public void shouldFilterInternalTopics() {
+    AdminClient adminClient = mock(AdminClient.class);
+    expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
+    expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
+    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
+    verify(adminClient);
+  }
+
+  @Test
   public void testListTopicNames() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
@@ -207,12 +234,16 @@ public class KafkaTopicClientTest {
   public void testDeleteInternalTopics() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
+        .andReturn(getDeleteInternalTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.deleteInternalTopics("ksql_query_2");
+    String applicationId = String.format("%s%s",
+                                         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+                                         "default_query_CTAS_USERS_BY_CITY");
+    kafkaTopicClient.deleteInternalTopics(applicationId);
     verify(adminClient);
   }
 
@@ -271,6 +302,16 @@ public class KafkaTopicClientTest {
     return createTopicsResult;
   }
 
+  private DeleteTopicsResult getDeleteInternalTopicsResult() {
+    DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+    Map<String, KafkaFuture<Void>> deletedTopics = new HashMap<>();
+    deletedTopics.put(internalTopic1, KafkaFuture.allOf());
+    deletedTopics.put(internalTopic2, KafkaFuture.allOf());
+    expect(deleteTopicsResult.values()).andReturn(deletedTopics);
+    replay(deleteTopicsResult);
+    return deleteTopicsResult;
+  }
+
   private DeleteTopicsResult getDeleteTopicsResult() {
     DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     expect(deleteTopicsResult.values()).andReturn(Collections.singletonMap(topicName1, KafkaFuture
@@ -297,6 +338,17 @@ public class KafkaTopicClientTest {
     expect(resultFuture.get()).andThrow(new ExecutionException(
         new NotControllerException("Not Controller")));
     replay(listTopicsResult, resultFuture);
+    return listTopicsResult;
+  }
+
+  private ListTopicsResult getListTopicsResultWithInternalTopics() {
+    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
+                                                internalTopic1, internalTopic2,
+                                                confluentInternalTopic);
+    expect(listTopicsResult.names()).andReturn(KafkaFuture.completedFuture(new HashSet<>
+                                                                               (topicNamesList)));
+    replay(listTopicsResult);
     return listTopicsResult;
   }
 

@@ -72,6 +72,13 @@ public interface KafkaTopicClient extends Closeable {
   Set<String> listTopicNames();
 
   /**
+   * Synchronous call to retrieve list of internal topics
+   *
+   * @return set of all non-internal topics
+   */
+  Set<String> listNonInternalTopicNames();
+
+  /**
    * Synchronous call to get a one or more topic's description.
    *
    * @param topicNames topicNames to describe

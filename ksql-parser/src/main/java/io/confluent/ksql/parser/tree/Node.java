@@ -24,7 +24,7 @@ public abstract class Node {
 
   private final Optional<NodeLocation> location;
 
-  private Optional<Node> parent;
+  private Optional<Node> parent = Optional.empty();;
 
   protected Node(Optional<NodeLocation> location) {
     this.location = requireNonNull(location, "location is null");

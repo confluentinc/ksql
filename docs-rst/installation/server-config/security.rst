@@ -7,7 +7,8 @@ KSQL supports many of the security features of both Apache Kafka and the |sr|.
 
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
-- KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such as SSL and SASL.
+- KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
+and mutual authentication for authorization.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
 file and then :ref:`start the KSQL server <install_ksql-server>` with your configuration file specified.
@@ -29,27 +30,46 @@ You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :re
 Configuring KSQL for Secured Confluent Schema Registry
 ------------------------------------------------------
 
-The following configuration connects KSQL with the Confluent Schema Registry over HTTPS.
+KSQL can be configured to connect to the Schema Registry over HTTP by setting the
+``ksql.schema.registry.url`` to the Schema Registry's HTTPS endpoint.
+Depending on your security setup, you may also need to supply a trust-store, (e.g. if the Schema
+Registry's SSL certificates are not trusted they the JVM by default), and a key-store, (e.g. if the
+Schema Registry requires mutual authentication).
 
-#. Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
-   KSQL server configuration file:
+The following configuration is all that is needed to configure KSQL to communicate with the Schema Registry
+over HTTPS, where mutual authentication is not required and the Schema Registry's SSL certificates
+are trusted by the JVM:
 
-   .. code:: bash
+.. code:: bash
 
-        ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
+    ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-#. Specify any SSL or SASL configuration the Schema Registry client requires using the ``KSQL_OPTS``
-   environment variable.
+The following configuration can be used to configure KSQL to communicate with the Schema Registry over HTTPS,
+with mutual auth, when the SSL configuration is consistent with that needed to communicate with Kafka,
+i.e. where the configuration can be _shared_:
 
-   For example, if the Schema Registry's SSL certificate is not signed by a CA that is recognized by
-   the JVM by default, then you can provide a suitable truststore when starting KSQL via the command line:
+.. code:: bash
 
-   .. code:: bash
+    ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
+    ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
+    ssl.truststore.password=confluent
+    ssl.keystore.location=/etc/kafka/secrets/ksql.keystore.jks
+    ssl.keystore.password=confluent
+    ssl.key.password=confluent
 
-      $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>
+If required, specific configuration for the Schema Registry can be supplied. The following configuration
+can be used to configure KSQL to communicate with the Schema Registry over HTTP, _without_ mutual auth,
+where SSL configuration is not shared:
 
-The exact settings will vary depending on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
-are signed. For more information, see :ref:`schemaregistry_security`.
+.. code:: bash
+
+    ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
+    ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
+    ksql.schema.registry.ssl.truststore.password=confluent
+
+The exact settings will vary depending on the encryption and authentication mechanisms the
+Confluent Schema Registry is using, and how your SSL certificates are signed.
+For more information, see :ref:`schemaregistry_security`.
 
 .. _config-security-kafka:
 

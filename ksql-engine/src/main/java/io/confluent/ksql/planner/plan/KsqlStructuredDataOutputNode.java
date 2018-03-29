@@ -32,7 +32,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -90,7 +89,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
@@ -100,7 +98,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props,
         schemaRegistryClient
@@ -139,7 +136,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
-      createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+      createSinkTopic(noRowKey.getKafkaTopicName(),
+                      ksqlConfig,
+                      kafkaTopicClient,
+                      shoulBeCompacted(result));
     }
 
     result.into(
@@ -155,6 +155,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
             .build());
     return result;
+  }
+
+  private boolean shoulBeCompacted(SchemaKStream result) {
+    return (result instanceof SchemaKTable)
+           && !((SchemaKTable) result).isWindowed();
   }
 
   private SchemaKStream createOutputStream(
@@ -190,7 +195,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField);
+      return result.selectKey(keyField, false);
     }
     return result;
   }
@@ -208,13 +213,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private void createSinkTopic(
       final String kafkaTopicName,
       KsqlConfig ksqlConfig,
-      KafkaTopicClient kafkaTopicClient
+      KafkaTopicClient kafkaTopicClient,
+      boolean isCompacted
   ) {
     int numberOfPartitions =
         (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     short numberOfReplications =
         (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+    kafkaTopicClient.createTopic(kafkaTopicName,
+                                 numberOfPartitions,
+                                 numberOfReplications,
+                                 isCompacted);
   }
 
   public Field getTimestampField() {
@@ -231,6 +240,21 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public KsqlTopicSerDe getTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
+  }
+
+  public KsqlStructuredDataOutputNode cloneWithDoCreateInto(boolean newDoCreateInto) {
+    return new KsqlStructuredDataOutputNode(
+        getId(),
+        getSource(),
+        getSchema(),
+        getTimestampField(),
+        getKeyField(),
+        getKsqlTopic(),
+        getKafkaTopicName(),
+        getOutputProperties(),
+        getLimit(),
+        newDoCreateInto
+    );
   }
 
   public static class Builder {

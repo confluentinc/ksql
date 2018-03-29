@@ -16,14 +16,20 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -31,14 +37,19 @@ import java.util.Set;
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   class FakeTopic {
-    final String topicName;
-    final int numPartitions;
-    final short replicatonFactor;
+    private final String topicName;
+    private final int numPartitions;
+    private final short replicatonFactor;
+    private final TopicCleanupPolicy cleanupPolicy;
 
-    public FakeTopic(String topicName, int numPartitions, short replicatonFactor) {
+    public FakeTopic(String topicName,
+                     int numPartitions,
+                     short replicatonFactor,
+                     TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
+      this.cleanupPolicy = cleanupPolicy;
     }
 
     public String getTopicName() {
@@ -52,21 +63,39 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     public short getReplicatonFactor() {
       return replicatonFactor;
     }
+
+    public TopicDescription getDescription() {
+      Node node = new Node(0, "localhost", 9091);
+      List<TopicPartitionInfo> partitionInfoList =
+          IntStream.range(0, numPartitions)
+              .mapToObj(
+                  p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
+              .collect(Collectors.toList());
+      return new TopicDescription(topicName, false, partitionInfoList);
+    }
+    public TopicCleanupPolicy getCleanupPolicy() {
+      return cleanupPolicy;
+    }
   }
 
   Map<String, FakeTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String,
+      String> configs, boolean isCompacted) {
     if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor, isCompacted?
+                                                                                TopicCleanupPolicy.COMPACT:
+                                                                                TopicCleanupPolicy.DELETE));
     }
   }
 
@@ -81,8 +110,25 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public Set<String> listNonInternalTopicNames() {
+    return topicMap.keySet().stream()
+        .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
+                            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+        .collect(Collectors.toSet());
+  }
+
+  @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    return Collections.emptyMap();
+    return listTopicNames()
+        .stream()
+        .filter(n -> topicNames.contains(n))
+        .collect(
+            Collectors.toMap(n -> n, n -> topicMap.get(n).getDescription()));
+  }
+
+  @Override
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+    return null;
   }
 
   @Override

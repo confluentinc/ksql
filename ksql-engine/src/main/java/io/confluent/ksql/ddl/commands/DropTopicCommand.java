@@ -20,7 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DropTopic;
 
 
-public class DropTopicCommand implements DDLCommand {
+public class DropTopicCommand implements DdlCommand {
 
   private final String topicName;
 
@@ -33,8 +33,8 @@ public class DropTopicCommand implements DDLCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore) {
     metaStore.deleteTopic(topicName);
-    return new DDLCommandResult(true, "Topic " + topicName + " was dropped");
+    return new DdlCommandResult(true, "Topic " + topicName + " was dropped");
   }
 }

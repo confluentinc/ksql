@@ -8,6 +8,9 @@ Type=simple
 User=cp-ksql
 Group=confluent
 Environment="LOG_DIR=/var/log/confluent/ksql"
-ExecStart=/usr/bin/ksql-server-start /etc/ksql/ksqlserver.properties
+ExecStart=/usr/bin/ksql-server-start /etc/ksql/ksql-server.properties
 TimeoutStopSec=180
 Restart=no
+
+[Install]
+WantedBy=multi-user.target

@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -55,7 +54,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
@@ -81,19 +80,19 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
     buildRequireRekey();
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
-    assertThat(node.topics(), containsString("[KSQL_Agg_Query_"));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
+    assertThat(node.topics(), containsString("[KSTREAM-AGGREGATE-STATE-STORE-0000000006"));
     assertThat(node.topics(), containsString("-repartition]"));
   }
 
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
     buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000006");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
+    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
   }
@@ -119,6 +118,17 @@ public class AggregateNodeTest {
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     SchemaKStream stream = build();
     assertTrue(((SchemaKTable)stream).isWindowed());
+  }
+
+  @Test
+  public void shouldFailAggregationOfTable() {
+    try {
+      buildQuery("SELECT col1, count(col3) FROM test2 GROUP BY col1;");
+    } catch (KsqlException e) {
+      assertThat(
+          e.getMessage(),
+          equalTo("Unsupported aggregation. KSQL currently only supports aggregation on a Stream."));
+    }
   }
 
   private SchemaKStream build() {
@@ -149,7 +159,6 @@ public class AggregateNodeTest {
     return aggregateNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

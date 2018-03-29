@@ -17,6 +17,8 @@
 package io.confluent.ksql.rest.server.mock;
 
 import io.confluent.ksql.util.KafkaTopicClient;
+
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
@@ -31,11 +33,18 @@ import java.util.Set;
 public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(String topic,
+                          int numPartitions,
+                          short replicatonFactor,
+                          boolean isCompacted) {
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+  public void createTopic(String topic,
+                          int numPartitions,
+                          short replicatonFactor,
+                          Map<String, String> configs,
+                          boolean isCompacted) {
 
   }
 
@@ -50,8 +59,19 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public Set<String> listNonInternalTopicNames() {
+    return Collections.EMPTY_SET;
+  }
+
+  @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     return Collections.EMPTY_MAP;
+  }
+
+
+  @Override
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+    return null;
   }
 
   @Override

@@ -18,7 +18,6 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -26,8 +25,10 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -113,7 +114,6 @@ public class PhysicalPlanBuilderTest {
     return new PhysicalPlanBuilder(streamsBuilder,
         new KsqlConfig(configMap),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         functionRegistry,
         overrideProperties,
         false,
@@ -163,9 +163,10 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldCreateExecutionPlanForInsert");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldCreateExecutionPlanForInsert");
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
                                                                             csasQuery + "\n " +
@@ -208,8 +209,10 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldFailInsertIfTheResultSchemaDoesNotMatch");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldFailInsertIfTheResultSchemaDoesNotMatch");
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
@@ -231,8 +234,10 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldCreatePlanForInsertIntoTableFromTabl");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldCreatePlanForInsertIntoTableFromTabl");
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createTable + "\n " +
                                                                             csasQuery + "\n " +
@@ -258,8 +263,11 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 's1', VALUE_FORMAT = 'JSON' );";
     String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     String insertIntoQuery = "INSERT INTO T2 SELECT col0, col1, col2, col3 FROM S1;";
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldFailInsertIfTheResultTypesDontMatch");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("t1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("s1", 1, (short) 1, false);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldFailInsertIfTheResultTypesDontMatch");
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createTable + "\n " +
@@ -280,9 +288,10 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldCheckSinkAndResultKeysDoNotMatch");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldCheckSinkAndResultKeysDoNotMatch");
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
                                                                             csasQuery + "\n " +
@@ -305,9 +314,10 @@ public class PhysicalPlanBuilderTest {
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-
-    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
-        FakeKafkaTopicClient(), "shouldFailIfSinkAndResultKeysDoNotMatch");
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
+                                           "shouldFailIfSinkAndResultKeysDoNotMatch");
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
@@ -476,4 +486,10 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(2)));
   }
 
+  @Test
+  public void shouldCreateExpectedServiceId() {
+    String serviceId = physicalPlanBuilder.getServiceId();
+    assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+                                  + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
+  }
 }

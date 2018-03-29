@@ -28,13 +28,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +39,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -175,7 +167,6 @@ public class AggregateNode extends PlanNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
@@ -185,11 +176,15 @@ public class AggregateNode extends PlanNode {
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props,
         schemaRegistryClient
     );
+
+    if (sourceSchemaKStream instanceof SchemaKTable) {
+      throw new KsqlException(
+          "Unsupported aggregation. KSQL currently only supports aggregation on a Stream.");
+    }
 
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
@@ -249,7 +244,7 @@ public class AggregateNode extends PlanNode {
             ),
             aggValToValColumnMap
         ), getWindowExpression(),
-        aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis()
+        aggValueGenericRowSerde
     );
 
     SchemaKTable result = new SchemaKTable(
@@ -268,6 +263,10 @@ public class AggregateNode extends PlanNode {
     }
 
     return result.select(getFinalSelectExpressions());
+  }
+
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
   }
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(
@@ -325,7 +324,7 @@ public class AggregateNode extends PlanNode {
         );
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
-        initializer.addAggregateIntializer(aggregateFunction.getIntialValueSupplier());
+        initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
 
         aggregateSchema.field("AGG_COL_"
                               + udafIndexInAggSchema, aggregateFunction.getReturnType());

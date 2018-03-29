@@ -703,7 +703,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           (SqlBaseParser.IntegerLiteralContext) context.number();
       return new PrintTopic(
           getLocation(context),
-          getQualifiedName(context.qualifiedName()),
+          topicName,
           fromBeginning,
           (LongLiteral) visitIntegerLiteral(integerLiteralContext)
       );

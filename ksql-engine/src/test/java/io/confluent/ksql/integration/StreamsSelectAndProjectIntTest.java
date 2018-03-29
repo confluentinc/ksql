@@ -1,5 +1,6 @@
 package io.confluent.ksql.integration;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
@@ -7,7 +8,6 @@ import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.test.IntegrationTest;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Assert;

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,12 +20,11 @@ package io.confluent.ksql.rest.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
-import io.confluent.ksql.rest.server.resources.ServerInfoResource;
-import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
@@ -35,8 +34,12 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.Console;
+import java.io.File;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,24 +72,29 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestApplication extends Application<KsqlRestConfig> {
+public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static final String EXPANDED_FOLDER = "/expanded";
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -96,19 +104,18 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final boolean isUiEnabled;
+  private final String uiFolder;
+
+  private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
-
-  public static String getCommandsKsqlTopicName() {
-    return COMMANDS_KSQL_TOPIC_NAME;
-  }
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
-  public KsqlRestApplication(
+  private KsqlRestApplication(
       KsqlEngine ksqlEngine,
       KsqlRestConfig config,
       CommandRunner commandRunner,
@@ -117,7 +124,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
       boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+      VersionCheckerAgent versionCheckerAgent,
+      ServerInfo serverInfo
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -126,16 +134,29 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
-    this.isUiEnabled = isUiEnabled;
+
     this.versionChckerAgent = versionCheckerAgent;
+    this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
+    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+
+    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
+      log.warn("System property {} is not set. User interface will be disabled",
+          KsqlRestConfig.INSTALL_DIR_CONFIG);
+      this.uiFolder = null;
+    } else if (isUiEnabled) {
+      this.uiFolder = ksqlInstallDir + "/ui";
+    } else {
+      this.uiFolder = null;
+    }
+    this.isUiEnabled = isUiEnabled && uiFolder != null;
   }
 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(new ServerInfo(Version.getVersion())));
+    config.register(new ServerInfoResource(serverInfo));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -144,21 +165,21 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public ResourceCollection getStaticResources() {
-    log.info("User interface enabled:" + isUiEnabled);
+    log.info("User interface enabled: {}", isUiEnabled);
     if (isUiEnabled) {
-      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
-    } else {
-      return super.getStaticResources();
+      try {
+        return new ResourceCollection(
+            Resource.newResource(new File(this.uiFolder, EXPANDED_FOLDER).getCanonicalFile()));
+      } catch (Exception e) {
+        log.error("Unable to load ui from {}. You can disable the ui by setting {} to false",
+            this.uiFolder + EXPANDED_FOLDER,
+            KsqlRestConfig.UI_ENABLED_CONFIG,
+            e);
+      }
     }
-  }
 
-  private static Properties getProps(String propsFile) throws IOException {
-    Properties result = new Properties();
-    result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    try (final FileInputStream inputStream = new FileInputStream(propsFile)) {
-      result.load(inputStream);
-    }
-    return result;
+    return super.getStaticResources();
+
   }
 
   @Override
@@ -170,6 +191,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (versionChckerAgent != null) {
       versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+
+    displayWelcomeMessage();
   }
 
   @Override
@@ -199,28 +222,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (isUiEnabled) {
+      loadUiWar();
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CliOptions cliOptions = CliOptions.parse(args);
-    if (cliOptions == null) {
-      return;
-    }
-
-    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(
-        restConfig,
-        restConfig.isUiEnabled(),
-        new KsqlVersionCheckerAgent()
-    );
-
-    log.info("Starting server");
-    app.start();
-    log.info("Server up and running");
-    app.join();
-    log.info("Server shutting down");
   }
 
   public static KsqlRestApplication buildApplication(
@@ -231,10 +235,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
-    ksqlConfProperties.putAll(restConfig.getCommandProducerProperties());
-    ksqlConfProperties.putAll(restConfig.getKsqlStreamsProperties());
-    ksqlConfProperties.putAll(restConfig.getOriginals());
+    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
 
@@ -242,12 +243,18 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    try (BrokerCompatibilityCheck compatibilityCheck =
-             BrokerCompatibilityCheck.create(ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
-      compatibilityCheck.checkCompatibility();
+    final String kafkaClusterId;
+    try {
+      kafkaClusterId = adminClient.describeCluster().clusterId().get();
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
     }
 
-    String commandTopic = restConfig.getCommandTopic();
+    String commandTopic =
+        restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
@@ -260,13 +267,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         new StringLiteral(commandTopic)
     );
 
-    ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
     )));
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(
+    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
         new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
@@ -318,7 +325,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     RootDocument rootDocument = new RootDocument(isUiEnabled,
-        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
+                                                 restConfig.getList(RestConfig.LISTENERS_CONFIG)
+                                                     .get(0));
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
@@ -344,7 +352,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         streamedQueryResource,
         ksqlResource,
         isUiEnabled,
-        versionCheckerAgent
+        versionCheckerAgent,
+        new ServerInfo(Version.getVersion(), kafkaClusterId)
     );
   }
 
@@ -365,20 +374,41 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
                 .toString()
         );
       }
-      if(replicationFactor < 2) {
-        log.warn("Creating topic %s with replication factor of %d which is less than 2. "
-            + "This is not advisable in a production environment. ", replicationFactor);
+      if (replicationFactor < 2) {
+        log.warn("Creating topic {} with replication factor of %d which is less than 2. "
+                 + "This is not advisable in a production environment. ", replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we
       // don't lose any data in case of fail over etc.
       topicClient.createTopic(commandTopic,
-          1,
-          replicationFactor,
-          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-              String.valueOf(Long.MAX_VALUE)));
+                              1,
+                              replicationFactor,
+                              Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
+                                                       String.valueOf(Long.MAX_VALUE)), false);
     } catch (KafkaTopicException e) {
-      log.info("Command Topic Exists: " + e.getMessage());
+      log.info("Command Topic Exists: {}", e.getMessage());
+    }
+  }
+
+  private void loadUiWar() {
+    final File uiFolder = new File(this.uiFolder);
+    log.info("Loading UI-WAR from {}", uiFolder.getAbsolutePath());
+
+    final File[] files = uiFolder
+        .listFiles((dir, name) -> name.endsWith(".war"));
+
+    if (files != null) {
+      Arrays.stream(files).forEach(war -> KsqlRestApplication.unzipWar(war, uiFolder));
+    }
+  }
+
+  private static void unzipWar(final File warFile, final File uiFolder) {
+    try {
+      ZipUtil.unzip(warFile, new File(uiFolder, EXPANDED_FOLDER));
+      log.info("Expand WAR file '{}'", warFile.getPath());
+    } catch (final Exception e) {
+      log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);
     }
   }
 
@@ -402,11 +432,34 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     return result;
   }
 
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
+  private void displayWelcomeMessage() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+
+    final PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+
+    WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+
+    final String version = Version.getVersion();
+    final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
+        .get(0)
+        .replace("0.0.0.0", "localhost");
+
+    writer.printf("Server %s listening on %s%n", version, listener);
+    writer.println();
+    writer.println("To access the KSQL CLI, run:");
+    writer.println("ksql " + listener);
+    writer.println();
+
+    if (isUiEnabled) {
+      writer.println("To access the UI, point your browser at:");
+      writer.printf(listener + "/index.html");
+      writer.println();
+    }
+
+    writer.flush();
   }
 }
-
-/*
-        TODO: Find a good, forwards-compatible use for the root resource
- */

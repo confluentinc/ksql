@@ -53,7 +53,7 @@ services:
 
   # Runs the Kafka KSQL data generator for topic called "pageviews"
   ksql-datagen-pageviews:
-    image: "confluentinc/ksql-examples:0.4"
+    image: "confluentinc/ksql-examples:0.5-rc0"
     hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
@@ -83,7 +83,7 @@ services:
 
   # Runs the Kafka KSQL data generator for topic called "users"
   ksql-datagen-users:
-    image: "confluentinc/ksql-examples:0.4"
+    image: "confluentinc/ksql-examples:0.5-rc0"
     hostname: ksql-datagen-users
     depends_on:
       - kafka
@@ -113,7 +113,7 @@ services:
 
   # Runs the Kafka KSQL application
   ksql-cli:
-    image: "confluentinc/ksql-cli:0.4"
+    image: "confluentinc/ksql-cli:0.5-rc0"
     hostname: ksql-cli
     depends_on:
       - kafka

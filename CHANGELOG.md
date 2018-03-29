@@ -1,5 +1,10 @@
 # Change Log
 
+## [v0.5](https://github.com/confluentinc/ksql/tree/v0.5) (2018-03-07)
+[Full Changelog](https://github.com/confluentinc/ksql/compare/v0.4...v0.5)
+
+This release included various bugfixes to stabilize KSQL.
+
 ## [v0.4](https://github.com/confluentinc/ksql/tree/v0.4) (2018-02-01)
 [Full Changelog](https://github.com/confluentinc/ksql/compare/v0.3...v0.4)
 
@@ -43,7 +48,10 @@
 - \[Minor\] Fix Variable initialization [\#602](https://github.com/confluentinc/ksql/pull/602) ([satybald](https://github.com/satybald))
 
 ## [v0.3](https://github.com/confluentinc/ksql/tree/v0.3) (2018-01-16)
-[Full Changelog](https://github.com/confluentinc/ksql/compare/v0.3-temp...v0.3)
+[Full Changelog](https://github.com/confluentinc/ksql/compare/0.3...v0.3)
+
+## [0.3](https://github.com/confluentinc/ksql/tree/0.3) (2018-01-16)
+[Full Changelog](https://github.com/confluentinc/ksql/compare/v0.3-temp...0.3)
 
 **Fixed bugs:**
 

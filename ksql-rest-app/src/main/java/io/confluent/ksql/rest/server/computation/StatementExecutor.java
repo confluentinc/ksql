@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +28,14 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -224,14 +224,14 @@ public class StatementExecutor {
   ) throws Exception {
     String statementStr = command.getStatement();
 
-    DDLCommandResult result = null;
+    DdlCommandResult result = null;
     String successMessage = "";
-    if (statement instanceof DDLStatement) {
+    if (statement instanceof DdlStatement) {
       result =
           ksqlEngine.executeDdlStatement(
               statementStr,
-              (DDLStatement) statement,
-              command.getStreamsProperties()
+              (DdlStatement) statement,
+              command.getKsqlProperties()
           );
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect(
@@ -278,12 +278,12 @@ public class StatementExecutor {
 
   private void handleRunScript(Command command) throws Exception {
 
-    if (command.getStreamsProperties().containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+    if (command.getKsqlProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queries =
-          (String) command.getStreamsProperties().get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
+          (String) command.getKsqlProperties().get(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          command.getStreamsProperties()
+          command.getKsqlProperties()
       );
       for (QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -346,6 +346,7 @@ public class StatementExecutor {
 
     return null;
   }
+
   private boolean startQuery(
       String queryString,
       Query query,
@@ -371,7 +372,7 @@ public class StatementExecutor {
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        command.getStreamsProperties()
+        command.getKsqlProperties()
     ).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {

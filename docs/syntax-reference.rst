@@ -172,14 +172,17 @@ Property                  Description
  KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka.
  VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
- KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream. You must
-                          | be sure that the record key corresponds to the value in the key column and is in the right
-                          | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
-                          | column in the KSQL stream. Time-based operations such as windowing will process
-                          | a record according to the timestamp in ``ROWTIME``.
-                          |
-                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
+ KEY                      | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka
+                          | message value, you may set this property to associate the corresponding field/column with
+                          | the implicit ``ROWKEY`` column (message key).
+                          | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided
+                          | when performing aggregations and joins.
+                          | See :ref:`ksql_key_constraints` for more information.
+ TIMESTAMP                | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka
+                          | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the
+                          | specified field/column within the Kafka message value (similar to timestamp extractors in
+                          | Kafka's Streams API). Time-based operations such as windowing will process a record
+                          | according to the timestamp in ``ROWTIME``.
 ========================= ============================================================================================
 
 
@@ -227,22 +230,35 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively.
 
+KSQL has currently the following equirements for creating a table from a Kafka topic:
+
+1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
+   below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
+   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
+   instructions in :ref:`ksql_key_constraints`.
+
 The WITH clause supports the following properties:
 
 ========================= ============================================================================================
 Property                  Description
 ========================= ============================================================================================
  KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.
- VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
+ VALUE_FORMAT (required)  | Specifies the serialization format of message values in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
- KEY (required)           | Associates the message key in the Kafka topic with a column in the KSQL table. You must be
-                          | sure that the record key corresponds to the value in the key column and is in the right
-                          | format. For more information, see :ref:`ksql_key_constraints`
- TIMESTAMP                | Associates a field within the value of the message in the Kafka topic with the ``ROWTIME``
-                          | column in the KSQL table. Time-based operations such as windowing will process
-                          | a record according to the timestamp in ``ROWTIME``.
+ KEY (required)           | Associates a field/column within the Kafka message value with the implicit ``ROWKEY`` column
+                          | (message key) in the KSQL table.
                           |
-                          | If not supplied, the timestamp of the message in the Kafka topic will be used.
+                          | KSQL currently requires that the Kafka message key, which will be available as the implicit
+                          | ``ROWKEY`` column in the table, must also be present as a field/column in the message value.
+                          | You must set the KEY property to this corresponding field/column in the message value,
+                          | and this column must be in ``VARCHAR`` aka ``STRING`` format.
+                          | See :ref:`ksql_key_constraints` for more information.
+ TIMESTAMP                | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka
+                          | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the
+                          | specified field/column within the Kafka message value (similar to timestamp extractors in
+                          | Kafka's Streams API). Time-based operations such as windowing will process a record
+                          | according to the timestamp in ``ROWTIME``.
 ========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst

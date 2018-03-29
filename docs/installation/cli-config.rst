@@ -9,7 +9,7 @@ You can connect the KSQL CLI to one KSQL server per cluster.
                CLI is connected to becomes unavailable. Any persistent queries you executed will continue to run in the
                KSQL cluster.
 
-To connect the KSQL CLI to a cluster, run this command with your KSQL Server URL specified (default is ``http://localhost:8088``):
+To connect the KSQL CLI to a cluster, run this command with your KSQL server URL specified (default is ``http://localhost:8088``):
 
 .. code:: bash
 

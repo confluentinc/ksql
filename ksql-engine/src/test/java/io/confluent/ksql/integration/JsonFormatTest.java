@@ -19,36 +19,21 @@ package io.confluent.ksql.integration;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -67,7 +52,6 @@ import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
@@ -113,9 +97,9 @@ public class JsonFormatTest {
   }
 
   private void createInitTopics() {
-    topicClient.createTopic(inputTopic, 1, (short)1, false);
-    topicClient.createTopic(usersTopic, 1, (short)1, false);
-    topicClient.createTopic(messageLogTopic, 1, (short)1, false);
+    topicClient.createTopic(inputTopic, 1, (short) 1);
+    topicClient.createTopic(usersTopic, 1, (short) 1);
+    topicClient.createTopic(messageLogTopic, 1, (short) 1);
   }
 
   private void produceInitData() throws Exception {

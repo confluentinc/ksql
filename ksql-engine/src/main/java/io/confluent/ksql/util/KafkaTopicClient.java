@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface KafkaTopicClient extends Closeable {
@@ -32,28 +33,25 @@ public interface KafkaTopicClient extends Closeable {
     COMPACT_DELETE
   }
 
-
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor, boolean isCompacted);
+  void createTopic(String topic, int numPartitions, short replicationFactor);
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
-   *
-   * @param topic name of the topic to create
+   * @param topic   name of the topic to create
    * @param configs any additional topic configs to use
    */
   void createTopic(
       String topic,
       int numPartitions,
-      short replicatonFactor,
-      Map<String, String> configs,
-      boolean isCompacted
+      short replicationFactor,
+      Map<String, ?> configs
   );
 
   /**
@@ -72,26 +70,49 @@ public interface KafkaTopicClient extends Closeable {
   Set<String> listTopicNames();
 
   /**
-   * [warn] synchronous call
+   * Synchronous call to retrieve list of internal topics
    *
    * @return set of all non-internal topics
    */
   Set<String> listNonInternalTopicNames();
 
   /**
-   * [warn] synchronous call to get the response
+   * Synchronous call to get a one or more topic's description.
    *
    * @param topicNames topicNames to describe
+   * @return map of topic name to description.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
   /**
-   * [warn] synchronous call to get the response
+   * Synchronous call to get the config of a topic.
    *
-   * @param topicName topicNames to describe
+   * @param topicName the name of the topic.
+   * @return map of topic config if the topic is known, {@link Optional#empty()} otherwise.
    */
-  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
+  Map<String, String> getTopicConfig(String topicName);
 
+  /**
+   * Synchronous call to write topic config overrides to ZK.
+   *
+   * <p>This will add additional overrides, and not replace any existing, unless they have the same
+   * name.
+   *
+   * <p>Note: each broker will pick up this change asynchronously.
+   *
+   * @param topicName the name of the topic.
+   * @param overrides new config overrides to add.
+   * @return {@code true} if any of the {@code overrides} did not already exist
+   */
+  boolean addTopicConfig(String topicName, Map<String, ?> overrides);
+
+  /**
+   * Synchronous call to get a topic's cleanup policy
+   *
+   * @param topicName topicNames to retrieve cleanup policy for.
+   * @return the clean up policy of the topic.
+   */
+  TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
 
   /**
    * Delete the list of the topics in the given list.
@@ -107,5 +128,4 @@ public interface KafkaTopicClient extends Closeable {
    * Close the underlying Kafka admin client.
    */
   void close();
-
 }

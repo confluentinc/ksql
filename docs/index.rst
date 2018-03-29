@@ -21,7 +21,7 @@ KSQL
 
 ---------------------
 
-KSQL is an open source streaming SQL engine for Apache Kafka®. It provides a simple interactive SQL interface for stream
+KSQL is the open source streaming SQL engine for Apache Kafka®. It provides a simple interactive SQL interface for stream
 processing on Kafka, without the need to write code in a programming language such as Java or Python. KSQL is scalable, reliable,
 and real-time. It supports a wide range of streaming operations, including aggregations, joins, windowing, and sessionization.
 
@@ -66,10 +66,10 @@ KSQL Server
     The KSQL server runs the engine that executes KSQL queries. This includes processing, reading, and writing data to and from
     the target Kafka cluster.
 
-    Servers can run in containers, virtual machines, and bare-metal machines. You can add or remove multiple servers in the
-    same resource pool to elastically scale query processing in or out. You can use different resource pools to achieve workload
-    isolation.
+    KSQL servers form KSQL clusters and can run in containers, virtual machines, and bare-metal machines. You can add or
+    remove multiple servers to/from the same KSQL cluster during live operations elastically scale query processing in
+    or out. You can deploy different KSQL clusters to achieve workload isolation.
 
-CLI
+KSQL CLI
     You can interactively write KSQL queries by using the KSQL command line interface (CLI). The KSQL CLI acts as a client
     to the KSQL server.

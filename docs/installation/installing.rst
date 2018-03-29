@@ -111,7 +111,7 @@ Tip
     For more information, see :ref:`quickstart`.
 
 #.  Customize the KSQL ``<path-to-confluent>/etc/ksql/ksql-server.properties`` file.  The required parameters are ``bootstrap.servers``
-    and ``listeners``. You can also set any property the Kafka Streams API, the Kafka producer, or the Kafka consumer. 
+    and ``listeners``. You can also set any property the Kafka Streams API, the Kafka producer, or the Kafka consumer.
     For a description of common configurations and how to set them, see :ref:`configuring-ksql`.
 
     Here are the default settings:
@@ -119,7 +119,7 @@ Tip
     .. code:: bash
 
         bootstrap.servers=localhost:9092
-        listeners=http://localhost:8080
+        listeners=http://localhost:8088
         ui.enabled=true
 
 #.  Start a server node with this command:

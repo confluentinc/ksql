@@ -289,18 +289,19 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldSetTopicCleanupPolicyToCompact() throws InterruptedException,
                                                             ExecutionException {
-    AdminClient adminClient = mock(AdminClient.class);
-  //  expect(adminClient.describeCluster()).andReturn(describeClusterResult());
- //   expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-//    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
 
     // Verify that the new topic configuration being passed to the admin client is what we expect.
     NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
     newTopic.configs(Collections.singletonMap("cleanup.policy", "compact"));
     expect(adminClient.createTopics(singleNewTopic(newTopic))).andReturn(getCreateTopicsResult());
     replay(adminClient);
+
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short)1, true);
+    kafkaTopicClient.createTopic(topicName1,
+                                 1,
+                                 (short) 1,
+                                 Collections.singletonMap("cleanup.policy", "compact"));
     verify(adminClient);
   }
 

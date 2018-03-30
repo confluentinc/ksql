@@ -46,7 +46,7 @@ Download the Tutorial and Start KSQL
       :end-line: 38
 
 .. include:: ../includes/ksql-includes.rst
-    :start-line: 40
+    :start-line: 80
     :end-line: 317
 
 Appendix

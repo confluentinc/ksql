@@ -111,7 +111,7 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL data generator for topic called "users"
+  # Runs the Kafka KSQL Server
   ksql-server:
     image: "confluentinc/ksql-cli:4.1.x-rc1"
     hostname: ksql-server
@@ -135,15 +135,12 @@ services:
       KSQL_CONFIG_DIR: "/etc/ksql"
       KSQL_OPTS: "-Dbootstrap.servers=kafka:29092 -Dksql.schema.registry.url=http://schema-registry:8081 -Dlisteners=http://0.0.0.0:8088"
       KSQL_LOG4J_OPTS: "-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
-      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
-      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
-      STREAMS_SCHEMA_REGISTRY_PORT: 8081
 
     extra_hosts:
       - "moby:127.0.0.1"
 
 
-  # Runs the Kafka KSQL application
+  # Runs the KSQL CLI
   ksql-cli:
     image: "confluentinc/ksql-cli:4.1.x-rc1"
     hostname: ksql-cli

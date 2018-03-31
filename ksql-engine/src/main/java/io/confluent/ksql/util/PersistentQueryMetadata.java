@@ -25,6 +25,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class PersistentQueryMetadata extends QueryMetadata {
@@ -44,9 +45,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KafkaTopicClient kafkaTopicClient,
                                  final Schema resultSchema,
                                  final KsqlTopic resultTopic,
-                                 final Topology topology) {
+                                 final Topology topology,
+                                 final Map<String, Object> overriddenProperties) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology);
+          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.id = id;
     this.resultSchema = resultSchema;
     this.resultTopic = resultTopic;

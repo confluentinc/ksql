@@ -24,6 +24,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 
@@ -40,9 +41,9 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
       final KafkaTopicClient kafkaTopicClient,
-      final Topology topology) {
+      final Topology topology, Map<String, Object> overriddenProperties) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology);
+          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.rowQueue = rowQueue;
   }
 

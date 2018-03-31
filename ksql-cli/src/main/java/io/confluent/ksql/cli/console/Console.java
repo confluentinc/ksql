@@ -67,6 +67,7 @@ import io.confluent.ksql.util.StringUtil;
 public abstract class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
+  private static List<String> PROPERTIES_COLUMN_HEADERS = Arrays.asList("Property", "Value");
 
   private LineReader lineReader;
   private final ObjectMapper objectMapper;
@@ -198,6 +199,15 @@ public abstract class Console implements Closeable {
 
   /* private */
 
+  private static List<List<String>> propertiesRowValues(Map<String, Object> properties) {
+    return properties.entrySet().stream()
+        .map(propertyEntry -> Arrays.asList(
+            propertyEntry.getKey(),
+            Objects.toString(propertyEntry.getValue())
+        )).collect(Collectors.toList());
+  }
+
+
   private void registerDefaultCommands() {
     registerCliSpecificCommand(new Help());
 
@@ -303,12 +313,8 @@ public abstract class Console implements Closeable {
               restClient.getLocalProperties()
           );
       Map<String, Object> properties = propertiesList.getProperties();
-      columnHeaders = Arrays.asList("Property", "Value");
-      rowValues = properties.entrySet().stream()
-          .map(propertyEntry -> Arrays.asList(
-              propertyEntry.getKey(),
-              Objects.toString(propertyEntry.getValue())
-          )).collect(Collectors.toList());
+      columnHeaders = PROPERTIES_COLUMN_HEADERS;
+      rowValues = propertiesRowValues(properties);
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
       columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
@@ -321,21 +327,8 @@ public abstract class Console implements Closeable {
       footer.add("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
-      List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
-
-      if (!fields.isEmpty()) {
-        columnHeaders = Arrays.asList("Field", "Type");
-        rowValues = fields.stream()
-            .map(field -> Arrays.asList(
-                field.getName(),
-                formatFieldType(field, sourceDescription.getKey())
-            ))
-            .collect(Collectors.toList());
-      }
-
-      printExtendedInformation(header, footer, sourceDescription);
-
-
+      printExtendedInformation(sourceDescription);
+      return;
     } else if (ksqlEntity instanceof TopicDescription) {
       columnHeaders = new ArrayList<>();
       columnHeaders.add("Topic Name");
@@ -439,84 +432,133 @@ public abstract class Console implements Closeable {
     }
   }
 
+  private void printSchema(SourceDescription source) {
+    List<SourceDescription.FieldSchemaInfo> fields = source.getSchema();
+    if (!fields.isEmpty()) {
+      List<String> columnHeaders = Arrays.asList("Field", "Type");
+      List<List<String>> rowValues = fields.stream()
+          .map(field -> Arrays.asList(
+              field.getName(),
+              formatFieldType(field, source.getKey())
+          ))
+          .collect(Collectors.toList());
+      printTable(columnHeaders, rowValues, Collections.emptyList(), Collections.emptyList());
+    }
+  }
+
+  private void printQueryInfo(SourceDescription source) {
+    if (!source.getType().equals("QUERY")) {
+      writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+      writer().println(String.format(
+          "%-20s : %s",
+          "Timestamp field",
+          source.getTimestamp().length() == 0
+              ? "Not set - using <ROWTIME>"
+              : source.getTimestamp()
+      ));
+      writer().println(String.format("%-20s : %s", "Key format", "STRING"));
+      writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
+      if (source.getTopic().length() > 0) {
+        writer().println(String.format(
+            "%-20s : %s (partitions: %d, replication: %d)",
+            "Kafka output topic",
+            source.getTopic(),
+            source.getPartitions(),
+            source.getReplication()
+        ));
+      }
+    }
+  }
+
+  private void printWriteQueries(SourceDescription source) {
+    if (!source.getWriteQueries().isEmpty()) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s",
+          "Queries that write into this " + source.getType(),
+          "-----------------------------------"
+      ));
+      for (String writeQuery : source.getWriteQueries()) {
+        writer().println(writeQuery);
+      }
+      writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
+    }
+  }
+
+  private void printExecutionPlan(SourceDescription source) {
+    if (source.getExecutionPlan().length() > 0) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s\n%s",
+          "Execution plan",
+          "--------------",
+          source.getExecutionPlan()
+      ));
+    }
+  }
+
+  private void printTopology(SourceDescription source) {
+    if (source.getTopology().length() > 0) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s\n%s",
+          "Processing topology",
+          "-------------------",
+          source.getTopology()
+      ));
+    }
+  }
+
+  private void printOverriddenProperties(SourceDescription source) {
+    if (source.getOverriddenProperties().size() > 0) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s",
+          "Overridden Properties",
+          "---------------------"));
+      printTable(
+          PROPERTIES_COLUMN_HEADERS,
+          propertiesRowValues(source.getOverriddenProperties()),
+          Collections.emptyList(),
+          Collections.emptyList());
+    }
+  }
+
   private void printExtendedInformation(
-      List<String> header,
-      List<String> footer,
       SourceDescription source
   ) {
-    if (source.isExtended()) {
-      header.add(String.format("%-20s : %s", "Type", source.getType()));
-      if (source.getStatementText().length() > 0) {
-        header.add(String.format("%-20s : %s", "SQL", source.getStatementText()));
-      }
-
-      if (!source.getType().equals("QUERY")) {
-        header.add(String.format("%-20s : %s", "Key field", source.getKey()));
-        header.add(String.format(
-            "%-20s : %s",
-            "Timestamp field",
-            source.getTimestamp().length() == 0
-            ? "Not set - using <ROWTIME>"
-            : source.getTimestamp()
-        ));
-        header.add(String.format("%-20s : %s", "Key format", "STRING"));
-        header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
-        if (source.getTopic().length() > 0) {
-          header.add(String.format(
-              "%-20s : %s (partitions: %d, replication: %d)",
-              "Kafka output topic",
-              source.getTopic(),
-              source.getPartitions(),
-              source.getReplication()
-          ));
-        }
-      }
-      header.add("");
-
-      if (!source.getWriteQueries().isEmpty()) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s",
-            "Queries that write into this " + source.getType(),
-            "-----------------------------------"
-        ));
-        for (String writeQuery : source.getWriteQueries()) {
-          footer.add(writeQuery);
-        }
-        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
-      }
-
-      footer.add(String.format(
-          "\n%-20s\n%s",
-          "Local runtime statistics",
-          "------------------------"
-      ));
-      footer.add(source.getStatistics());
-      footer.add(source.getErrorStats());
-      footer.add(String.format(
-          "(%s)",
-          "Statistics of the local KSQL server interaction with the Kafka topic "
-          + source.getTopic()
-      ));
-
-      if (source.getExecutionPlan().length() > 0) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s\n%s",
-            "Execution plan",
-            "--------------",
-            source.getExecutionPlan()
-        ));
-      }
-      if (source.getTopology().length() > 0) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s\n%s",
-            "Processing topology",
-            "-------------------",
-            source.getTopology()
-        ));
-      }
-    } else {
-      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+    if (!source.isExtended()) {
+      printSchema(source);
+      writer().println(
+          "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+      return;
     }
+    writer().println(String.format("%-20s : %s", "Type", source.getType()));
+    if (source.getStatementText().length() > 0) {
+      writer().println(String.format("%-20s : %s", "SQL", source.getStatementText()));
+    }
+
+    printQueryInfo(source);
+    writer().println("");
+
+    printSchema(source);
+
+    printWriteQueries(source);
+
+    writer().println(String.format(
+        "\n%-20s\n%s",
+        "Local runtime statistics",
+        "------------------------"
+    ));
+    writer().println(source.getStatistics());
+    writer().println(source.getErrorStats());
+    writer().println(String.format(
+        "(%s)",
+        "Statistics of the local KSQL server interaction with the Kafka topic "
+            + source.getTopic()
+    ));
+
+    printExecutionPlan(source);
+
+    printTopology(source);
+
+    printOverriddenProperties(source);
   }
 
   private void printAsJson(Object o) throws IOException {

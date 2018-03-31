@@ -75,13 +75,14 @@ public class KsqlContextTest {
                                                                                    queryStreams,
                                                                                   null,
                                                                                   "",
-                                                                                  queryid,
-                                                                                  type,
+                                                                                   queryid,
+                                                                                   type,
                                                                                   "KSQL_query_" + queryid,
                                                                                   null,
-        null,
+                                                                      null,
                                                                                   null,
-                                                                                  null);
+                                                                                  null,
+                                                                                   Collections.emptyMap());
 
     return Arrays.asList(persistentQueryMetadata);
 

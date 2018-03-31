@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -120,9 +121,10 @@ public class AvroUtilTest {
                                                                                   DataSource.DataSourceType.KSTREAM,
                                                                                   "",
                                                                                   mock(KafkaTopicClient.class),
-        resultSchema,
+                                                                                  resultSchema,
                                                                                   resultTopic,
-                                                                                  null);
+                                                                                  null,
+                                                                                  Collections.emptyMap());
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
@@ -146,9 +148,10 @@ public class AvroUtilTest {
                                                                                   DataSource.DataSourceType.KSTREAM,
                                                                                   "",
                                                                                   mock(KafkaTopicClient.class),
-        resultSchema,
+                                                                                  resultSchema,
                                                                                   resultTopic,
-                                                                                  null);
+                                                                                  null,
+                                                                                  Collections.emptyMap());
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {

@@ -255,8 +255,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       );
     }
 
+    String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
-        restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        restConfig.getCommandTopic(ksqlServiceId);
     ensureCommandTopic(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
@@ -355,7 +356,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         ksqlResource,
         isUiEnabled,
         versionCheckerAgent,
-        new ServerInfo(Version.getVersion(), kafkaClusterId)
+        new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
     );
   }
 

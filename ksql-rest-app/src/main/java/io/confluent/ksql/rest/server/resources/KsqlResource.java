@@ -448,6 +448,7 @@ public class KsqlResource {
         String executionPlan = executionPlanAndQuery.getLeft();
         QueryMetadata queryMetadata = executionPlanAndQuery.getRight();
         List<SourceDescription.FieldSchemaInfo> schemaInfoList = Collections.emptyList();
+        Map<String, Object> overriddenProperties = Collections.emptyMap();
         String topologyDescription = "";
         if (queryMetadata != null) {
           schemaInfoList = queryMetadata.getOutputNode().getSchema().fields().stream().map(
@@ -456,6 +457,7 @@ public class KsqlResource {
                     .getSchemaFieldName(field));
               }).collect(Collectors.toList());
           topologyDescription = queryMetadata.getTopologyDescription();
+          overriddenProperties = queryMetadata.getOverriddenProperties();
         }
         return new SourceDescription(
             "",
@@ -475,7 +477,7 @@ public class KsqlResource {
             executionPlan,
             0,
             0,
-            queryMetadata.getOverriddenProperties()
+            overriddenProperties
         );
       } catch (KsqlException ksqlException) {
         throw ksqlException;

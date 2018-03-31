@@ -569,7 +569,7 @@ public class KsqlResourceTest {
     assertThat("Response should have 1 entity", result.size(), equalTo(1));
     validateQueryDescription(
         ksqlQueryString,
-        Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest"),
+        Collections.emptyMap(),
         result.get(0));
   }
 

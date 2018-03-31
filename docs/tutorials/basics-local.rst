@@ -18,10 +18,10 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 40
-      :end-line: 63
+      :end-line: 79
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 63
+      :start-line: 80 
       :end-line: 317
 
 Confluent Platform

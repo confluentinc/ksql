@@ -45,6 +45,16 @@ public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
+  public Double subtract(Double currentVal, Double currentAggVal) {
+    return currentAggVal - currentVal;
+  }
+
+  @Override
+  public boolean implementsSubtract() {
+    return true;
+  }
+
+  @Override
   public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
                                                            List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());

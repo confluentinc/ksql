@@ -286,6 +286,40 @@ public class SchemaKStream {
         && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
   }
 
+  protected static Pair<String, List<Integer>> keyIndexesForGroupBy(
+      final Schema schema, final List<Expression> groupByExpressions) {
+    final StringBuilder aggregateKeyName = new StringBuilder();
+    final List<Integer> newKeyIndexes = new ArrayList<>();
+
+    // Collect the column indexes, and build the new key as <column1>+<column2>+...
+    boolean addSeparator = false;
+    for (Expression groupByExpr : groupByExpressions) {
+      if (addSeparator) {
+        aggregateKeyName.append("|+|");
+      } else {
+        addSeparator = true;
+      }
+      aggregateKeyName.append(groupByExpr.toString());
+      newKeyIndexes.add(
+          SchemaUtil.getIndexInSchema(groupByExpr.toString(), schema));
+    }
+    return new Pair<>(aggregateKeyName.toString(), newKeyIndexes);
+  }
+
+  protected static String buildGroupByKey(List<Integer> newKeyIndexes, GenericRow value) {
+    StringBuilder newKey = new StringBuilder();
+    boolean addSeparator1 = false;
+    for (int index : newKeyIndexes) {
+      if (addSeparator1) {
+        newKey.append("|+|");
+      } else {
+        addSeparator1 = true;
+      }
+      newKey.append(String.valueOf(value.getColumns().get(index)));
+    }
+    return newKey.toString();
+  }
+
   public SchemaKGroupedStream groupBy(
       final Serde<String> keySerde, final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
@@ -303,40 +337,19 @@ public class SchemaKStream {
       );
     }
 
-    // Collect the column indexes, and build the new key as <column1>+<column2>+...
-    StringBuilder aggregateKeyName = new StringBuilder();
-    List<Integer> newKeyIndexes = new ArrayList<>();
-    boolean addSeparator = false;
-    for (Expression groupByExpr : groupByExpressions) {
-      if (addSeparator) {
-        aggregateKeyName.append("|+|");
-      } else {
-        addSeparator = true;
-      }
-      aggregateKeyName.append(groupByExpr.toString());
-      newKeyIndexes.add(
-          SchemaUtil.getIndexInSchema(groupByExpr.toString(), getSchema()));
-    }
+    final Pair<String, List<Integer>> aggregateKeyNameAndNewKeyIndexes =
+        keyIndexesForGroupBy(getSchema(), groupByExpressions);
+    final String aggregateKeyName = aggregateKeyNameAndNewKeyIndexes.left;
+    final List<Integer> newKeyIndexes = aggregateKeyNameAndNewKeyIndexes.right;
 
     KGroupedStream kgroupedStream = kstream.filter((key, value) -> value != null).groupBy(
-        (key, value) -> {
-          StringBuilder newKey = new StringBuilder();
-          boolean addSeparator1 = false;
-          for (int index : newKeyIndexes) {
-            if (addSeparator1) {
-              newKey.append("|+|");
-            } else {
-              addSeparator1 = true;
-            }
-            newKey.append(String.valueOf(value.getColumns().get(index)));
-          }
-          return newKey.toString();
-        }, Serialized.with(keySerde, valSerde));
+        (key, value) -> buildGroupByKey(newKeyIndexes, value),
+        Serialized.with(keySerde, valSerde));
 
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to
     //       repartition.
-    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
+    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,
         kgroupedStream,

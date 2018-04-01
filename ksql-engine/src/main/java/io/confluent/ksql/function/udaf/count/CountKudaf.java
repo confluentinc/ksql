@@ -45,6 +45,16 @@ public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
   }
 
   @Override
+  public Long subtract(Object currentVal, Long currentAggVal) {
+    return currentAggVal - 1;
+  }
+
+  @Override
+  public boolean implementsSubtract() {
+    return true;
+  }
+
+  @Override
   public KsqlAggregateFunction<Object, Long> getInstance(Map<String, Integer> expressionNames,
                                                          List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());

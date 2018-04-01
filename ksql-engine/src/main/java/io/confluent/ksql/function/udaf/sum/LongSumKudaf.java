@@ -44,6 +44,16 @@ public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
+  public Long subtract(Long currentVal, Long currentAggVal) {
+    return this.aggregate(-1 * currentVal, currentAggVal);
+  }
+
+  @Override
+  public boolean implementsSubtract() {
+    return true;
+  }
+
+  @Override
   public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
                                                        List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());

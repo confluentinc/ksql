@@ -18,15 +18,22 @@ package io.confluent.ksql.structured;
 
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SerDeUtil;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.Consumed;
@@ -37,7 +44,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 public class SchemaKTableTest {
 
@@ -162,4 +174,26 @@ public class SchemaKTableTest {
                       initialSchemaKTable);
   }
 
+  @Test
+  public void testGroupBy() {
+    String selectQuery = "SELECT col0, col1, col2 FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
+        ksqlTable.getKeyField(), new ArrayList<>(), false,
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+
+    Expression col1Expression = new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
+    Expression col2Expression = new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL2");
+    KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
+    Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
+        initialSchemaKTable.getSchema(), null, false, null);
+    List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
+        Serdes.String(), rowSerde, groupByExpressions);
+
+    Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
+    Assert.assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST1.COL2|+|TEST1.COL1"));
+  }
 }

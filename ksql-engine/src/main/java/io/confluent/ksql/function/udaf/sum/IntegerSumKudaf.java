@@ -43,6 +43,16 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
+  public Integer subtract(Integer currentVal, Integer currentAggVal) {
+    return this.aggregate(-1 * currentVal, currentAggVal);
+  }
+
+  @Override
+  public boolean implementsSubtract() {
+    return true;
+  }
+
+  @Override
   public Merger<String, Integer> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
@@ -53,6 +63,4 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     return new IntegerSumKudaf(udafIndex);
   }
-
-
 }

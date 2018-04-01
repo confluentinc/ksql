@@ -62,6 +62,14 @@ public abstract class KsqlAggregateFunction<V, A> {
 
   public abstract A aggregate(V currentVal, A currentAggVal);
 
+  public A subtract(V currentVal, A currentAggVal) {
+    throw new KsqlException("This aggregator does not implement subtract");
+  }
+
+  public boolean implementsSubtract() {
+    return false;
+  }
+
   public Supplier<A> getInitialValueSupplier() {
     return initialValueSupplier;
   }

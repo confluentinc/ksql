@@ -20,10 +20,12 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
@@ -43,7 +45,7 @@ import io.confluent.ksql.util.Pair;
 public class SchemaKTable extends SchemaKStream {
 
 
-  private final KTable ktable;
+  private final KTable<?, GenericRow> ktable;
   private final boolean isWindowed;
 
   public SchemaKTable(
@@ -79,9 +81,9 @@ public class SchemaKTable extends SchemaKStream {
     if (isWindowed) {
       final Serde<Windowed<String>> windowedSerde
               = WindowedSerdes.timeWindowedSerdeFrom(String.class);
-      ktable.toStream()
+      ((KTable<Windowed<String>, GenericRow>)ktable).toStream()
           .mapValues(
-              (ValueMapper<GenericRow, GenericRow>) row -> {
+              row -> {
                 if (row == null) {
                   return null;
                 }
@@ -95,8 +97,8 @@ public class SchemaKTable extends SchemaKStream {
               }
           ).to(kafkaTopicName, Produced.with(windowedSerde, topicValueSerDe));
     } else {
-      ktable.toStream()
-          .mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
+      ((KTable<String, GenericRow>)ktable).toStream()
+          .mapValues(row -> {
             if (row == null) {
               return null;
             }
@@ -174,4 +176,27 @@ public class SchemaKTable extends SchemaKStream {
     return isWindowed;
   }
 
+  @Override
+  public SchemaKGroupedStream groupBy(
+      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions) {
+    Pair<String, List<Integer>> aggregateKeyNameAndNewKeyIndexes =
+        keyIndexesForGroupBy(getSchema(), groupByExpressions);
+    final String aggregateKeyName = aggregateKeyNameAndNewKeyIndexes.left;
+    final List<Integer> newKeyIndexes = aggregateKeyNameAndNewKeyIndexes.right;
+
+    KGroupedTable kgroupedTable = ktable.filter((key, value) -> value != null).groupBy(
+        (key, value) ->
+            new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
+        Serialized.with(keySerde, valSerde));
+
+    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    return new SchemaKGroupedTable(
+        schema,
+        kgroupedTable,
+        newKeyField,
+        Collections.singletonList(this),
+        functionRegistry,
+        schemaRegistryClient);
+  }
 }

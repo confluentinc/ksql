@@ -37,7 +37,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -181,11 +180,6 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClient
     );
 
-    if (sourceSchemaKStream instanceof SchemaKTable) {
-      throw new KsqlException(
-          "Unsupported aggregation. KSQL currently only supports aggregation on a Stream.");
-    }
-
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
     final Map<String, Integer> expressionNames = new HashMap<>();
@@ -233,17 +227,16 @@ public class AggregateNode extends PlanNode {
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
-        new KudafAggregator(
-            createAggValToFunctionMap(
-                expressionNames,
-                aggregateArgExpanded,
-                aggregateSchema,
-                initializer,
-                aggValToValColumnMap.size(),
-                functionRegistry
-            ),
-            aggValToValColumnMap
-        ), getWindowExpression(),
+        createAggValToFunctionMap(
+            expressionNames,
+            aggregateArgExpanded,
+            aggregateSchema,
+            initializer,
+            aggValToValColumnMap.size(),
+            functionRegistry
+        ),
+        aggValToValColumnMap,
+        getWindowExpression(),
         aggValueGenericRowSerde
     );
 

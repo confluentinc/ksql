@@ -3,7 +3,7 @@
 KSQL Configuration Parameter Reference
 ======================================
 
-Here are some common configuration properties that you might want to customize.
+Here are some common configuration properties that you can customize.
 
 .. contents::
     :local:

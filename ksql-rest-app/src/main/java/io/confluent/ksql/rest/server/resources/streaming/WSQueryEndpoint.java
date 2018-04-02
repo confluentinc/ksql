@@ -46,6 +46,7 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
@@ -200,6 +201,7 @@ public class WSQueryEndpoint {
     }
   }
 
+  @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION")
   private static String getLast(String name, Map<String, List<String>> parameters) {
     return Iterables.getLast(parameters.get(name), null);
   }

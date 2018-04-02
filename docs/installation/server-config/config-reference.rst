@@ -160,7 +160,7 @@ These configurations control the general behavior of the KSQL server. These conf
 ksql.queries.file
 -----------------
 
-A file that specifies a predefined set of queries for the KSQL server, KSQL, and its underlying Kafka Streams instances.
+A file that specifies a predefined set of queries for the KSQL and KSQL server.
 For an example, see :ref:`restrict-ksql-interactive`.
 
 .. _ksql-listeners:
@@ -169,15 +169,12 @@ For an example, see :ref:`restrict-ksql-interactive`.
 ksql.listeners
 --------------
 
-The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).
-Here is an example to change the value to ``20000000`` by using the KSQL command line:
+Comma-separated list of URIs (including protocol) that the broker will listen on. Specify hostname as ``0.0.0.0`` to bind
+to all interfaces or leave it empty to bind to the default interface. For example:
 
 .. code:: bash
 
-    ksql> SET 'cache.max.bytes.buffering'='20000000';
-
-For more information, see the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
-
+    ksql.listeners=PLAINTEXT://myhost:9092
 
 Example Production Settings
 ---------------------------

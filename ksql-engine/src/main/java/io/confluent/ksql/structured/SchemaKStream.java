@@ -41,6 +41,7 @@ import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -272,6 +273,9 @@ public class SchemaKStream {
       DereferenceExpression dereferenceExpression =
           (DereferenceExpression) expression;
       return dereferenceExpression.getFieldName();
+    } else if (expression instanceof QualifiedNameReference) {
+      QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) expression;
+      return qualifiedNameReference.getName().toString();
     }
     return null;
   }

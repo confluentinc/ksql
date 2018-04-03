@@ -15,76 +15,6 @@ Docker support
 .. contents::
     :local:
 
-.. _install_ksql-cli:
-
----------------------
-Starting the KSQL CLI
----------------------
-
-The KSQL CLI is a client that connects to the KSQL servers.
-
-You can start the KSQL CLI by providing the connection information to the KSQL server.
-
-.. code:: bash
-
-    $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql http://localhost:8088
-
-After KSQL is started, your terminal should resemble this.
-
-.. include:: ../includes/ksql-includes.rst
-    :start-line: 17
-    :end-line: 38
-
-Tip
-    You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.
-
-         .. code:: bash
-
-                NAME
-                        ksql - KSQL CLI
-
-                SYNOPSIS
-                        ksql [ --config-file <configFile> ] [ {-h | --help} ]
-                                [ --output <outputFormat> ]
-                                [ --query-row-limit <streamedQueryRowLimit> ]
-                                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
-
-                OPTIONS
-                        --config-file <configFile>
-                            A file specifying configs for Ksql and its underlying Kafka Streams
-                            instance(s). Refer to KSQL documentation for a list of available
-                            configs.
-
-                        -h, --help
-                            Display help information
-
-                        --output <outputFormat>
-                            The output format to use (either 'JSON' or 'TABULAR'; can be changed
-                            during REPL as well; defaults to TABULAR)
-
-                        --query-row-limit <streamedQueryRowLimit>
-                            An optional maximum number of rows to read from streamed queries
-
-                            This options value must fall in the following range: value >= 1
-
-
-                        --query-timeout <streamedQueryTimeoutMs>
-                            An optional time limit (in milliseconds) for streamed queries
-
-                            This options value must fall in the following range: value >= 1
-
-
-                        --
-                            This option can be used to separate command-line options from the
-                            list of arguments (useful when arguments might be mistaken for
-                            command-line options)
-
-                        <server>
-                            The address of the Ksql server to connect to (ex:
-                            http://confluent.io:9098)
-
-                            This option may occur a maximum of 1 times
-
 
 .. _install_ksql-server:
 
@@ -159,7 +89,72 @@ Tip
                             This option may occur a maximum of 1 times
 
 
+.. _install_ksql-cli:
+
+---------------------
+Starting the KSQL CLI
+---------------------
+
+The KSQL CLI is a client that connects to the KSQL servers.
+
+You can start the KSQL CLI by providing the connection information to the KSQL server.
+
+.. code:: bash
+
+    $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql http://localhost:8088
+
+After KSQL is started, your terminal should resemble this.
+
+.. include:: ../includes/ksql-includes.rst
+    :start-line: 17
+    :end-line: 38
+
+Tip
+    You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.
+
+         .. code:: bash
+
+                NAME
+                        ksql - KSQL CLI
+
+                SYNOPSIS
+                        ksql [ --config-file <configFile> ] [ {-h | --help} ]
+                                [ --output <outputFormat> ]
+                                [ --query-row-limit <streamedQueryRowLimit> ]
+                                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
+
+                OPTIONS
+                        --config-file <configFile>
+                            A file specifying configs for Ksql and its underlying Kafka Streams
+                            instance(s). Refer to KSQL documentation for a list of available
+                            configs.
+
+                        -h, --help
+                            Display help information
+
+                        --output <outputFormat>
+                            The output format to use (either 'JSON' or 'TABULAR'; can be changed
+                            during REPL as well; defaults to TABULAR)
+
+                        --query-row-limit <streamedQueryRowLimit>
+                            An optional maximum number of rows to read from streamed queries
+
+                            This options value must fall in the following range: value >= 1
 
 
+                        --query-timeout <streamedQueryTimeoutMs>
+                            An optional time limit (in milliseconds) for streamed queries
+
+                            This options value must fall in the following range: value >= 1
 
 
+                        --
+                            This option can be used to separate command-line options from the
+                            list of arguments (useful when arguments might be mistaken for
+                            command-line options)
+
+                        <server>
+                            The address of the Ksql server to connect to (ex:
+                            http://confluent.io:9098)
+
+                            This option may occur a maximum of 1 times

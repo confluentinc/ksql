@@ -18,26 +18,10 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 40
-      :end-line: 63
-
-----------
-Start KSQL
-----------
-
-Launch the KSQL CLI.
-
-.. code:: bash
-
-      $ <path-to-confluent>/bin/ksql
-
-After KSQL is started, your terminal should resemble this.
+      :end-line: 79
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 17
-      :end-line: 38
-
-.. include:: ../includes/ksql-includes.rst
-      :start-line: 63
+      :start-line: 80 
       :end-line: 317
 
 Confluent Platform
@@ -48,7 +32,7 @@ command.
 
 .. code:: bash
 
-    $ confluent stop
+    $ <path-to-confluent>/bin/confluent stop
 
 ----------
 Next steps

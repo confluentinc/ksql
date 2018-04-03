@@ -37,7 +37,6 @@ import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -183,7 +182,6 @@ class QueryEngine {
         builder,
         ksqlEngine.getKsqlConfig().cloneWithPropertyOverwrite(overriddenProperties),
         ksqlEngine.getTopicClient(),
-        new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
         overriddenProperties,
         updateMetastore,

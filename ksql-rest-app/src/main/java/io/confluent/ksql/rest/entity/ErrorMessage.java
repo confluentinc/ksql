@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import io.confluent.ksql.util.CommonUtils;
+import io.confluent.ksql.util.ErrorMessageUtil;
 
 // TODO: Add a field for status code
 @JsonSubTypes({})
@@ -44,20 +44,11 @@ public class ErrorMessage {
     this.stackTrace = stackTrace;
   }
 
-  private static String buildErrorMessage(Throwable exception) {
-    String msg =
-        exception.getMessage() != null
-        ? exception.getMessage()
-        : " ServerError:" + exception.toString();
-    String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-    return causeMsg.isEmpty() ? msg : msg + "\r\n" + causeMsg;
-  }
-
   public ErrorMessage(Throwable exception) {
-    this(buildErrorMessage(exception), getStackTraceStrings(exception));
+    this(ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
   }
 
-  public static List<String> getStackTraceStrings(Throwable exception) {
+  private static List<String> getStackTraceStrings(Throwable exception) {
     return Arrays.stream(exception.getStackTrace())
         .map(StackTraceElement::toString)
         .collect(Collectors.toList());

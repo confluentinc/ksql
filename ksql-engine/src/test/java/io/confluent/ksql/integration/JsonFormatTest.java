@@ -23,21 +23,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,6 +59,8 @@ import static org.hamcrest.Matchers.hasSize;
 public class JsonFormatTest {
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
+  private static final String usersTopic = "users_topic";
+  private static final String usersTable = "USERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
 
@@ -104,8 +97,9 @@ public class JsonFormatTest {
   }
 
   private void createInitTopics() {
-    topicClient.createTopic(inputTopic, 1, (short)1);
-    topicClient.createTopic(messageLogTopic, 1, (short)1);
+    topicClient.createTopic(inputTopic, 1, (short) 1);
+    topicClient.createTopic(usersTopic, 1, (short) 1);
+    topicClient.createTopic(messageLogTopic, 1, (short) 1);
   }
 
   private void produceInitData() throws Exception {
@@ -133,10 +127,16 @@ public class JsonFormatTest {
         + "kafka_topic='%s' , "
         + "key='ordertime');", inputStream, inputTopic);
 
+    String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
+                                         + "(value_format = 'json', kafka_topic='%s', "
+                                         + "KEY='userid');",
+                                         usersTable, usersTopic);
+
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
     ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(usersTableStr, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(messageStreamStr, Collections.emptyMap());
   }
 
@@ -199,6 +199,26 @@ public class JsonFormatTest {
     assertThat(
         topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
         hasSize(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
+  }
+
+  @Test
+  public void testTableSinkCleanupProperty() throws Exception {
+    final String tableName = "SinkCleanupTable".toUpperCase();
+    final int resultPartitionCount = 3;
+    final String queryString = String.format("CREATE TABLE %s AS SELECT * "
+                                             + "FROM %s;",
+                                             tableName, usersTable);
+    executePersistentQuery(queryString);
+
+    TestUtils.waitForCondition(
+        () -> topicClient.isTopicExists(tableName),
+        "Wait for async topic creation"
+    );
+
+    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
   @Test

@@ -37,16 +37,6 @@ Healthchecks
     - Run ``ksql-print-metrics`` on a server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
 
 
-=======
-Logging
-=======
-
-By default KSQL server logs are written to ``/tmp/ksql-logs/``. 
-
-- ``ksql.log`` -- Contains REST API log output (i.e. Jetty, parsing queries, problems with malformed data).
-- ``ksql-streams.log`` -- Contains KStreams logging output for running queries.
-
-
 ======================
 Monitoring and Metrics
 ======================
@@ -80,12 +70,6 @@ Your output should resemble:
     messages-consumed-max: 103397.81191436431
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
-
-=============================
-Capacity Planning and Scaling
-=============================
-
-TBD
 
 ===============
 Troubleshooting

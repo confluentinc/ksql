@@ -56,23 +56,27 @@ public class SerDeUtil {
         return SchemaBuilder.map(Schema.STRING_SCHEMA,
                                  getKsqlSchemaForAvroSchema(avroSchema.getValueType()));
       case UNION:
-        List<org.apache.avro.Schema> schemaList = avroSchema.getTypes();
-        if (schemaList.size() == 1) {
-          return getKsqlSchemaForAvroSchema(schemaList.get(0));
-        } else if (schemaList.size() == 2) {
-          if (schemaList.get(0).getType() == org.apache.avro.Schema.Type.NULL) {
-            return getKsqlSchemaForAvroSchema(schemaList.get(1));
-          } else if (schemaList.get(1).getType() == org.apache.avro.Schema.Type.NULL) {
-            return getKsqlSchemaForAvroSchema(schemaList.get(0));
-          }
-        }
-        throw new KsqlException(String.format("Union type cannot have more than two types and "
-                                              + "one of them should be null."));
+        return handleUnion(avroSchema);
         
       default:
         throw new KsqlException(String.format("Cannot find correct type for avro type: %s",
                                               avroSchema.getFullName()));
     }
+  }
+
+  private static Schema handleUnion(org.apache.avro.Schema avroSchema) {
+    List<org.apache.avro.Schema> schemaList = avroSchema.getTypes();
+    if (schemaList.size() == 1) {
+      return getKsqlSchemaForAvroSchema(schemaList.get(0));
+    } else if (schemaList.size() == 2) {
+      if (schemaList.get(0).getType() == org.apache.avro.Schema.Type.NULL) {
+        return getKsqlSchemaForAvroSchema(schemaList.get(1));
+      } else if (schemaList.get(1).getType() == org.apache.avro.Schema.Type.NULL) {
+        return getKsqlSchemaForAvroSchema(schemaList.get(0));
+      }
+    }
+    throw new KsqlException(String.format("Union type cannot have more than two types and "
+                                          + "one of them should be null."));
   }
 
 }

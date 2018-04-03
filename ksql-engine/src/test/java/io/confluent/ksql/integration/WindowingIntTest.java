@@ -26,8 +26,8 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 @Category({IntegrationTest.class})
 public class WindowingIntTest {
@@ -110,6 +110,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
 
@@ -156,6 +158,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -208,6 +212,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test
@@ -255,6 +261,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
 
   }
 

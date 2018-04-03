@@ -1,19 +1,6 @@
 package io.confluent.ksql.integration;
 
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.*;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -37,6 +24,23 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TopicConsumer;
 
 
 public class IntegrationTestHarness {
@@ -64,7 +68,7 @@ public class IntegrationTestHarness {
 
   // Topic generation
   public void createTopic(String topicName) {
-    topicClient.createTopic(topicName, 1, (short) 1);
+    createTopic(topicName, 1, (short) 1);
   }
   public void createTopic(String topicName, int numPartitions, short replicatonFactor) {
     topicClient.createTopic(topicName, numPartitions, replicatonFactor);

@@ -87,15 +87,15 @@ types, a column of ``array`` type, and a column of ``map`` type:
             VALUE_FORMAT='JSON',
             KEY = 'userid');
 
-
+Note that specifying KEY is required in table declaration, see :ref:`ksql_key_constraints`
 
 Working with streams and tables
 -------------------------------
 
 Now that you have the ``pageviews`` stream and ``users`` table, take a
 look at some example queries that you can write in KSQL. The focus is on
-two types of KSQL statements: CREATE STREAM AS SELECT and CREATE TABLE
-AS SELECT. For these statements KSQL persists the results of the query
+two types of KSQL statements: CREATE STREAM AS SELECT (a.k.a CSAS) and CREATE TABLE
+AS SELECT (a.k.a CTAS). For these statements KSQL persists the results of the query
 in a new stream or table, which is backed by a Kafka topic.
 
 Transforming
@@ -290,135 +290,51 @@ zipcode for each user:
              regionid \
       FROM pageviews_enriched;
 
-Avro format and integration with Confluent Schema Registry
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _running-ksql-command-line:
 
-.. contents::
-    :local:
+Running Single KSQL Statements From the Command Line
+----------------------------------------------------
 
-Supported functionality
-^^^^^^^^^^^^^^^^^^^^^^^
+In addition to using the KSQL CLI or launching KSQL servers with the ``--queries-file`` configuration, you can also execute
+KSQL statements from directly your terminal. This can be useful for scripting.
 
-KSQL can read and write messages in Avro format by integrating with
-:ref:`Confluent Schema
-Registry <schemaregistry_intro>`.
-KSQL will automatically retrieve (read) and register (write) Avro
-schemas as needed and thus save you from both having to manually define
-columns and data types in KSQL as well as from manual interaction with
-the schema registry.
+The following examples show common usage:
 
-Currently KSQL supports Avro data in the values of Kafka messages:
+-   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
-+-------------+-------------------+----------------------------+
-|             | Message Key       | Message Value              |
-+=============+===================+============================+
-| Avro format | Not supported yet | Supported (read and write) |
-+-------------+-------------------+----------------------------+
+    .. code:: bash
 
-What is not supported yet:
+        $ ksql <<EOF
+        > SHOW TOPICS;
+        > SHOW STREAMS;
+        > exit
+        > EOF
 
--  Message keys in Avro format. Message keys in KSQL are always
-   interpreted as STRING format, which means KSQL will ignore any Avro
-   schemas that have been registered for message keys.
--  Avro schemas with nested fields because KSQL does not yet supported
-   nested columns.
+-   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
+    an explicitly defined KSQL server endpoint.
 
-Configuring KSQL for Avro
-^^^^^^^^^^^^^^^^^^^^^^^^^
+    .. code:: bash
 
-You must configure the API endpoint of Confluent Schema Registry by
-setting ``ksql.schema.registry.url`` (default:
-``http://localhost:8081``) in the KSQL configuration file that you use
-to start KSQL. You *should not* use ``SET`` to configure the registry
-endpoint.
+        $ ksql http://localhost:8088 <<< "SHOW TOPICS;
+        SHOW STREAMS;
+        exit"
 
-Using Avro in KSQL
-^^^^^^^^^^^^^^^^^^
+-   This example creates a stream from a predefined script (``application.sql``) using the ``RUN SCRIPT`` command and
+    then runs a query by using the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) feature.
 
-First you must ensure that:
+    .. code:: bash
 
-1. Confluent Schema Registry is up and running.
-2. ``ksql.schema.registry.url`` is set correctly in KSQL (see previous
-   section).
+        $ cat /path/to/local/application.sql
+        CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
 
-Then you can use ``CREATE STREAM`` and ``CREATE TABLE`` statements to
-read from Kafka topics with Avro-formatted data and ``CREATE STREAM AS``
-and ``CREATE TABLE AS`` statements to write Avro-formatted data into
-Kafka topics.
+    .. code:: bash
 
-Example: Create a new stream ``pageviews`` by reading from a Kafka topic
-with Avro-formatted messages.
+        $ ksql http://localhost:8088 <<EOF
+        > RUN SCRIPT '/path/to/local/application.sql';
+        > exit
+        > EOF
 
-.. code:: sql
-
-    CREATE STREAM pageviews
-      WITH (KAFKA_TOPIC='pageviews-avro-topic',
-            VALUE_FORMAT='AVRO');
-
-Example: Create a new table ``users`` by reading from a Kafka topic with
-Avro-formatted messages.
-
-.. code:: sql
-
-    CREATE TABLE users
-      WITH (KAFKA_TOPIC='users-avro-topic',
-            VALUE_FORMAT='AVRO',
-            KEY='userid');
-
-Note how in the above example you don’t need to define any columns or
-data types in the CREATE statement because KSQL will automatically infer
-this information from the latest registered Avro schema for topic
-``pageviews-avro-topic`` (i.e., the latest schema at the time the
-statement is first executed).
-
-If you want to create a STREAM or TABLE with only a subset of all the
-available fields in the Avro schema, then you must explicitly define the
-columns and data types.
-
-Example: Create a new stream ``pageviews_reduced``, similar to the
-previous example, but with only a few of all the available fields in the
-Avro data (here, only the two columns ``viewtime`` and ``pageid`` are
-picked).
-
-.. code:: sql
-
-    CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
-      WITH (KAFKA_TOPIC='pageviews-avro-topic',
-            VALUE_FORMAT='AVRO');
-
-KSQL allows you to work with streams and tables regardless of their
-underlying data format. This means that you can easily mix and match
-streams and tables with different data formats (e.g. join a stream
-backed by Avro data with a table backed by JSON data) and also convert
-easily between data formats.
-
-Example: Convert a JSON stream into an Avro stream.
-
-.. code:: sql
-
-    CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
-      WITH (KAFKA_TOPIC='pageviews-json-topic', VALUE_FORMAT='JSON');
-
-    CREATE STREAM pageviews_avro
-      WITH (VALUE_FORMAT = 'AVRO') AS
-      SELECT * FROM pageviews_json;
-
-Note how you only need to set ``VALUE_FORMAT`` to Avro to achieve the
-data conversion. Also, KSQL will automatically generate an appropriate
-Avro schema for the new ``pageviews_avro`` stream, and it will also
-register the schema with Confluent Schema Registry.
-
-Running KSQL
-------------
-
-KSQL supports various :ref:`modes of operation <modes-of-operation>`, including a standalone mode and a client-server mode.
-
-Additionally, you can also instruct KSQL to execute a single statement
-from the command line. The following example command runs the given
-``SELECT`` statement and show the results in the terminal. In this
-particular case, the query will run until 5 records have been found, and
-then terminate.
-
-.. code:: shell
-
-    $ ksql http://localhost:8088 --exec "SELECT * FROM pageviews LIMIT 5;"
+    .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements
+              (CREATE STREAM, CREATE TABLE), persistent queries (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and
+              setting configuration options (SET statement). Other statements and commands such as ``SHOW TOPICS``and
+              ``SHOW STREAMS`` will be ignored.

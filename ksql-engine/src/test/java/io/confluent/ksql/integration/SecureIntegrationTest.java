@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
@@ -62,6 +64,7 @@ import static org.hamcrest.Matchers.greaterThan;
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
+@Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 
   private static final String INPUT_TOPIC = "orders_topic";
@@ -196,17 +199,17 @@ public class SecureIntegrationTest {
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -222,10 +225,10 @@ public class SecureIntegrationTest {
     outputTopic = "ACLS_TEST_3";
 
     final String repartitionTopic =
-        "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
 
     final String changeLogTopic =
-        "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
 
     SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
     SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
@@ -252,7 +255,7 @@ public class SecureIntegrationTest {
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_3",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -310,11 +313,8 @@ public class SecureIntegrationTest {
         (hostname, sslSession) -> hostname.equals("localhost"));
 
     try {
-      System.setProperty("javax.net.ssl.trustStore", ClientTrustStore.trustStorePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "password");
-
       final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
-      ksqlConfig.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://localhost:8481");
+      ksqlConfig.put("ksql.schema.registry.url", "https://localhost:8481");
       givenTestSetupWithConfig(ksqlConfig);
 
       // Then:

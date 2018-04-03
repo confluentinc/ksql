@@ -145,7 +145,7 @@ public class WSQueryEndpoint {
         log.error("streams exception in session {}", session.getId(), e);
         closeSession(session, new CloseReason(
             CloseCodes.UNEXPECTED_CONDITION,
-            "streams exception: " + e.getMessage()
+            "streams exception"
         ));
       });
       log.info("Running query {}", queryMetadata.getQueryApplicationId());
@@ -179,7 +179,7 @@ public class WSQueryEndpoint {
       log.error("Error initializing query in session {}", session.getId(), e);
       closeSession(session, new CloseReason(
           CloseCodes.UNEXPECTED_CONDITION,
-          "error initializing query: " + e.getMessage()
+          "error initializing query"
       ));
       closeAndRemoveQuery();
     }

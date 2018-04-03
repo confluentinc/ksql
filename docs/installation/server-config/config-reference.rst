@@ -1,4 +1,4 @@
-.. _ksql-parm-reference:
+.. _ksql-param-reference:
 
 KSQL Configuration Parameter Reference
 ======================================

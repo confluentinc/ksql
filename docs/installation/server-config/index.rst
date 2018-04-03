@@ -41,7 +41,7 @@ specified.
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-For more information, see :ref:`ksql-parm-reference`.
+For more information, see :ref:`ksql-param-reference`.
 
 .. _configuring-ksql:
 

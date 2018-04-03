@@ -134,15 +134,18 @@ Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
 How do I add KSQL servers to an existing KSQL cluster?
 ======================================================
 
-Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers``. For more
-information, see :ref:`install_ksql-server`.
+You can add or remove KSQL servers during live operations. KSQL servers that have been configured to use the same
+Kafka cluster (``bootstrap.servers``) and the same KSQL service ID (``ksql.service.id``) form a given KSQL cluster.
 
-====================================================================================
-How can I secure KSQL servers for production and prevent interactive client access?
-====================================================================================
+To add a KSQL server to an existing KSQL cluster the server must be configured with the same ``bootstrap.servers`` and
+``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`.
 
-You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the ``--queries-file``
-flag. For more information, see :ref:`common-configs`.
+======================================================================================
+How can I lock-down KSQL servers for production and prevent interactive client access?
+======================================================================================
+
+You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the
+``--queries-file`` command line flag. For more information, see :ref:`common-configs`.
 
 ====================================================================
 How do I use Avro data and integrate with Confluent Schema Registry?

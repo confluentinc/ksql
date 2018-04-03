@@ -126,7 +126,7 @@ How do I shutdown a KSQL environment?
 How do I configure the target Kafka cluster?
 ============================================
 
-Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
+Define ``bootstrap.servers`` in the :ref:`KSQL server configuration <ksql-server-config>`.
 
 .. _add-ksql-servers:
 
@@ -145,7 +145,7 @@ How can I lock-down KSQL servers for production and prevent interactive client a
 ======================================================================================
 
 You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the
-``--queries-file`` command line flag. For more information, see :ref:`common-configs`.
+``--queries-file`` command line flag. For more information, see :ref:`ksql-server-config`.
 
 ====================================================================
 How do I use Avro data and integrate with Confluent Schema Registry?

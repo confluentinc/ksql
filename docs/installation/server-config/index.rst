@@ -67,8 +67,8 @@ servers, version-control the exact queries, and store them in a .sql file. This 
 directly with the production KSQL cluster.
 
 You can configure servers to exclusively run a predefined script (``.sql`` file) via the ``--queries-file`` command
-line argument, or the ``ksql.queries.file`` setting in the :ref:`KSQL configuration file <common-configs>`. If a server
-is running a predefined script, it will automatically disable its REST endpoint and interactive use.
+line argument, or the ``ksql.queries.file`` setting in the :ref:`KSQL configuration file <ksql-server-config>`. If a
+server is running a predefined script, it will automatically disable its REST endpoint and interactive use.
 
 .. tip:: When both the ``ksql.queries.file`` property and the ``--queries-file`` argument are present, the ``--queries-file`` argument will take precedence.
 
@@ -85,7 +85,7 @@ To start the KSQL Server in headless, non-interactive configuration via the ``--
 To start the KSQL Server in headless, non-interactive configuration via the ``ksql.queries.file`` in the server
 configuration file:
    #. Configure the ``ksql-server.properties`` file.  The ``bootstrap.servers`` and ``ksql.queries.file``
-      are required. For more information about configuration, see :ref:`common-configs`.
+      are required. For more information about configuration, see :ref:`ksql-server-config`.
 
       .. code:: bash
 

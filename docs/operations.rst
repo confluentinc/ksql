@@ -87,7 +87,8 @@ No results from ``SELECT * FROM`` table or stream?
 --------------------------------------------------
 This is typically caused by the query being configured to process only newly arriving data instead, and no new input records are being received. To fix, do one of the following:
 
-- Run this command: ``SET ‘auto.offset.reset’ = ‘earliest’;``. For more information, see :ref:`common-configs`.
+- Run this command: ``SET 'auto.offset.reset' = 'earliest';``. For more information, see :ref:`install_cli-config` and
+  :ref:`ksql-server-config`.
 - Write new records to the input topics.
 
 ------------------------------------------------------------

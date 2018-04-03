@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -246,6 +247,18 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   @Override
   protected void registerWebSocketEndpoints(ServerContainer container) {
     try {
+      final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
+          Executors.newScheduledThreadPool(
+              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+              new ThreadFactoryBuilder()
+                  .setDaemon(true)
+                  .setNameFormat("websockets-query-thread-%d")
+                  .build()
+          )
+      );
+      final ObjectMapper mapper = getJsonMapper();
+      final StatementParser statementParser = new StatementParser(ksqlEngine);
+
       container.addEndpoint(
           ServerEndpointConfig.Builder
               .create(
@@ -255,21 +268,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
               .configurator(new Configurator() {
                 @Override
                 @SuppressWarnings("unchecked")
-                public <T> T getEndpointInstance(Class<T> endpointClass)
-                    throws InstantiationException {
+                public <T> T getEndpointInstance(Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
-                      getJsonMapper(),
-                      new StatementParser(ksqlEngine),
+                      mapper,
+                      statementParser,
                       ksqlEngine,
-                      MoreExecutors.listeningDecorator(
-                          Executors.newScheduledThreadPool(
-                              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
-                              new ThreadFactoryBuilder()
-                                  .setDaemon(true)
-                                  .setNameFormat("websockets-query-thread-%d")
-                                  .build()
-                          )
-                      )
+                      exec
                   );
                 }
               })

@@ -129,7 +129,7 @@ public class ConsoleTest {
     List<SourceDescription.FieldSchemaInfo> res = new ArrayList<>();
     List<Field> fields = dataSourceBuilder.build().fields();
     for (Field field : fields) {
-      res.add(new SourceDescription.FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field)));
+      res.add(new SourceDescription.FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldType(field)));
     }
 
     return res;

@@ -38,6 +38,11 @@ public class Array extends Type {
     this.itemType = itemType;
   }
 
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitArray(this, context);
+  }
+
   public Type getItemType() {
     return itemType;
   }

@@ -172,14 +172,54 @@ public class SchemaUtil {
           .put("MAP", "MAP")
           .build();
 
-  public static String getSchemaFieldName(Field field) {
+  public static String getSchemaFieldType(Field field) {
     if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + ","
-          + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
+          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
+    } else if (field.schema().type() == Schema.Type.STRUCT) {
+      StringBuilder stringBuilder = new StringBuilder("STRUCT <");
+      boolean addComma = false;
+      for (Field structField: field.schema().fields()) {
+        if (addComma) {
+          stringBuilder.append(", ");
+        } else {
+          addComma = true;
+        }
+        stringBuilder.append(getSchemaFieldType(structField));
+      }
+      stringBuilder.append(">");
+      return stringBuilder.toString();
     } else {
       return TYPE_MAP.get(field.schema().type().name());
+    }
+  }
+
+
+  //TODO: Improve the format with proper indentation.
+  public static String describeSchema(Schema schema) {
+    if (schema.type() == Schema.Type.ARRAY) {
+      return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
+    } else if (schema.type() == Schema.Type.MAP) {
+      return "MAP[" + describeSchema(schema.keySchema()) + ","
+             + describeSchema(schema.valueSchema()) + "]";
+    } else if (schema.type() == Schema.Type.STRUCT) {
+      StringBuilder stringBuilder = new StringBuilder("STRUCT < ");
+      boolean addComma = false;
+      for (Field structField: schema.fields()) {
+        if (addComma) {
+          stringBuilder.append(", ");
+        } else {
+          addComma = true;
+        }
+        stringBuilder
+            .append("\n\t " + structField.name() + " " + describeSchema(structField.schema()));
+      }
+      stringBuilder.append("\n >");
+      return stringBuilder.toString();
+    } else {
+      return TYPE_MAP.get(schema.type().name());
     }
   }
 

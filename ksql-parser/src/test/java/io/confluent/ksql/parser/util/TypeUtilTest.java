@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.parser.io.confluent.ksql.util;
+package io.confluent.ksql.parser.util;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

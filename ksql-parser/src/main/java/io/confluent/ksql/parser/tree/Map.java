@@ -39,6 +39,11 @@ public class Map extends Type {
     this.valueType = valueType;
   }
 
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitMap(this, context);
+  }
+
   public Type getKeyType() {
     return keyType;
   }

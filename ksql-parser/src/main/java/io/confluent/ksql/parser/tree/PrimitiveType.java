@@ -39,6 +39,11 @@ public class PrimitiveType extends Type {
   }
 
   @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitPrimitiveType(this, context);
+  }
+
+  @Override
   public KsqlType getKsqlType() {
     return ksqlType;
   }

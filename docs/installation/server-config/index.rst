@@ -8,7 +8,6 @@ Configuring KSQL Server
 
     security
     config-reference
-    ccloud-ksql
     avro-schema
 
 KSQL configuration parameters can be set for KSQL Query, KSQL server, Kafka Streams, and Kafka Clients. The

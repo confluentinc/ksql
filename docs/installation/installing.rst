@@ -159,7 +159,11 @@ Tip
                             This option may occur a maximum of 1 times
 
 
+-----------------------------
+Configuring KSQL for |ccloud|
+-----------------------------
 
+You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
 
 
 

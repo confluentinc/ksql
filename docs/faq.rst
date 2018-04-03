@@ -161,13 +161,14 @@ How can I scale out KSQL?
 
 The maximum parallelism depends on the number of partitions.
 
-- To scale out: start additional KSQL servers with same config. See :ref:`add-ksql-servers`.
-- To scale in: stop the desired running KSQL servers, but keep at least one server running. The remaining servers should
-  have sufficient capacity to take over work from stopped servers.
+- To scale out: start additional KSQL servers with same config. This can be done during live operations.
+  See :ref:`add-ksql-servers`.
+- To scale in: stop the desired running KSQL servers, but keep at least one server running. This can be done during live
+  operations. The remaining servers should have sufficient capacity to take over work from stopped servers.
 
 .. tip:: Idle servers will consume a small amount of resource. For example, if you have 10 KSQL servers and run a query
-         against a two-partition input topic, only two servers perform the actual work, but the other eight will run an “idle”
-         query.
+         against a two-partition input topic, only two servers perform the actual work, but the other eight will run an
+         "idle" query.
 
 =====================================================
 Can KSQL connect to an Apache Kafka cluster over SSL?
@@ -190,7 +191,7 @@ For more information, see :ref:`config-security-ssl-sasl`.
 Will KSQL work with Confluent Cloud?
 ====================================
 
-Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
+Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
 
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
@@ -202,5 +203,5 @@ Yes. For more information, see :ref:`config-security-ksql-acl`.
 Will KSQL work with a HTTPS Confluent Schema Registry?
 ======================================================
 
-KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
+Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.

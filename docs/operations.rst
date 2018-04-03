@@ -31,7 +31,7 @@ ksql-server-stop
 Healthchecks
 ============
 
-- The KSQL REST API supports a "server info" request at `http://<server>:8080/info <http://<server>:8080/info>`_.
+- The KSQL REST API supports a "server info" request at `http://<server>:8088/info <http://<server>:8088/info>`_.
 - Check runtime stats for the KSQL server that you are connected to via ``DESCRIBE EXTENDED <stream or table>`` and
   ``EXPLAIN <name of query>``.
 - Run ``ksql-print-metrics`` on a KSQL server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.

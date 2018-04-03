@@ -56,15 +56,15 @@ JMX Metrics
 
 .. _restrict-ksql-interactive:
 
-------------------------------------
-Headless, non-interactive KSQL Usage
-------------------------------------
+-------------------------------------
+Non-interactive (Headless) KSQL Usage
+-------------------------------------
 
 KSQL supports locked-down, "headless" deployment scenarios where interactive use of the KSQL cluster is disabled.
-For example, you want to allow a team of users to develop and verify their queries interactively on a shared testing
-KSQL cluster. But when putting those queries to production you prefer to lock-down access to KSQL Servers,
-version-control the exact queries and storing them in a .sql file, and prevent users from interacting directly with the
-production KSQL cluster.
+For example, to allow a team of users to develop and verify their queries interactively on a shared testing
+KSQL cluster. But when deploying those queries in your production environment, you want to lock-down access to KSQL
+servers, version-control the exact queries, and store them in a .sql file. This will prevent users from interacting
+directly with the production KSQL cluster.
 
 You can configure servers to exclusively run a predefined script (``.sql`` file) via the ``--queries-file`` command
 line argument, or the ``ksql.queries.file`` setting in the :ref:`KSQL configuration file <common-configs>`. If a server
@@ -72,7 +72,7 @@ is running a predefined script, it will automatically disable its REST endpoint 
 
 .. tip:: When both the ``ksql.queries.file`` property and the ``--queries-file`` argument are present, the ``--queries-file`` argument will take precedence.
 
-To start the KSQL Server in headless, non-interactive configuration via the command line argument:
+To start the KSQL Server in headless, non-interactive configuration via the ``--queries-file`` command line argument:
     #. Create a predefined script and save as an ``.sql`` file.
 
     #. Start the KSQL with the predefined script specified via the ``--queries-file`` argument.
@@ -82,7 +82,8 @@ To start the KSQL Server in headless, non-interactive configuration via the comm
             $ <path-to-confluent>/bin/ksql-start-server <path-to-confluent>/etc/ksql/ksql-server.properties \
               --queries-file /path/to/queries.sql
 
-To start the KSQL Server in headless, non-interactive configuration via the ``ksql-server.properties`` file:
+To start the KSQL Server in headless, non-interactive configuration via the ``ksql.queries.file`` in the server
+configuration file:
    #. Configure the ``ksql-server.properties`` file.  The ``bootstrap.servers`` and ``ksql.queries.file``
       are required. For more information about configuration, see :ref:`common-configs`.
 

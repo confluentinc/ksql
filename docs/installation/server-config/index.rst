@@ -82,8 +82,7 @@ To start the KSQL Server in headless, non-interactive configuration via the ``--
             $ <path-to-confluent>/bin/ksql-start-server <path-to-confluent>/etc/ksql/ksql-server.properties \
               --queries-file /path/to/queries.sql
 
-To start the KSQL Server in headless, non-interactive configuration via the ``ksql.queries.file`` in the server
-configuration file:
+To start the KSQL Server in headless, non-interactive configuration via the ``ksql.queries.file`` in the server configuration file:
    #. Configure the ``ksql-server.properties`` file.  The ``bootstrap.servers`` and ``ksql.queries.file``
       are required. For more information about configuration, see :ref:`ksql-server-config`.
 

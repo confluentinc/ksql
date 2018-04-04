@@ -45,8 +45,8 @@ KSQL includes JMX (Java Management Extensions) metrics which give insights into 
 These metrics include the number of messages, the total throughput, throughput distribution, error rate, and more.
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 320
-    :end-line: 327
+    :start-line: 328
+    :end-line: 335
 
 The ``ksql-print-metrics`` command line utility collects these metrics and prints them to the console. You can invoke this
 utility from your terminal:

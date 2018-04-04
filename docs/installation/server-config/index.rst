@@ -50,8 +50,8 @@ JMX Metrics
 -----------
 
 .. include:: ../../includes/ksql-includes.rst
-    :start-line: 320
-    :end-line: 327
+    :start-line: 328
+    :end-line: 335
 
 
 .. _restrict-ksql-interactive:

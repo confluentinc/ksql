@@ -59,7 +59,7 @@ public class SerDeUtil {
         return handleUnion(avroSchema);
         
       default:
-        throw new KsqlException(String.format("Cannot find correct type for avro type: %s",
+        throw new KsqlException(String.format("KSQL doesn't currenlty support Avro type: %s",
                                               avroSchema.getFullName()));
     }
   }
@@ -75,8 +75,8 @@ public class SerDeUtil {
         return getKsqlSchemaForAvroSchema(schemaList.get(0));
       }
     }
-    throw new KsqlException(String.format("Union type cannot have more than two types and "
-                                          + "one of them should be null."));
+    throw new KsqlException("Union type cannot have more than two types and "
+                                          + "one of them should be null.");
   }
 
 }

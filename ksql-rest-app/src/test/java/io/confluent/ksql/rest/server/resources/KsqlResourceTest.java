@@ -541,6 +541,7 @@ public class KsqlResourceTest {
       QueryMetadata queryMetadata,
       Map<String, Object> overriddenProperties,
       KsqlEntity entity) {
+    assertThat(entity, instanceOf(SourceDescription.class));
     SourceDescription sourceDescription = (SourceDescription) entity;
     assertThat(sourceDescription.getType(), equalTo("QUERY"));
     assertThat(sourceDescription.getExecutionPlan(), equalTo(queryMetadata.getExecutionPlan()));

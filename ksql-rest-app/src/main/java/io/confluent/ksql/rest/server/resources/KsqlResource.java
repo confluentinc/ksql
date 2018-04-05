@@ -443,27 +443,25 @@ public class KsqlResource {
     DdlCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
     if (ddlCommandTask != null) {
       try {
-        Pair<String, QueryMetadata> executionPlanAndQuery
-            =  ddlCommandTask.execute(statement, statementText, properties);
-        String executionPlan = executionPlanAndQuery.getLeft();
-        QueryMetadata queryMetadata = executionPlanAndQuery.getRight();
+        QueryMetadata queryMetadata = ddlCommandTask.execute(statement, statementText, properties);
+        String executionPlan = "";
         List<SourceDescription.FieldSchemaInfo> schemaInfoList = Collections.emptyList();
         Map<String, Object> overriddenProperties = Collections.emptyMap();
         String topologyDescription = "";
         if (queryMetadata != null) {
           schemaInfoList = queryMetadata.getOutputNode().getSchema().fields().stream().map(
-              field -> {
-                return new SourceDescription.FieldSchemaInfo(field.name(), SchemaUtil
-                    .getSchemaFieldName(field));
-              }).collect(Collectors.toList());
+              field -> new SourceDescription.FieldSchemaInfo(
+                  field.name(), SchemaUtil.getSchemaFieldName(field))
+          ).collect(Collectors.toList());
           topologyDescription = queryMetadata.getTopologyDescription();
           overriddenProperties = queryMetadata.getOverriddenProperties();
+          executionPlan = queryMetadata.getExecutionPlan();
         }
         return new SourceDescription(
             "",
             "User-Evaluation",
-            Collections.EMPTY_LIST,
-            Collections.EMPTY_LIST,
+            Collections.emptyList(),
+            Collections.emptyList(),
             schemaInfoList,
             "QUERY",
             "",
@@ -489,11 +487,8 @@ public class KsqlResource {
   }
 
   private interface DdlCommandTask {
-
-    Pair<String, QueryMetadata> execute(Statement statement,
-                                        String statementText,
-                                        Map<String, Object> properties)
-        throws Exception;
+    QueryMetadata execute(Statement statement, String statementText,
+                          Map<String, Object> properties) throws Exception;
   }
 
   private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
@@ -503,7 +498,7 @@ public class KsqlResource {
         Query.class,
         (statement, statementText, properties) -> {
           QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan((Query)statement);
-          return new Pair<>(queryMetadata.getExecutionPlan(), queryMetadata);
+          return queryMetadata;
         }
     );
 
@@ -522,7 +517,7 @@ public class KsqlResource {
         );
       }
       queryMetadata.close();
-      return new Pair<>(queryMetadata.getExecutionPlan(), queryMetadata);
+      return queryMetadata;
     });
 
     ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
@@ -539,14 +534,14 @@ public class KsqlResource {
         );
       }
       queryMetadata.close();
-      return new Pair<>(queryMetadata.getExecutionPlan(), queryMetadata);
+      return queryMetadata;
     });
 
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
       RegisterTopicCommand registerTopicCommand =
           new RegisterTopicCommand((RegisterTopic) statement);
       new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
@@ -559,7 +554,7 @@ public class KsqlResource {
               true
           );
       executeDdlCommand(createStreamCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
@@ -572,13 +567,13 @@ public class KsqlResource {
               true
           );
       executeDdlCommand(createTableCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(DropTopic.class, (statement, statementText, properties) -> {
       DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
       new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
@@ -588,7 +583,7 @@ public class KsqlResource {
           ksqlEngine
       );
       executeDdlCommand(dropSourceCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
@@ -598,12 +593,12 @@ public class KsqlResource {
           ksqlEngine
       );
       executeDdlCommand(dropSourceCommand);
-      return new Pair<>(statement.toString(), null);
+      return null;
     });
 
     ddlCommandTasks.put(
         TerminateQuery.class,
-        (statement, statementText, properties) -> new Pair<>(statement.toString(), null)
+        (statement, statementText, properties) -> null
     );
   }
 

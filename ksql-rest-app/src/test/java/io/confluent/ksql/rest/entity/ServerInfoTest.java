@@ -31,27 +31,7 @@ public class ServerInfoTest {
   private static final String KAFKA_CLUSTER_ID = "test-kafka-cluster";
   private static final String KSQL_SERVICE_ID = "test-ksql-service";
 
-  private ServerInfo serverInfo;
-
-  @Before
-  public void setUp() {
-    serverInfo = new ServerInfo(VERSION, KAFKA_CLUSTER_ID, KSQL_SERVICE_ID);
-  }
-
-  @Test
-  public void shouldGetVersion() {
-    Assert.assertThat(serverInfo.getVersion(), equalTo(VERSION));
-  }
-
-  @Test
-  public void shouldGetKafkaClusterId() {
-    Assert.assertThat(serverInfo.getKafkaClusterId(), equalTo(KAFKA_CLUSTER_ID));
-  }
-
-  @Test
-  public void shouldGetKsqlServiceId() {
-    Assert.assertThat(serverInfo.getKsqlServiceId(), equalTo(KSQL_SERVICE_ID));
-  }
+  private ServerInfo serverInfo = new ServerInfo(VERSION, KAFKA_CLUSTER_ID, KSQL_SERVICE_ID);
 
   @Test
   public void testSerializeDeserialize() throws IOException {

@@ -540,7 +540,7 @@ public class KsqlResourceTest {
   private void validateQueryDescription(
       QueryMetadata queryMetadata,
       Map<String, Object> overriddenProperties,
-      KsqlEntity entity) throws Exception {
+      KsqlEntity entity) {
     SourceDescription sourceDescription = (SourceDescription) entity;
     assertThat(sourceDescription.getType(), equalTo("QUERY"));
     assertThat(sourceDescription.getExecutionPlan(), equalTo(queryMetadata.getExecutionPlan()));

@@ -10,9 +10,9 @@ Local Development and Testing with Confluent CLI
 For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more information,
 see the :ref:`quickstart`.
 
-.. include:: ../../includes/installation.rst
-    :start-line: 34
-    :end-line: 37
+.. include:: ../../includes/cli.rst
+    :start-line: 2
+    :end-line: 5
 
 ===================================
 Starting and Stopping KSQL Clusters

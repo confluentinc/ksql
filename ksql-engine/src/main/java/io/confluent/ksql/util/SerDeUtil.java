@@ -59,7 +59,7 @@ public class SerDeUtil {
         return handleUnion(avroSchema);
         
       default:
-        throw new KsqlException(String.format("KSQL doesn't currenlty support Avro type: %s",
+        throw new KsqlException(String.format("KSQL doesn't currently support Avro type: %s",
                                               avroSchema.getFullName()));
     }
   }

@@ -19,6 +19,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.util.KafkaTopicClient;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
@@ -73,6 +74,11 @@ public abstract class OutputNode
   @JsonProperty
   public PlanNode getSource() {
     return source;
+  }
+
+  @Override
+  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
   }
 
   @Override

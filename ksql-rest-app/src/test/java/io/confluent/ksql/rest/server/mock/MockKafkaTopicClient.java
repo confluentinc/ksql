@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import io.confluent.ksql.util.KafkaTopicClient;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
@@ -25,17 +24,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.ksql.util.KafkaTopicClient;
+
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
  */
 public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(String topic,
+                          int numPartitions,
+                          short replicationFactor) {
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+  public void createTopic(String topic,
+                          int numPartitions,
+                          short replicationFactor,
+                          Map<String, ?> configs) {
 
   }
 
@@ -46,12 +52,32 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Set<String> listTopicNames() {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<String> listNonInternalTopicNames() {
     return Collections.EMPTY_SET;
   }
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    return Collections.EMPTY_MAP;
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public Map<String, String> getTopicConfig(String topicName) {
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public boolean addTopicConfig(String topicName, Map<String, ?> overrides) {
+    return false;
+  }
+
+  @Override
+  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+    return null;
   }
 
   @Override
@@ -65,5 +91,4 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void close() {
   }
-
 }

@@ -48,6 +48,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -138,7 +139,7 @@ public class PhysicalPlanBuilder {
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String serviceId = getServiceId();
     String
         persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
@@ -335,7 +336,7 @@ public class PhysicalPlanBuilder {
     );
 
     final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
-    if(timestampIndex != null && timestampIndex >= 0) {
+    if (timestampIndex != null && timestampIndex >= 0) {
       outputNode.getTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
 
@@ -350,6 +351,12 @@ public class PhysicalPlanBuilder {
         ProducerCollector.class.getCanonicalName()
     );
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+  }
+
+  // Package private because of test
+  String getServiceId() {
+    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+           + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }
 }
 

@@ -11,8 +11,8 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.confluent.ksql.version.metrics;
 
+package io.confluent.ksql.version.metrics;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +24,6 @@ import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
-
 
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
@@ -38,7 +37,6 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
       KsqlModuleType moduleType,
       boolean enableSettlingTime
   ) {
-
     super(
         ksqlVersionCheckerConfig,
         null,

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,6 +26,9 @@ import static org.junit.Assert.assertThat;
 public class LongTopkDistinctKudafTest {
 
   Long[] valueArray;
+  private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
+          = new TopkDistinctKudaf<>(0, 3, Schema.INT64_SCHEMA, Long.class);
+
   @Before
   public void setup() {
     valueArray = new Long[]{10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
@@ -34,7 +38,6 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] currentVal = new Long[]{null, null, null};
     for (Long d: valueArray) {
       currentVal = longTopkDistinctKudaf.aggregate(d, currentVal);
@@ -45,7 +48,6 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] currentVal = new Long[]{null, null, null};
     currentVal = longTopkDistinctKudaf.aggregate(80L, currentVal);
 
@@ -54,7 +56,6 @@ public class LongTopkDistinctKudafTest {
   
   @Test
   public void shouldMergeTopK() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] array1 = new Long[]{50L, 45L, 25L};
     Long[] array2 = new Long[]{60L, 50L, 48l};
 
@@ -64,7 +65,6 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] array1 = new Long[]{50L, 45L, null};
     Long[] array2 = new Long[]{60L, null, null};
 
@@ -74,7 +74,6 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] array1 = new Long[]{50L, 45L, null};
     Long[] array2 = new Long[]{60L, 50L, null};
 
@@ -84,7 +83,6 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] array1 = new Long[]{60L, null, null};
     Long[] array2 = new Long[]{60L, null, null};
 

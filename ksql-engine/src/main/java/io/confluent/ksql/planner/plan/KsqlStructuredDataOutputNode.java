@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -129,7 +132,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
-    createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+    createSinkTopic(noRowKey.getKafkaTopicName(),
+                    ksqlConfig,
+                    kafkaTopicClient,
+                    shoulBeCompacted(result));
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -143,6 +149,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
             .build());
     return result;
+  }
+
+  private boolean shoulBeCompacted(SchemaKStream result) {
+    return (result instanceof SchemaKTable)
+           && !((SchemaKTable) result).isWindowed();
   }
 
   private SchemaKStream createOutputStream(
@@ -195,14 +206,24 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void createSinkTopic(
       final String kafkaTopicName,
-      KsqlConfig ksqlConfig,
-      KafkaTopicClient kafkaTopicClient
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean isCompacted
   ) {
     int numberOfPartitions =
         (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     short numberOfReplications =
         (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+
+    final Map<String, ?> config = isCompacted
+        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+        : Collections.emptyMap();
+
+    kafkaTopicClient.createTopic(kafkaTopicName,
+                                 numberOfPartitions,
+                                 numberOfReplications,
+                                 config
+    );
   }
 
   public KsqlTopic getKsqlTopic() {

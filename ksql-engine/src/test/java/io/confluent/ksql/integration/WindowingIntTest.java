@@ -1,20 +1,11 @@
 package io.confluent.ksql.integration;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
-import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -26,6 +17,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.QueryMetadata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -111,6 +110,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
 
@@ -137,7 +138,7 @@ public class WindowingIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new WindowedDeserializer<>(new StringDeserializer()), MAX_POLL_PER_ITERATION);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new TimeWindowedDeserializer<>(new StringDeserializer()), MAX_POLL_PER_ITERATION);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
@@ -157,6 +158,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -189,7 +192,7 @@ public class WindowingIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new WindowedDeserializer<>(new StringDeserializer()), 1000);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new TimeWindowedDeserializer<>(new StringDeserializer()), 1000);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
@@ -209,6 +212,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test
@@ -236,7 +241,7 @@ public class WindowingIntTest {
     final Map<String, GenericRow> results = new HashMap<>();
 
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, datasetOneMetaData.size(), new WindowedDeserializer<>(new StringDeserializer()), 1000);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, datasetOneMetaData.size(), new TimeWindowedDeserializer<>(new StringDeserializer()), 1000);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ORDER_6");
       return expectedResults.equals(actual) && results.size() == 6;
@@ -256,6 +261,8 @@ public class WindowingIntTest {
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+        KafkaTopicClient.TopicCleanupPolicy.DELETE));
 
   }
 

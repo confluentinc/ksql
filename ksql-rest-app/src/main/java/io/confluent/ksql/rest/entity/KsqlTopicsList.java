@@ -16,16 +16,19 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.google.common.base.Preconditions;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.confluent.ksql.metastore.KsqlTopic;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+
+import io.confluent.ksql.metastore.KsqlTopic;
 
 @JsonTypeName("ksql_topics")
 @JsonSubTypes({})
@@ -35,9 +38,10 @@ public class KsqlTopicsList extends KsqlEntity {
   @JsonCreator
   public KsqlTopicsList(
           @JsonProperty("statementText") String statementText,
-          @JsonProperty("ksql_topics")   Collection<KsqlTopicInfo> topics
+          @JsonProperty("topics")   Collection<KsqlTopicInfo> topics
   ) {
     super(statementText);
+    Preconditions.checkNotNull(topics, "topics field must not be null");
     this.topics = topics;
   }
 

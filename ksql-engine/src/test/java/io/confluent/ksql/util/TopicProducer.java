@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -34,6 +31,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+
 public class TopicProducer {
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
@@ -45,7 +46,7 @@ public class TopicProducer {
     this.cluster = cluster;
 
     this.producerConfig = new Properties();
-    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.bootstrapServers());
+    producerConfig.putAll(cluster.getClientProperties());
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
   }

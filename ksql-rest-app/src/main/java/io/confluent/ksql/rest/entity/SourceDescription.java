@@ -54,7 +54,7 @@ public class SourceDescription extends KsqlEntity {
   private final String errorStats;
   private final boolean extended;
   private final String serdes;
-  private final String kafkaTopic;
+  private final String topic;
   private final String topology;
   private final String executionPlan;
   private final int partitions;
@@ -74,7 +74,7 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("errorStats") String errorStats,
       @JsonProperty("extended") boolean extended,
       @JsonProperty("serdes") String serdes,
-      @JsonProperty("kafkaTopic") String kafkaTopic,
+      @JsonProperty("topic") String topic,
       @JsonProperty("topology") String topology,
       @JsonProperty("executionPlan") String executionPlan,
       @JsonProperty("parititions") int partitions,
@@ -92,7 +92,7 @@ public class SourceDescription extends KsqlEntity {
     this.errorStats = errorStats;
     this.extended = extended;
     this.serdes = serdes;
-    this.kafkaTopic = kafkaTopic;
+    this.topic = topic;
     this.topology = topology;
     this.executionPlan = executionPlan;
     this.partitions = partitions;
@@ -184,14 +184,20 @@ public class SourceDescription extends KsqlEntity {
     return topicDescription.partitions().size();
   }
 
+  public int getPartitions() {
+    return partitions;
+  }
+
   private static int getReplication(KafkaTopicClient topicClient, String kafkaTopicName) {
     Map<String, TopicDescription> stringTopicDescriptionMap =
         topicClient.describeTopics(Arrays.asList(kafkaTopicName));
     TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().iterator().next().replicas().size();
-
   }
 
+  public int getReplication() {
+    return replication;
+  }
 
   public String getName() {
     return name;
@@ -213,8 +219,8 @@ public class SourceDescription extends KsqlEntity {
     return serdes;
   }
 
-  public String getKafkaTopic() {
-    return kafkaTopic;
+  public String getTopic() {
+    return topic;
   }
 
   public String getKey() {
@@ -247,35 +253,6 @@ public class SourceDescription extends KsqlEntity {
 
   public String getExecutionPlan() {
     return executionPlan;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof SourceDescription)) {
-      return false;
-    }
-    SourceDescription that = (SourceDescription) o;
-    return Objects.equals(getName(), that.getName())
-           && Objects.equals(getSchema(), that.getSchema())
-           && getType().equals(that.getType())
-           && Objects.equals(getKey(), that.getKey())
-           && Objects.equals(getTimestamp(), that.getTimestamp());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
-  }
-
-  public int getPartitions() {
-    return partitions;
-  }
-
-  public int getReplication() {
-    return replication;
   }
 
   public static class FieldSchemaInfo {
@@ -317,5 +294,26 @@ public class SourceDescription extends KsqlEntity {
     public int hashCode() {
       return Objects.hash(getName(), getType());
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SourceDescription)) {
+      return false;
+    }
+    SourceDescription that = (SourceDescription) o;
+    return Objects.equals(getName(), that.getName())
+           && Objects.equals(getSchema(), that.getSchema())
+           && getType().equals(that.getType())
+           && Objects.equals(getKey(), that.getKey())
+           && Objects.equals(getTimestamp(), that.getTimestamp());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
   }
 }

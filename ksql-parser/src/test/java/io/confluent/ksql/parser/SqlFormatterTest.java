@@ -28,9 +28,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertFalse;
+
 public class SqlFormatterTest {
   @Test
-  public void testFormatSql() throws Exception {
+  public void testFormatSql() {
 
     ArrayList<TableElement> tableElements = new ArrayList<>();
     tableElements.add(new TableElement("GROUP","STRING"));
@@ -46,11 +50,11 @@ public class SqlFormatterTest {
             new StringLiteral("topic_test")
         ));
     String sql = SqlFormatter.formatSql(createStream);
-    Assert.assertTrue("literal escaping failure", sql.contains("`GROUP` STRING"));
-    Assert.assertTrue("not literal escaping failure", sql.contains("NOLIT STRING"));
-    Assert.assertTrue("lowercase literal escaping failure", sql.contains("`Having` STRING"));
+    assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
+    assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
+    assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
     List<Statement> statements = new KsqlParser().buildAst(sql, MetaStoreFixture.getNewMetaStore());
-    Assert.assertTrue("formatted sql parsing error", statements != null && ! statements.isEmpty());
+    assertFalse("formatted sql parsing error", statements.isEmpty());
   }
 
 }

@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
@@ -89,6 +90,10 @@ public class QueryMetadata {
 
   public Topology getTopology() {
     return topoplogy;
+  }
+
+  public Schema getResultSchema() {
+    return outputNode.getSchema();
   }
 
   public void close() {

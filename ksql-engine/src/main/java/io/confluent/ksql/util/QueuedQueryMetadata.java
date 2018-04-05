@@ -41,7 +41,8 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
       final KafkaTopicClient kafkaTopicClient,
-      final Topology topology, Map<String, Object> overriddenProperties) {
+      final Topology topology,
+      final Map<String, Object> overriddenProperties) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.rowQueue = rowQueue;

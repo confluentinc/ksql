@@ -21,7 +21,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -31,9 +30,7 @@ import java.util.Objects;
 public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
-  private final Schema resultSchema;
   private final KsqlTopic resultTopic;
-
 
   public PersistentQueryMetadata(final String statementString,
                                  final KafkaStreams kafkaStreams,
@@ -43,24 +40,17 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final DataSource.DataSourceType dataSourceType,
                                  final String queryApplicationId,
                                  final KafkaTopicClient kafkaTopicClient,
-                                 final Schema resultSchema,
                                  final KsqlTopic resultTopic,
                                  final Topology topology,
                                  final Map<String, Object> overriddenProperties) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.id = id;
-    this.resultSchema = resultSchema;
     this.resultTopic = resultTopic;
-
   }
 
   public QueryId getId() {
     return id;
-  }
-
-  public Schema getResultSchema() {
-    return resultSchema;
   }
 
   public KsqlTopic getResultTopic() {

@@ -17,6 +17,7 @@
 
 package io.confluent.ksql.util;
 
+import kafka.Kafka;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -107,24 +108,26 @@ public class AvroUtilTest {
     }
   }
 
+
+
+  private PersistentQueryMetadata buildStubPersistentQueryMetadata(Schema resultSchema,
+                                                                   KsqlTopic resultTopic) {
+    PersistentQueryMetadata mockPersistentQueryMetadata = mock(PersistentQueryMetadata.class);
+    expect(mockPersistentQueryMetadata.getResultSchema()).andStubReturn(resultSchema);
+    expect(mockPersistentQueryMetadata.getResultTopic()).andStubReturn(resultTopic);
+    expect(mockPersistentQueryMetadata.getResultTopicSerde()).andStubReturn(
+        resultTopic.getKsqlTopicSerDe().getSerDe());
+    replay(mockPersistentQueryMetadata);
+    return mockPersistentQueryMetadata;
+  }
+
   @Test
   public void shouldValidatePersistentQueryResultCorrectly()
       throws IOException, RestClientException {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
-                                                                                  null,
-                                                                                  null,
-                                                                                  "",
-                                                                                  null,
-                                                                                  DataSource.DataSourceType.KSTREAM,
-                                                                                  "",
-                                                                                  mock(KafkaTopicClient.class),
-                                                                                  resultSchema,
-                                                                                  resultTopic,
-                                                                                  null,
-                                                                                  Collections.emptyMap());
+    PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
@@ -140,18 +143,7 @@ public class AvroUtilTest {
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
         ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
-                                                                                  null,
-                                                                                  null,
-                                                                                  "",
-                                                                                  null,
-                                                                                  DataSource.DataSourceType.KSTREAM,
-                                                                                  "",
-                                                                                  mock(KafkaTopicClient.class),
-                                                                                  resultSchema,
-                                                                                  resultTopic,
-                                                                                  null,
-                                                                                  Collections.emptyMap());
+    PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {

@@ -71,21 +71,12 @@ public class KsqlContextTest {
     KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
-                                                                                   queryStreams,
-                                                                                  null,
-                                                                                  "",
-                                                                                   queryid,
-                                                                                   type,
-                                                                                  "KSQL_query_" + queryid,
-                                                                                  null,
-                                                                      null,
-                                                                                  null,
-                                                                                  null,
-                                                                                   Collections.emptyMap());
+    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(
+        queryid.toString(), queryStreams, null, "", queryid, type,
+        "KSQL_query_" + queryid, null, null, null,
+        Collections.emptyMap());
 
     return Arrays.asList(persistentQueryMetadata);
-
   }
 
 }

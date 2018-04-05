@@ -19,6 +19,7 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
@@ -31,7 +32,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -247,61 +247,63 @@ public abstract class Console implements Closeable {
 
       Builder() {}
 
-      public Table build() {
+      Table build() {
         return new Table(columnHeaders, rowValues, header, footer);
       }
 
-      public Builder withColumnHeaders(List<String> columnHeaders) {
+      Builder withColumnHeaders(List<String> columnHeaders) {
         this.columnHeaders.addAll(columnHeaders);
         return this;
       }
 
-      public Builder withColumnHeaders(String... columnHeaders) {
+      Builder withColumnHeaders(String... columnHeaders) {
         this.columnHeaders.addAll(Arrays.asList(columnHeaders));
         return this;
       }
 
-      public Builder withRows(List<List<String>> rowValues) {
+      Builder withRows(List<List<String>> rowValues) {
         this.rowValues.addAll(rowValues);
         return this;
       }
 
-      public Builder withRow(String... row) {
+      Builder withRow(String... row) {
         this.rowValues.add(Arrays.asList(row));
         return this;
       }
 
-      public Builder withRow(List<String> row) {
+      Builder withRow(List<String> row) {
         this.rowValues.add(row);
         return this;
       }
 
-      public Builder withHeaderLine(String headerLine) {
+      Builder withHeaderLine(String headerLine) {
         this.header.add(headerLine);
         return this;
       }
 
-      public Builder withFooterLine(String footerLine) {
+      Builder withFooterLine(String footerLine) {
         this.footer.add(footerLine);
         return this;
       }
     }
 
-    private int getMultiLineStringLength(String s) {
-      String[] split = s.split("\n");
-      String longest = Collections.max(
-          Arrays.asList(split),
-          Comparator.comparing(line -> line.length())
-      );
-      return longest.length();
+    private int getMultiLineStringLength(String multiLineString) {
+      String[] split = multiLineString.split("\n");
+      return Arrays.asList(split)
+          .stream()
+          .mapToInt(String::length)
+          .max()
+          .orElse(0);
     }
 
     private int getColumnLength(List<String> columnHeaders, List<List<String>> rowValues, int i) {
-      int columnLength = columnHeaders.get(i).length();
-      for (List<String> row : rowValues) {
-        columnLength = Math.max(columnLength, getMultiLineStringLength(row.get(i)));
-      }
-      return columnLength;
+      return Math.max(
+          columnHeaders.get(i).length(),
+          rowValues
+              .stream()
+              .mapToInt(r -> getMultiLineStringLength(r.get(i)))
+              .max()
+              .orElse(0));
     }
 
     public void print(final Console console) {
@@ -324,11 +326,12 @@ public abstract class Console implements Closeable {
 
         console.writer().printf(rowFormatString, columnHeaders.toArray());
 
-        console.writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+        String separator = StringUtils.repeat('-', separatorLength);
+        console.writer().println(separator);
         for (List<String> row : rowValues) {
           console.writer().printf(rowFormatString, row.toArray());
         }
-        console.writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+        console.writer().println(separator);
       }
 
       footer.forEach(m -> console.writer().println(m));
@@ -375,7 +378,7 @@ public abstract class Console implements Closeable {
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
       tableBuilder.withColumnHeaders("Query ID", "Kafka Topic", "Query String");
-      runningQueries.stream().forEach(
+      runningQueries.forEach(
           r -> tableBuilder.withRow(r.getId().toString(), r.getKafkaTopic(), r.getQueryString()));
       tableBuilder.withFooterLine("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
@@ -396,16 +399,16 @@ public abstract class Console implements Closeable {
       tableBuilder.withRow(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
       tableBuilder.withColumnHeaders("Stream Name", "Kafka Topic", "Format");
-      ((StreamsList) ksqlEntity).getStreams().stream().forEach(
+      ((StreamsList) ksqlEntity).getStreams().forEach(
           s -> tableBuilder.withRow(s.getName(), s.getTopic(), s.getFormat()));
     } else if (ksqlEntity instanceof TablesList) {
       tableBuilder.withColumnHeaders("Table Name", "Kafka Topic", "Format", "Windowed");
-      ((TablesList) ksqlEntity).getTables().stream().forEach(
+      ((TablesList) ksqlEntity).getTables().forEach(
           t -> tableBuilder.withRow(t.getName(), t.getTopic(), t.getFormat(),
               Boolean.toString(t.getIsWindowed())));
     } else if (ksqlEntity instanceof KsqlTopicsList) {
       tableBuilder.withColumnHeaders("Ksql Topic", "Kafka Topic", "Format");
-      ((KsqlTopicsList) ksqlEntity).getTopics().stream().forEach(
+      ((KsqlTopicsList) ksqlEntity).getTopics().forEach(
           t -> tableBuilder.withRow(t.getName(), t.getKafkaTopic(), t.getFormat().name()));
     } else if (ksqlEntity instanceof KafkaTopicsList) {
       tableBuilder.withColumnHeaders(
@@ -415,7 +418,7 @@ public abstract class Console implements Closeable {
           "Partition Replicas",
           "Consumers",
           "ConsumerGroups");
-      ((KafkaTopicsList) ksqlEntity).getTopics().stream().forEach(
+      ((KafkaTopicsList) ksqlEntity).getTopics().forEach(
           t -> tableBuilder.withRow(
               t.getName(),
               Boolean.toString(t.getRegistered()),
@@ -467,7 +470,7 @@ public abstract class Console implements Closeable {
     List<SourceDescription.FieldSchemaInfo> fields = source.getSchema();
     if (!fields.isEmpty()) {
       tableBuilder.withColumnHeaders("Field", "Type");
-      fields.stream().forEach(
+      fields.forEach(
           f -> tableBuilder.withRow(f.getName(), formatFieldType(f, source.getKey())));
       tableBuilder.build().print(this);
     }

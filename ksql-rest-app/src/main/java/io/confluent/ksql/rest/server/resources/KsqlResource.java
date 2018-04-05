@@ -449,7 +449,7 @@ public class KsqlResource {
         Map<String, Object> overriddenProperties = Collections.emptyMap();
         String topologyDescription = "";
         if (queryMetadata != null) {
-          schemaInfoList = queryMetadata.getOutputNode().getSchema().fields().stream().map(
+          schemaInfoList = queryMetadata.getResultSchema().fields().stream().map(
               field -> new SourceDescription.FieldSchemaInfo(
                   field.name(), SchemaUtil.getSchemaFieldName(field))
           ).collect(Collectors.toList());

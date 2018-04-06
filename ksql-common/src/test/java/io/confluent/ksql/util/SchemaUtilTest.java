@@ -28,6 +28,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -108,7 +109,7 @@ public class SchemaUtilTest {
   public void shouldGetTheCorrectJavaTypeForArray() {
     Schema schema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA);
     Class javaClass = SchemaUtil.getJavaType(schema);
-    assertThat(javaClass, equalTo(new Double[]{}.getClass()));
+    assertThat(javaClass, equalTo(ArrayList.class));
   }
 
   @Test

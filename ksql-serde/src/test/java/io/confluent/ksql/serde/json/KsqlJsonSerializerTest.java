@@ -49,14 +49,14 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
                                  Collections.singletonMap("key1", 100.0));
     GenericRow genericRow = new GenericRow(columns);
     KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
     byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
     String jsonString = new String(bytes);
-    assertThat("Incorrect serialization.", jsonString, equalTo("{\"ORDERID\":1,\"ARRAYCOL\":[100.0],\"ORDERUNITS\":10.0,\"ORDERTIME\":1511897796092,\"MAPCOL\":{\"key1\":100.0},\"ITEMID\":\"item_1\"}"));
+    assertThat("Incorrect serialization.", jsonString, equalTo("{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":[100.0],\"MAPCOL\":{\"key1\":100.0}}"));
   }
 
   @Test
@@ -68,7 +68,7 @@ public class KsqlJsonSerializerTest {
     byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
     String jsonString = new String(bytes);
-    assertThat("Incorrect serialization.", jsonString, equalTo("{\"ORDERID\":1,\"ARRAYCOL\":null,\"ORDERUNITS\":10.0,\"ORDERTIME\":1511897796092,\"MAPCOL\":null,\"ITEMID\":\"item_1\"}"));
+    assertThat("Incorrect serialization.", jsonString, equalTo("{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":null,\"MAPCOL\":null}"));
   }
 
 }

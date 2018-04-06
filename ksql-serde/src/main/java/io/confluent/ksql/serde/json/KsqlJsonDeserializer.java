@@ -24,15 +24,19 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.json.JsonConverter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
@@ -46,8 +50,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KsqlJsonDeserializer(Schema schema) {
-    this.schema = schema;
+  public KsqlJsonDeserializer(Schema schema, boolean isInternal) {
+    if (isInternal) {
+      this.schema = schema;
+    } else {
+      this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
+    }
+
   }
 
   @Override
@@ -73,45 +82,69 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
+
+    JsonConverter jsonConverter = new JsonConverter();
+    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
+    SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
+    Map valueMap = (Map) schemaAndValue.value();
+
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
     for (Field field : schema.fields()) {
-      String jsonFieldName = field.name().substring(field.name().indexOf(".") + 1);
-      JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
-      if (fieldJsonNode == null) {
-        columns.add(null);
-      } else {
-        columns.add(enforceFieldType(field.schema(), fieldJsonNode));
-      }
+      Object columnVal = valueMap
+          .get(keyMap.get(field.name()));
+      columns.add(enforceFieldType(field.schema(), columnVal));
 
     }
     return new GenericRow(columns);
   }
 
-  private Object enforceFieldType(Schema fieldSchema, JsonNode fieldJsonNode) {
-
-    if (fieldJsonNode.isNull()) {
+  // This is a temporary requirement until we can ensure that the types that Connect JSON
+  // convertor creates are supported in KSQL.
+  private Object enforceFieldType(Schema fieldSchema, Object columnVal) {
+    if (columnVal == null) {
       return null;
     }
     switch (fieldSchema.type()) {
       case BOOLEAN:
-        return fieldJsonNode.asBoolean();
+        return SerdeUtils.toBoolean(columnVal);
       case INT32:
-        return fieldJsonNode.asInt();
+        return SerdeUtils.toInteger(columnVal);
       case INT64:
-        return fieldJsonNode.asLong();
+        return SerdeUtils.toLong(columnVal);
       case FLOAT64:
-        return fieldJsonNode.asDouble();
+        return SerdeUtils.toDouble(columnVal);
       case STRING:
-        if (fieldJsonNode.isTextual()) {
-          return fieldJsonNode.asText();
-        } else {
-          return fieldJsonNode.toString();
-        }
+        return columnVal.toString();
       case ARRAY:
-        return handleArray(fieldSchema, (ArrayNode) fieldJsonNode);
+        List arrayList = (List) columnVal;
+        List columnArrayList = new ArrayList();
+        arrayList
+            .stream()
+            .forEach(object -> columnArrayList
+                .add(enforceFieldType(fieldSchema.valueSchema(), object)));
+
+        return columnArrayList;
       case MAP:
-        return handleMap(fieldSchema, fieldJsonNode);
+        Map map = (Map) columnVal;
+        Map columnMap = new HashMap();
+        map.forEach((k, v) -> columnMap.put(enforceFieldType(Schema.STRING_SCHEMA, k),
+                                            enforceFieldType(fieldSchema.valueSchema(), v)));
+        return map;
+      case STRUCT:
+        Map structMap = (Map) columnVal;
+        Map columnStructMap = new HashMap();
+        Map<String, String> caseInsensitiveFieldNameMap =
+            getCaseInsensitiveFieldNameMap(fieldSchema.fields());
+        fieldSchema.fields()
+            .stream()
+            .forEach(
+                field -> columnStructMap.put(field.name(),
+                                             enforceFieldType(
+                                                 field.schema(), structMap.get(
+                                                     caseInsensitiveFieldNameMap.get(field.name())
+                                                 ))));
+        return columnStructMap;
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
@@ -142,6 +175,12 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
     }
     return arrayField;
+  }
+
+  private Map<String, String> getCaseInsensitiveFieldNameMap(List<Field> fields) {
+    Map<String, String> fieldNameMap = new HashMap<>();
+    fields.stream().forEach(field -> fieldNameMap.put(field.name().toUpperCase(), field.name()));
+    return fieldNameMap;
   }
 
   static class CaseInsensitiveJsonNode {

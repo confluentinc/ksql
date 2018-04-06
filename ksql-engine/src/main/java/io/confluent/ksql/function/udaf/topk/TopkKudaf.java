@@ -19,24 +19,22 @@ package io.confluent.ksql.function.udaf.topk;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
-public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFunction<T, T[]> {
+public class TopkKudaf<T extends Comparable<? super T>>
+    extends KsqlAggregateFunction<T, ArrayList<T>> {
 
   private final int topKSize;
   private final Class<T> clazz;
   private final Schema returnType;
   private final List<Schema> argumentTypes;
-  private final Comparator<T> comparator;
 
   @SuppressWarnings("unchecked")
   TopkKudaf(final int argIndexInValue,
@@ -44,8 +42,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
             final Schema returnType,
             final List<Schema> argumentTypes,
             final Class<T> clazz) {
-    super(argIndexInValue,
-        () -> (T[]) Array.newInstance(clazz, topKSize),
+    super(argIndexInValue, () -> new ArrayList<>(),
           returnType,
           argumentTypes
     );
@@ -53,72 +50,44 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
     this.returnType = returnType;
     this.argumentTypes = argumentTypes;
     this.clazz = clazz;
-    this.comparator = (v1, v2) -> {
-      if (v1 == null && v2 == null) {
-        return 0;
-      }
-      if (v1 == null) {
-        return 1;
-      }
-      if (v2 == null) {
-        return -1;
-      }
-
-      return Comparator.<T>reverseOrder().compare(v1, v2);
-    };
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public T[] aggregate(final T currentVal, final T[] currentAggVal) {
+  public ArrayList<T> aggregate(final T currentVal, final ArrayList<T> currentAggValList) {
     if (currentVal == null) {
-      return currentAggVal;
+      return currentAggValList;
     }
 
-    final T last = currentAggVal[currentAggVal.length - 1];
-    if (last != null && currentVal.compareTo(last) <= 0) {
-      return currentAggVal;
+    currentAggValList.add(currentVal);
+    Collections.sort(currentAggValList);
+    Collections.reverse(currentAggValList);
+    if (currentAggValList.size() > topKSize) {
+      currentAggValList.remove(currentAggValList.size() - 1);
     }
 
-    final int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
-    if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
-      Arrays.sort(currentAggVal, comparator);
-      return currentAggVal;
-    }
-
-    currentAggVal[currentAggVal.length - 1] = currentVal;
-    Arrays.sort(currentAggVal, comparator);
-    return currentAggVal;
+    return currentAggValList;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public Merger<String, T[]> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      final T[] merged = (T[]) Array.newInstance(clazz, topKSize);
+  public Merger<String, ArrayList<T>> getMerger() {
+    return (aggKey, aggOneList, aggTwoList) -> {
 
-      int idx1 = 0;
-      int idx2 = 0;
-      for (int i = 0; i != topKSize; ++i) {
-        final T v1 = idx1 < aggOne.length ? aggOne[idx1] : null;
-        final T v2 = idx2 < aggTwo.length ? aggTwo[idx2] : null;
-
-        if (comparator.compare(v1, v2) < 0) {
-          merged[i] = v1;
-          idx1++;
-        } else {
-          merged[i] = v2;
-          idx2++;
-        }
+      ArrayList<T> mergedList = new ArrayList<>(aggOneList);
+      mergedList.addAll(aggTwoList);
+      Collections.sort(mergedList);
+      Collections.reverse(mergedList);
+      while (mergedList.size() > topKSize) {
+        mergedList.remove(mergedList.size() - 1);
       }
-
-      return merged;
+      return mergedList;
     };
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(final Map<String, Integer> expressionNames,
+  public KsqlAggregateFunction<T, ArrayList<T>> getInstance(final Map<String, Integer>
+                                                                expressionNames,
                                                    final List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",

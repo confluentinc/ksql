@@ -49,15 +49,15 @@ public class PageViewDataProvider extends TestDataProvider {
     // Create page view records with:
     // key = page_id
     // value = (view time, user_id, page_id)
-    dataMap.put("1", new GenericRow(Arrays.asList(1, "USER_1", "PAGE_1")));
-    dataMap.put("2", new GenericRow(Arrays.asList(2, "USER_2", "PAGE_2")));
-    dataMap.put("3", new GenericRow(Arrays.asList(3, "USER_4", "PAGE_3")));
-    dataMap.put("4", new GenericRow(Arrays.asList(4, "USER_3", "PAGE_4")));
-    dataMap.put("5", new GenericRow(Arrays.asList(5, "USER_0", "PAGE_5")));
+    dataMap.put("1", new GenericRow(Arrays.asList(1L, "USER_1", "PAGE_1")));
+    dataMap.put("2", new GenericRow(Arrays.asList(2L, "USER_2", "PAGE_2")));
+    dataMap.put("3", new GenericRow(Arrays.asList(3L, "USER_4", "PAGE_3")));
+    dataMap.put("4", new GenericRow(Arrays.asList(4L, "USER_3", "PAGE_4")));
+    dataMap.put("5", new GenericRow(Arrays.asList(5L, "USER_0", "PAGE_5")));
 
     // Duplicate page views from different users.
-    dataMap.put("6", new GenericRow(Arrays.asList(6, "USER_2", "PAGE_5")));
-    dataMap.put("7", new GenericRow(Arrays.asList(7, "USER_3", "PAGE_5")));
+    dataMap.put("6", new GenericRow(Arrays.asList(6L, "USER_2", "PAGE_5")));
+    dataMap.put("7", new GenericRow(Arrays.asList(7L, "USER_3", "PAGE_5")));
 
     return dataMap;
   }

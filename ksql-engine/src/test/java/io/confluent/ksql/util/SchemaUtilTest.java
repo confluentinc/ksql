@@ -38,7 +38,7 @@ public class SchemaUtilTest {
     Assert.assertTrue(longClazz.getCanonicalName().equals("java.lang.Long"));
     Assert.assertTrue(doubleClazz.getCanonicalName().equals("java.lang.Double"));
     Assert.assertTrue(StringClazz.getCanonicalName().equals("java.lang.String"));
-    Assert.assertTrue(arrayClazz.getCanonicalName().equals("java.lang.Double[]"));
+    Assert.assertTrue(arrayClazz.getCanonicalName().equals("java.util.ArrayList"));
     Assert.assertTrue(mapClazz.getCanonicalName().equals("java.util.HashMap"));
 
   }

@@ -108,7 +108,10 @@ public class ConsoleTest {
           new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),
-          new SourceDescription("e", "TestSource", Collections.EMPTY_LIST, Collections.EMPTY_LIST, buildTestSchema(i), DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors", false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1),
+          new SourceDescription(
+              "e", "TestSource", Collections.EMPTY_LIST, Collections.EMPTY_LIST, buildTestSchema(i),
+              DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
+              false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1, Collections.emptyMap()),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", Arrays.asList(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),

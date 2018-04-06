@@ -10,9 +10,9 @@ Local Development and Testing with Confluent CLI
 For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more information,
 see the :ref:`quickstart`.
 
-.. include:: ../../includes/installation.rst
-    :start-line: 34
-    :end-line: 37
+.. include:: ../../includes/cli.rst
+    :start-line: 2
+    :end-line: 5
 
 ===================================
 Starting and Stopping KSQL Clusters
@@ -31,20 +31,10 @@ ksql-server-stop
 Healthchecks
 ============
 
-- The REST API supports a “server info” request at `http://<server>:8080/info <http://<server>:8080/info>`_.
-- Check runtime stats for the KSQL server that you are connected to:
-
-    - Run ``ksql-print-metrics`` on a server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
-
-
-=======
-Logging
-=======
-
-By default KSQL server logs are written to ``/tmp/ksql-logs/``. 
-
-- ``ksql.log`` -- Contains REST API log output (i.e. Jetty, parsing queries, problems with malformed data).
-- ``ksql-streams.log`` -- Contains KStreams logging output for running queries.
+- The KSQL REST API supports a "server info" request at `http://<server>:8088/info <http://<server>:8088/info>`_.
+- Check runtime stats for the KSQL server that you are connected to via ``DESCRIBE EXTENDED <stream or table>`` and
+  ``EXPLAIN <name of query>``.
+- Run ``ksql-print-metrics`` on a KSQL server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
 
 
 ======================
@@ -88,29 +78,27 @@ Troubleshooting
 ------------------------------------
 SELECT query hangs and doesn’t stop?
 ------------------------------------
-This is a continuous streaming query so it will not stop unless you type ``Ctrl + C``.
+Queries in KSQL, including non-persistent queries such as ``SELECT * FROM myTable``, are continuous streaming queries.
+Streaming queries  will not stop unless explicitly terminated.  To terminate a non-persistent query in the KSQL CLI you
+must type ``Ctrl + C``.
 
 --------------------------------------------------
 No results from ``SELECT * FROM`` table or stream?
 --------------------------------------------------
-This is caused by the offset being set to ‘latest’ by default, and no new records are received. To fix, do one of the
-following:
+This is typically caused by the query being configured to process only newly arriving data instead, and no new input records are being received. To fix, do one of the following:
 
-- Run this command: ``SET ‘auto.offset.reset’ = ‘earliest’;``. For more information, see :ref:`common-configs`.
+- Run this command: ``SET 'auto.offset.reset' = 'earliest';``. For more information, see :ref:`install_cli-config` and
+  :ref:`ksql-server-config`.
 - Write new records to the input topics.
 
------------------------------------------------------------
-Can’t create a stream from the output of windowed aggregate
------------------------------------------------------------
+------------------------------------------------------------
+Can’t create a stream from the output of windowed aggregate?
+------------------------------------------------------------
 The output of a windowed aggregate is a record per grouping key and per window, and is not a single record. This is not
 currently supported in KSQL.
 
------------------------------------------
-KSQL doesn’t clean up its internal topics
------------------------------------------
+------------------------------------------
+KSQL doesn’t clean up its internal topics?
+------------------------------------------
 Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
-
-
-
-
 

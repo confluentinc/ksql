@@ -148,7 +148,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   private static Map<String, Object> commonConfigs(Map<String, Object> props) {
-    return CommonUtils.getPropertiesWithoutPrefix(KSQL_CONFIG_PROPERTY_PREFIX, props);
+    return props.entrySet().stream()
+        .filter(e -> !e.getKey().startsWith(KSQL_CONFIG_PROPERTY_PREFIX))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private static Map<String, Object> propertiesWithPrefix(

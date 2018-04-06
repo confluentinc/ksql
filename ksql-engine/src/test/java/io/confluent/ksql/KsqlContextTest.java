@@ -80,7 +80,6 @@ public class KsqlContextTest {
     queryStreams.start();
     expectLastCall();
 
-
     OutputNode outputNode = mock(OutputNode.class);
     expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
     replay(outputNode);
@@ -102,7 +101,6 @@ public class KsqlContextTest {
                                                                                   null);
 
     return Arrays.asList(persistentQueryMetadata);
-
   }
 
 }

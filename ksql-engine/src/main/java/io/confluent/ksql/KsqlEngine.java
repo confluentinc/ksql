@@ -83,7 +83,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 
-public class KsqlEngine implements Closeable, QueryTerminator {
+public class KsqlEngine implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
@@ -459,7 +459,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return ddlCommandExec;
   }
 
-  @Override
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
     PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
     if (persistentQueryMetadata == null) {
@@ -472,26 +471,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       persistentQueryMetadata.close();
     }
     return true;
-  }
-
-  @Override
-  public void terminateQueryForEntity(final String entity) {
-    final Optional<PersistentQueryMetadata> query = persistentQueries.values()
-        .stream()
-        .filter(persistentQueryMetadata -> persistentQueryMetadata
-            .getEntity()
-            .equalsIgnoreCase(entity))
-        .findFirst();
-
-    if (query.isPresent()) {
-      final PersistentQueryMetadata metadata = query.get();
-      log.info("Terminating persistent query {}", metadata.getQueryId());
-      metadata.close();
-      persistentQueries.remove(metadata.getQueryId());
-      livePersistentQueries.remove(metadata);
-      allLiveQueries.remove(metadata);
-      metaStore.removePersistentQuery(metadata.getQueryId().getId());
-    }
   }
 
   public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {

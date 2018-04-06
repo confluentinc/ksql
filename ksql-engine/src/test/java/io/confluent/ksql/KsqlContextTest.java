@@ -28,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.planner.plan.PlanVisitor;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
@@ -80,7 +82,7 @@ public class KsqlContextTest {
 
 
     OutputNode outputNode = mock(OutputNode.class);
-    expect(outputNode.accept(anyObject(), anyObject())).andReturn(null);
+    expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
     replay(outputNode);
     StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
     expect(structuredDataSource.getName()).andReturn("");

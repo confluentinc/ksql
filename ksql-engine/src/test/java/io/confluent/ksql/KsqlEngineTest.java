@@ -33,12 +33,14 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
@@ -99,6 +101,7 @@ public class KsqlEngineTest {
       ksqlEngine.createQueries("drop table foo;");
       Assert.fail();
     } catch (Exception e) {
+      assertThat(e, instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
           "Exception while processing statements :Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
     }

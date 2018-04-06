@@ -37,14 +37,13 @@ public class DdlCommandExec {
   /**
    * execute on temp metaStore
    */
-  public DdlCommandResult tryExecute(DdlCommand ddlCommand, MetaStore tempMetaStore,
-                                     boolean isValidatePhase) {
+  public DdlCommandResult tryExecute(DdlCommand ddlCommand, MetaStore tempMetaStore) {
     if (tempMetaStore == metaStore) {
       throw new KsqlException(
           "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
       );
     }
-    return executeOnMetaStore(ddlCommand, tempMetaStore, isValidatePhase);
+    return executeOnMetaStore(ddlCommand, tempMetaStore, false);
   }
 
   /**

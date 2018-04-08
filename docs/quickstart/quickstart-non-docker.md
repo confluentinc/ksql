@@ -59,7 +59,7 @@ connect is [UP]
 1.  Start KSQL. The `local` argument starts KSQL in [standalone mode](/docs/concepts.md#modes-of-operation).
 
     ```bash
-    $ ./bin/ksql-cli local
+    $ ./bin/ksql local
     ```
 
     After KSQL is started, your terminal should resemble this.

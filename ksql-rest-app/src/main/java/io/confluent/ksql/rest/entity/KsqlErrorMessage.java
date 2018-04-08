@@ -22,40 +22,47 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.rest.entities.ErrorMessage;
 
-// TODO: Add a field for status code
-@JsonSubTypes({})
-public class ErrorMessage {
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = KsqlErrorMessage.class, name = "generic_error"),
+    @JsonSubTypes.Type(value = KsqlStatementErrorMessage.class, name = "statement_error"),
+    @JsonSubTypes.Type(value = KsqlQueryEndpointMessage.class, name = "query_endpoint")})
+public class KsqlErrorMessage extends ErrorMessage {
 
-  private final String message;
   private final List<String> stackTrace;
 
   @JsonCreator
-  public ErrorMessage(
+  public KsqlErrorMessage(
+      @JsonProperty("error_code") int errorCode,
       @JsonProperty("message") String message,
-      @JsonProperty("stackTrace") List<String> stackTrace
-  ) {
-    this.message = message;
+      @JsonProperty("stackTrace") List<String> stackTrace) {
+    super(errorCode, message);
     this.stackTrace = stackTrace;
   }
 
-  public ErrorMessage(Throwable exception) {
-    this(ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
+  public KsqlErrorMessage(int errorCode, Throwable exception) {
+    this(errorCode, ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
   }
 
-  private static List<String> getStackTraceStrings(Throwable exception) {
+  public KsqlErrorMessage(int errorCode, String message) {
+    this(errorCode, message, Collections.emptyList());
+  }
+
+  protected static List<String> getStackTraceStrings(Throwable exception) {
     return Arrays.stream(exception.getStackTrace())
         .map(StackTraceElement::toString)
         .collect(Collectors.toList());
-  }
-
-  public String getMessage() {
-    return message;
   }
 
   public List<String> getStackTrace() {
@@ -65,7 +72,7 @@ public class ErrorMessage {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(message);
+    sb.append(getMessage());
     sb.append("\n");
     for (String line : stackTrace) {
       sb.append(line);
@@ -79,10 +86,10 @@ public class ErrorMessage {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ErrorMessage)) {
+    if (!(o instanceof KsqlErrorMessage)) {
       return false;
     }
-    ErrorMessage that = (ErrorMessage) o;
+    KsqlErrorMessage that = (KsqlErrorMessage) o;
     return Objects.equals(getMessage(), that.getMessage())
            && Objects.equals(getStackTrace(), that.getStackTrace());
   }

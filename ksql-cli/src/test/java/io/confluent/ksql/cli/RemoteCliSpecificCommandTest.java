@@ -17,6 +17,8 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import org.junit.Test;
 
 import java.io.PrintWriter;
@@ -25,7 +27,6 @@ import java.util.Collections;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -65,7 +66,8 @@ public class RemoteCliSpecificCommandTest {
         new KsqlRestClient("xxxx", Collections.emptyMap()) {
           @Override
           public RestResponse<ServerInfo> getServerInfo() {
-            return RestResponse.erroneous(new ErrorMessage("it is broken", Collections.emptyList()));
+            return RestResponse.erroneous(
+                new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
           }
         }, new PrintWriter(out));
     command.execute("http://localhost:8088");

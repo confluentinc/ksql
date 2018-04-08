@@ -62,7 +62,6 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -385,12 +384,7 @@ public class Cli implements Closeable, AutoCloseable {
       KsqlEntityList ksqlEntities = response.getResponse();
       boolean noErrorFromServer = true;
       for (KsqlEntity entity : ksqlEntities) {
-        if (entity instanceof ErrorMessageEntity) {
-          ErrorMessageEntity errorMsg = (ErrorMessageEntity) entity;
-          terminal.printErrorMessage(errorMsg.getErrorMessage());
-          LOGGER.error(errorMsg.getErrorMessage().getMessage());
-          noErrorFromServer = false;
-        } else if (entity instanceof CommandStatusEntity
+        if (entity instanceof CommandStatusEntity
             && (
             ((CommandStatusEntity) entity).getCommandStatus().getStatus()
                 == CommandStatus.Status.ERROR)
@@ -409,7 +403,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException, IOException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 

@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = CommandStatusEntity.class, name = "currentStatus"),
-    @JsonSubTypes.Type(value = ErrorMessageEntity.class, name = "error"),
     @JsonSubTypes.Type(value = PropertiesList.class, name = "properties"),
     @JsonSubTypes.Type(value = Queries.class, name = "queries"),
     @JsonSubTypes.Type(value = SourceDescription.class, name = "description"),

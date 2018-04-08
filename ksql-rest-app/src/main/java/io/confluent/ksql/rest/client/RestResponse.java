@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.rest.client;
 
-import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 
 import java.util.Objects;
 
@@ -29,11 +29,11 @@ public abstract class RestResponse<R> {
 
   public abstract boolean isErroneous();
 
-  public abstract ErrorMessage getErrorMessage();
+  public abstract KsqlErrorMessage getErrorMessage();
 
   public abstract R getResponse();
 
-  public static <R> RestResponse<R> erroneous(ErrorMessage errorMessage) {
+  public static <R> RestResponse<R> erroneous(KsqlErrorMessage errorMessage) {
     return new Erroneous<>(errorMessage);
   }
 
@@ -41,7 +41,7 @@ public abstract class RestResponse<R> {
     return new Successful<>(response);
   }
 
-  public static <R> RestResponse<R> of(ErrorMessage errorMessage) {
+  public static <R> RestResponse<R> of(KsqlErrorMessage errorMessage) {
     return erroneous(errorMessage);
   }
 
@@ -58,9 +58,9 @@ public abstract class RestResponse<R> {
   }
 
   private static class Erroneous<R> extends RestResponse<R> {
-    private final ErrorMessage errorMessage;
+    private final KsqlErrorMessage errorMessage;
 
-    public Erroneous(ErrorMessage errorMessage) {
+    public Erroneous(KsqlErrorMessage errorMessage) {
       this.errorMessage = errorMessage;
     }
 
@@ -75,7 +75,7 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public ErrorMessage getErrorMessage() {
+    public KsqlErrorMessage getErrorMessage() {
       return errorMessage;
     }
 
@@ -103,7 +103,7 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public ErrorMessage getErrorMessage() {
+    public KsqlErrorMessage getErrorMessage() {
       throw new UnsupportedOperationException();
     }
 

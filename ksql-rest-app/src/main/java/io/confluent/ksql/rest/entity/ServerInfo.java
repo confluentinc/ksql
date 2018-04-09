@@ -30,13 +30,16 @@ import java.util.Objects;
 public class ServerInfo {
   private final String version;
   private final String kafkaClusterId;
+  private final String ksqlServiceId;
 
   @JsonCreator
   public ServerInfo(
       @JsonProperty("version") String version,
-      @JsonProperty("kafkaClusterId") String kafkaClusterId) {
+      @JsonProperty("kafkaClusterId") String kafkaClusterId,
+      @JsonProperty("ksqlServiceId") String ksqlServiceId) {
     this.version = version;
     this.kafkaClusterId = kafkaClusterId;
+    this.ksqlServiceId = ksqlServiceId;
   }
 
   public String getVersion() {
@@ -45,6 +48,10 @@ public class ServerInfo {
 
   public String getKafkaClusterId() {
     return kafkaClusterId;
+  }
+
+  public String getKsqlServiceId() {
+    return ksqlServiceId;
   }
 
   @Override
@@ -57,7 +64,8 @@ public class ServerInfo {
     }
     ServerInfo that = (ServerInfo) o;
     return Objects.equals(version, that.version)
-           && Objects.equals(kafkaClusterId, that.kafkaClusterId);
+           && Objects.equals(kafkaClusterId, that.kafkaClusterId)
+           && Objects.equals(ksqlServiceId, that.ksqlServiceId);
   }
 
   @Override

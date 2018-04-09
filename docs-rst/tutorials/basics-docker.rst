@@ -39,15 +39,15 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092 --schema-registry-url http://schema-registry:8081
+       $ docker-compose exec ksql-cli ksql http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
-      :start-line: 17
-      :end-line: 38
+      :start-line: 19
+      :end-line: 40
 
 .. include:: ../includes/ksql-includes.rst
-    :start-line: 40
-    :end-line: 317
+    :start-line: 82
+    :end-line: 327
 
 Appendix
 --------

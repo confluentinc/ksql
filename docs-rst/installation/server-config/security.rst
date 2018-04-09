@@ -32,21 +32,28 @@ Configuring KSQL for Secured Confluent Schema Registry
 
 KSQL can be configured to connect to the Schema Registry over HTTP by setting the
 ``ksql.schema.registry.url`` to the Schema Registry's HTTPS endpoint.
-Depending on your security setup, you may also need to supply a trust-store, (e.g. if the Schema
-Registry's SSL certificates are not trusted they the JVM by default), and a key-store, (e.g. if the
-Schema Registry requires mutual authentication).
+Depending on your security setup, you might also need to supply additional SSL configuration.
+For example, a trustStore is required if the Schema Registry's SSL certificates are not trusted by
+the JVM by default; a keyStore is required if the Schema Registry requires mutual authentication.
 
-The following configuration is all that is needed to configure KSQL to communicate with the Schema Registry
-over HTTPS, where mutual authentication is not required and the Schema Registry's SSL certificates
-are trusted by the JVM:
+SSL configuration for communication with the Schema Registry can be supplied using none-prefixed,
+e.g. `ssl.truststore.location`, or prefixed e.g. `ksql.schema.registry.ssl.truststore.location`,
+names. Non-prefixed names are used for settings that are shared with other communication
+channels, i.e. where the same settings are required to configure SSL communication
+with both Kafka and Schema Registry. Prefixed names only affects communication with Schema registry
+and overrides any non-prefixed setting of the same name.
+
+Use the following to configure KSQL to communicate with the Schema Registry over HTTPS,
+where mutual authentication is not required and the Schema Registry's SSL certificates are trusted
+by the JVM:
 
 .. code:: bash
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-The following configuration can be used to configure KSQL to communicate with the Schema Registry over HTTPS,
-with mutual auth, when the SSL configuration is consistent with that needed to communicate with Kafka,
-i.e. where the configuration can be _shared_:
+Use the following to configure KSQL to communicate with the Schema Registry over HTTPS, with
+mutual authentication, with an explicit trustStore, and where the SSL configuration is shared
+between Kafka and Schema Registry:
 
 .. code:: bash
 
@@ -57,9 +64,9 @@ i.e. where the configuration can be _shared_:
     ssl.keystore.password=confluent
     ssl.key.password=confluent
 
-If required, specific configuration for the Schema Registry can be supplied. The following configuration
-can be used to configure KSQL to communicate with the Schema Registry over HTTP, _without_ mutual auth,
-where SSL configuration is not shared:
+Use the following to configure KSQL to communicate with the Schema Registry over HTTP, without
+mutual authentication and with an explicit trustStore. These settings explicitly configure only
+KSQL to Schema Registry SSL communication.
 
 .. code:: bash
 

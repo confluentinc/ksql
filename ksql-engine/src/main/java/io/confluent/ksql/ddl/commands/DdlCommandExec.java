@@ -43,7 +43,7 @@ public class DdlCommandExec {
           "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
       );
     }
-    return executeOnMetaStore(ddlCommand, tempMetaStore, false);
+    return executeOnMetaStore(ddlCommand, tempMetaStore, true);
   }
 
   /**

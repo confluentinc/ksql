@@ -164,9 +164,7 @@ Create the Clickstream Data
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI in Client Server Mode.
-
-    1. Start the CLI and point it to the server.
+#.  Launch the KSQL CLI
 
        .. code:: bash
 

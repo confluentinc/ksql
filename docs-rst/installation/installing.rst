@@ -116,8 +116,8 @@ You can start the KSQL CLI by providing the connection information to the KSQL s
 After KSQL is started, your terminal should resemble this.
 
 .. include:: ../includes/ksql-includes.rst
-    :start-line: 17
-    :end-line: 38
+    :start-line: 19
+    :end-line: 40
 
 Tip
     You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.

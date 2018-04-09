@@ -42,12 +42,12 @@ Download the Tutorial and Start KSQL
        $ docker-compose exec ksql-cli ksql http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
-      :start-line: 17
-      :end-line: 38
+      :start-line: 19
+      :end-line: 40
 
 .. include:: ../includes/ksql-includes.rst
-    :start-line: 80
-    :end-line: 317
+    :start-line: 82
+    :end-line: 327
 
 Appendix
 --------

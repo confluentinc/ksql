@@ -124,14 +124,14 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties\
+        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties \
           > /tmp/ksql-server.log 2>&1 &
 
     You should see the KSQL CLI welcome screen.
 
     .. include:: ../includes/ksql-includes.rst
-        :start-line: 17
-        :end-line: 38
+        :start-line: 19
+        :end-line: 40
 
 #.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that will run the tutorial app.
 

@@ -26,9 +26,9 @@ interface for stream processing on Kafka, without the need to write code in a pr
 Python. KSQL is scalable, elastic, fault-tolerant, and real-time. It supports a wide range of streaming operations,
 including data filtering, transformations, aggregations, joins, windowing, and sessionization.
 
-.. include:: ../../includes/ksql-includes.rst
-    :start-line: 6
-    :end-line: 15
+.. include:: includes/ksql-includes.rst
+    :start-line: 8
+    :end-line: 17
 
 .. raw:: html
 

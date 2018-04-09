@@ -19,11 +19,13 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class QueryMetadata {
@@ -36,6 +38,7 @@ public class QueryMetadata {
   private final String queryApplicationId;
   private final KafkaTopicClient kafkaTopicClient;
   private final Topology topoplogy;
+  private final Map<String, Object> overriddenProperties;
 
   public QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,
@@ -44,7 +47,8 @@ public class QueryMetadata {
                        final DataSource.DataSourceType dataSourceType,
                        final String queryApplicationId,
                        final KafkaTopicClient kafkaTopicClient,
-                       final Topology topoplogy) {
+                       final Topology topoplogy,
+                       final Map<String, Object> overriddenProperties) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
@@ -53,6 +57,11 @@ public class QueryMetadata {
     this.queryApplicationId = queryApplicationId;
     this.kafkaTopicClient = kafkaTopicClient;
     this.topoplogy = topoplogy;
+    this.overriddenProperties = overriddenProperties;
+  }
+
+  public Map<String, Object> getOverriddenProperties() {
+    return overriddenProperties;
   }
 
   public String getStatementString() {
@@ -81,6 +90,10 @@ public class QueryMetadata {
 
   public Topology getTopology() {
     return topoplogy;
+  }
+
+  public Schema getResultSchema() {
+    return outputNode.getSchema();
   }
 
   public void close() {

@@ -52,11 +52,21 @@ Tip
         listeners=http://localhost:8088
         ui.enabled=true
 
+    You can also set or override any of the KSQL server properties by specifying them in the ``KSQL_OPTS`` environment variable.
+    The properties are standard java system properties, for example, ``KSQL_OPTS=-Dbootstrap.servers=myhost:9090``
+    Any properties set in this way take precedence over those specified in the ``ksql-server.properties`` file. This allows you to deploy a
+    common set of properties and override specific properties as needed.
+
 #.  Start a server node with this command:
 
     .. code:: bash
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+    or with overriding properties:
+
+    .. code:: bash
+        $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 
@@ -106,8 +116,8 @@ You can start the KSQL CLI by providing the connection information to the KSQL s
 After KSQL is started, your terminal should resemble this.
 
 .. include:: ../includes/ksql-includes.rst
-    :start-line: 17
-    :end-line: 38
+    :start-line: 19
+    :end-line: 40
 
 Tip
     You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.

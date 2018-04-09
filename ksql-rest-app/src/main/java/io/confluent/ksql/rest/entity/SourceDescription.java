@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
@@ -59,6 +60,7 @@ public class SourceDescription extends KsqlEntity {
   private final String executionPlan;
   private final int partitions;
   private final int replication;
+  private final Map<String, Object> overriddenProperties;
 
   @JsonCreator
   public SourceDescription(
@@ -78,7 +80,8 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("topology") String topology,
       @JsonProperty("executionPlan") String executionPlan,
       @JsonProperty("parititions") int partitions,
-      @JsonProperty("replication") int replication
+      @JsonProperty("replication") int replication,
+      @JsonProperty("overriddenProperties") Map<String, Object> overriddenProperties
   ) {
     super(statementText);
     this.name = name;
@@ -97,6 +100,7 @@ public class SourceDescription extends KsqlEntity {
     this.executionPlan = executionPlan;
     this.partitions = partitions;
     this.replication = replication;
+    this.overriddenProperties = overriddenProperties;
   }
 
   public SourceDescription(
@@ -115,8 +119,9 @@ public class SourceDescription extends KsqlEntity {
         readQueries,
         writeQueries,
         dataSource.getSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(field.name(), SchemaUtil
-                .getSchemaFieldName(field))).collect(Collectors.toList()),
+            field -> new FieldSchemaInfo(
+                field.name(), SchemaUtil.getSchemaFieldName(field))
+            ).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
@@ -143,37 +148,48 @@ public class SourceDescription extends KsqlEntity {
                     .getKsqlTopic()
                     .getKafkaTopicName()
             ) : 0
-        )
+        ),
+        Collections.emptyMap()
     );
   }
 
+  private static KsqlStructuredDataOutputNode outputNodeFromMetadata(
+      PersistentQueryMetadata metadata) {
+    return (KsqlStructuredDataOutputNode) metadata.getOutputNode();
+  }
+
   public SourceDescription(
-      KsqlStructuredDataOutputNode outputNode,
-      String statementString,
-      String name,
-      String topoplogy,
-      String executionPlan,
+      PersistentQueryMetadata queryMetadata,
       KafkaTopicClient topicClient
   ) {
     this(
-        statementString,
-        name,
+        queryMetadata.getStatementString(),
+        queryMetadata.getStatementString(),
         Collections.EMPTY_LIST,
         Collections.EMPTY_LIST,
-        Collections.EMPTY_LIST,
+        queryMetadata.getResultSchema().fields().stream().map(
+            field ->
+              new FieldSchemaInfo(field.name(), SchemaUtil
+                  .getSchemaFieldName(field))
+            ).collect(Collectors.toList()),
         "QUERY",
-        Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
-        Optional.ofNullable(outputNode.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::timestampField).orElse(""),
-        MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false),
-        MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true),
+        Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
+            .getKeyField()).map(Field::name).orElse(""),
+        Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
+            .getTimestampExtractionPolicy()).map(TimestampExtractionPolicy::timestampField)
+            .orElse(""),
+        MetricCollectors.getStatsFor(
+            outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), false),
+        MetricCollectors.getStatsFor(
+            outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), true),
         true,
-        outputNode.getTopicSerde().getSerDe().name(),
-        outputNode.getKafkaTopicName(),
-        topoplogy,
-        executionPlan,
-        getPartitions(topicClient, outputNode.getKafkaTopicName()),
-        getReplication(topicClient, outputNode.getKafkaTopicName())
+        outputNodeFromMetadata(queryMetadata).getTopicSerde().getSerDe().name(),
+        outputNodeFromMetadata(queryMetadata).getKafkaTopicName(),
+        queryMetadata.getTopologyDescription(),
+        queryMetadata.getExecutionPlan(),
+        getPartitions(topicClient, outputNodeFromMetadata(queryMetadata).getKafkaTopicName()),
+        getReplication(topicClient, outputNodeFromMetadata(queryMetadata).getKafkaTopicName()),
+        queryMetadata.getOverriddenProperties()
     );
   }
 
@@ -253,6 +269,10 @@ public class SourceDescription extends KsqlEntity {
 
   public String getExecutionPlan() {
     return executionPlan;
+  }
+
+  public Map<String, Object> getOverriddenProperties() {
+    return overriddenProperties;
   }
 
   public static class FieldSchemaInfo {

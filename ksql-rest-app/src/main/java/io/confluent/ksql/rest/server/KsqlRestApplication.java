@@ -329,7 +329,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
-    )));
+    )), false);
 
     ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
@@ -347,7 +347,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         ),
         ksqlEngine.getTopicClient(),
         true
-    ));
+    ), false);
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

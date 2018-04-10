@@ -141,15 +141,15 @@ public class SchemaKStreamTest {
                                              SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
-                      filteredSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
-                      filteredSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
                       filteredSchemaKStream.getSchema().fields().get(2));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
                       filteredSchemaKStream.getSchema().fields().get(3));
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
+                      filteredSchemaKStream.getSchema().fields().get(4));
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
+                      filteredSchemaKStream.getSchema().fields().get(5));
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type() == Schema.Type.STRING);
@@ -169,9 +169,8 @@ public class SchemaKStreamTest {
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
         .getSchema().fields()
-        .get(1), true);
+        .get(3), true);
     assertThat(rekeyedSchemaKStream.getKeyField().name().toUpperCase(), equalTo("TEST1.COL1"));
-
   }
 
   @Test

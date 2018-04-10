@@ -61,9 +61,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore);
+      registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
     KsqlTable ksqlTable = new KsqlTable(

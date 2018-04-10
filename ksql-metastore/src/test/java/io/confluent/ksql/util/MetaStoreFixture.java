@@ -41,6 +41,8 @@ public class MetaStoreFixture {
     final MetaStore metaStore = new MetaStoreImpl();
 
     SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.INT64_SCHEMA)
         .field("COL0", SchemaBuilder.INT64_SCHEMA)
         .field("COL1", SchemaBuilder.STRING_SCHEMA)
         .field("COL2", SchemaBuilder.STRING_SCHEMA)

@@ -315,6 +315,8 @@ public class SecureIntegrationTest {
     try {
       final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
       ksqlConfig.put("ksql.schema.registry.url", "https://localhost:8481");
+      ksqlConfig.put("ssl.truststore.location", ClientTrustStore.trustStorePath());
+      ksqlConfig.put("ssl.truststore.password", ClientTrustStore.trustStorePassword());
       givenTestSetupWithConfig(ksqlConfig);
 
       // Then:

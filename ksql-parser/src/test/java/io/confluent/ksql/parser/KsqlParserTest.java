@@ -269,7 +269,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     Assert.assertTrue("testSelectAll fails", querySpecification.getSelect().getSelectItems()
-                                                 .size() == 6);
+                                                 .size() == 8);
   }
 
   @Test
@@ -285,7 +285,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectAllJoin fails", querySpecification.getFrom() instanceof Join);
     Join join = (Join) querySpecification.getFrom();
     Assert.assertTrue("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems
-        ().size() == 11);
+        ().size() == 13);
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
   }

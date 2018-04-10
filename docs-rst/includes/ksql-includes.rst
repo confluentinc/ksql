@@ -1,7 +1,10 @@
 .. Avro note
 
-.. note:: To use Avro, you must have Confluent Schema Registry enabled and set :ref:```ksql.schema.registry.url`` in your
-          KSQL server configuration file <install_ksql-avro-schema>`.
+.. note::
+    - To use Avro, you must have Confluent Schema Registry enabled and set ``ksql.schema.registry.url`` in the KSQL
+      server configuration file. See :ref:`install_ksql-avro-schema`.
+    - Avro field names are not case sensitive in KSQL. This matches the KSQL column name behavior.
+
 .. demo
 
 Learn More
@@ -30,7 +33,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v4.1.0, Server v4.1.0 located at http://localhost:8090
+        CLI v4.1.0, Server v4.1.0 located at http://localhost:8088
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -74,8 +77,8 @@ the CLI will look for a KSQL Server running at ``http://localhost:8088``.
    After KSQL is started, your terminal should resemble this.
 
    .. include:: ../includes/ksql-includes.rst
-      :start-line: 17
-      :end-line: 38
+      :start-line: 19
+      :end-line: 40
 
 .. _create-a-stream-and-table:
 

@@ -147,11 +147,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
     return new KsqlConfig(ImmutableMap.of(k1, v1));
   }
 
-  private static KsqlConfig config(final String k1, final Object v1,
-                                   final String k2, final Object v2) {
-    return new KsqlConfig(ImmutableMap.of(k1, v1, k2, v2));
-  }
-
   // Can't mock SSLContext.
   private static SSLContext getTestSslContext() {
     final SslFactory sslFactory = new SslFactory(Mode.CLIENT);

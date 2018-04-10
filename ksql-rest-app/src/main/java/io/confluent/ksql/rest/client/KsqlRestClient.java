@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -70,6 +71,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
     this.localProperties = localProperties;
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+        false);
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }

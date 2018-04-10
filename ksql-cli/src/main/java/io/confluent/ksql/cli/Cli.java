@@ -278,7 +278,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStatements(String line)
-      throws IOException, InterruptedException, ExecutionException {
+      throws IOException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext :
         new KsqlParser().getStatements(line)) {
@@ -356,7 +356,7 @@ public class Cli implements Closeable, AutoCloseable {
       StringBuilder consecutiveStatements,
       SqlBaseParser.SingleStatementContext statementContext,
       String statementText
-  ) throws IOException, InterruptedException, ExecutionException {
+  ) throws IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
@@ -409,7 +409,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws InterruptedException, ExecutionException {
+      throws ExecutionException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 
@@ -454,6 +454,9 @@ public class Cli implements Closeable, AutoCloseable {
           }
         } catch (CancellationException exception) {
           // It's fine
+        } catch (InterruptedException e) {
+          Thread.interrupted();
+          LOGGER.info("Ignoring interrupt", e);
         }
       } finally {
         terminal.writer().println("Query terminated");
@@ -469,7 +472,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handlePrintedTopic(String printTopic)
-      throws InterruptedException, ExecutionException, IOException {
+      throws ExecutionException, IOException {
     RestResponse<InputStream> topicResponse =
         restClient.makePrintTopicRequest(printTopic);
 
@@ -499,6 +502,9 @@ public class Cli implements Closeable, AutoCloseable {
           topicResponse.getResponse().close();
           terminal.writer().println("Topic printing ceased");
           terminal.flush();
+        } catch (InterruptedException e) {
+          Thread.interrupted();
+          LOGGER.info("Ignoring interruption", e);
         }
       }
     } else {

@@ -29,7 +29,7 @@ public class KsqlExceptionMapperTest {
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getMessage(), equalTo("error msg"));
-    assertThat(errorMessage.getErrorCode(), equalTo(403000));
+    assertThat(errorMessage.getErrorCode(), equalTo(40300));
     assertThat(response.getStatus(), equalTo(403));
   }
 

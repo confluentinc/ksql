@@ -157,6 +157,7 @@ public class CliTest extends TestRunner {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
+    configMap.put(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 30000);
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);

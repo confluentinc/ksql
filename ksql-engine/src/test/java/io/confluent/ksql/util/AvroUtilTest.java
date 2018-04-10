@@ -165,30 +165,4 @@ public class AvroUtilTest {
     throw new KsqlException("Invalid statement." + statementString);
   }
 
-  private PersistentQueryMetadata getPersistentQueryMetadata() {
-    KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
-        ());
-    Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
-
-    OutputNode outputNode = mock(OutputNode.class);
-    expect(outputNode.accept(anyObject(), anyObject())).andReturn(null);
-    replay(outputNode);
-    StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
-    expect(structuredDataSource.getName()).andReturn("");
-    replay(structuredDataSource);
-
-    return new PersistentQueryMetadata("",
-                                       null,
-                                       outputNode,
-                                       structuredDataSource,
-                                       "",
-                                       null,
-                                       DataSource.DataSourceType.KSTREAM,
-                                       "",
-                                       mock(KafkaTopicClient.class),
-                                       resultTopic,
-                                       null,
-                                       null);
-  }
-
 }

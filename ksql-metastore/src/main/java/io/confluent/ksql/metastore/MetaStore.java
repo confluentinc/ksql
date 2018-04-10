@@ -43,7 +43,6 @@ public interface MetaStore {
 
   public Set<String> getAllTopicNames();
 
-  public void putAll(MetaStore otherMetaStore);
 
   public void updateForPersistentQuery(String queryId,
                                        Set<String> sourceNames,

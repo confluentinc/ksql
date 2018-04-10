@@ -85,7 +85,7 @@ public class StringToTimestampTest {
     udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
   }
 
-//  @Test
+  @Test
   public void shouldBeThreadSafe() {
     IntStream.range(0, 10_000)
         .parallel()

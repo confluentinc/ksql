@@ -137,12 +137,6 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public void putAll(MetaStore otherMetaStore) {
-    this.topicMap.putAll(otherMetaStore.getAllKsqlTopics());
-    this.dataSourceMap.putAll(otherMetaStore.getDataSourceMap());
-  }
-
-  @Override
   public void updateForPersistentQuery(String queryId,
                                        Set<String> sourceNames,
                                        Set<String> sinkNames) {

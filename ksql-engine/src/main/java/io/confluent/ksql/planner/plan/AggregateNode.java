@@ -60,6 +60,8 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateNode extends PlanNode {
 
+  static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
+
   private final PlanNode source;
   private final Schema schema;
   private final List<Expression> groupByExpressions;
@@ -72,8 +74,6 @@ public class AggregateNode extends PlanNode {
   private final List<Expression> finalSelectExpressions;
 
   private final Expression havingExpressions;
-
-  final static String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
   @JsonCreator
   public AggregateNode(
@@ -196,7 +196,8 @@ public class AggregateNode extends PlanNode {
     InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
                                                        getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded = sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
+    final SchemaKStream aggregateArgExpanded =
+        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
 
     KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopic()
@@ -285,7 +286,8 @@ public class AggregateNode extends PlanNode {
     Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     int nonAggColumnIndex = 0;
     for (Expression expression : getRequiredColumnList()) {
-      String exprStr = internalSchema.getExpressionToInternalColumnNameMap().get(expression.toString());
+      String exprStr =
+          internalSchema.getExpressionToInternalColumnNameMap().get(expression.toString());
       int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
@@ -376,7 +378,10 @@ public class AggregateNode extends PlanNode {
         .map(argExpression -> argExpression instanceof Literal
                               ? argExpression
                               : new QualifiedNameReference(
-            QualifiedName.of(internalSchema.getExpressionToInternalColumnNameMap().get(argExpression.toString()))))
+            QualifiedName.of(
+                internalSchema
+                    .getExpressionToInternalColumnNameMap()
+                    .get(argExpression.toString()))))
         .collect(Collectors.toList());
   }
 

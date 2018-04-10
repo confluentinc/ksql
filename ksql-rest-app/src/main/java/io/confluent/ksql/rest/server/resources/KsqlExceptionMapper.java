@@ -31,7 +31,8 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
     if (exception instanceof KsqlRestException) {
       KsqlRestException restException = (KsqlRestException)exception;
       return restException.getResponse();
-    } else if (exception instanceof WebApplicationException) {
+    }
+    if (exception instanceof WebApplicationException) {
       WebApplicationException webApplicationException = (WebApplicationException)exception;
       return Response
           .status(
@@ -40,7 +41,8 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
           .type(MediaType.APPLICATION_JSON_TYPE)
           .entity(
               new KsqlErrorMessage(
-                  webApplicationException.getResponse().getStatus() * 1000,
+                  webApplicationException.getResponse().getStatus()
+                      * Errors.HTTP_TO_ERROR_CODE_MULTIPLIER,
                   webApplicationException))
           .build();
     }

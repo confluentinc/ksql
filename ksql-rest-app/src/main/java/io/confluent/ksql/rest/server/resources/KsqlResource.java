@@ -23,7 +23,6 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -187,10 +187,9 @@ public class KsqlResource {
               statementText, entities));
     }
 
-    if (Arrays.asList(
+    if (Stream.of(
         ListTopics.class, ListRegisteredTopics.class, ListStreams.class,
         ListTables.class, ListQueries.class, ListProperties.class, RunScript.class)
-        .stream()
         .anyMatch(c -> c.isInstance(statement))) {
       return;
     }
@@ -291,11 +290,12 @@ public class KsqlResource {
     ) {
       return distributeStatement(statementText, statement, streamsProperties);
     }
-    // once we have distinct exception types we won't need a separate
-    // validation phase for each statement and this can go away. For now
-    // all exceptions are KsqlExceptions so we have to use thee context to
-    // decide if its an input or system error
-    throw new RuntimeException("unreachable line");
+    // This line is unreachable. Once we have distinct exception types we won't need a
+    // separate validation phase for each statement and this can go away. For now all
+    // exceptions are KsqlExceptions so we have to use the context to decide if its an
+    // input or system error.
+    throw new RuntimeException(
+        "Unexpected statement of type " + statement.getClass().getSimpleName());
   }
 
   private boolean isExecutableDdlStatement(Statement statement) {

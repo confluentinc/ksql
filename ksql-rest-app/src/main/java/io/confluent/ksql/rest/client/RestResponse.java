@@ -37,6 +37,11 @@ public abstract class RestResponse<R> {
     return new Erroneous<>(errorMessage);
   }
 
+  public static <R> RestResponse<R> erroneous(int errorCode, String message) {
+    return new Erroneous<>(
+        new KsqlErrorMessage(errorCode, message));
+  }
+
   public static <R> RestResponse<R> successful(R response) {
     return new Successful<>(response);
   }

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.KsqlQueryEndpointMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -539,8 +538,8 @@ public class KsqlResourceTest {
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlQueryEndpointMessage.class));
-    KsqlQueryEndpointMessage result = (KsqlQueryEndpointMessage)response.getEntity();
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 
@@ -551,8 +550,8 @@ public class KsqlResourceTest {
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlQueryEndpointMessage.class));
-    KsqlQueryEndpointMessage result = (KsqlQueryEndpointMessage)response.getEntity();
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 

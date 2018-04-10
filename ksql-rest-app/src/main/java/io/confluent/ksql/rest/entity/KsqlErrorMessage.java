@@ -36,8 +36,7 @@ import io.confluent.rest.entities.ErrorMessage;
     include = JsonTypeInfo.As.PROPERTY)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = KsqlErrorMessage.class, name = "generic_error"),
-    @JsonSubTypes.Type(value = KsqlStatementErrorMessage.class, name = "statement_error"),
-    @JsonSubTypes.Type(value = KsqlQueryEndpointMessage.class, name = "query_endpoint")})
+    @JsonSubTypes.Type(value = KsqlStatementErrorMessage.class, name = "statement_error")})
 public class KsqlErrorMessage extends ErrorMessage {
 
   private final List<String> stackTrace;

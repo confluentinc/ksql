@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlQueryEndpointMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 
 import javax.ws.rs.core.Response;
@@ -29,15 +28,23 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 public class Errors {
-  public static final int ERROR_CODE_BAD_REQUEST    = BAD_REQUEST.getStatusCode() * 1000;
-  public static final int ERROR_CODE_BAD_STATEMENT  = BAD_REQUEST.getStatusCode() * 1000 + 1;
-  public static final int ERROR_CODE_QUERY_ENDPOINT = BAD_REQUEST.getStatusCode() * 1000 + 2;
+  static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  public static final int ERROR_CODE_UNAUTHORIZED   = UNAUTHORIZED.getStatusCode() * 1000;
+  public static final int ERROR_CODE_BAD_REQUEST
+      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  public static final int ERROR_CODE_BAD_STATEMENT
+      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER + 1;
+  public static final int ERROR_CODE_QUERY_ENDPOINT
+      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER + 2;
 
-  public static final int ERROR_CODE_NOT_FOUND      = NOT_FOUND.getStatusCode() * 1000;
+  public static final int ERROR_CODE_UNAUTHORIZED
+      = UNAUTHORIZED.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
 
-  public static final int ERROR_CODE_SERVER_ERROR   = INTERNAL_SERVER_ERROR.getStatusCode() * 1000;
+  public static final int ERROR_CODE_NOT_FOUND
+      = NOT_FOUND.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
+
+  public static final int ERROR_CODE_SERVER_ERROR
+      = INTERNAL_SERVER_ERROR.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
 
   public static Response badRequest(String msg) {
     return Response
@@ -71,7 +78,10 @@ public class Errors {
   public static Response queryEndpoint(String statementText, KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
-        .entity(new KsqlQueryEndpointMessage(statementText, entities))
+        .entity(
+            new KsqlStatementErrorMessage(
+                ERROR_CODE_QUERY_ENDPOINT, "SELECT and PRINT queries must use the /query endpoint",
+                statementText, entities))
         .build();
   }
 

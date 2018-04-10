@@ -67,7 +67,7 @@ public class RemoteCliSpecificCommandTest {
           @Override
           public RestResponse<ServerInfo> getServerInfo() {
             return RestResponse.erroneous(
-                new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
+                Errors.ERROR_CODE_SERVER_ERROR, "it is broken");
           }
         }, new PrintWriter(out));
     command.execute("http://localhost:8088");

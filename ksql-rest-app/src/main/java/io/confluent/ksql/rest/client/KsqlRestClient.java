@@ -144,16 +144,17 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
-    RestResponse<KsqlEntityList> result;
     KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("ksql", jsonRequest);
-    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      result = RestResponse.successful(response.readEntity(KsqlEntityList.class));
-    } else {
-      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
+    try {
+      if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+        return RestResponse.successful(response.readEntity(KsqlEntityList.class));
+      } else {
+        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
+      }
+    } finally {
+      response.close();
     }
-    response.close();
-    return result;
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {

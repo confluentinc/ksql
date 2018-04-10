@@ -26,6 +26,9 @@ public class KsqlConstants {
 
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
+  public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+  public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
+
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
   public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
 

@@ -82,7 +82,6 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-
 public class KsqlEngine implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
@@ -127,11 +126,9 @@ public class KsqlEngine implements Closeable {
     this.metaStore = metaStore;
     this.topicClient = topicClient;
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
-    this.queryEngine = new QueryEngine(this,
-                                       new CommandFactories(
-                                           topicClient,
-                                           this.metaStore,
-                                           true));
+    this.queryEngine = new QueryEngine(
+        this,
+        new CommandFactories(topicClient, schemaRegistryClient, true));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -326,6 +323,7 @@ public class KsqlEngine implements Closeable {
               topicClient,
               false),
           tempMetaStoreForParser
+
       );
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
@@ -359,30 +357,31 @@ public class KsqlEngine implements Closeable {
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropStream) statement,
-          DataSource.DataSourceType.KSTREAM,
-          this.metaStore),
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropStream) statement,
-          DataSource.DataSourceType.KSTREAM,
-          this.metaStore),
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropTable) statement,
-          DataSource.DataSourceType.KTABLE,
-          this.metaStore),
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropTable) statement,
-          DataSource.DataSourceType.KTABLE,
-          this.metaStore),
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
-      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement),
+                                tempMetaStore);
       ddlCommandExec.tryExecute(
           new DropTopicCommand((DropTopic) statement),
           tempMetaStoreForParser
@@ -469,7 +468,9 @@ public class KsqlEngine implements Closeable {
     metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
       persistentQueryMetadata.close();
+      persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
     }
+
     return true;
   }
 

@@ -84,7 +84,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   @Override
   public void deleteTopic(String topicName) {
     if (!topicMap.containsKey(topicName)) {
-      throw new KsqlException(String.format("No topic with name %s was registered.", true));
+      throw new KsqlException(String.format("No topic with name %s was registered.", topicName));
     }
     topicMap.remove(topicName);
   }

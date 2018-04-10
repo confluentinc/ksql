@@ -19,7 +19,7 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -38,7 +38,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final MetaStore metaStore,
+      final SchemaRegistryClient schemaRegistryClient,
       final boolean enforceTopicExistence
   ) {
     factories.put(
@@ -64,16 +64,16 @@ public class CommandFactories implements DdlCommandFactory {
 
     factories.put(
         DropStream.class,
-        (sqlExpression, ddlStatement, properties) ->
-            new DropSourceCommand((DropStream) ddlStatement,
-                                  DataSource.DataSourceType.KSTREAM,
-                                  metaStore));
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, schemaRegistryClient
+        )
+    );
     factories.put(
         DropTable.class,
-        (sqlExpression, ddlStatement, properties) ->
-            new DropSourceCommand((DropTable) ddlStatement,
-                                  DataSource.DataSourceType.KTABLE,
-                                  metaStore));
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, schemaRegistryClient
+        )
+    );
     factories.put(
         DropTopic.class, (sqlExpression, ddlStatement, properties) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));

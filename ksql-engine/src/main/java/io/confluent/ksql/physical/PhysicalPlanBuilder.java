@@ -221,7 +221,8 @@ public class PhysicalPlanBuilder {
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
-        builder.build()
+        builder.build(),
+        overriddenStreamsProperties
     );
   }
 
@@ -293,9 +294,9 @@ public class PhysicalPlanBuilder {
             : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
-        outputNode.getSchema(),
         sinkDataSource.getKsqlTopic(),
-        topology
+        topology,
+        overriddenStreamsProperties
     );
   }
 

@@ -17,6 +17,8 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.Query;
@@ -109,12 +111,12 @@ public class StreamedQueryResourceTest {
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+    expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
 
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
                                 rowQueue, DataSource.DataSourceType.KSTREAM, "",
-                                mockKafkaTopicClient,
-            null);
+                                mockKafkaTopicClient, null, Collections.emptyMap());
     expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);

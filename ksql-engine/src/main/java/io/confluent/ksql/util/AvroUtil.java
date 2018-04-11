@@ -92,7 +92,7 @@ public class AvroUtil {
       }
     } catch (Exception e) {
       String errorMessage = String.format(
-          " Could not fetch the AVRO schema from schema registry. %s ",
+          " Unable to verify the AVRO schema is compatible with KSQL. %s ",
           e.getMessage()
       );
       throw new KsqlException(errorMessage);

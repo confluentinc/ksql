@@ -40,7 +40,7 @@ Is KSQL owned by the Apache Software Foundation?
 No, KSQL is owned and maintained by `Confluent
 Inc. <https://www.confluent.io/>`__ as part of its free `Confluent Open
 Source <https://www.confluent.io/product/confluent-open-source/>`__
-product.
+product. However, KSQL is licensed under the Apache 2.0 license.
 
 ====================================================
 How does KSQL compare to Apache Kafka’s Streams API?
@@ -78,7 +78,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro (requires Confluent Schema Registry and :ref:`setting ``ksql.schema.registry.url`` in the KSQL server configuration file <install_ksql-avro-schema>`)
+-  Avro (requires Confluent Schema Registry and ``ksql.schema.registry.url`` in the KSQL server configuration file, see :ref:`<install_ksql-avro-schema>`)
 
 ====================================
 Is KSQL fully compliant to ANSI SQL?
@@ -126,7 +126,7 @@ How do I shutdown a KSQL environment?
 How do I configure the target Kafka cluster?
 ============================================
 
-Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
+Define ``bootstrap.servers`` in the :ref:`KSQL server configuration <ksql-server-config>`.
 
 .. _add-ksql-servers:
 
@@ -134,15 +134,18 @@ Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
 How do I add KSQL servers to an existing KSQL cluster?
 ======================================================
 
-Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers``. For more
-information, see :ref:`install_ksql-server`.
+You can add or remove KSQL servers during live operations. KSQL servers that have been configured to use the same
+Kafka cluster (``bootstrap.servers``) and the same KSQL service ID (``ksql.service.id``) form a given KSQL cluster.
 
-====================================================================================
-How can I secure KSQL servers for production and prevent interactive client access?
-====================================================================================
+To add a KSQL server to an existing KSQL cluster the server must be configured with the same ``bootstrap.servers`` and
+``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`.
 
-You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the ``--queries-file``
-flag. For more information, see :ref:`common-configs`.
+======================================================================================
+How can I lock-down KSQL servers for production and prevent interactive client access?
+======================================================================================
+
+You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the
+``--queries-file`` command line flag. For more information, see :ref:`ksql-server-config`.
 
 ====================================================================
 How do I use Avro data and integrate with Confluent Schema Registry?
@@ -158,13 +161,14 @@ How can I scale out KSQL?
 
 The maximum parallelism depends on the number of partitions.
 
-- To scale out: start additional KSQL servers with same config. See :ref:`add-ksql-servers`.
-- To scale in: stop the desired running KSQL servers, but keep at least one server running. The remaining servers should
-  have sufficient capacity to take over work from stopped servers.
+- To scale out: start additional KSQL servers with same config. This can be done during live operations.
+  See :ref:`add-ksql-servers`.
+- To scale in: stop the desired running KSQL servers, but keep at least one server running. This can be done during live
+  operations. The remaining servers should have sufficient capacity to take over work from stopped servers.
 
 .. tip:: Idle servers will consume a small amount of resource. For example, if you have 10 KSQL servers and run a query
-         against a two-partition input topic, only two servers perform the actual work, but the other eight will run an “idle”
-         query.
+         against a two-partition input topic, only two servers perform the actual work, but the other eight will run an
+         "idle" query.
 
 =====================================================
 Can KSQL connect to an Apache Kafka cluster over SSL?
@@ -187,7 +191,7 @@ For more information, see :ref:`config-security-ssl-sasl`.
 Will KSQL work with Confluent Cloud?
 ====================================
 
-Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
+Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
 
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
@@ -199,5 +203,5 @@ Yes. For more information, see :ref:`config-security-ksql-acl`.
 Will KSQL work with a HTTPS Confluent Schema Registry?
 ======================================================
 
-KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
+Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.

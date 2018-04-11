@@ -85,7 +85,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 
-public class KsqlEngine implements Closeable, QueryTerminator {
+public class KsqlEngine implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
@@ -166,8 +166,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, this, true)
-    );
+        new CommandFactories(topicClient, schemaRegistryClient, true));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -404,6 +403,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               topicClient,
               false),
           tempMetaStoreForParser
+
       );
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
@@ -437,28 +437,31 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropStream) statement,
-          DataSource.DataSourceType.KSTREAM,
-          this
-      ), tempMetaStore);
-      ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, this),
-          tempMetaStoreForParser
-      );
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
+                                tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand(
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropTable) statement,
-          DataSource.DataSourceType.KTABLE,
-          this
-      ), tempMetaStore);
-      ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, this),
-          tempMetaStoreForParser
-      );
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
+                                tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand(
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
-      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement),
+                                tempMetaStore);
       ddlCommandExec.tryExecute(
           new DropTopicCommand((DropTopic) statement),
           tempMetaStoreForParser
@@ -532,37 +535,19 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return ddlCommandExec;
   }
 
-  @Override
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
-    QueryMetadata queryMetadata = persistentQueries.remove(queryId);
-    if (queryMetadata == null) {
+    PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
+    if (persistentQueryMetadata == null) {
       return false;
     }
-    livePersistentQueries.remove(queryMetadata);
-    allLiveQueries.remove(queryMetadata);
+    livePersistentQueries.remove(persistentQueryMetadata);
+    allLiveQueries.remove(persistentQueryMetadata);
     if (closeStreams) {
-      queryMetadata.close();
+      persistentQueryMetadata.close();
+      persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
     }
+
     return true;
-  }
-
-  @Override
-  public void terminateQueryForEntity(final String entity) {
-    final Optional<PersistentQueryMetadata> query = persistentQueries.values()
-        .stream()
-        .filter(persistentQueryMetadata -> persistentQueryMetadata
-            .getEntity()
-            .equalsIgnoreCase(entity))
-        .findFirst();
-
-    if (query.isPresent()) {
-      final PersistentQueryMetadata metadata = query.get();
-      log.info("Terminating persistent query {}", metadata.getId());
-      metadata.close();
-      persistentQueries.remove(metadata.getId());
-      livePersistentQueries.remove(metadata);
-      allLiveQueries.remove(metadata);
-    }
   }
 
   public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {

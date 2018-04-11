@@ -30,10 +30,8 @@ public class SetPropertyCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore) {
-    return new DdlCommandResult(
-        true,
-        "property:"
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+    return new DdlCommandResult(true, "property:"
         + statement.getPropertyName()
         + " set to "
         + statement.getPropertyValue()

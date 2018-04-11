@@ -36,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class StringTimestampExtractorTest {
 
   private final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor();
-  private final String format = "yyyy-MMM-DD";
+  private final String format = "yyyy-MMM-dd";
 
   @SuppressWarnings("unchecked")
   @Test
@@ -46,7 +46,7 @@ public class StringTimestampExtractorTest {
       put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
     }};
     timestampExtractor.configure(props);
-    final String stringTime = "2010-JAN-11";
+    final String stringTime = "2010-Jan-11";
     final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
     final long actualTime = timestampExtractor.extract(new ConsumerRecord("topic",
         1,

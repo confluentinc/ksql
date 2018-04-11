@@ -21,8 +21,6 @@ import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
@@ -30,7 +28,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 public class StringTimestampExtractor implements TimestampExtractor, Configurable {
-  private SimpleDateFormat dateFormatter;
+  private StringToTimestampParser timestampParser;
   private int timestampColumn = -1;
   private String format;
 
@@ -40,8 +38,8 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
     final GenericRow row = (GenericRow) consumerRecord.value();
     final String value = row.getColumnValue(timestampColumn);
     try {
-      return dateFormatter.parse(value).getTime();
-    } catch (ParseException e) {
+      return timestampParser.parse(value);
+    } catch (KsqlException e) {
       throw new KsqlException("Unable to parse string timestamp from record."
           + " record=" + consumerRecord
           + " timestamp=" + value
@@ -66,8 +64,7 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
     }
     this.timestampColumn = index;
     try {
-      this.dateFormatter = new SimpleDateFormat(
-          format);
+      this.timestampParser = new StringToTimestampParser(format);
     } catch (Exception e) {
       throw new ConfigException("Invalid date format: "
           + format + " " + e.getMessage(), e);

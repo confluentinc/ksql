@@ -350,12 +350,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
                                               + "statement.", insertInto.getTarget().getSuffix()
             .toString()));
       }
-      if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()
-          != DataSource.DataSourceType.KSTREAM) {
-        throw new KsqlException(String.format("INSERT INTO can only be used to insert into a "
-                                              + "stream. %s is not a stream.",
-                                              insertInto.getTarget().getSuffix()));
-      }
       QuerySpecification querySpecification =
           (QuerySpecification) insertInto.getQuery().getQueryBody();
 

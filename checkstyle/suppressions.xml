@@ -12,7 +12,7 @@
     <!-- TODO: Fix Me!-->
     <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
     <suppress files="(PersistentQueryMetadata|SourceDescription).java" checks="ParameterNumber"/>
-    <suppress files="(Console|Main|Generator).java" checks="JavaNCSSCheck"/>
+    <suppress files="(Console|Main|Generator|KsqlResource).java" checks="JavaNCSSCheck"/>
     <suppress files="Generator.java" checks="NPathComplexity"/>
     <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer).java" checks="ClassDataAbstractionCouplingCheck"/>

@@ -132,7 +132,7 @@ public class KsqlResource {
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
-    registerDdlCommandTasks();
+    this.registerDdlCommandTasks();
   }
 
   @POST
@@ -498,8 +498,7 @@ public class KsqlResource {
   private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
-    ddlCommandTasks.put(
-        Query.class,
+    ddlCommandTasks.put(Query.class,
         (statement, statementText, properties) -> {
           QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan((Query)statement);
           return queryMetadata;
@@ -549,7 +548,7 @@ public class KsqlResource {
                                                       ksqlEngine.getSchemaRegistryClient());
       }
       queryMetadata.close();
-      return queryMetadata.getExecutionPlan();
+      return queryMetadata;
     });
 
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {

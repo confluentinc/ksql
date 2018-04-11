@@ -171,7 +171,7 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldCreateExecutionPlanForInsert");
 
@@ -217,7 +217,7 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldFailInsertIfTheResultSchemaDoesNotMatch");
 
@@ -242,7 +242,7 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldCreatePlanForInsertIntoTableFromTabl");
 
@@ -271,8 +271,9 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     String insertIntoQuery = "INSERT INTO T2 SELECT col0, col1, col2, col3 FROM S1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("t1", 1, (short) 1, true);
-    kafkaTopicClient.createTopic("s1", 1, (short) 1, false);
+    // No need for setting the correct clean up policy in test.
+    kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldFailInsertIfTheResultTypesDontMatch");
 
@@ -296,7 +297,7 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldCheckSinkAndResultKeysDoNotMatch");
 
@@ -322,7 +323,7 @@ public class PhysicalPlanBuilderTest {
     String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, true);
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), kafkaTopicClient,
                                            "shouldFailIfSinkAndResultKeysDoNotMatch");
 

@@ -278,7 +278,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStatements(String line)
-      throws IOException, InterruptedException, ExecutionException {
+      throws InterruptedException, IOException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext :
         new KsqlParser().getStatements(line)) {
@@ -356,7 +356,7 @@ public class Cli implements Closeable, AutoCloseable {
       StringBuilder consecutiveStatements,
       SqlBaseParser.SingleStatementContext statementContext,
       String statementText
-  ) throws IOException, InterruptedException, ExecutionException {
+  ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
@@ -413,6 +413,8 @@ public class Cli implements Closeable, AutoCloseable {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 
+    LOGGER.debug("Handling streamed query");
+
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
         Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
@@ -427,6 +429,8 @@ public class Cli implements Closeable, AutoCloseable {
                   // the stream interface that queryStream uses isn't smart enough to figure
                   // out when the socket is closed, so just break here since we know there will
                   // be nothing more to read.
+                  LOGGER.debug("Going to stop reading results for row {} since there was an error"
+                               + " in the response stream: {}", row, row.getErrorMessage());
                   break;
                 }
               } catch (IOException exception) {

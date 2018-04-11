@@ -79,6 +79,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         ? null
         : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
         metaStore.getTopic(topicName),
+        false,
         stateStoreName, isWindowed
     );
 

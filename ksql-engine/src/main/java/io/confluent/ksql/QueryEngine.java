@@ -125,7 +125,8 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getTimestampField() == null
               ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
               : ksqlStructuredDataOutputNode.getTimestampField(),
-              ksqlStructuredDataOutputNode.getKsqlTopic()
+              ksqlStructuredDataOutputNode.getKsqlTopic(),
+              true
           );
 
       tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
@@ -231,7 +232,8 @@ class QueryEngine {
         dataSource.schema(),
         null,
         null,
-        ksqlTopic
+        ksqlTopic,
+        true
     );
   }
 

@@ -39,7 +39,8 @@ public class KsqlStdOut extends StructuredDataSource {
         keyField,
         timestampField,
         dataSourceType,
-        null
+        null,
+        false
     );
   }
 

@@ -33,7 +33,8 @@ public class KsqlStream extends StructuredDataSource {
       final Schema schema,
       final Field keyField,
       final Field timestampField,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final boolean sinkTopic
   ) {
     super(
         sqlExpression,
@@ -42,7 +43,8 @@ public class KsqlStream extends StructuredDataSource {
         keyField,
         timestampField,
         DataSourceType.KSTREAM,
-        ksqlTopic
+        ksqlTopic,
+        sinkTopic
     );
   }
 
@@ -55,7 +57,8 @@ public class KsqlStream extends StructuredDataSource {
         newSchema,
         keyField,
         timestampField,
-        ksqlTopic
+        ksqlTopic,
+        sinkTopic
     );
   }
 
@@ -73,7 +76,8 @@ public class KsqlStream extends StructuredDataSource {
         schema,
         keyField,
         newTimestampField.get(),
-        ksqlTopic
+        ksqlTopic,
+        sinkTopic
     );
   }
 

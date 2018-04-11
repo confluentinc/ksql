@@ -16,19 +16,14 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.connect.data.SchemaBuilder;
+
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.Assert;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class MetaStoreFixture {
 
@@ -50,8 +45,9 @@ public class MetaStoreFixture {
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStream = new KsqlStream("sqlexpression", "TEST1", schemaBuilder1, schemaBuilder1.field("COL0"), null,
-        ksqlTopic1);
+    KsqlStream ksqlStream = new KsqlStream(
+        "sqlexpression", "TEST1", schemaBuilder1,
+        schemaBuilder1.field("COL0"), null, ksqlTopic1, false);
 
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
@@ -66,9 +62,9 @@ public class MetaStoreFixture {
     KsqlTopic
         ksqlTopic2 =
         new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable("sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                        null,
-        ksqlTopic2, "TEST2", false);
+    KsqlTable ksqlTable = new KsqlTable(
+        "sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
+        null, ksqlTopic2, false, "TEST2", false);
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
@@ -83,41 +79,13 @@ public class MetaStoreFixture {
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS", schemaBuilderOrders,
-                                                 schemaBuilderOrders.field("ORDERTIME"), null,
-        ksqlTopicOrders);
+    KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression", "ORDERS", schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"), null, ksqlTopicOrders, true);
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     return metaStore;
   }
-
-  public static void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                        Map<String, GenericRow> expectedResult) {
-    Assert.assertEquals(actualResult.size(), expectedResult.size());
-
-    for (String k: expectedResult.keySet()) {
-      Assert.assertTrue(actualResult.containsKey(k));
-      Assert.assertEquals(expectedResult.get(k), actualResult.get(k));
-    }
-  }
-
-  public static void assertExpectedWindowedResults(Map<Windowed<String>, GenericRow> actualResult,
-                                                Map<Windowed<String>, GenericRow> expectedResult) {
-    Map<String, GenericRow> actualResultSimplified = new HashMap<>();
-    Map<String, GenericRow> expectedResultSimplified = new HashMap<>();
-    for (Windowed<String> k: expectedResult.keySet()) {
-      expectedResultSimplified.put(k.key(), expectedResult.get(k));
-    }
-
-    for (Windowed<String> k: actualResult.keySet()) {
-      if (actualResult.get(k) != null) {
-        actualResultSimplified.put(k.key(), actualResult.get(k));
-      }
-
-    }
-    assertExpectedResults(actualResultSimplified, expectedResultSimplified);
-  }
-
 }

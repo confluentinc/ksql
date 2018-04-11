@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,8 +63,9 @@ public class StructuredDataSourceNodeTest {
           schema,
           schema.field("key"),
           schema.field("timestamp"),
-          new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe())),
+          new KsqlTopic("topic", "topic", new KsqlJsonTopicSerDe()),
+          true
+      ),
       schema);
 
   @Before
@@ -132,8 +133,8 @@ public class StructuredDataSourceNodeTest {
             schema,
             schema.field("field"),
             schema.field("timestamp"),
-            new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+            new KsqlTopic("topic2", "topic2", new KsqlJsonTopicSerDe()),
+            true,
             "statestore",
             false),
         schema);

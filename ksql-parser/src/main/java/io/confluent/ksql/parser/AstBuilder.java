@@ -1582,7 +1582,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
             dataSource.schema(),
             dataSource.fields().get(0),
             null,
-            ksqlTopic
+            ksqlTopic,
+            true
         );
     return resultStream;
   }

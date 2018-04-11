@@ -195,6 +195,10 @@ public abstract class Console implements Closeable {
     }
   }
 
+  public OutputFormat getOutputFormat() {
+    return outputFormat;
+  }
+
   /* private */
 
   private static List<List<String>> propertiesRowValues(Map<String, Object> properties) {
@@ -477,26 +481,30 @@ public abstract class Console implements Closeable {
   }
 
   private void printQueryInfo(SourceDescription source) {
-    if (!"QUERY".equals(source.getType())) {
-      writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+    if ("QUERY".equals(source.getType())) {
+      return;
+    }
+
+    final String timestamp = source.getTimestamp().isEmpty()
+                             ? "Not set - using <ROWTIME>"
+                             : source.getTimestamp();
+
+    writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+    writer().println(String.format("%-20s : %s", "Key format", "STRING"));
+    writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
+    writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
+
+    if (!source.getTopic().isEmpty()) {
+      final String title =
+          String.format("Kafka %s topic", source.isSinkTopic() ? "output" : "source");
+
       writer().println(String.format(
-          "%-20s : %s",
-          "Timestamp field",
-          source.getTimestamp().isEmpty()
-              ? "Not set - using <ROWTIME>"
-              : source.getTimestamp()
+          "%-20s : %s (partitions: %d, replication: %d)",
+          title,
+          source.getTopic(),
+          source.getPartitions(),
+          source.getReplication()
       ));
-      writer().println(String.format("%-20s : %s", "Key format", "STRING"));
-      writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
-      if (!source.getTopic().isEmpty()) {
-        writer().println(String.format(
-            "%-20s : %s (partitions: %d, replication: %d)",
-            "Kafka output topic",
-            source.getTopic(),
-            source.getPartitions(),
-            source.getReplication()
-        ));
-      }
     }
   }
 

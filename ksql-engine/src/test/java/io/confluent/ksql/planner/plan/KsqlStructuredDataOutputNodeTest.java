@@ -79,8 +79,8 @@ public class KsqlStructuredDataOutputNodeTest {
           schema,
           schema.field("key"),
           schema.field("timestamp"),
-          new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe())),
+          new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
+          false),
       schema);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
@@ -264,6 +264,7 @@ public class KsqlStructuredDataOutputNodeTest {
             schema.field("key"),
             schema.field("timestamp"),
             new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
+            true,
             "TableStateStore",
             isWindowed),
         schema);

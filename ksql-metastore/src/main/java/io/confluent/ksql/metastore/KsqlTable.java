@@ -37,6 +37,7 @@ public class KsqlTable extends StructuredDataSource {
       final Field keyField,
       final Field timestampField,
       final KsqlTopic ksqlTopic,
+      final boolean sinkTopic,
       final String stateStoreName,
       boolean isWindowed
   ) {
@@ -47,7 +48,8 @@ public class KsqlTable extends StructuredDataSource {
         keyField,
         timestampField,
         DataSourceType.KTABLE,
-        ksqlTopic
+        ksqlTopic,
+        sinkTopic
     );
     this.stateStoreName = stateStoreName;
     this.isWindowed = isWindowed;
@@ -71,6 +73,7 @@ public class KsqlTable extends StructuredDataSource {
         keyField,
         timestampField,
         ksqlTopic,
+        sinkTopic,
         stateStoreName,
         isWindowed
     );
@@ -91,6 +94,7 @@ public class KsqlTable extends StructuredDataSource {
         keyField,
         newTimestampField.get(),
         ksqlTopic,
+        sinkTopic,
         stateStoreName,
         isWindowed
     );

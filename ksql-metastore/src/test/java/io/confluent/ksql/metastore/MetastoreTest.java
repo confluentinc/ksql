@@ -17,13 +17,13 @@
 package io.confluent.ksql.metastore;
 
 
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.MetaStoreFixture;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.MetaStoreFixture;
 
 public class MetastoreTest {
 
@@ -65,7 +65,8 @@ public class MetastoreTest {
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
                                                                structuredDataSource1.getTimestampField(),
-                                                               structuredDataSource1.getKsqlTopic());
+                                                               structuredDataSource1.getKsqlTopic(),
+                                                               structuredDataSource1.isSinkTopic());
 
     metaStore.putSource(structuredDataSource2);
     StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");

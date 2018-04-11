@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +18,27 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("streams")
-@JsonSubTypes({})
-public class StreamsList extends KsqlEntity {
+@JsonTypeName("source_descriptions")
+public class SourceDescriptionList extends KsqlEntity {
 
-  private final Collection<SourceInfo.Stream> streams;
+  private final List<SourceDescription> sourceDescriptions;
 
   @JsonCreator
-  public StreamsList(
+  public SourceDescriptionList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("streams") Collection<SourceInfo.Stream> streams
+      @JsonProperty("sourceDescriptions") List<SourceDescription> sourceDescriptions
   ) {
     super(statementText);
-    this.streams = streams;
+    this.sourceDescriptions = sourceDescriptions;
   }
 
-  public List<SourceInfo.Stream> getStreams() {
-    return new ArrayList<>(streams);
+  public List<SourceDescription> getSourceDescriptions() {
+    return sourceDescriptions;
   }
 
   @Override
@@ -50,15 +46,15 @@ public class StreamsList extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StreamsList)) {
+    if (!(o instanceof SourceDescriptionList)) {
       return false;
     }
-    StreamsList that = (StreamsList) o;
-    return Objects.equals(getStreams(), that.getStreams());
+    SourceDescriptionList that = (SourceDescriptionList) o;
+    return Objects.equals(sourceDescriptions, that.sourceDescriptions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStreams());
+    return Objects.hash(sourceDescriptions);
   }
 }

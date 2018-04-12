@@ -43,7 +43,6 @@ import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
@@ -92,7 +91,6 @@ public class LogicalPlanner {
 
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
     final TimestampExtractionPolicy extractionPolicy = getTimestampExtractionPolicy(
-        sourcePlanNode,
         inputSchema,
         intoProperties);
     if (intoDataSource instanceof KsqlStdOut) {
@@ -121,20 +119,13 @@ public class LogicalPlanner {
   }
 
   private TimestampExtractionPolicy getTimestampExtractionPolicy(
-      final PlanNode sourcePlanNode,
       final Schema inputSchema,
       final Map<String, Object> intoProperties) {
 
-    final TimestampExtractionPolicy extractionPolicy
-        = TimestampExtractionPolicyFactory.create(inputSchema,
+    return TimestampExtractionPolicyFactory.create(
+        inputSchema,
         (String) intoProperties.get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME),
         (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
-
-    if (extractionPolicy instanceof MetadataTimestampExtractionPolicy) {
-      return sourcePlanNode.getTheSourceNode().getTimestampExtractionPolicy();
-    }
-
-    return extractionPolicy;
   }
 
   private AggregateNode buildAggregateNode(

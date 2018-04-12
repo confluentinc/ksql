@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.StreamingOutput;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -115,6 +114,7 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
+      queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }
 

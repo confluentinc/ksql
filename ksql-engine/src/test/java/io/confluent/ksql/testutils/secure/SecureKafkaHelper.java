@@ -20,12 +20,13 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
-import org.apache.kafka.common.security.plain.PlainSaslServer;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public final class SecureKafkaHelper {
+
+  private static final String PLAIN_SASL_MECHANISM = "PLAIN";
 
   private SecureKafkaHelper() {
   }
@@ -44,7 +45,7 @@ public final class SecureKafkaHelper {
 
   public static void addSecureCredentialsToConfig(final Map<String, Object> props) {
     props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name);
-    props.put(SaslConfigs.SASL_MECHANISM, PlainSaslServer.PLAIN_MECHANISM);
+    props.put(SaslConfigs.SASL_MECHANISM, PLAIN_SASL_MECHANISM);
   }
 
   public static String buildJaasConfig(final Credentials credentials) {

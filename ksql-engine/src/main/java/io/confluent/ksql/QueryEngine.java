@@ -210,7 +210,7 @@ class QueryEngine {
       }
     }
     DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
-    return ksqlEngine.getDdlCommandExec().execute(command);
+    return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {

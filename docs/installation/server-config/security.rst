@@ -218,10 +218,6 @@ Consumer groups
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``ksql_``.
 
-Learn More
-    See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__
-    and try out the :ref:`Monitoring Kafka streaming ETL deployments <cp-demo>` tutorial.
-
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
 ----------------------------------------------
@@ -245,3 +241,7 @@ with |c3-short|.
     confluent.monitoring.interceptor.ssl.key.password=confluent
     confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="ksql-user" password="ksql-user-secret";
     confluent.monitoring.interceptor.sasl.mechanism=PLAIN
+
+Learn More
+    See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__
+    and try out the :ref:`Monitoring Kafka streaming ETL deployments <cp-demo>` tutorial.

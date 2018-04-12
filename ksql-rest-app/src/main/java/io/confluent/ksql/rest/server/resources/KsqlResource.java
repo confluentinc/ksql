@@ -220,20 +220,10 @@ public class KsqlResource {
         || statement instanceof CreateAsSelect
         || statement instanceof InsertInto
         || statement instanceof TerminateQuery) {
-      Statement statementWithFields = statement;
-      String statementTextWithFields = statementText;
-      if (statement instanceof AbstractStreamCreateStatement) {
-        AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
-            statement;
-        Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-            maybeAddFieldsFromSchemaRegistry(streamCreateStatement, streamsProperties);
-
-        if (avroCheckResult.getRight() != null) {
-          statementWithFields = avroCheckResult.getLeft();
-          statementTextWithFields = avroCheckResult.getRight();
-        }
-      }
-      getStatementExecutionPlan(statementWithFields, statementTextWithFields, streamsProperties);
+      Pair<Statement, String> statementWithText = maybeAddFieldsFromSchemaRegistry(
+          statement, statementText, streamsProperties);
+      getStatementExecutionPlan(
+          null, statementWithText.getLeft(), statementWithText.getRight(), streamsProperties);
     } else {
       throw new KsqlRestException(
           Errors.badStatement(
@@ -301,7 +291,10 @@ public class KsqlResource {
                || statement instanceof InsertInto
                || statement instanceof TerminateQuery
     ) {
-      return distributeStatement(statementText, statement, streamsProperties);
+      Pair<Statement, String> statementWithText = maybeAddFieldsFromSchemaRegistry(
+          statement, statementText, streamsProperties);
+      return distributeStatement(
+          statementWithText.getRight(), statementWithText.getLeft(), streamsProperties);
     }
     // This line is unreachable. Once we have distinct exception types we won't need a
     // separate validation phase for each statement and this can go away. For now all
@@ -654,16 +647,23 @@ public class KsqlResource {
     }
   }
 
-  private Pair<AbstractStreamCreateStatement, String> maybeAddFieldsFromSchemaRegistry(
-      AbstractStreamCreateStatement streamCreateStatement,
+  private Pair<Statement, String> maybeAddFieldsFromSchemaRegistry(
+      Statement statement,
+      String statementText,
       Map<String, Object> streamsProperties
   ) {
-    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(
-            streamCreateStatement,
-            streamsProperties,
-            ksqlEngine.getSchemaRegistryClient()
-        );
-    return avroCheckResult;
+    if (statement instanceof AbstractStreamCreateStatement) {
+      AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
+          statement;
+      Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+          new AvroUtil().checkAndSetAvroSchema(
+              streamCreateStatement,
+              streamsProperties,
+              ksqlEngine.getSchemaRegistryClient());
+      if (avroCheckResult.getRight() != null) {
+        return new Pair<>(avroCheckResult.getLeft(), avroCheckResult.getRight());
+      }
+    }
+    return new Pair<>(statement, statementText);
   }
 }

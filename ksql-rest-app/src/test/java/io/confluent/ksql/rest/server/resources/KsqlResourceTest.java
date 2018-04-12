@@ -17,6 +17,13 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -167,9 +174,15 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
+      return get(ksqlEngine, restConfig, commandStore, statementExecutor);
+    }
 
+    public static KsqlResource get(KsqlEngine ksqlEngine,
+                                   KsqlRestConfig restConfig,
+                                   CommandStore commandStore,
+                                   StatementExecutor statementExecutor) {
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
       return new KsqlResource(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
@@ -598,9 +611,30 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldCreateTableWithInference() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
-                              + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+        + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+    final String ksqlStringWithSchema =
+        "CREATE TABLE ORDERS " +
+            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID VARCHAR, ORDERUNITS DOUBLE, " +
+            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR,DOUBLE>) " +
+            "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
+            "AVRO_SCHEMA_ID='1', KEY='orderid');";
+
+    CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
+    CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId, (x) -> {});
+    commandStatusFuture.complete(
+        new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    CommandStore commandStore = EasyMock.mock(CommandStore.class);
+    EasyMock.expect(commandStore.distributeStatement(
+        EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
+        EasyMock.anyObject(Map.class))).andReturn(commandId);
+    StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
+    EasyMock.expect(
+        statementExecutor.registerQueuedStatement(commandId)).andReturn(commandStatusFuture);
+    EasyMock.replay(commandStore, statementExecutor);
+
+    KsqlResource testResource = TestKsqlResourceUtil.get(
+        ksqlEngine, ksqlRestConfig, commandStore, statementExecutor);
 
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
@@ -611,6 +645,8 @@ public class KsqlResourceTest {
     assertThat(
         commandStatusEntity.getCommandId().getType().name().toUpperCase(),
         equalTo("TABLE"));
+
+    EasyMock.verify(commandStore, statementExecutor);
   }
 
   @Test

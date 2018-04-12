@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,22 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.rest.entity;
+package io.confluent.ksql.rest.server.resources;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import javax.ws.rs.core.Response;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-/**
- * Utility class to prevent type erasure from stripping annotation information from KsqlEntity
- * instances in a list
+/*
+ * "Exception" used to conveniently return an error response from an
+ * internal function call of a resource
  */
-@JsonSubTypes({})
-public class KsqlEntityList extends ArrayList<KsqlEntity> {
-  public KsqlEntityList() {
+public class KsqlRestException extends RuntimeException {
+  Response response;
+
+  public KsqlRestException(Response response) {
+    this.response = response;
   }
 
-  public KsqlEntityList(Collection<? extends KsqlEntity> c) {
-    super(c);
+  public Response getResponse() {
+    return response;
   }
 }

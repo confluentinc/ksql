@@ -21,18 +21,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 
 import java.util.Objects;
 
 @JsonSubTypes({})
 public class StreamedRow {
   private final GenericRow row;
-  private final ErrorMessage errorMessage;
+  private final KsqlErrorMessage errorMessage;
 
   @JsonCreator
   public StreamedRow(
       @JsonProperty("row") GenericRow row,
-      @JsonProperty("errorMessage") ErrorMessage errorMessage
+      @JsonProperty("errorMessage") KsqlErrorMessage errorMessage
   ) {
     if ((row == null) == (errorMessage == null)) {
       throw new IllegalArgumentException("Exactly one of row and error message must be null");
@@ -46,14 +47,14 @@ public class StreamedRow {
   }
 
   public StreamedRow(Throwable exception) {
-    this(null, new ErrorMessage(exception));
+    this(null, new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception));
   }
 
   public GenericRow getRow() {
     return row;
   }
 
-  public ErrorMessage getErrorMessage() {
+  public KsqlErrorMessage getErrorMessage() {
     return errorMessage;
   }
 

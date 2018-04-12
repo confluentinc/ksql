@@ -57,7 +57,7 @@ public class StatusResource {
     Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 
     if (!commandStatus.isPresent()) {
-      throw new Exception("Command not found");
+      return Errors.notFound("Command not found");
     }
 
     return Response.ok(commandStatus.get()).build();

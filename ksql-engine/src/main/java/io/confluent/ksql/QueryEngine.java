@@ -137,7 +137,7 @@ class QueryEngine {
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
-  ) throws Exception {
+  ) {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
@@ -171,7 +171,7 @@ class QueryEngine {
       final Pair<String, PlanNode> statementPlanPair,
       final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
-  ) throws Exception {
+  ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
 

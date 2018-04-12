@@ -21,6 +21,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -168,7 +169,9 @@ public class PhysicalPlanBuilderTest {
   public void shouldCreateExecutionPlanForInsert() throws Exception {
     String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
+                       + "col2 FROM "
+                       + "test1;";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
@@ -186,6 +189,11 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
     Assert.assertEquals(lines[1], "\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
     Assert.assertEquals(lines[2], "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : STRING , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : FLOAT64].");
+    assertThat(queryMetadataList.get(1).getOutputNode(), instanceOf(KsqlStructuredDataOutputNode.class));
+    KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
+        queryMetadataList.get(1).getOutputNode();
+    assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
+               equalTo(DataSource.DataSourceSerDe.DELIMITED));
   }
 
   @Test

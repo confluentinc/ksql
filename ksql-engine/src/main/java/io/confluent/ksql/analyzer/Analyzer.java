@@ -129,34 +129,44 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       intoKafkaTopicName = intoStructuredDataSource.getName();
     }
 
-    KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
-        .getKsqlTopicSerDe();
-    if (analysis.getIntoFormat() != null) {
-      switch (analysis.getIntoFormat().toUpperCase()) {
-        case DataSource.AVRO_SERDE_NAME:
+    KsqlTopic newIntoKsqlTopic;
+    if (doCreateInto) {
+      KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
+          .getKsqlTopicSerDe();
+      if (analysis.getIntoFormat() != null) {
+        switch (analysis.getIntoFormat().toUpperCase()) {
+          case DataSource.AVRO_SERDE_NAME:
+            intoTopicSerde = new KsqlAvroTopicSerDe();
+            break;
+          case DataSource.JSON_SERDE_NAME:
+            intoTopicSerde = new KsqlJsonTopicSerDe();
+            break;
+          case DataSource.DELIMITED_SERDE_NAME:
+            intoTopicSerde = new KsqlDelimitedTopicSerDe();
+            break;
+          default:
+            throw new KsqlException(
+                String.format("Unsupported format: %s", analysis.getIntoFormat()));
+        }
+      } else {
+        if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
           intoTopicSerde = new KsqlAvroTopicSerDe();
-          break;
-        case DataSource.JSON_SERDE_NAME:
-          intoTopicSerde = new KsqlJsonTopicSerDe();
-          break;
-        case DataSource.DELIMITED_SERDE_NAME:
-          intoTopicSerde = new KsqlDelimitedTopicSerDe();
-          break;
-        default:
-          throw new KsqlException(
-              String.format("Unsupported format: %s", analysis.getIntoFormat()));
+        }
       }
+
+      newIntoKsqlTopic = new KsqlTopic(
+          intoKafkaTopicName,
+          intoKafkaTopicName,
+          intoTopicSerde
+      );
     } else {
-      if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-        intoTopicSerde = new KsqlAvroTopicSerDe();
+      newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);
+      if (newIntoKsqlTopic == null) {
+        throw new KsqlException(
+            "Sink topic " + intoKafkaTopicName + " does not exist in th e metastore.");
       }
     }
 
-    KsqlTopic newIntoKsqlTopic = new KsqlTopic(
-        intoKafkaTopicName,
-        intoKafkaTopicName,
-        intoTopicSerde
-    );
     KsqlStream intoKsqlStream = new KsqlStream(
         sqlExpression,
         intoStructuredDataSource.getName(),

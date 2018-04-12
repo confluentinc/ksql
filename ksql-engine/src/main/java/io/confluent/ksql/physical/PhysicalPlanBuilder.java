@@ -113,8 +113,7 @@ public class PhysicalPlanBuilder {
   }
 
 
-  public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair)
-      throws Exception {
+  public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) {
     final SchemaKStream resultStream = statementPlanPair
         .getRight()
         .buildStream(
@@ -132,7 +131,7 @@ public class PhysicalPlanBuilder {
     // important to do this BEFORE actually starting up
     // the corresponding Kafka Streams job
     if (isBareQuery && !(resultStream instanceof QueuedSchemaKStream)) {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Mismatch between logical and physical output; "
           + "expected a QueuedSchemaKStream based on logical "
           + "KsqlBareOutputNode, found a %s instead",

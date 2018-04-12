@@ -192,7 +192,8 @@ public class StreamsSelectAndProjectIntTest {
   public void shouldUseTimestampExtractedFromDDLStatement() throws Exception {
     final String outputStream = "DDL_TIMESTAMP";
     ksqlContext.sql("CREATE STREAM "+  outputStream
-        + " AS SELECT ORDERID, TIMESTAMP FROM "
+        + " WITH(timestamp='ordertime')"
+        + " AS SELECT ORDERID, ORDERTIME FROM "
         + avroTimestampStreamName
         + " WHERE ITEMID='ITEM_4';");
 

@@ -90,4 +90,8 @@ public abstract class OutputNode
     return timestampExtractionPolicy;
   }
 
+  public TimestampExtractionPolicy getSourceTimestampExtractionPolicy() {
+    return source.getTheSourceNode().getTimestampExtractionPolicy();
+  }
+
 }

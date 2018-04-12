@@ -135,7 +135,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     createSinkTopic(noRowKey.getKafkaTopicName(),
                     ksqlConfig,
                     kafkaTopicClient,
-                    shoulBeCompacted(result));
+                    shouldBeCompacted(result));
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -151,11 +151,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private boolean shoulBeCompacted(SchemaKStream result) {
+  private boolean shouldBeCompacted(SchemaKStream result) {
     return (result instanceof SchemaKTable)
            && !((SchemaKTable) result).isWindowed();
   }
 
+  @SuppressWarnings("unchecked")
   private SchemaKStream createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,

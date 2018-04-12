@@ -337,7 +337,7 @@ public class PhysicalPlanBuilder {
 
     final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
     if (timestampIndex != null && timestampIndex >= 0) {
-      outputNode.getTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
+      outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
 
     updateListProperty(

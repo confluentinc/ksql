@@ -125,7 +125,7 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getId().toString(),
               ksqlStructuredDataOutputNode.getSchema(),
               ksqlStructuredDataOutputNode.getKeyField(),
-              getTimestampExtractionPolicy(ksqlStructuredDataOutputNode),
+              ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
 

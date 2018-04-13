@@ -349,6 +349,14 @@ public class KsqlEngine implements Closeable {
                                               + "statement.", insertInto.getTarget().getSuffix()
             .toString()));
       }
+
+      if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()
+          != DataSource.DataSourceType.KSTREAM) {
+        throw new KsqlException(String.format("INSERT INTO can only be used to insert into a "
+                                              + "stream. %s is a table.",
+                                              insertInto.getTarget().getSuffix()));
+      }
+
       QuerySpecification querySpecification =
           (QuerySpecification) insertInto.getQuery().getQueryBody();
 

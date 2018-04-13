@@ -17,12 +17,12 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 40
-      :end-line: 79
+      :start-line: 42
+      :end-line: 81
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 80 
-      :end-line: 317
+      :start-line: 82
+      :end-line: 327
 
 Confluent Platform
 ------------------

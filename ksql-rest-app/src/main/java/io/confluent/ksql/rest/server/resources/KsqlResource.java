@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
@@ -113,7 +114,6 @@ import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
@@ -186,6 +186,19 @@ public class KsqlResource {
     return Response.ok(result).build();
   }
 
+  private Statement maybeAddFieldsFromSchemaRegistry(
+      Statement statement,
+      Map<String, Object> streamsProperties
+  ) {
+    if (statement instanceof AbstractStreamCreateStatement) {
+      return AvroUtil.checkAndSetAvroSchema(
+          (AbstractStreamCreateStatement)statement,
+          streamsProperties,
+          ksqlEngine.getSchemaRegistryClient());
+    }
+    return statement;
+  }
+
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,
       final Map<String, Object> streamsProperties) {
@@ -220,10 +233,13 @@ public class KsqlResource {
         || statement instanceof CreateAsSelect
         || statement instanceof InsertInto
         || statement instanceof TerminateQuery) {
-      Pair<Statement, String> statementWithText = maybeAddFieldsFromSchemaRegistry(
-          statement, statementText, streamsProperties);
+      Statement statementWithSchema = maybeAddFieldsFromSchemaRegistry(
+          statement, streamsProperties);
       getStatementExecutionPlan(
-          null, statementWithText.getLeft(), statementWithText.getRight(), streamsProperties);
+          null, statementWithSchema,
+          statementWithSchema == statement
+              ? statementText : SqlFormatter.formatSql(statementWithSchema),
+          streamsProperties);
     } else {
       throw new KsqlRestException(
           Errors.badStatement(
@@ -291,10 +307,12 @@ public class KsqlResource {
                || statement instanceof InsertInto
                || statement instanceof TerminateQuery
     ) {
-      Pair<Statement, String> statementWithText = maybeAddFieldsFromSchemaRegistry(
-          statement, statementText, streamsProperties);
+      Statement statementWithSchema = maybeAddFieldsFromSchemaRegistry(
+          statement, streamsProperties);
       return distributeStatement(
-          statementWithText.getRight(), statementWithText.getLeft(), streamsProperties);
+          statementWithSchema == statement
+              ? statementText : SqlFormatter.formatSql(statementWithSchema),
+          statement, streamsProperties);
     }
     // This line is unreachable. Once we have distinct exception types we won't need a
     // separate validation phase for each statement and this can go away. For now all
@@ -645,25 +663,5 @@ public class KsqlResource {
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
-  }
-
-  private Pair<Statement, String> maybeAddFieldsFromSchemaRegistry(
-      Statement statement,
-      String statementText,
-      Map<String, Object> streamsProperties
-  ) {
-    if (statement instanceof AbstractStreamCreateStatement) {
-      AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
-          statement;
-      Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-          new AvroUtil().checkAndSetAvroSchema(
-              streamCreateStatement,
-              streamsProperties,
-              ksqlEngine.getSchemaRegistryClient());
-      if (avroCheckResult.getRight() != null) {
-        return new Pair<>(avroCheckResult.getLeft(), avroCheckResult.getRight());
-      }
-    }
-    return new Pair<>(statement, statementText);
   }
 }

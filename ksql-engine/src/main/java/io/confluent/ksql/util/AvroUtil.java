@@ -31,7 +31,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -42,7 +41,7 @@ public class AvroUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
 
-  public Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(
+  public static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Map<String, Object> streamsProperties,
       final SchemaRegistryClient schemaRegistryClient
@@ -60,7 +59,7 @@ public class AvroUtil {
         ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
     );
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-      return new Pair<>(abstractStreamCreateStatement, null);
+      return abstractStreamCreateStatement;
     }
 
     String kafkaTopicName = StringUtil.cleanQuotes(
@@ -83,12 +82,9 @@ public class AvroUtil {
             schema,
             schemaMetadata.getId()
         );
-        return new Pair<>(
-            abstractStreamCreateStatementCopy,
-            SqlFormatter.formatSql(abstractStreamCreateStatementCopy)
-        );
+        return abstractStreamCreateStatementCopy;
       } else {
-        return new Pair<>(abstractStreamCreateStatement, null);
+        return abstractStreamCreateStatement;
       }
     } catch (Exception e) {
       String errorMessage = String.format(
@@ -99,7 +95,7 @@ public class AvroUtil {
     }
   }
 
-  private SchemaMetadata fetchSchemaMetadata(
+  private static SchemaMetadata fetchSchemaMetadata(
       AbstractStreamCreateStatement abstractStreamCreateStatement,
       SchemaRegistryClient schemaRegistryClient,
       String kafkaTopicName
@@ -136,7 +132,7 @@ public class AvroUtil {
     }
   }
 
-  private AbstractStreamCreateStatement addAvroFields(
+  private static AbstractStreamCreateStatement addAvroFields(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Schema schema,
       int schemaId
@@ -158,7 +154,7 @@ public class AvroUtil {
   }
 
 
-  public void validatePersistentQueryResults(
+  public static void validatePersistentQueryResults(
       final PersistentQueryMetadata persistentQueryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -183,7 +179,7 @@ public class AvroUtil {
   }
 
 
-  private boolean isValidAvroSchemaForTopic(
+  private static boolean isValidAvroSchemaForTopic(
       final String topicName,
       final String avroSchemaString,
       final SchemaRegistryClient schemaRegistryClient

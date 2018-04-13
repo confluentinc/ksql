@@ -195,7 +195,6 @@ class QueryEngine {
         ksqlEngine.getMetaStore(),
         ksqlEngine.getSchemaRegistryClient()
     );
-
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }
 

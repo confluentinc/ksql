@@ -623,9 +623,8 @@ public class KsqlResourceTest {
             ksqlQueryString,
             overriddenProperties).get(0);
 
-    final String ksqlString = "EXPLAIN " + queryMetadata.getId() + ";";
-    Response response = handleKsqlStatements(
-        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
+    final String ksqlString = "EXPLAIN " + queryMetadata.getQueryId() + ";";
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
     KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Response should have 1 entity", result.size(), equalTo(1));
     validateQueryDescription(queryMetadata, overriddenProperties, result.get(0));

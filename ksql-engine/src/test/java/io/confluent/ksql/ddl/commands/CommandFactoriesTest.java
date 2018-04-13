@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;

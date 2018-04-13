@@ -49,7 +49,7 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.planner.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;

@@ -272,11 +272,13 @@ public class PhysicalPlanBuilder {
 
     return new PersistentQueryMetadata(
         statement,
-        streams, outputNode, schemaKStream
-            .getExecutionPlan(""), queryId,
-        (schemaKStream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE
-            : DataSource.DataSourceType.KSTREAM,
+        streams,
+        outputNode,
+        sinkDataSource,
+        schemaKStream.getExecutionPlan(""),
+        queryId,
+        (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
+                                                : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
         sinkDataSource.getKsqlTopic(),

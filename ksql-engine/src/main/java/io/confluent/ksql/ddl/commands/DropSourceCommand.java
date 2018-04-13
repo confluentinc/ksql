@@ -34,8 +34,8 @@ public class DropSourceCommand implements DdlCommand {
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
       final DataSource.DataSourceType dataSourceType,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
+      final SchemaRegistryClient schemaRegistryClient) {
+
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
     this.schemaRegistryClient = schemaRegistryClient;
@@ -56,8 +56,8 @@ public class DropSourceCommand implements DdlCommand {
     }
     DropTopicCommand dropTopicCommand =
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
-    dropTopicCommand.run(metaStore, isValidatePhase);
     metaStore.deleteSource(sourceName);
+    dropTopicCommand.run(metaStore, isValidatePhase);
     if (!isValidatePhase && dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
                             == DataSource.DataSourceSerDe.AVRO) {
       try {

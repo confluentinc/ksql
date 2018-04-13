@@ -26,10 +26,10 @@
 
       ],
       "outputs": [
-        {"topic": "LEFT_JOIN", "key": 0, "value": "0,blah,50,zero,0", "timestamp": 0},
-        {"topic": "LEFT_JOIN", "key": 0, "value": "0,foo,100,zero,0", "timestamp": 0},
-        {"topic": "LEFT_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 0},
-        {"topic": "LEFT_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 0}
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,blah,50,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,foo,100,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 15000},
+        {"topic": "LEFT_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 15000}
       ]
     }
   ]

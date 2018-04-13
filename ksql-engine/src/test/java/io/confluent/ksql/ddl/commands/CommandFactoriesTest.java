@@ -125,7 +125,7 @@ public class CommandFactoriesTest {
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true,
@@ -141,7 +141,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldFailCreateTableIfKeyIsNotProvided() {
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true, properties),

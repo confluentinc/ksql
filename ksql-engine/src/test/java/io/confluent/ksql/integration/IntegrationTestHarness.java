@@ -9,15 +9,19 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -168,12 +172,7 @@ public class IntegrationTestHarness {
 
     Map<K, GenericRow> result = new HashMap<>();
 
-    Properties consumerConfig = new Properties();
-    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
-                       CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
-    consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    Properties consumerConfig = consumerConfig();
 
     try (KafkaConsumer<K, GenericRow> consumer
              = new KafkaConsumer<>(consumerConfig,
@@ -202,6 +201,46 @@ public class IntegrationTestHarness {
     return result;
   }
 
+  public List<ConsumerRecord> consumerRecords(final String topic,
+                                              final int expectedNumMessages,
+                                              final long resultsPollMaxTimeMs) {
+
+    final List<ConsumerRecord> results = new ArrayList<>();
+    try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(),
+        new StringDeserializer(),
+        new ByteArrayDeserializer())) {
+      consumer.subscribe(Collections.singleton(topic.toUpperCase()));
+      long pollStart = System.currentTimeMillis();
+      long pollEnd = pollStart + resultsPollMaxTimeMs;
+      while (System.currentTimeMillis() < pollEnd &&
+          continueConsuming(results.size(), expectedNumMessages)) {
+        for (ConsumerRecord<String, byte[]> record :
+            consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+          if (record.value() != null) {
+            results.add(record);
+          }
+        }
+      }
+
+      for (ConsumerRecord<String, byte[]> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+        if (record.value() != null) {
+          results.add(record);
+        }
+      }
+    }
+    return results;
+
+  }
+
+  private Properties consumerConfig() {
+    Properties consumerConfig = new Properties();
+    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
+                       CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
+    consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    return consumerConfig;
+  }
   private static boolean continueConsuming(int messagesConsumed, int maxMessages) {
     return maxMessages < 0 || messagesConsumed < maxMessages;
   }

@@ -320,7 +320,6 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStoreForParser
@@ -330,7 +329,6 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStore
@@ -341,7 +339,6 @@ public class KsqlEngine implements Closeable {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStoreForParser
@@ -350,7 +347,6 @@ public class KsqlEngine implements Closeable {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStore

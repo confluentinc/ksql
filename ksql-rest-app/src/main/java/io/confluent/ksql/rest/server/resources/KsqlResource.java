@@ -585,7 +585,6 @@ public class KsqlResource {
           new CreateStreamCommand(
               statementText,
               (CreateStream) statement,
-              properties,
               ksqlEngine.getTopicClient(),
               true
           );
@@ -598,7 +597,6 @@ public class KsqlResource {
           new CreateTableCommand(
               statementText,
               (CreateTable) statement,
-              properties,
               ksqlEngine.getTopicClient(),
               true
           );

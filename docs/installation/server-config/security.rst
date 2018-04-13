@@ -53,13 +53,14 @@ are signed. For more information, see :ref:`schemaregistry_security`.
 
 .. _config-security-kafka:
 
-Configuration KSQL for Secured Apache Kafka clusters
-----------------------------------------------------
+Configuring KSQL for Secured Apache Kafka clusters
+--------------------------------------------------
 
 The following are common configuration examples.
 
 .. _config-security-ssl:
 
+-----------------------------------------
 Configuring Kafka Encrypted Communication
 -----------------------------------------
 
@@ -94,30 +95,6 @@ signed by a CA trusted by the default JVM trust store.
 
 The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
 signed. For more information, see the :ref:`Security Guide <security>`.
-
-----------------------------------------------
-Configuring |c3-short| Monitoring Interceptors
-----------------------------------------------
-
-This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
-with |c3-short|.
-
-
-.. code:: bash
-
-    # Confluent Monitoring Interceptors for Control Center streams monitoring
-    producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
-    consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
-
-    # Confluent Monitoring interceptors SASL / SSL config
-    confluent.monitoring.interceptor.security.protocol=SASL_SSL
-    confluent.monitoring.interceptor.ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
-    confluent.monitoring.interceptor.ssl.truststore.password=confluent
-    confluent.monitoring.interceptor.ssl.keystore.location=/etc/kafka/secrets/kafka.client.keystore.jks
-    confluent.monitoring.interceptor.ssl.keystore.password=confluent
-    confluent.monitoring.interceptor.ssl.key.password=confluent
-    confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="ksql-user" password="ksql-user-secret";
-    confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 
 .. _config-security-ksql-acl:
 
@@ -241,7 +218,30 @@ Consumer groups
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``ksql_``.
 
+----------------------------------------------
+Configuring |c3-short| Monitoring Interceptors
+----------------------------------------------
+
+This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
+with |c3-short|.
+
+
+.. code:: bash
+
+    # Confluent Monitoring Interceptors for Control Center streams monitoring
+    producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
+    consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
+
+    # Confluent Monitoring interceptors SASL / SSL config
+    confluent.monitoring.interceptor.security.protocol=SASL_SSL
+    confluent.monitoring.interceptor.ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+    confluent.monitoring.interceptor.ssl.truststore.password=confluent
+    confluent.monitoring.interceptor.ssl.keystore.location=/etc/kafka/secrets/kafka.client.keystore.jks
+    confluent.monitoring.interceptor.ssl.keystore.password=confluent
+    confluent.monitoring.interceptor.ssl.key.password=confluent
+    confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="ksql-user" password="ksql-user-secret";
+    confluent.monitoring.interceptor.sasl.mechanism=PLAIN
+
 Learn More
     See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__
     and try out the :ref:`Monitoring Kafka streaming ETL deployments <cp-demo>` tutorial.
-

@@ -345,7 +345,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                 new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
             )
         ),
-        Collections.emptyMap(),
         ksqlEngine.getTopicClient(),
         true
     ), false);

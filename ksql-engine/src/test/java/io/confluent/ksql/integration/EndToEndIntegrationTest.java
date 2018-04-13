@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -272,7 +273,9 @@ public class EndToEndIntegrationTest {
 
     executeStatement(createStreamStatement);
 
-    executeStatement("DROP STREAM cart_event_product;");
+    ksqlEngine.terminateQuery(new QueryId("CSAS_CART_EVENT_PRODUCT"), true);
+
+    executeStatement("DROP STREAM CART_EVENT_PRODUCT;");
 
     executeStatement(createStreamStatement);
 

@@ -213,7 +213,8 @@ public class FunctionRegistry {
     if (aggregateFunctionFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema, this);
+    ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, this);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
     return aggregateFunctionFactory.getProperAggregateFunction(Arrays.asList(expressionType));
   }

@@ -56,7 +56,7 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
+
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -202,6 +202,7 @@ public class PhysicalPlanBuilder {
     ));
 
     KafkaStreams streams = buildStreams(
+        bareOutputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -246,7 +247,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
@@ -259,7 +260,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic()
           );
 
@@ -276,6 +277,7 @@ public class PhysicalPlanBuilder {
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(
+        outputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -286,11 +288,13 @@ public class PhysicalPlanBuilder {
 
     return new PersistentQueryMetadata(
         statement,
-        streams, outputNode, schemaKStream
-            .getExecutionPlan(""), queryId,
-        (schemaKStream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE
-            : DataSource.DataSourceType.KSTREAM,
+        streams,
+        outputNode,
+        sinkDataSource,
+        schemaKStream.getExecutionPlan(""),
+        queryId,
+        (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
+                                                : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
         sinkDataSource.getKsqlTopic(),
@@ -356,6 +360,7 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
+      final OutputNode outputNode,
       final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
@@ -376,14 +381,12 @@ public class PhysicalPlanBuilder {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
         ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
     );
-    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(
-          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX)
-      );
-      newStreamsProperties.put(
-          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+
+    final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    if (timestampIndex != null && timestampIndex >= 0) {
+      outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
+
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),

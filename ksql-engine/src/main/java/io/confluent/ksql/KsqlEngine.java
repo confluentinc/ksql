@@ -95,7 +95,6 @@ public class KsqlEngine implements Closeable {
   );
 
   private final KsqlConfig ksqlConfig;
-
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
   private final DdlCommandExec ddlCommandExec;
@@ -103,12 +102,9 @@ public class KsqlEngine implements Closeable {
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
   private final Set<QueryMetadata> allLiveQueries;
-
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
-
   private final FunctionRegistry functionRegistry;
-
   private SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
 
@@ -245,7 +241,10 @@ public class KsqlEngine implements Closeable {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         livePersistentQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
+        persistentQueries.put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
+        metaStore.updateForPersistentQuery(persistentQueryMetadata.getQueryId().getId(),
+                                           persistentQueryMetadata.getSourceNames(),
+                                           persistentQueryMetadata.getSinkNames());
       }
       allLiveQueries.add(queryMetadata);
     }
@@ -308,7 +307,7 @@ public class KsqlEngine implements Closeable {
       }
       return queryList;
     } catch (Exception e) {
-      throw new ParseFailedException("Parsing failed on KsqlEngine msg:" + e.getMessage(), e);
+      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
     }
   }
 
@@ -407,7 +406,6 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStoreForParser
@@ -417,7 +415,6 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStore
@@ -428,7 +425,6 @@ public class KsqlEngine implements Closeable {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStoreForParser
@@ -437,7 +433,6 @@ public class KsqlEngine implements Closeable {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               false),
           tempMetaStore
@@ -550,6 +545,7 @@ public class KsqlEngine implements Closeable {
     }
     livePersistentQueries.remove(persistentQueryMetadata);
     allLiveQueries.remove(persistentQueryMetadata);
+    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
       persistentQueryMetadata.close();
       persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);

@@ -420,6 +420,6 @@ public class SecureIntegrationTest {
         .buildMultipleQueries(query, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
-    queryId = ((PersistentQueryMetadata) queryMetadata).getId();
+    queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
   }
 }

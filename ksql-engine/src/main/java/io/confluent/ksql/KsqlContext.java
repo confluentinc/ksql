@@ -116,7 +116,7 @@ public class KsqlContext {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.getKafkaStreams().start();
         ksqlEngine.getPersistentQueries()
-            .put(persistentQueryMetadata.getId(), persistentQueryMetadata);
+            .put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
       } else {
         System.err.println("Ignoring statemenst: " + sql);
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");

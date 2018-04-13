@@ -183,11 +183,12 @@ public class QueryTranslationTest {
     void verifyOutput(final TopologyTestDriver testDriver) {
       for (final Record expectedOutput : expectedOutputs) {
         try {
-          OutputVerifier.compareKeyValue(testDriver.readOutput(expectedOutput.topic,
+          OutputVerifier.compareKeyValueTimestamp(testDriver.readOutput(expectedOutput.topic,
               expectedOutput.keyDeserializer(),
               Serdes.String().deserializer()),
               expectedOutput.key(),
-              expectedOutput.value);
+              expectedOutput.value,
+              expectedOutput.timestamp);
         } catch (AssertionError assertionError) {
           throw new AssertionError("Query name: "
               + name
@@ -277,7 +278,6 @@ public class QueryTranslationTest {
     query.processInput(testDriver, recordFactory);
     query.verifyOutput(testDriver);
   }
-
 
   private static Record createRecordFromNode(final JsonNode node) {
     return new Record(

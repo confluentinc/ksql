@@ -28,13 +28,11 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,7 +136,6 @@ public class JoinNodeTest {
   public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
-
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
     FunctionRegistry functionRegistry = mock(FunctionRegistry.class);

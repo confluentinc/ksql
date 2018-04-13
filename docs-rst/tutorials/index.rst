@@ -9,7 +9,6 @@ KSQL Tutorials and Examples
     basics-docker
     basics-local
     clickstream-docker
-    clickstream-local
     examples
 
 KSQL Basics
@@ -41,7 +40,6 @@ Clickstream Data Analysis Pipeline
     Get started now with these instructions:
     
     - :ref:`ksql_clickstream-docker`
-    - :ref:`ksql_clickstream-local`
 
 KSQL Examples
     :ref:`These examples <ksql_examples>` provide common KSQL usage operations.

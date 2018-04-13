@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class KsqlTimestampExtractor implements TimestampExtractor, Configurable {
+public class LongTimestampExtractor implements TimestampExtractor, Configurable {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlTimestampExtractor.class);
+  private static final Logger log = LoggerFactory.getLogger(LongTimestampExtractor.class);
 
   private int timestampColumnindex = -1;
 

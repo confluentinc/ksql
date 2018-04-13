@@ -46,22 +46,23 @@ public class CommandFactories implements DdlCommandFactory {
         (sqlExpression, ddlStatement, properties) ->
             new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
-        CreateStream.class, (sqlExpression, ddlStatement, properties) ->
-            new CreateStreamCommand(
-                sqlExpression,
-                (CreateStream) ddlStatement,
-                properties,
-                topicClient,
-                enforceTopicExistence));
+        CreateStream.class,
+        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
+            sqlExpression,
+            (CreateStream) ddlStatement,
+            topicClient,
+            enforceTopicExistence
+        )
+    );
     factories.put(
-        CreateTable.class, (sqlExpression, ddlStatement, properties) ->
-            new CreateTableCommand(
-                sqlExpression,
-                (CreateTable)ddlStatement,
-                properties,
-                topicClient,
-                enforceTopicExistence));
-
+        CreateTable.class,
+        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
+            sqlExpression,
+            (CreateTable) ddlStatement,
+            topicClient,
+            enforceTopicExistence
+        )
+    );
     factories.put(
         DropStream.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(

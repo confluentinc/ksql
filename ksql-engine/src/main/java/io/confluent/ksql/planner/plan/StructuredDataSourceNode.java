@@ -56,6 +56,8 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
 public class StructuredDataSourceNode
@@ -149,11 +151,10 @@ public class StructuredDataSourceNode
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (getTimestampField() != null) {
-      int timestampColumnIndex = getTimeStampColumnIndex();
-      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+    if (!(getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy)) {
+      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+          getTimeStampColumnIndex());
     }
-
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
     Serde<GenericRow> genericRowSerde =
@@ -208,7 +209,7 @@ public class StructuredDataSourceNode
   }
 
   private int getTimeStampColumnIndex() {
-    String timestampFieldName = getTimestampField().name();
+    String timestampFieldName = getTimestampExtractionPolicy().timestampField();
     if (timestampFieldName.contains(".")) {
       for (int i = 2; i < schema.fields().size(); i++) {
         Field field = schema.fields().get(i);
@@ -281,7 +282,7 @@ public class StructuredDataSourceNode
     return structuredDataSource.getDataSourceType();
   }
 
-  public Field getTimestampField() {
-    return structuredDataSource.getTimestampField();
+  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+    return structuredDataSource.getTimestampExtractionPolicy();
   }
 }

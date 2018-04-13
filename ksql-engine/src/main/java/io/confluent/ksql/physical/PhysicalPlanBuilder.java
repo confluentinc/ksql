@@ -54,7 +54,6 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 public class PhysicalPlanBuilder {
 
@@ -190,6 +189,7 @@ public class PhysicalPlanBuilder {
     ));
 
     KafkaStreams streams = buildStreams(
+        bareOutputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -234,7 +234,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
@@ -247,7 +247,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic()
           );
 
@@ -261,6 +261,7 @@ public class PhysicalPlanBuilder {
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(
+        outputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -314,6 +315,7 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
+      final OutputNode outputNode,
       final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
@@ -334,14 +336,12 @@ public class PhysicalPlanBuilder {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
         ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
     );
-    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(
-          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX)
-      );
-      newStreamsProperties.put(
-          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+
+    final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    if (timestampIndex != null && timestampIndex >= 0) {
+      outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
+
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),

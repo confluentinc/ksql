@@ -389,4 +389,16 @@ public class SchemaKStream {
   public void setOutputNode(final OutputNode output) {
     this.output = output;
   }
+
+  public Type getType() {
+    return type;
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return functionRegistry;
+  }
+
+  public SchemaRegistryClient getSchemaRegistryClient() {
+    return schemaRegistryClient;
+  }
 }

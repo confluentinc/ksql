@@ -196,8 +196,9 @@ public class AggregateNode extends PlanNode {
     InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
                                                        getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded =
-        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
+    final SchemaKStream aggregateArgExpanded = maybeSetTheKeyField(
+        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList()),
+        internalSchema);
 
     KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopic()
@@ -365,6 +366,38 @@ public class AggregateNode extends PlanNode {
     }
 
     return schemaBuilder.build();
+  }
+
+  private SchemaKStream maybeSetTheKeyField(SchemaKStream schemaKStream,
+                                            InternalSchema internalSchema) {
+    Map<String, String> fieldsWithNoAlias = internalSchema
+        .getExpressionToInternalColumnNameMap()
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey().contains(".")
+                 ? e.getKey().substring(e.getKey().indexOf(".") + 1)
+                 : e.getKey(),
+            e -> e.getValue()
+        ));
+
+    if (schemaKStream.getKeyField() != null) {
+      String keyFieldName = schemaKStream.getKeyField().name();
+      return new SchemaKStream(schemaKStream.getSchema(),
+                               schemaKStream.getKstream(),
+                               fieldsWithNoAlias
+                                   .containsKey(keyFieldName)
+                               ? new Field(fieldsWithNoAlias.get(keyFieldName),
+                                           schemaKStream.getKeyField().index(),
+                                           schemaKStream.getKeyField().schema()
+                               )
+                               : null,
+                               schemaKStream.getSourceSchemaKStreams(),
+                               schemaKStream.getType(),
+                               schemaKStream.getFunctionRegistry(),
+                               schemaKStream.getSchemaRegistryClient());
+    }
+    return schemaKStream;
   }
 
 

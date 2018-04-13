@@ -64,6 +64,12 @@ public class AggregateNodeTest {
     assertThat(node.topics(), equalTo("[test1]"));
   }
 
+  @Test
+  public void shouldHaveOneSubTopologyIfGroupByKey() {
+    build();
+    final TopologyDescription description = builder.build().describe();
+    assertThat(description.subtopologies().size(), equalTo(1));
+  }
 
   @Test
   public void shouldHaveTwoSubTopologies() {

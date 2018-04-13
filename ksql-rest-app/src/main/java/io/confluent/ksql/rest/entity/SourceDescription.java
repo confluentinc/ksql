@@ -38,6 +38,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @JsonTypeName("description")
 @JsonSubTypes({})
@@ -123,7 +124,8 @@ public class SourceDescription extends KsqlEntity {
             ).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
-        Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(""),
+        Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
+            .map(TimestampExtractionPolicy::timestampField).orElse(""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
         extended,
@@ -174,7 +176,8 @@ public class SourceDescription extends KsqlEntity {
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
             .getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-            .getTimestampField()).map(Field::name).orElse(""),
+            .getTimestampExtractionPolicy()).map(TimestampExtractionPolicy::timestampField)
+            .orElse(""),
         MetricCollectors.getStatsFor(
             outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), false),
         MetricCollectors.getStatsFor(

@@ -54,6 +54,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
 
   @Test
+
   public void shouldBuildSourceNode() {
     build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);

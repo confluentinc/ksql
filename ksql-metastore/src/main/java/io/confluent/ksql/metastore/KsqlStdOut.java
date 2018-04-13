@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public class KsqlStdOut extends StructuredDataSource {
 
@@ -29,7 +30,7 @@ public class KsqlStdOut extends StructuredDataSource {
       final String datasourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final DataSourceType dataSourceType
   ) {
     super(
@@ -37,7 +38,7 @@ public class KsqlStdOut extends StructuredDataSource {
         datasourceName,
         schema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         dataSourceType,
         null
     );
@@ -64,12 +65,17 @@ public class KsqlStdOut extends StructuredDataSource {
   }
 
   @Override
+  public StructuredDataSource copy() {
+    return this;
+  }
+
+  @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     return this;
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+  public StructuredDataSource cloneWithTimeExtractionPolicy(TimestampExtractionPolicy policy) {
     return this;
   }
 

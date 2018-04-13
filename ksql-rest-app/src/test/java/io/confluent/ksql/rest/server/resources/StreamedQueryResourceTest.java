@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.GenericRow;
@@ -30,6 +31,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -55,12 +57,72 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class StreamedQueryResourceTest {
+  @Test
+  public void shouldReturn400OnBadStatement() throws Exception {
+    String queryString = "SELECT * FROM test_stream;";
+
+    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+
+    StatementParser mockStatementParser = mock(StatementParser.class);
+    expect(mockStatementParser.parseSingleStatement(queryString))
+        .andThrow(new IllegalArgumentException("some msg only the parser would use"));
+
+    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
+
+    StreamedQueryResource testResource = new StreamedQueryResource(
+        mockKsqlEngine, mockStatementParser, 1000);
+
+    Response response =
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        errorMessage.getMessage(), containsString("some msg only the parser would use"));
+  }
 
   @Test
-  public void testStreamQuery() throws Throwable {
+  public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
+    String queryString = "SELECT * FROM test_stream;";
+
+    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+
+    StatementParser mockStatementParser = mock(StatementParser.class);
+    expect(mockStatementParser.parseSingleStatement(queryString))
+        .andReturn(mock(Query.class));
+
+    expect(mockKsqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()))
+        .andThrow(new KsqlException("some msg only the engine would use"));
+
+    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
+
+    StreamedQueryResource testResource = new StreamedQueryResource(
+        mockKsqlEngine, mockStatementParser, 1000);
+
+    Response response =
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        errorMessage.getMessage(), containsString("some msg only the engine would use"));
+  }
+
+  @Test
+  public void shouldStreamRowsCorrectly() throws Throwable {
     final AtomicReference<Throwable> threadException = new AtomicReference<>(null);
     final Thread.UncaughtExceptionHandler threadExceptionHandler =
         (thread, exception) -> threadException.compareAndSet(null, exception);

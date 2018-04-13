@@ -23,6 +23,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Assert;
@@ -34,7 +36,9 @@ public class MetaStoreFixture {
 
   public static MetaStore getNewMetaStore() {
 
-    MetaStore metaStore = new MetaStoreImpl();
+    final MetadataTimestampExtractionPolicy timestampExtractionPolicy
+        = new MetadataTimestampExtractionPolicy();
+    final MetaStore metaStore = new MetaStoreImpl();
 
     SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
@@ -50,7 +54,11 @@ public class MetaStoreFixture {
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStream = new KsqlStream("sqlexpression", "TEST1", schemaBuilder1, schemaBuilder1.field("COL0"), null,
+    KsqlStream ksqlStream = new KsqlStream("sqlexpression",
+        "TEST1",
+        schemaBuilder1,
+        schemaBuilder1.field("COL0"),
+        timestampExtractionPolicy,
         ksqlTopic1);
 
     metaStore.putTopic(ksqlTopic1);
@@ -66,9 +74,15 @@ public class MetaStoreFixture {
     KsqlTopic
         ksqlTopic2 =
         new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable("sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                        null,
-        ksqlTopic2, "TEST2", false);
+    KsqlTable ksqlTable = new KsqlTable(
+        "sqlexpression",
+        "TEST2",
+        schemaBuilder2,
+        schemaBuilder2.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic2,
+        "TEST2",
+        false);
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
@@ -83,8 +97,12 @@ public class MetaStoreFixture {
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS", schemaBuilderOrders,
-                                                 schemaBuilderOrders.field("ORDERTIME"), null,
+    KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression",
+        "ORDERS",
+        schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"),
+        timestampExtractionPolicy,
         ksqlTopicOrders);
 
     metaStore.putTopic(ksqlTopicOrders);

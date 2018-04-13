@@ -70,15 +70,15 @@ Launch the KSQL CLI
 To launch the CLI, run the following command. It will route the CLI logs to the ``./ksql_logs`` directory. By default,
 the CLI will look for a KSQL Server running at ``http://localhost:8088``.
 
-   .. code:: bash
+.. code:: bash
 
-       $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
+   $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
 
-   After KSQL is started, your terminal should resemble this.
+After KSQL is started, your terminal should resemble this.
 
-   .. include:: ../includes/ksql-includes.rst
-      :start-line: 19
-      :end-line: 40
+.. include:: ../includes/ksql-includes.rst
+  :start-line: 19
+  :end-line: 40
 
 .. _create-a-stream-and-table:
 

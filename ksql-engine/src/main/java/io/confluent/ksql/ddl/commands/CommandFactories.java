@@ -43,16 +43,13 @@ public class CommandFactories implements DdlCommandFactory {
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand(
-            (RegisterTopic) ddlStatement
-        )
-    );
+        (sqlExpression, ddlStatement, properties) ->
+            new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
         (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )
@@ -62,7 +59,6 @@ public class CommandFactories implements DdlCommandFactory {
         (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )
@@ -80,18 +76,11 @@ public class CommandFactories implements DdlCommandFactory {
         )
     );
     factories.put(
-        DropTopic.class,
-        (sqlExpression, ddlStatement, properties) -> new DropTopicCommand(
-            (DropTopic) ddlStatement
-        )
-    );
+        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
+            new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(
-        SetProperty.class,
-        (sqlExpression, ddlStatement, properties) -> new SetPropertyCommand(
-            (SetProperty) ddlStatement,
-            properties
-        )
-    );
+        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
+            new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }
 
   @Override

@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
-
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -28,17 +26,15 @@ import io.confluent.ksql.util.SchemaUtil;
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
 
   public CreateStreamCommand(
-      String sqlExpression,
-      CreateStream createStream,
-      Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient,
-      boolean enforceTopicExistence
+      final String sqlExpression,
+      final CreateStream createStream,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean enforceTopicExistence
   ) {
     super(sqlExpression,
-          createStream,
-          overriddenProperties,
-          kafkaTopicClient,
-          enforceTopicExistence);
+        createStream,
+        kafkaTopicClient,
+        enforceTopicExistence);
   }
 
   @Override
@@ -52,11 +48,8 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         sourceName,
         schema,
         (keyColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
-        (timestampColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
+          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        timestampExtractionPolicy,
         metaStore.getTopic(topicName)
     );
 

@@ -24,11 +24,8 @@ public class StringUtil {
     // TODO: move check to grammar
     if (stringWithQuotes.startsWith("'") && stringWithQuotes.endsWith("'")) {
       return stringWithQuotes.substring(1, stringWithQuotes.length() - 1);
-    } else {
-      throw new KsqlException(stringWithQuotes
-          + " value is string and should be enclosed between "
-          + "' .");
     }
+    return stringWithQuotes;
   }
 
   public static String join(String delimiter, List<? extends Object> objs) {

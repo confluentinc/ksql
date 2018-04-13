@@ -34,9 +34,3 @@ command.
 
     $ <path-to-confluent>/bin/confluent stop
 
-----------
-Next steps
-----------
-
-Try the end-to-end :ref:`Clickstream Analysis demo <ksql_clickstream-local>`, which shows how to build an application that
-performs real-time user analytics.

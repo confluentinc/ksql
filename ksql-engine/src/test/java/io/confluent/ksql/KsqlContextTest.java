@@ -18,10 +18,8 @@ package io.confluent.ksql;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaStreams;
-import org.easymock.Mock;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +27,7 @@ import java.util.Map;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.planner.plan.PlanVisitor;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -75,6 +69,7 @@ public class KsqlContextTest {
     verify(ksqlEngine);
   }
 
+  @SuppressWarnings("unchecked")
   private List<QueryMetadata> getQueryMetadata(QueryId queryid, DataSource.DataSourceType type) {
     KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
@@ -100,7 +95,7 @@ public class KsqlContextTest {
                                                                                   null,
                                                                                   null);
 
-    return Arrays.asList(persistentQueryMetadata);
+    return Collections.singletonList(persistentQueryMetadata);
   }
 
 }

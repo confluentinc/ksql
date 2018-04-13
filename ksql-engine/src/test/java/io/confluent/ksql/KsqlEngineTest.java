@@ -43,6 +43,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
@@ -96,7 +97,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldFailIfRererentialIntegrityIsViolated() {
+  public void shouldFailIfReferentialIntegrityIsViolated() {
     try {
       ksqlEngine.createQueries("create table bar as select * from test2;" +
                                "create table foo as select * from test2;");
@@ -105,7 +106,9 @@ public class KsqlEngineTest {
     } catch (Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statements :Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+          "Exception while processing statements :Cannot drop the data source. "
+          + "The following queries read from this source: [] and the following queries write into "
+          + "this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
     }
   }
 
@@ -128,6 +131,7 @@ public class KsqlEngineTest {
                              "create table foo as select * from test2;");
     ksqlEngine.terminateQuery(new QueryId("CTAS_FOO"), true);
     ksqlEngine.createQueries("drop table foo;");
+    assertThat(ksqlEngine.getMetaStore().getSource("foo"), nullValue());
   }
 
   @Test

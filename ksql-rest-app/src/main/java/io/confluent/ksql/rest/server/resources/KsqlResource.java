@@ -428,9 +428,10 @@ public class KsqlResource {
   }
 
   private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> q.getQueryId().toString() + " : "
-                                     + q.getStatementString()).collect(
-        Collectors.toList());
+    return queries
+        .stream()
+        .map(q -> q.getQueryId().toString() + " : " + q.getStatementString())
+        .collect(Collectors.toList());
   }
 
   private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {

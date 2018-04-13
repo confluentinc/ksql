@@ -118,7 +118,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     return dataSourceMap
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue().getLeft()));
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getLeft()));
   }
 
   @Override
@@ -200,7 +200,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> entry.getKey(),
+            Map.Entry::getKey,
             entry -> new Pair<>(entry.getValue().getLeft(), entry.getValue().getRight().clone())));
     cloneTopicMap.putAll(topicMap);
     cloneDataSourceMap.putAll(dataSourceMap);

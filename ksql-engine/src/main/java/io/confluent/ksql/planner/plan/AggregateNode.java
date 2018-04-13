@@ -467,7 +467,7 @@ public class AggregateNode extends PlanNode {
       return internalNameToIndexMap;
     }
 
-    Map<String, String> getExpressionToInternalColumnNameMap() {
+    private Map<String, String> getExpressionToInternalColumnNameMap() {
       return expressionToInternalColumnNameMap;
     }
   }

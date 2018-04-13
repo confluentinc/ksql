@@ -15,7 +15,8 @@
     <suppress files="(Console|Main|Generator).java" checks="JavaNCSSCheck"/>
     <suppress files="Generator.java" checks="NPathComplexity"/>
     <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress
+            files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer|AggregateNode).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(KafkaConsumerGroupClientImpl.java)" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>

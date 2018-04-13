@@ -147,17 +147,10 @@ public class PhysicalPlanBuilderTest {
     String[] lines = planText.split("\n");
     Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , KSQL_COL_1 : FLOAT64 "
         + ", KSQL_COL_2 : INT64].");
-    Assert.assertEquals("\t\t > [ AGGREGATE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : FLOAT64 "
-                        + ", KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].", lines[1]);
-    Assert.assertEquals("\t\t\t\t > [ PROJECT ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : "
-                        + "FLOAT64].", lines[2]);
-    Assert.assertEquals("\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY "
-                        + ": INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : "
-                        + "STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP]"
-                        + ".", lines[3]);
-    Assert.assertEquals("\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , "
-                        + "TEST1.ROWKEY : INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , "
-                        + "TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].", lines[4]);
+    Assert.assertEquals("\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : INT64 , KSQL_INTERNAL_COL_1 : FLOAT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].", lines[1]);
+    Assert.assertEquals("\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : INT64 , KSQL_INTERNAL_COL_1 : FLOAT64 , KSQL_INTERNAL_COL_2 : FLOAT64 , KSQL_INTERNAL_COL_3 : FLOAT64].", lines[2]);
+    Assert.assertEquals("\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].", lines[3]);
+    Assert.assertEquals("\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].", lines[4]);
   }
 
   @Test

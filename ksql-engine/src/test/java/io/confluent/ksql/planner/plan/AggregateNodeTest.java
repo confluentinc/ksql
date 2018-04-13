@@ -73,6 +73,7 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldHaveTwoSubTopologies() {
+    // We always require rekey at the moment.
     buildRequireRekey();
     final TopologyDescription description = builder.build().describe();
     assertThat(description.subtopologies().size(), equalTo(2));

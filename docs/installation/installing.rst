@@ -115,7 +115,7 @@ You can start the KSQL CLI by providing the connection information to the KSQL s
 
 .. include:: ../includes/ksql-includes.rst
     :start-line: 338
-    :end-line: 342
+    :end-line: 349
 
 After KSQL is started, your terminal should resemble this.
 

@@ -17,5 +17,5 @@
 package io.confluent.ksql.version.metrics.collector;
 
 public enum KsqlModuleType {
-  LOCAL_CLI, REMOTE_CLI, EMBEDDED, SERVER;
+  CLI, SERVER;
 }

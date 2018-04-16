@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,8 @@ public class Ksql {
     );
 
     final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
-    versionChecker.start(KsqlModuleType.REMOTE_CLI, properties);
+    versionChecker.start(KsqlModuleType.CLI, properties);
+
     try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
         options.getStreamedQueryTimeoutMs(),
         restClient,

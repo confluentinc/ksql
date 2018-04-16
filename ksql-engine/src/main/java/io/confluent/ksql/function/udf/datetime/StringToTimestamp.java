@@ -16,21 +16,13 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
-
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 
 public class StringToTimestamp implements Kudf {
 
-  private DateTimeFormatter threadSafeFormatter;
+  private StringToTimestampParser timestampParser;
 
   @Override
   public Object evaluate(final Object... args) {
@@ -38,25 +30,9 @@ public class StringToTimestamp implements Kudf {
       throw new KsqlFunctionException("StringToTimestamp udf should have two input argument:"
                                       + " date value and format.");
     }
-
     try {
       ensureInitialized(args);
-
-      TemporalAccessor parsed = threadSafeFormatter.parseBest(
-          args[0].toString(), ZonedDateTime::from, LocalDateTime::from);
-
-      if (parsed == null) {
-        throw new KsqlFunctionException("Value could not be parsed");
-      }
-
-      if (parsed instanceof ZonedDateTime) {
-        parsed = ((ZonedDateTime) parsed)
-            .withZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime();
-      }
-
-      final LocalDateTime dateTime = (LocalDateTime) parsed;
-      return Timestamp.valueOf(dateTime).getTime();
+      return timestampParser.parse(args[0].toString());
     } catch (final Exception e) {
       throw new KsqlFunctionException("Exception running StringToTimestamp(" + args[0] + ", "
                                       + args[1] + ") : " + e.getMessage(), e);
@@ -64,14 +40,9 @@ public class StringToTimestamp implements Kudf {
   }
 
   private void ensureInitialized(final Object[] args) {
-    if (threadSafeFormatter == null) {
-      threadSafeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern(args[1].toString())
-          .parseDefaulting(ChronoField.YEAR_OF_ERA, 1970)
-          .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
-          .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
-          .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-          .toFormatter();
+    if (timestampParser == null) {
+      timestampParser = new StringToTimestampParser(args[1].toString());
     }
   }
+
 }

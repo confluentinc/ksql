@@ -189,6 +189,7 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
         streamName, resultPartitionCount, inputStream);
+
     executePersistentQuery(queryString);
 
     TestUtils.waitForCondition(
@@ -270,7 +271,7 @@ public class JsonFormatTest {
         .buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
-    queryId = ((PersistentQueryMetadata)queryMetadata).getId();
+    queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 
   private Map<String, GenericRow> readNormalResults(String resultTopic, Schema resultSchema, int expectedNumMessages) {

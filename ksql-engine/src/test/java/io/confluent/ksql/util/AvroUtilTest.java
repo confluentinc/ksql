@@ -17,14 +17,12 @@
 
 package io.confluent.ksql.util;
 
-import kafka.Kafka;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -37,7 +35,6 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
 import static org.easymock.EasyMock.anyObject;

@@ -21,6 +21,8 @@ import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public abstract class StructuredDataSource implements DataSource {
 
@@ -28,7 +30,7 @@ public abstract class StructuredDataSource implements DataSource {
   protected final DataSourceType dataSourceType;
   protected final Schema schema;
   protected final Field keyField;
-  protected final Field timestampField;
+  protected final TimestampExtractionPolicy timestampExtractionPolicy;
 
   protected final KsqlTopic ksqlTopic;
   protected final String sqlExpression;
@@ -38,7 +40,7 @@ public abstract class StructuredDataSource implements DataSource {
       final String dataSourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final DataSourceType dataSourceType,
       final KsqlTopic ksqlTopic
   ) {
@@ -46,7 +48,7 @@ public abstract class StructuredDataSource implements DataSource {
     this.dataSourceName = dataSourceName;
     this.schema = schema;
     this.keyField = keyField;
-    this.timestampField = timestampField;
+    this.timestampExtractionPolicy = timestampExtractionPolicy;
     this.dataSourceType = dataSourceType;
     this.ksqlTopic = ksqlTopic;
   }
@@ -73,13 +75,16 @@ public abstract class StructuredDataSource implements DataSource {
     return ksqlTopic;
   }
 
-  public Field getTimestampField() {
-    return timestampField;
+  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+    return timestampExtractionPolicy;
   }
+
+  public abstract StructuredDataSource copy();
 
   public abstract StructuredDataSource cloneWithTimeKeyColumns();
 
-  public abstract StructuredDataSource cloneWithTimeField(String timestampfieldName);
+  public abstract StructuredDataSource cloneWithTimeExtractionPolicy(
+      final TimestampExtractionPolicy policy);
 
   public String getTopicName() {
     return ksqlTopic.getTopicName();

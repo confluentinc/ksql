@@ -14,12 +14,11 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql;
+package io.confluent.ksql.util;
 
-import io.confluent.ksql.query.QueryId;
+public class KsqlReferentialIntegrityException extends KsqlException {
 
-public interface QueryTerminator {
-  boolean terminateQuery(QueryId queryId, boolean closeStreams);
-
-  void terminateQueryForEntity(String entity);
+  public KsqlReferentialIntegrityException(String message) {
+    super(message);
+  }
 }

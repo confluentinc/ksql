@@ -210,7 +210,7 @@ public class UdfIntTest {
                                                 recordMetadataMap) throws Exception {
 
     final String query1String =
-        String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
+        String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, "
                       + "ROWTIME+10000 AS "
                       + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
                       + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
@@ -228,7 +228,7 @@ public class UdfIntTest {
     expectedResults.put("8",
                         new GenericRow(Arrays.asList(
                             "8",
-                            recordMetadataMap.get("8").timestamp() + 10000,
+                            recordMetadataMap.get("8").timestamp(),
                             "8",
                             recordMetadataMap.get("8").timestamp() + 10000,
                             recordMetadataMap.get("8").timestamp() + 100,

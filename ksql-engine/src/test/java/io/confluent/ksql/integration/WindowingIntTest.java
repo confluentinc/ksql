@@ -78,14 +78,15 @@ public class WindowingIntTest {
     final String queryString = String.format(
         "CREATE TABLE %s AS SELECT %s FROM ORDERS WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
         streamName,
-        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS)"
+        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2)"
     );
 
     ksqlContext.sql(queryString);
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
+     items **/, 20.0, 2.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -126,7 +127,7 @@ public class WindowingIntTest {
     final String queryString = String.format(
             "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
             streamName,
-            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS)",
+            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*)",
             "TUMBLING ( SIZE 10 SECONDS)"
     );
 
@@ -134,7 +135,8 @@ public class WindowingIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
+     items **/, 20.0, 100.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -179,7 +181,7 @@ public class WindowingIntTest {
     final String queryString = String.format(
             "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
             streamName,
-            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS)",
+            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)",
             "HOPPING ( SIZE 10 SECONDS, ADVANCE BY 5 SECONDS)"
     );
 
@@ -188,7 +190,8 @@ public class WindowingIntTest {
     Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
+     items **/, 20.0, 200.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {

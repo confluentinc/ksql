@@ -87,4 +87,7 @@ public class GenericRow {
     return columns;
   }
 
+  public <T> T getColumnValue(int columnIndex) {
+    return (T) columns.get(columnIndex);
+  }
 }

@@ -39,7 +39,6 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -107,7 +106,6 @@ public class ConsoleTest {
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
           new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
-          new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),
           new SourceDescription(

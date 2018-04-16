@@ -72,8 +72,7 @@ public class LogicalPlannerTest {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-    return logicalPlan;
+    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
   }
 
   @Test
@@ -93,11 +92,10 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testSimpleQueryLogicalPlan() throws Exception {
+  public void testSimpleQueryLogicalPlan() {
     String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-//    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(FilterNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0),
@@ -108,11 +106,10 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testSimpleLeftJoinLogicalPlan() throws Exception {
+  public void testSimpleLeftJoinLogicalPlan() {
     String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-//    assertThat(logicalPlan instanceof OutputKafkaTopicNode);
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
@@ -125,7 +122,7 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testSimpleLeftJoinFilterLogicalPlan() throws Exception {
+  public void testSimpleLeftJoinFilterLogicalPlan() {
     String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
@@ -150,7 +147,7 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testSimpleAggregateLogicalPlan() throws Exception {
+  public void testSimpleAggregateLogicalPlan() {
     String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
                          + "second) "
                          + "WHERE col0 > 100 GROUP BY col0;";
@@ -172,7 +169,7 @@ public class LogicalPlannerTest {
   }
 
   @Test
-  public void testComplexAggregateLogicalPlan() throws Exception {
+  public void testComplexAggregateLogicalPlan() {
     String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
                          + "HOPPING ( size 2 second, advance by 1 second) "
                          + "WHERE col0 > 100 GROUP BY col0;";

@@ -67,7 +67,7 @@ Create and produce data to the Kafka topics ``pageviews`` and ``users``. These s
 -------------------
 Launch the KSQL CLI
 -------------------
-To launch the CLI, run the following command. It will route the CLI logs to the ``./ksql_logs`` directory. By default,
+To launch the CLI, run the following command. It will route the CLI logs to the ``.ksql_logs`` directory. By default,
 the CLI will look for a KSQL Server running at ``http://localhost:8088``.
 
 .. code:: bash
@@ -333,3 +333,17 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 
     $ export JMX_PORT=1099 && \
       <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+.. log limitations
+
+.. important:: By default KSQL attempts to store its logs in a directory called ``logs`` that is relative to the location
+               of the ``ksql`` executable. For example, if ``ksql`` is installed at ``/usr/local/bin/ksql``, then it would
+               attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default |cp|
+               location, ``<path-to-confluent>/bin``, you must override this default behavior by using the ``LOG_DIR`` variable.
+
+               For example, to store your logs in the ``ksql_logs`` directory within your current working directory, run this
+               command when starting the KSQL CLI:
+
+               .. code:: bash
+
+                    $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql

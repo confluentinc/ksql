@@ -45,11 +45,11 @@ public class SourceDescriptionEntity extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ExecutionPlan)) {
+    if (!(o instanceof SourceDescriptionEntity)) {
       return false;
     }
-    ExecutionPlan executionPlan = (ExecutionPlan) o;
-    return Objects.equals(getSourceDescription(), executionPlan.getExecutionPlan());
+    SourceDescriptionEntity sourceDescriptionEntity = (SourceDescriptionEntity)o;
+    return Objects.equals(getSourceDescription(), sourceDescriptionEntity.getSourceDescription());
   }
 
   @Override

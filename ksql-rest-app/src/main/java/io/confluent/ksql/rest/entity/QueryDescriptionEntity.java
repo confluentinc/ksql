@@ -45,11 +45,11 @@ public class QueryDescriptionEntity extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ExecutionPlan)) {
+    if (!(o instanceof QueryDescriptionEntity)) {
       return false;
     }
-    ExecutionPlan executionPlan = (ExecutionPlan) o;
-    return Objects.equals(getQueryDescription(), executionPlan.getExecutionPlan());
+    QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) o;
+    return Objects.equals(getQueryDescription(), queryDescriptionEntity.getQueryDescription());
   }
 
   @Override

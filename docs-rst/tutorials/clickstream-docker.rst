@@ -26,13 +26,13 @@ your local host.
 
 .. code:: bash
 
-    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:0.5 bash
+    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:4.1.0 bash
 
 Your output should resemble:
 
 .. code:: bash
 
-    Unable to find image 'confluentinc/ksql-clickstream-demo:0.5' locally
+    Unable to find image 'confluentinc/ksql-clickstream-demo:4.1.0' locally
     latest: Pulling from confluentinc/ksql-clickstream-demo
     ad74af05f5a2: Already exists
     d02e292e7b5e: Already exists
@@ -107,6 +107,8 @@ Configure and Start Elastic, Grafana, and |cp|
         kafka-rest is [UP]
         Starting connect
         connect is [UP]
+        Starting ksql-server
+        ksql-server is [UP]
 
 ---------------------------
 Create the Clickstream Data
@@ -162,19 +164,11 @@ Create the Clickstream Data
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI in Client Server Mode.
-
-    1. Start the KSQL server.
+#.  Launch the KSQL CLI
 
        .. code:: bash
 
-           $ ksql-server-start /etc/ksql/ksql-server.properties > /tmp/ksql-server.log 2>&1 &
-
-    2. Start the CLI and point it to the server.
-
-       .. code:: bash
-
-           $ ksql http://localhost:8088
+           $ ksql
 
        You should now be in the KSQL CLI.
 
@@ -197,8 +191,9 @@ Load the Streaming Data to KSQL
     .. code:: bash
 
          Message
-        ------------------------------------
-         Executing statement
+        ---------
+
+        ---------
 
 Verify the data
 ---------------

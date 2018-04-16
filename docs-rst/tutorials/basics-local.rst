@@ -18,7 +18,15 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 42
-      :end-line: 81
+      :end-line: 76
+
+.. include:: ../includes/ksql-includes.rst
+      :start-line: 338
+      :end-line: 349
+
+.. include:: ../includes/ksql-includes.rst
+      :start-line: 76
+      :end-line: 82
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 82
@@ -34,9 +42,3 @@ command.
 
     $ <path-to-confluent>/bin/confluent stop
 
-----------
-Next steps
-----------
-
-Try the end-to-end :ref:`Clickstream Analysis demo <ksql_clickstream-local>`, which shows how to build an application that
-performs real-time user analytics.

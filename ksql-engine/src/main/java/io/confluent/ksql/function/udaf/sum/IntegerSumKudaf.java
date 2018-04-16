@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -26,7 +27,7 @@ import java.util.Map;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
+public class IntegerSumKudaf extends KsqlUndoableAggregationFunction<Integer, Integer> {
 
   IntegerSumKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> 0, Schema.INT32_SCHEMA,
@@ -43,13 +44,8 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
-  public Integer subtract(Integer currentVal, Integer currentAggVal) {
+  public Integer undo(Integer currentVal, Integer currentAggVal) {
     return this.aggregate(-1 * currentVal, currentAggVal);
-  }
-
-  @Override
-  public boolean implementsSubtract() {
-    return true;
   }
 
   @Override

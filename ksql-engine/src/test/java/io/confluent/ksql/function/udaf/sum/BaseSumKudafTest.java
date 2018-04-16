@@ -1,6 +1,6 @@
 package io.confluent.ksql.function.udaf.sum;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -14,7 +14,7 @@ import static org.junit.Assert.assertThat;
 
 @Ignore
 public abstract class BaseSumKudafTest<
-    T extends Number, AT extends KsqlAggregateFunction<T, T>> {
+    T extends Number, AT extends KsqlUndoableAggregationFunction<T, T>> {
   protected interface TGenerator<TG> {
     TG fromInt(int s);
   }
@@ -40,7 +40,7 @@ public abstract class BaseSumKudafTest<
     List<T> values = Stream.of(3, 5, 8, 2, 3, 4, 5)
         .map(v -> tGenerator.fromInt(v)).collect(Collectors.toList());
     for (T i: values) {
-      currentVal = sumKudaf.subtract(i, currentVal);
+      currentVal = sumKudaf.undo(i, currentVal);
     }
     assertThat(tGenerator.fromInt(0), equalTo(currentVal));
   }

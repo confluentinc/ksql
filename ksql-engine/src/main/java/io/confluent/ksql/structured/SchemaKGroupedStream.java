@@ -41,12 +41,12 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 
 public class SchemaKGroupedStream {
 
-  protected final Schema schema;
-  protected final KGroupedStream kgroupedStream;
-  protected final Field keyField;
-  protected final List<SchemaKStream> sourceSchemaKStreams;
-  protected final FunctionRegistry functionRegistry;
-  protected final SchemaRegistryClient schemaRegistryClient;
+  final Schema schema;
+  final KGroupedStream kgroupedStream;
+  final Field keyField;
+  final List<SchemaKStream> sourceSchemaKStreams;
+  final FunctionRegistry functionRegistry;
+  final SchemaRegistryClient schemaRegistryClient;
 
   SchemaKGroupedStream(
       final Schema schema, final KGroupedStream kgroupedStream,

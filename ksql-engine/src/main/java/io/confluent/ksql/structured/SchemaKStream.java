@@ -52,18 +52,19 @@ import io.confluent.ksql.util.SchemaUtil;
 
 
 public class SchemaKStream {
-
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
-  protected final Schema schema;
-  protected final KStream<String, GenericRow> kstream;
+  private static String GROUP_BY_COLUMN_SEPARATOR = "|+|";
+
+  final Schema schema;
+  final KStream<String, GenericRow> kstream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  protected final Type type;
-  protected final FunctionRegistry functionRegistry;
+  final Type type;
+  final FunctionRegistry functionRegistry;
   private OutputNode output;
-  protected final SchemaRegistryClient schemaRegistryClient;
+  final SchemaRegistryClient schemaRegistryClient;
 
 
   public SchemaKStream(
@@ -286,7 +287,7 @@ public class SchemaKStream {
         && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
   }
 
-  protected static Pair<String, List<Integer>> keyIndexesForGroupBy(
+  static Pair<String, List<Integer>> keyIndexesForGroupBy(
       final Schema schema, final List<Expression> groupByExpressions) {
     final StringBuilder aggregateKeyName = new StringBuilder();
     final List<Integer> newKeyIndexes = new ArrayList<>();
@@ -295,7 +296,7 @@ public class SchemaKStream {
     boolean addSeparator = false;
     for (Expression groupByExpr : groupByExpressions) {
       if (addSeparator) {
-        aggregateKeyName.append("|+|");
+        aggregateKeyName.append(GROUP_BY_COLUMN_SEPARATOR);
       } else {
         addSeparator = true;
       }
@@ -306,12 +307,12 @@ public class SchemaKStream {
     return new Pair<>(aggregateKeyName.toString(), newKeyIndexes);
   }
 
-  protected static String buildGroupByKey(List<Integer> newKeyIndexes, GenericRow value) {
+  static String buildGroupByKey(List<Integer> newKeyIndexes, GenericRow value) {
     StringBuilder newKey = new StringBuilder();
     boolean addSeparator1 = false;
     for (int index : newKeyIndexes) {
       if (addSeparator1) {
-        newKey.append("|+|");
+        newKey.append(GROUP_BY_COLUMN_SEPARATOR);
       } else {
         addSeparator1 = true;
       }
@@ -321,7 +322,8 @@ public class SchemaKStream {
   }
 
   public SchemaKGroupedStream groupBy(
-      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final Serde<String> keySerde,
+      final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
     boolean rekey = rekeyRequired(groupByExpressions);
 

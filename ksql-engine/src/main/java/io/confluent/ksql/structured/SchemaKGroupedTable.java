@@ -20,8 +20,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
-import io.confluent.ksql.function.udaf.KudafSubtractor;
+import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.serialization.Serde;
@@ -35,9 +36,10 @@ import org.apache.kafka.streams.kstream.Materialized;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
-  KGroupedTable kgroupedTable;
+  private final KGroupedTable kgroupedTable;
 
   SchemaKGroupedTable(
       final Schema schema,
@@ -63,12 +65,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     }
     if (aggValToFunctionMap.values()
             .stream()
-            .map(e -> !e.implementsSubtract())
-            .reduce(false, (r, e) ->  r || e)) {
+            .map(e -> !(e instanceof KsqlUndoableAggregationFunction))
+            .reduce(false, (result, notUndoable) ->  result || notUndoable)) {
       throw new KsqlException("Requested aggregation function cannot be applied to a table.");
     }
     KudafAggregator aggregator = new KudafAggregator(aggValToFunctionMap, aggValToValColumnMap);
-    KudafSubtractor subtractor = new KudafSubtractor(aggValToFunctionMap, aggValToValColumnMap);
+    KudafUndoAggregator subtractor = new KudafUndoAggregator(
+        aggValToFunctionMap.keySet()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    k -> k,
+                    k -> ((KsqlUndoableAggregationFunction) aggValToFunctionMap.get(k)))),
+        aggValToValColumnMap);
     final KTable aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,

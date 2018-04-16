@@ -17,17 +17,18 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 import java.util.Map;
 
-public class KudafSubtractor implements Aggregator<String, GenericRow, GenericRow> {
-  private Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
+public class KudafUndoAggregator implements Aggregator<String, GenericRow, GenericRow> {
+  private Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
 
-  public KudafSubtractor(Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap, Map<Integer,
-      Integer> aggValToValColumnMap) {
+  public KudafUndoAggregator(
+      Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap,
+      Map<Integer, Integer> aggValToValColumnMap) {
     this.aggValToAggFunctionMap = aggValToAggFunctionMap;
     this.aggValToValColumnMap = aggValToValColumnMap;
   }
@@ -35,15 +36,17 @@ public class KudafSubtractor implements Aggregator<String, GenericRow, GenericRo
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
-    aggValToValColumnMap.forEach((key, value) ->
-        aggRowValue.getColumns().set(key, rowValue.getColumns().get(value))
-    );
+    aggValToValColumnMap.forEach(
+        (aggRowIndex, rowIndex) ->
+            aggRowValue.getColumns().set(aggRowIndex, rowValue.getColumns().get(rowIndex)));
 
-    aggValToAggFunctionMap.forEach((key, value) ->
-        aggRowValue.getColumns().set(key,
-            value.subtract(rowValue.getColumns().get(value.getArgIndexInValue()),
-                aggRowValue.getColumns().get(key)))
-    );
+    aggValToAggFunctionMap.forEach(
+        (aggRowIndex, function) ->
+            aggRowValue.getColumns().set(
+                aggRowIndex,
+                function.undo(
+                    rowValue.getColumns().get(function.getArgIndexInValue()),
+                    aggRowValue.getColumns().get(aggRowIndex))));
     return aggRowValue;
   }
 }

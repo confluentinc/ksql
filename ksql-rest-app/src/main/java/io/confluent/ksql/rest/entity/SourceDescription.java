@@ -55,7 +55,6 @@ public class SourceDescription extends KsqlEntity {
   private final boolean extended;
   private final String serdes;
   private final String topic;
-  private final boolean sinkTopic;
   private final String topology;
   private final String executionPlan;
   private final int partitions;
@@ -77,7 +76,6 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("extended") boolean extended,
       @JsonProperty("serdes") String serdes,
       @JsonProperty("topic") String topic,
-      @JsonProperty("sinkTopic") boolean sinkTopic,
       @JsonProperty("topology") String topology,
       @JsonProperty("executionPlan") String executionPlan,
       @JsonProperty("parititions") int partitions,
@@ -97,7 +95,6 @@ public class SourceDescription extends KsqlEntity {
     this.extended = extended;
     this.serdes = serdes;
     this.topic = topic;
-    this.sinkTopic = sinkTopic;
     this.topology = topology;
     this.executionPlan = executionPlan;
     this.partitions = partitions;
@@ -123,7 +120,7 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getSchema().fields().stream().map(
             field -> new FieldSchemaInfo(
                 field.name(), SchemaUtil.getSchemaFieldName(field))
-            ).collect(Collectors.toList()),
+        ).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(""),
@@ -132,7 +129,6 @@ public class SourceDescription extends KsqlEntity {
         extended,
         serdes,
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.isSinkTopic(),
         topology,
         executionPlan,
         (
@@ -171,14 +167,14 @@ public class SourceDescription extends KsqlEntity {
         Collections.EMPTY_LIST,
         queryMetadata.getResultSchema().fields().stream().map(
             field ->
-              new FieldSchemaInfo(field.name(), SchemaUtil
-                  .getSchemaFieldName(field))
-            ).collect(Collectors.toList()),
+                new FieldSchemaInfo(field.name(), SchemaUtil
+                    .getSchemaFieldName(field))
+        ).collect(Collectors.toList()),
         "QUERY",
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-            .getKeyField()).map(Field::name).orElse(""),
+                                .getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-            .getTimestampField()).map(Field::name).orElse(""),
+                                .getTimestampField()).map(Field::name).orElse(""),
         MetricCollectors.getStatsFor(
             outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), false),
         MetricCollectors.getStatsFor(
@@ -186,7 +182,6 @@ public class SourceDescription extends KsqlEntity {
         true,
         outputNodeFromMetadata(queryMetadata).getTopicSerde().getSerDe().name(),
         outputNodeFromMetadata(queryMetadata).getKafkaTopicName(),
-        true,
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         getPartitions(topicClient, outputNodeFromMetadata(queryMetadata).getKafkaTopicName()),
@@ -239,10 +234,6 @@ public class SourceDescription extends KsqlEntity {
 
   public String getTopic() {
     return topic;
-  }
-
-  public boolean isSinkTopic() {
-    return sinkTopic;
   }
 
   public String getKey() {
@@ -335,12 +326,11 @@ public class SourceDescription extends KsqlEntity {
            && Objects.equals(getSchema(), that.getSchema())
            && getType().equals(that.getType())
            && Objects.equals(getKey(), that.getKey())
-           && Objects.equals(getTimestamp(), that.getTimestamp())
-           && isSinkTopic() == that.isSinkTopic();
+           && Objects.equals(getTimestamp(), that.getTimestamp());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp(), isSinkTopic());
+    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
   }
 }

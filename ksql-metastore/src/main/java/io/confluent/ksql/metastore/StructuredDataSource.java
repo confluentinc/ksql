@@ -31,7 +31,6 @@ public abstract class StructuredDataSource implements DataSource {
   protected final Field timestampField;
 
   protected final KsqlTopic ksqlTopic;
-  protected final boolean sinkTopic;
   protected final String sqlExpression;
 
   public StructuredDataSource(
@@ -41,8 +40,7 @@ public abstract class StructuredDataSource implements DataSource {
       final Field keyField,
       final Field timestampField,
       final DataSourceType dataSourceType,
-      final KsqlTopic ksqlTopic,
-      final boolean sinkTopic
+      final KsqlTopic ksqlTopic
   ) {
     this.sqlExpression = sqlExpression;
     this.dataSourceName = dataSourceName;
@@ -51,7 +49,6 @@ public abstract class StructuredDataSource implements DataSource {
     this.timestampField = timestampField;
     this.dataSourceType = dataSourceType;
     this.ksqlTopic = ksqlTopic;
-    this.sinkTopic = sinkTopic;
   }
 
   @Override
@@ -74,10 +71,6 @@ public abstract class StructuredDataSource implements DataSource {
 
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
-  }
-
-  public boolean isSinkTopic() {
-    return sinkTopic;
   }
 
   public Field getTimestampField() {

@@ -495,12 +495,9 @@ public abstract class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
 
     if (!source.getTopic().isEmpty()) {
-      final String title =
-          String.format("Kafka %s topic", source.isSinkTopic() ? "output" : "source");
-
       writer().println(String.format(
           "%-20s : %s (partitions: %d, replication: %d)",
-          title,
+          "Kafka topic",
           source.getTopic(),
           source.getPartitions(),
           source.getReplication()

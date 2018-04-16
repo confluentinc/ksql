@@ -57,8 +57,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         (timestampColumnName.length() == 0)
         ? null
         : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
-        metaStore.getTopic(topicName),
-        false
+        metaStore.getTopic(topicName)
     );
 
     // TODO: Need to check if the topic exists.

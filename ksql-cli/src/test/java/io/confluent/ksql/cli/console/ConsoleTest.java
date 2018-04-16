@@ -113,8 +113,7 @@ public class ConsoleTest {
           new SourceDescription(
               "e", "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
               DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
-              false, "avro", "kadka-topic", true, "topology", "executionPlan", 1, 1,
-              Collections.emptyMap()),
+              false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1, Collections.emptyMap()),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
@@ -127,12 +126,12 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintSourceTopicDescribeExtended() throws IOException {
+  public void shouldPrintTopicDescribeExtended() throws IOException {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new SourceDescription(
             "e", "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(2),
             DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
-            true, "avro", "kadka-topic", false, "topology", "executionPlan", 2, 1,
+            true, "avro", "kadka-topic", "topology", "executionPlan", 2, 1,
             Collections.emptyMap())
     ));
 
@@ -140,33 +139,13 @@ public class ConsoleTest {
 
     final String output = terminal.getOutputString();
     if (terminal.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, containsString("\"sinkTopic\" : false"));
+      assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
     } else {
-      assertThat(output, containsString("Kafka source topic   : kadka-topic (partitions: 2, replication: 1)"));
+      assertThat(output, containsString("Kafka topic   : kadka-topic (partitions: 2, replication: 1)"));
     }
   }
 
-  @Test
-  public void shouldPrintSinkTopicDescribeExtended() throws IOException {
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new SourceDescription(
-            "e", "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(2),
-            DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
-            true, "avro", "kadka-topic", true, "topology", "executionPlan", 2, 1,
-            Collections.emptyMap())
-    ));
-
-    terminal.printKsqlEntityList(entityList);
-
-    final String output = terminal.getOutputString();
-    if (terminal.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, containsString("\"sinkTopic\" : true"));
-    } else {
-      assertThat(output, containsString("Kafka output topic   : kadka-topic (partitions: 2, replication: 1)"));
-    }
-  }
-
-  private List<SourceDescription.FieldSchemaInfo> buildTestSchema(int size) {
+  private static List<SourceDescription.FieldSchemaInfo> buildTestSchema(int size) {
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
@@ -180,5 +159,4 @@ public class ConsoleTest {
 
     return res;
   }
-
 }

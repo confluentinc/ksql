@@ -237,7 +237,6 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic(),
-              true,
               outputNode.getId().toString()
                   + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed()
@@ -250,9 +249,9 @@ public class PhysicalPlanBuilder {
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
-              outputNode.getKsqlTopic(),
-              true
+              outputNode.getKsqlTopic()
           );
+
     }
 
     if (updateMetastore) {

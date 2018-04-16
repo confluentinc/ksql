@@ -45,9 +45,8 @@ public class MetaStoreFixture {
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStream = new KsqlStream(
-        "sqlexpression", "TEST1", schemaBuilder1,
-        schemaBuilder1.field("COL0"), null, ksqlTopic1, false);
+    KsqlStream ksqlStream = new KsqlStream("sqlexpression", "TEST1", schemaBuilder1, schemaBuilder1.field("COL0"), null,
+        ksqlTopic1);
 
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
@@ -62,9 +61,9 @@ public class MetaStoreFixture {
     KsqlTopic
         ksqlTopic2 =
         new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable(
-        "sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-        null, ksqlTopic2, false, "TEST2", false);
+    KsqlTable ksqlTable = new KsqlTable("sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
+                                        null,
+        ksqlTopic2, "TEST2", false);
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
@@ -79,9 +78,9 @@ public class MetaStoreFixture {
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream(
-        "sqlexpression", "ORDERS", schemaBuilderOrders,
-        schemaBuilderOrders.field("ORDERTIME"), null, ksqlTopicOrders, true);
+    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS", schemaBuilderOrders,
+                                                 schemaBuilderOrders.field("ORDERTIME"), null,
+        ksqlTopicOrders);
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);

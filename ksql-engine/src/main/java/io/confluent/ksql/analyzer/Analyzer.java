@@ -129,8 +129,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       intoKafkaTopicName = intoStructuredDataSource.getName();
     }
 
-    final StructuredDataSource source = fromDataSources.get(0).getLeft();
-    KsqlTopicSerDe intoTopicSerde = source.getKsqlTopic()
+    KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
         .getKsqlTopicSerDe();
     if (analysis.getIntoFormat() != null) {
       switch (analysis.getIntoFormat().toUpperCase()) {
@@ -164,8 +163,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null,
         null,
         null,
-        newIntoKsqlTopic,
-        source.isSinkTopic()
+        newIntoKsqlTopic
     );
     analysis.setInto(intoKsqlStream);
   }
@@ -537,8 +535,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null,
         null,
         null,
-        null,
-        true
+        null
     );
 
     setIntoProperties(into, node);

@@ -115,7 +115,7 @@ public class CodeGenRunnerTest {
             "CODEGEN_TEST", metaStoreSchema,
             metaStoreSchema.field("COL0"),
             null,
-            ksqlTopic,true);
+            ksqlTopic);
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
         codeGenRunner = new CodeGenRunner(schema, functionRegistry);

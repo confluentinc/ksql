@@ -471,7 +471,6 @@ public class KsqlResource {
             true,
             "",
             "",
-            true,
             topologyDescription,
             executionPlan,
             0,

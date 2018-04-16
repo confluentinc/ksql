@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.util.SchemaUtil;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 
 @Path("/ksql")
 @Consumes(MediaType.APPLICATION_JSON)

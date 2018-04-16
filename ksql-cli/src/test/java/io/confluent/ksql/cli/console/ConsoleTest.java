@@ -141,7 +141,7 @@ public class ConsoleTest {
     if (terminal.getOutputFormat() == OutputFormat.JSON) {
       assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
     } else {
-      assertThat(output, containsString("Kafka topic   : kadka-topic (partitions: 2, replication: 1)"));
+      assertThat(output, containsString("Kafka topic          : kadka-topic (partitions: 2, replication: 1)"));
     }
   }
 

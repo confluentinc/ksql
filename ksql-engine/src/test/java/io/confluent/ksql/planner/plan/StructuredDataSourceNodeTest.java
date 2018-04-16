@@ -63,8 +63,8 @@ public class StructuredDataSourceNodeTest {
           schema,
           schema.field("key"),
           schema.field("timestamp"),
-          new KsqlTopic("topic", "topic", new KsqlJsonTopicSerDe())
-      ),
+          new KsqlTopic("topic", "topic",
+              new KsqlJsonTopicSerDe())),
       schema);
 
   @Before

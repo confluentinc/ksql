@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
@@ -36,7 +37,6 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 
 @JsonTypeName("description")
@@ -120,7 +120,7 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getSchema().fields().stream().map(
             field -> new FieldSchemaInfo(
                 field.name(), SchemaUtil.getSchemaFieldName(field))
-        ).collect(Collectors.toList()),
+            ).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(""),
@@ -167,14 +167,14 @@ public class SourceDescription extends KsqlEntity {
         Collections.EMPTY_LIST,
         queryMetadata.getResultSchema().fields().stream().map(
             field ->
-                new FieldSchemaInfo(field.name(), SchemaUtil
-                    .getSchemaFieldName(field))
-        ).collect(Collectors.toList()),
+              new FieldSchemaInfo(field.name(), SchemaUtil
+                  .getSchemaFieldName(field))
+            ).collect(Collectors.toList()),
         "QUERY",
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-                                .getKeyField()).map(Field::name).orElse(""),
+            .getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-                                .getTimestampField()).map(Field::name).orElse(""),
+            .getTimestampField()).map(Field::name).orElse(""),
         MetricCollectors.getStatsFor(
             outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), false),
         MetricCollectors.getStatsFor(

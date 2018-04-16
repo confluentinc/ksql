@@ -178,7 +178,8 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKGroupedStream groupBy(
-      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final Serde<String> keySerde,
+      final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
     Pair<String, List<Integer>> aggregateKeyNameAndNewKeyIndexes =
         keyIndexesForGroupBy(getSchema(), groupByExpressions);

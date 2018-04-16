@@ -21,7 +21,6 @@ import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public abstract class StructuredDataSource implements DataSource {

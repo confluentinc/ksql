@@ -496,19 +496,19 @@ public class KafkaTopicClientImplTest {
   }
 
   private ConfigEntry defaultConfigEntry(final String key, final String value) {
-    final ConfigEntry config = mock(ConfigEntry.class);
-    expect(config.name()).andReturn(key);
-    expect(config.value()).andReturn(value);
-    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DEFAULT_CONFIG);
+    final ConfigEntry config = niceMock(ConfigEntry.class);
+    expect(config.name()).andReturn(key).anyTimes();
+    expect(config.value()).andReturn(value).anyTimes();
+    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DEFAULT_CONFIG).anyTimes();
     replay(config);
     return config;
   }
 
   private ConfigEntry overriddenConfigEntry(final String key, final String value) {
-    final ConfigEntry config = mock(ConfigEntry.class);
-    expect(config.name()).andReturn(key);
-    expect(config.value()).andReturn(value);
-    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG);
+    final ConfigEntry config = niceMock(ConfigEntry.class);
+    expect(config.name()).andReturn(key).anyTimes();
+    expect(config.value()).andReturn(value).anyTimes();
+    expect(config.source()).andReturn(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG).anyTimes();
     replay(config);
     return config;
   }

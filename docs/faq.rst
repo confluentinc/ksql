@@ -78,7 +78,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro message values are supported. Avro keys are not supported. Requires |sr| and ``ksql.schema.registry.url`` in the
+-  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
    KSQL server configuration file. For more information, see :ref:`<install_ksql-avro-schema>`.
 
 ====================================
@@ -158,7 +158,7 @@ Configure the ``ksql.schema.registry.url`` property in the KSQL server configura
 .. important::
 
     - To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
-    - Avro message values are supported. Avro keys are not supported.
+    - Avro message values are supported. Avro keys are not yet supported.
 
 =========================
 How can I scale out KSQL?

@@ -113,10 +113,6 @@ You can start the KSQL CLI by providing the connection information to the KSQL s
 
     $ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql http://localhost:8088
 
-.. include:: ../includes/ksql-includes.rst
-    :start-line: 338
-    :end-line: 349
-
 After KSQL is started, your terminal should resemble this.
 
 .. include:: ../includes/ksql-includes.rst

@@ -18,15 +18,7 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 42
-      :end-line: 76
-
-.. include:: ../includes/ksql-includes.rst
-      :start-line: 338
-      :end-line: 349
-
-.. include:: ../includes/ksql-includes.rst
-      :start-line: 76
-      :end-line: 82
+      :end-line: 81
 
 .. include:: ../includes/ksql-includes.rst
       :start-line: 82

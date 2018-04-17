@@ -15,6 +15,7 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
     - `macOS <https://docs.docker.com/docker-for-mac/install/>`__
     - `All platforms <https://docs.docker.com/engine/installation/>`__
 - `Git <https://git-scm.com/downloads>`__
+- Java: Minimum version 1.8
 
 ------------------------------------
 Download the Tutorial and Start KSQL

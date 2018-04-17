@@ -1,7 +1,7 @@
 .. Avro note
 
 .. note::
-    - To use Avro, you must have Confluent Schema Registry enabled and set ``ksql.schema.registry.url`` in the KSQL
+    - To use Avro, you must have |sr| enabled and ``ksql.schema.registry.url`` must be set in the KSQL
       server configuration file. See :ref:`install_ksql-avro-schema`.
     - Avro field names are not case sensitive in KSQL. This matches the KSQL column name behavior.
 

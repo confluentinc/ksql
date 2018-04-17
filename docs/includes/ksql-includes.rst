@@ -67,8 +67,8 @@ Create and produce data to the Kafka topics ``pageviews`` and ``users``. These s
 -------------------
 Launch the KSQL CLI
 -------------------
-To launch the CLI, run the following command. It will route the CLI logs to the ``.ksql_logs`` directory. By default,
-the CLI will look for a KSQL Server running at ``http://localhost:8088``.
+To launch the CLI, run the following command. It will route the CLI logs to the ``./ksql_logs`` directory, relative to
+your current directory. By default, the CLI will look for a KSQL Server running at ``http://localhost:8088``.
 
 .. code:: bash
 

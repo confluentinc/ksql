@@ -72,8 +72,10 @@ CREATE TABLE error_counts AS
   GROUP BY error_code;
 ```
 
-# Latest news
 
+# Latest News
+
+* [Confluent Platform 4.1 with Production-Ready KSQL Now Available](https://www.confluent.io/blog/confluent-platform-4-1-with-production-ready-ksql-now-available/)
 * [Press Release: KSQL GA announced for early April 2018](https://www.confluent.io/press-release/confluent-makes-ksql-available-confluent-platform-announces-general-availability/)
   -- until then you can download the latest KSQL Developer Preview release at
   https://github.com/confluentinc/ksql/releases.

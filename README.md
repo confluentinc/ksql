@@ -1,6 +1,6 @@
 # ![KSQL rocket](ksq-lrocket.png) KSQL - Streaming SQL for Apache Kafka
 
-> **KSQL is now GA and officially supported by Confluent. [Get started with KSQL today](#getting-started).**
+> **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
 
 KSQL is the streaming SQL engine for Apache Kafka.
 
@@ -17,14 +17,14 @@ Watch a [screencast of the KSQL demo](https://youtu.be/A45uRzJiv7I) on YouTube.
 
 1. [Download KSQL](https://www.confluent.io/download/), which is included in the Enterprise and Open Source editions
    of Confluent Platform.
-2. Follow the [Quickstart](https://docs.confluent.io/current/quickstart.html).
+2. Follow the [Quick Start](https://docs.confluent.io/current/quickstart.html).
 
-We also provide further [KSQL Tutorials and Examples](https://docs.confluent.io/current/ksql/docs/tutorials/), including Docker-based variants.
+For more information, see the [KSQL Tutorials and Examples](https://docs.confluent.io/current/ksql/docs/tutorials/), which includes Docker-based variants.
 
 
 # Documentation
 
-Head over to the [KSQL documentation](https://docs.confluent.io/current/ksql/docs/).
+See [KSQL documentation](https://docs.confluent.io/current/ksql/docs/).
 
 
 # Use Cases and Examples
@@ -100,7 +100,7 @@ CREATE TABLE error_counts AS
 
 # Join the Community
 
-Whether you need help, want to contribute, or are just looking for the latest news, we encourage you to [connect with your fellow Confluent community members](https://www.confluent.io/contact-us-thank-you/).
+You can get help, learn how to contribute to KSQL, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
 
 * Ask a question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity). Account registration is free and self-service.
 * Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
@@ -108,11 +108,11 @@ Whether you need help, want to contribute, or are just looking for the latest ne
 
 # Contributing
 
-Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).
+Contributions to the code, examples, documentation, etc. are very much appreciated.
 
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
-- Read the [Developer Notes](./DEVELOPMENT.md) on how to work with the KSQL source code, including building and
-  testing KSQL.
+- Learn how to work with the KSQL source code, including building and testing KSQL as well as contributing code changes
+  to KSQL by reading our [Development and Contribution guidelines](CONTRIBUTING.md).
 
 
 # License

@@ -1,14 +1,53 @@
 # Contributing
 
+Thanks for helping us to make KSQL even better!
+
+If you have any questions about how to contribute, either [create a GH issue](https://github.com/confluentinc/ksql/issues) or ask your question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity) (account registration is free and self-service).
+
+
+## Developing KSQL
+
+### Building and running KSQL locally
+
+To build and run KSQL locally, run the following commands:
+
+```shell
+$ mvn clean package -DskipTests
+$ ./bin/ksql-server-start -daemon config/ksql-server.properties
+$ ./bin/ksql
+```
+
+This will start the KSQL server in the background and the KSQL CLI in the
+foreground.
+
+If you would rather have the KSQL server logs spool to the console, then
+drop the `-daemon` switch, and start the CLI in a second console.
+
+
+### Testing changes locally
+
+To build and test changes locally, run the following commands:
+
+```shell
+$ mvn clean install checkstyle:check integration-test
+```
+
+
 ## How to Contribute
 
-### General Guidelines
+### Reporting Bugs and Issues
+
+Report bugs and issues by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues).
+Prior to creating an issue, please search through existing issues so that you are not creating duplicate ones.
+
+
+### Guidelines for Contributing Code, Examples, Documentation
 
 When submitting a pull request (PR), use the following guidelines:
 
 * Make sure your code respects existing formatting conventions. In general, follow the same coding style as the code that you are modifying.
 * Add/update documentation appropriately for the change you are making.
-* If you are introducing a new feature you may want to first submit your idea for feedback to the [Confluent mailing list](mailto:partner-support@confluent.io).
+* If you are introducing a new feature you may want to first submit your idea by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues) to solicit feedback.
 * Non-trivial features should include unit tests covering the new functionality.
 * Bug fixes should include a unit test or integration test reproducing the issue.
 * Try to keep pull requests short and submit separate ones for unrelated features, but feel free to combine simple bugfixes/tests into one pull request.
@@ -16,21 +55,20 @@ When submitting a pull request (PR), use the following guidelines:
 * Each commit should compile on its own and ideally pass tests.
 * Keep formatting changes in separate commits to make code reviews easier and distinguish them from actual code changes.
 
+
 ### GitHub Workflow
 
-**Note: The active development branch is: 4.0.x**
-
-1. Fork the confluentinc/ksql repository into your GitHub account: https://github.com/confluentinc/ksql/fork.
+1. Fork the `confluentinc/ksql` repository into your GitHub account: https://github.com/confluentinc/ksql/fork.
 
 2. Clone your fork of the GitHub repository, replacing `<username>` with your GitHub username.
 
-   use ssh(recommended)
+   Use ssh (recommended):
 
    ```bash
    git clone git@github.com:<username>/ksql.git
    ```
 
-   or https
+   Or https:
 
    ```bash
    git clone https://github.com/<username>/ksql.git
@@ -47,7 +85,7 @@ When submitting a pull request (PR), use the following guidelines:
    ```bash
    git fetch upstream
    ```
-  
+
 4. Create a feature branch to work in.
 
    ```bash
@@ -112,6 +150,3 @@ When submitting a pull request (PR), use the following guidelines:
    git push origin --force feature-xxx
    ```
 
-   ### Issues
-
-   Report issues in [this GitHub project](https://github.com/confluentinc/ksql/issues).

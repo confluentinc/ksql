@@ -16,11 +16,9 @@
 
 package io.confluent.ksql;
 
-import junit.framework.AssertionFailedError;
-
-import org.apache.kafka.common.utils.Utils;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.common.utils.Utils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,8 +30,8 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,8 +46,8 @@ import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -61,7 +59,6 @@ public class KsqlEngineTest {
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       new KsqlConfig(Collections.singletonMap("bootstrap.servers", "localhost:9092")),
       topicClient,
-      false,
       schemaRegistryClient,
       metaStore);
 
@@ -223,25 +220,8 @@ public class KsqlEngineTest {
     expectLastCall();
     replay(topicClient);
     final KsqlEngine ksqlEngine = new KsqlEngine(
-        new KsqlConfig(Collections.emptyMap()), topicClient, true,
+        new KsqlConfig(Collections.emptyMap()), topicClient,
         schemaRegistryClient, metaStore);
-
-    // When:
-    ksqlEngine.close();
-
-    // Then:
-    verify(topicClient);
-  }
-
-  @Test
-  public void shouldNotCloseTopicClientPassedInOnClose() {
-    // Given:
-    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
-    topicClient.close();
-    expectLastCall().andThrow(new AssertionFailedError("close called")).anyTimes();
-    replay(topicClient);
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        new KsqlConfig(Collections.emptyMap()), topicClient, schemaRegistryClient);
 
     // When:
     ksqlEngine.close();

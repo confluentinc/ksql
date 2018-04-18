@@ -96,7 +96,6 @@ public class KsqlEngine implements Closeable {
   private final KsqlConfig ksqlConfig;
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
-  private final boolean topicClientOwned;
   private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
@@ -123,37 +122,20 @@ public class KsqlEngine implements Closeable {
     this(
         ksqlConfig,
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        true,
         schemaRegistryClient,
         new MetaStoreImpl()
     );
   }
 
-  public KsqlEngine(
+  protected KsqlEngine(
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient topicClient,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
-    this(
-        ksqlConfig,
-        topicClient,
-        false,
-        schemaRegistryClient,
-        new MetaStoreImpl()
-    );
-  }
-
-  KsqlEngine(
-      final KsqlConfig ksqlConfig,
-      final KafkaTopicClient topicClient,
-      final boolean topicClientOwned,
       final SchemaRegistryClient schemaRegistryClient,
       final MetaStore metaStore
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
-    this.topicClientOwned = topicClientOwned;
     this.schemaRegistryClient =
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
@@ -529,9 +511,7 @@ public class KsqlEngine implements Closeable {
     for (QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
-    if (topicClientOwned) {
-      topicClient.close();
-    }
+    topicClient.close();
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
   }

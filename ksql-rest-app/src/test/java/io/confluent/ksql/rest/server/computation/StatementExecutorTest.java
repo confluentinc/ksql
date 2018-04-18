@@ -55,7 +55,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
     final KsqlConfig ksqlConfig = new KsqlConfig(props);
-    ksqlEngine = new KsqlEngine(
+    ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
         new MockSchemaRegistryClient());

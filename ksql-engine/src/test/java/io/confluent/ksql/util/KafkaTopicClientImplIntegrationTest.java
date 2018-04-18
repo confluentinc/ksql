@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
@@ -52,22 +51,19 @@ public class KafkaTopicClientImplIntegrationTest {
 
   private String testTopic;
   private KafkaTopicClient client;
-  private AdminClient adminClient;
 
   @Before
   public void setUp() {
     testTopic = UUID.randomUUID().toString();
     KAFKA.createTopic(testTopic);
 
-    adminClient = AdminClient.create(ImmutableMap.of(
+    client = new KafkaTopicClientImpl(ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
-
-    client = new KafkaTopicClientImpl(adminClient);
   }
 
   @After
   public void tearDown() {
-    adminClient.close();
+    client.close();
   }
 
   @Test

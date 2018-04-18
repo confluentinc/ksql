@@ -117,8 +117,7 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    ksqlEngine = new KsqlEngine(
-        ksqlConfig, kafkaTopicClient, schemaRegistryClient, new MetaStoreImpl());
+    ksqlEngine = new KsqlEngine(ksqlConfig, kafkaTopicClient, schemaRegistryClient);
   }
 
   @After

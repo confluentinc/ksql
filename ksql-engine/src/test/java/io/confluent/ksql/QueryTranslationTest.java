@@ -85,6 +85,7 @@ public class QueryTranslationTest {
     streamsProperties.putAll(config);
     ksqlEngine = new KsqlEngine(new KsqlConfig(config),
         new FakeKafkaTopicClient(),
+        false,
         new MockSchemaRegistryClient(),
         metaStore);
     ksqlEngine.getTopicClient().createTopic("test_topic", 1, (short) 1);

@@ -89,7 +89,6 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -107,7 +106,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
   private static final String EXPANDED_FOLDER = "/expanded";
-  private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -291,24 +289,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   )
       throws Exception {
 
-    Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
+    KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
-
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    final String kafkaClusterId;
-    try {
-      kafkaClusterId = adminClient.describeCluster().clusterId().get();
-    } catch (final UnsupportedVersionException e) {
-      throw new KsqlException(
-          "The kafka brokers are incompatible with. "
-          + "KSQL requires broker versions >= 0.10.1.x"
-      );
-    }
+    final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
 
     String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
@@ -412,6 +398,22 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         versionCheckerAgent,
         new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
     );
+  }
+
+  private static String getKafkaClusterId(final KsqlConfig ksqlConfig) {
+
+    try (AdminClient client = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())) {
+
+      return client.describeCluster().clusterId().get();
+
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to get Kafka cluster information", e);
+    }
   }
 
   static void ensureCommandTopic(final KsqlRestConfig restConfig,

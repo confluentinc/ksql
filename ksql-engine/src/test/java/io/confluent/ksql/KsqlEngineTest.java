@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,8 @@
  **/
 
 package io.confluent.ksql;
+
+import junit.framework.AssertionFailedError;
 
 import org.apache.kafka.common.utils.Utils;
 import org.apache.avro.Schema;
@@ -40,6 +42,11 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.niceMock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -54,6 +61,7 @@ public class KsqlEngineTest {
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       new KsqlConfig(Collections.singletonMap("bootstrap.servers", "localhost:9092")),
       topicClient,
+      false,
       schemaRegistryClient,
       metaStore);
 
@@ -207,4 +215,38 @@ public class KsqlEngineTest {
     assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(false));
   }
 
+  @Test
+  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+    // Given:
+    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
+    topicClient.close();
+    expectLastCall();
+    replay(topicClient);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(Collections.emptyMap()), topicClient, true,
+        schemaRegistryClient, metaStore);
+
+    // When:
+    ksqlEngine.close();
+
+    // Then:
+    verify(topicClient);
+  }
+
+  @Test
+  public void shouldNotCloseTopicClientPassedInOnClose() {
+    // Given:
+    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
+    topicClient.close();
+    expectLastCall().andThrow(new AssertionFailedError("close called")).anyTimes();
+    replay(topicClient);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(Collections.emptyMap()), topicClient, schemaRegistryClient);
+
+    // When:
+    ksqlEngine.close();
+
+    // Then:
+    verify(topicClient);
+  }
 }

@@ -364,7 +364,7 @@ public class KsqlResource {
       runningQueries.add(new Queries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
-          persistentQueryMetadata.getId()
+          persistentQueryMetadata.getQueryId()
       ));
     }
     return new Queries(statementText, runningQueries);
@@ -428,14 +428,16 @@ public class KsqlResource {
   }
 
   private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(
-        Collectors.toList());
+    return queries
+        .stream()
+        .map(q -> q.getQueryId().toString() + " : " + q.getStatementString())
+        .collect(Collectors.toList());
   }
 
   private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
     return queries
         .stream()
-        .map(q -> "id:" + q.getId().toString() + " - " + q.getStatementString())
+        .map(q -> "id:" + q.getQueryId().toString() + " - " + q.getStatementString())
         .collect(Collectors.toList());
   }
 
@@ -585,7 +587,6 @@ public class KsqlResource {
           new CreateStreamCommand(
               statementText,
               (CreateStream) statement,
-              properties,
               ksqlEngine.getTopicClient(),
               true
           );
@@ -598,7 +599,6 @@ public class KsqlResource {
           new CreateTableCommand(
               statementText,
               (CreateTable) statement,
-              properties,
               ksqlEngine.getTopicClient(),
               true
           );

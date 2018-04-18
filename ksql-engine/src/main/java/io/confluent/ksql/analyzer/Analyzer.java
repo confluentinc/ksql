@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -48,7 +49,7 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.planner.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
@@ -62,6 +63,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.StringUtil;
 
 import static java.lang.String.format;
 
@@ -203,15 +205,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (leftDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
     }
-    leftDataSource = timestampColumn(left, leftDataSource);
 
     String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
     }
-
-    rightDataSource = timestampColumn(right, rightDataSource);
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
@@ -365,24 +364,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private StructuredDataSource timestampColumn(
-      AliasedRelation aliasedRelation,
-      StructuredDataSource structuredDataSource
-  ) {
-    if (((Table) aliasedRelation.getRelation()).getProperties() != null) {
-      if (((Table) aliasedRelation.getRelation()).getProperties()
-              .get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-        String timestampFieldName = (((Table) aliasedRelation.getRelation()))
-            .getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
-          throw new KsqlException("Property name should be String with single qoute.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
-      }
-    }
-    return structuredDataSource;
-  }
 
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
@@ -391,24 +372,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 
-    StructuredDataSource structuredDataSource = metaStore.getSource(structuredDataSourceName);
-
-    if (((Table) node.getRelation()).getProperties() != null) {
-      if (((Table) node.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
-          != null) {
-        String timestampFieldName = ((Table) node.getRelation()).getProperties()
-            .get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
-          throw new KsqlException("Property name should be String with single qoute.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
-      }
-    }
-
     Pair<StructuredDataSource, String> fromDataSource =
         new Pair<>(
-            structuredDataSource,
+            metaStore.getSource(structuredDataSourceName).copy(),
             node.getAlias()
         );
     analysis.addDataSource(fromDataSource);
@@ -566,7 +532,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
 
     if (node.getProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-      setIntoTimestampColumn(node);
+      setIntoTimestampColumnAndFormat(node);
     }
 
     if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
@@ -637,8 +603,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
   }
 
-  private void setIntoTimestampColumn(final Table node) {
-    String intoTimestampColumnName = node.getProperties()
+  private void setIntoTimestampColumnAndFormat(final Table node) {
+    final Map<String, Expression> properties = node.getProperties();
+    String intoTimestampColumnName = properties
         .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
     if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
       throw new KsqlException(
@@ -653,6 +620,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME,
         intoTimestampColumnName
     );
+
+    if (properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)) {
+      final String timestampFormat = StringUtil.cleanQuotes(
+          properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString());
+      analysis.getIntoProperties().put(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, timestampFormat);
+    }
+
   }
 
   private void validateWithClause(Set<String> withClauseVariables) {
@@ -664,6 +638,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
+    validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
 
     for (String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

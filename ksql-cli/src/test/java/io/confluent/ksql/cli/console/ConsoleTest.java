@@ -18,6 +18,21 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
@@ -40,21 +55,9 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
@@ -63,25 +66,24 @@ public class ConsoleTest {
   private KsqlRestClient client;
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<String> data() {
-    return Arrays.asList("JSON", "TABULAR");
+  public static Collection<OutputFormat> data() {
+    return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
   }
 
-  public ConsoleTest(String outputFormat) {
-    client = new KsqlRestClient("http://localhost:59098");
-    terminal = new TestTerminal(OutputFormat.valueOf(outputFormat), client);
-    terminal.setOutputFormat(outputFormat);
+  public ConsoleTest(final OutputFormat outputFormat) {
+    this.client = new KsqlRestClient("http://localhost:59098");
+    this.terminal = new TestTerminal(outputFormat, client);
   }
 
   @After
-  public void after() throws Exception {
+  public void after() {
     client.close();
     terminal.close();
   }
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new GenericRow(Arrays.asList("col_1", "col_2")));
+    StreamedRow row = new StreamedRow(new GenericRow(ImmutableList.of("col_1", "col_2")));
     terminal.printStreamedRow(row);
   }
 
@@ -102,26 +104,46 @@ public class ConsoleTest {
     queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", new QueryId("0")));
 
     for (int i = 0; i < 5; i++) {
-      KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(
+      KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
           new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
           new PropertiesList("e", properties),
           new Queries("e", queries),
           new SourceDescription(
-              "e", "TestSource", Collections.EMPTY_LIST, Collections.EMPTY_LIST, buildTestSchema(i),
+              "e", "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
               DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
               false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1, Collections.emptyMap()),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
-          new StreamsList("e", Arrays.asList(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
-          new TablesList("e", Arrays.asList(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
-          new KsqlTopicsList("e", Arrays.asList(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
-          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
+          new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
+          new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
+          new KsqlTopicsList("e", ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
+          new KafkaTopicsList("e", ImmutableList.of(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
       terminal.printKsqlEntityList(entityList);
     }
   }
 
-  private List<SourceDescription.FieldSchemaInfo> buildTestSchema(int size) {
+  @Test
+  public void shouldPrintTopicDescribeExtended() throws IOException {
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new SourceDescription(
+            "e", "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(2),
+            DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors",
+            true, "avro", "kadka-topic", "topology", "executionPlan", 2, 1,
+            Collections.emptyMap())
+    ));
+
+    terminal.printKsqlEntityList(entityList);
+
+    final String output = terminal.getOutputString();
+    if (terminal.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
+    } else {
+      assertThat(output, containsString("Kafka topic          : kadka-topic (partitions: 2, replication: 1)"));
+    }
+  }
+
+  private static List<SourceDescription.FieldSchemaInfo> buildTestSchema(int size) {
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
@@ -135,5 +157,4 @@ public class ConsoleTest {
 
     return res;
   }
-
 }

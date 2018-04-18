@@ -341,7 +341,7 @@ public class StatementExecutor {
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-      final QueryId queryId = persistentQueryMetadata.getId();
+      final QueryId queryId = persistentQueryMetadata.getQueryId();
 
       if (terminatedQueries != null && terminatedQueries.containsKey(queryId)) {
         CommandId terminateId = terminatedQueries.get(queryId);

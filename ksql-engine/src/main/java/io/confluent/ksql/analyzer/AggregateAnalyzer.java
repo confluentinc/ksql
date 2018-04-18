@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.planner.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {

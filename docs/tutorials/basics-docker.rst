@@ -27,11 +27,11 @@ Download the Tutorial and Start KSQL
        $ git clone git@github.com:confluentinc/ksql.git
        $ cd ksql
 
-#. Switch to the correct Confluent Platform release branch:
+#. Switch to the correct |cp| release branch:
 
    .. code:: bash
 
-       $ git checkout 4.1.0-post
+       $ git checkout |release_post_branch|
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.

@@ -78,7 +78,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro (requires Confluent Schema Registry and ``ksql.schema.registry.url`` in the KSQL server configuration file, see :ref:`<install_ksql-avro-schema>`)
+-  Avro (requires Confluent Schema Registry and ``ksql.schema.registry.url`` in the KSQL server configuration file, see :ref:`install_ksql-avro-schema`)
 
 ====================================
 Is KSQL fully compliant to ANSI SQL?

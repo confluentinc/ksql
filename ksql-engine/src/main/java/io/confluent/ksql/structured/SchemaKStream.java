@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -287,38 +288,24 @@ public class SchemaKStream {
         && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
   }
 
-  static Pair<String, List<Integer>> keyIndexesForGroupBy(
+  static String keyNameForGroupBy(
       final Schema schema, final List<Expression> groupByExpressions) {
-    final StringBuilder aggregateKeyName = new StringBuilder();
-    final List<Integer> newKeyIndexes = new ArrayList<>();
-
-    // Collect the column indexes, and build the new key as <column1>+<column2>+...
-    boolean addSeparator = false;
-    for (Expression groupByExpr : groupByExpressions) {
-      if (addSeparator) {
-        aggregateKeyName.append(GROUP_BY_COLUMN_SEPARATOR);
-      } else {
-        addSeparator = true;
-      }
-      aggregateKeyName.append(groupByExpr.toString());
-      newKeyIndexes.add(
-          SchemaUtil.getIndexInSchema(groupByExpr.toString(), schema));
-    }
-    return new Pair<>(aggregateKeyName.toString(), newKeyIndexes);
+    return groupByExpressions.stream()
+        .map(Expression::toString)
+        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
   }
 
-  static String buildGroupByKey(List<Integer> newKeyIndexes, GenericRow value) {
-    StringBuilder newKey = new StringBuilder();
-    boolean addSeparator1 = false;
-    for (int index : newKeyIndexes) {
-      if (addSeparator1) {
-        newKey.append(GROUP_BY_COLUMN_SEPARATOR);
-      } else {
-        addSeparator1 = true;
-      }
-      newKey.append(String.valueOf(value.getColumns().get(index)));
-    }
-    return newKey.toString();
+  static List<Integer> keyIndexesForGroupBy(
+      final Schema schema, final List<Expression> groupByExpressions) {
+    return groupByExpressions.stream()
+        .map(e -> SchemaUtil.getIndexInSchema(e.toString(), schema))
+        .collect(Collectors.toList());
+  }
+
+  static String buildGroupByKey(final List<Integer> newKeyIndexes, final GenericRow value) {
+    return newKeyIndexes.stream()
+        .map(idx -> String.valueOf(value.getColumns().get(idx)))
+        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
   }
 
   public SchemaKGroupedStream groupBy(
@@ -339,10 +326,8 @@ public class SchemaKStream {
       );
     }
 
-    final Pair<String, List<Integer>> aggregateKeyNameAndNewKeyIndexes =
-        keyIndexesForGroupBy(getSchema(), groupByExpressions);
-    final String aggregateKeyName = aggregateKeyNameAndNewKeyIndexes.left;
-    final List<Integer> newKeyIndexes = aggregateKeyNameAndNewKeyIndexes.right;
+    final String aggregateKeyName = keyNameForGroupBy(getSchema(), groupByExpressions);
+    final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
 
     KGroupedStream kgroupedStream = kstream.filter((key, value) -> value != null).groupBy(
         (key, value) -> buildGroupByKey(newKeyIndexes, value),

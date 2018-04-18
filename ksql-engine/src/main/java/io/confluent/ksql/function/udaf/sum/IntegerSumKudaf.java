@@ -36,16 +36,16 @@ public class IntegerSumKudaf extends KsqlUndoableAggregationFunction<Integer, In
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(Integer currentValue, Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return currentVal + currentAggVal;
+    return currentValue + aggregateValue;
   }
 
   @Override
-  public Integer undo(Integer currentVal, Integer currentAggVal) {
-    return this.aggregate(-1 * currentVal, currentAggVal);
+  public Integer undo(Integer valueToUndo, Integer aggregateValue) {
+    return this.aggregate(-1 * valueToUndo, aggregateValue);
   }
 
   @Override

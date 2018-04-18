@@ -36,6 +36,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
@@ -50,14 +51,15 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final SchemaRegistryClient schemaRegistryClient
   ) {
     super(schema, null, keyField, sourceSchemaKStreams, functionRegistry, schemaRegistryClient);
+    Objects.requireNonNull(kgroupedTable);
     this.kgroupedTable = kgroupedTable;
   }
 
   @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(
       final Initializer initializer,
-      Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      Map<Integer, Integer> aggValToValColumnMap,
+      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe) {
     if (windowExpression != null) {
@@ -69,15 +71,17 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
             .reduce(false, (result, notUndoable) ->  result || notUndoable)) {
       throw new KsqlException("Requested aggregation function cannot be applied to a table.");
     }
-    KudafAggregator aggregator = new KudafAggregator(aggValToFunctionMap, aggValToValColumnMap);
-    KudafUndoAggregator subtractor = new KudafUndoAggregator(
+    final KudafAggregator aggregator = new KudafAggregator(
+        aggValToFunctionMap, aggValToValColumnMap);
+    final Map<Integer, KsqlUndoableAggregationFunction> aggValToUndoFunctionMap =
         aggValToFunctionMap.keySet()
             .stream()
             .collect(
                 Collectors.toMap(
                     k -> k,
-                    k -> ((KsqlUndoableAggregationFunction) aggValToFunctionMap.get(k)))),
-        aggValToValColumnMap);
+                    k -> ((KsqlUndoableAggregationFunction) aggValToFunctionMap.get(k))));
+    final KudafUndoAggregator subtractor = new KudafUndoAggregator(
+        aggValToUndoFunctionMap, aggValToValColumnMap);
     final KTable aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,

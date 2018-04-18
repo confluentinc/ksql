@@ -35,11 +35,11 @@ public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    if (currentVal > currentAggVal) {
-      return currentVal;
+  public Long aggregate(Long currentValue, Long aggregateValue) {
+    if (currentValue > aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override

@@ -36,6 +36,7 @@ public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, 
       public GenericRow transform(GenericRow row) {
         if (row != null) {
           row.getColumns().add(0, processorContext.timestamp());
+          return row;
         }
         return row;
       }

@@ -19,7 +19,7 @@
         {"topic": "test_topic", "key": 1, "value": "1,bob,east", "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": "2,carol,west", "timestamp": 0},
         {"topic": "test_topic", "key": 3, "value": "3,dave,west", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,alice,west", "timestamp": 0}
+        {"topic": "test_topic", "key": 1, "value": "1,bob,west", "timestamp": 0}
       ],
       "outputs": [
         {"topic": "COUNT_BY_REGION", "key": "east", "value": "east,1", "timestamp": 0},

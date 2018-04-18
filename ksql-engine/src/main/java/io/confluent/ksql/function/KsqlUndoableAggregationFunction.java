@@ -30,5 +30,5 @@ public abstract class KsqlUndoableAggregationFunction<V, A> extends KsqlAggregat
     super(argIndexInValue, initialValueSupplier, returnType, argument);
   }
 
-  public abstract A undo(V currentVal, A currentAggVal);
+  public abstract A undo(V valueToUndo, A aggregateValue);
 }

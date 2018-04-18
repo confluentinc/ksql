@@ -181,17 +181,15 @@ public class SchemaKTable extends SchemaKStream {
       final Serde<String> keySerde,
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
-    Pair<String, List<Integer>> aggregateKeyNameAndNewKeyIndexes =
-        keyIndexesForGroupBy(getSchema(), groupByExpressions);
-    final String aggregateKeyName = aggregateKeyNameAndNewKeyIndexes.left;
-    final List<Integer> newKeyIndexes = aggregateKeyNameAndNewKeyIndexes.right;
+    final String aggregateKeyName = keyNameForGroupBy(getSchema(), groupByExpressions);
+    final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
 
-    KGroupedTable kgroupedTable = ktable.filter((key, value) -> value != null).groupBy(
+    final KGroupedTable kgroupedTable = ktable.filter((key, value) -> value != null).groupBy(
         (key, value) ->
             new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
         Serialized.with(keySerde, valSerde));
 
-    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,

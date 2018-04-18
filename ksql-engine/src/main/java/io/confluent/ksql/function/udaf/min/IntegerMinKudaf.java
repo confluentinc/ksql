@@ -35,11 +35,11 @@ public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(Integer currentValue, Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return Math.min(currentVal, currentAggVal);
+    return Math.min(currentValue, aggregateValue);
   }
 
   @Override

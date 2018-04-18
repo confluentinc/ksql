@@ -20,7 +20,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
 import org.apache.kafka.streams.kstream.Aggregator;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class KudafUndoAggregator implements Aggregator<String, GenericRow, GenericRow> {
   private Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap;
@@ -29,8 +32,11 @@ public class KudafUndoAggregator implements Aggregator<String, GenericRow, Gener
   public KudafUndoAggregator(
       Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap,
       Map<Integer, Integer> aggValToValColumnMap) {
-    this.aggValToAggFunctionMap = aggValToAggFunctionMap;
-    this.aggValToValColumnMap = aggValToValColumnMap;
+    Objects.requireNonNull(aggValToAggFunctionMap);
+    Objects.requireNonNull(aggValToValColumnMap);
+    this.aggValToAggFunctionMap = Collections.unmodifiableMap(
+        new HashMap<>(aggValToAggFunctionMap));
+    this.aggValToValColumnMap = Collections.unmodifiableMap(new HashMap<>(aggValToValColumnMap));
   }
 
   @SuppressWarnings("unchecked")

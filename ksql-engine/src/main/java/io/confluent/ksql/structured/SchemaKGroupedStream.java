@@ -70,12 +70,13 @@ public class SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(
       final Initializer initializer,
-      Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      Map<Integer, Integer> aggValToValColumnMap,
+      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe) {
     final KTable aggKtable;
-    UdafAggregator aggregator = new KudafAggregator(aggValToFunctionMap, aggValToValColumnMap);
+    final UdafAggregator aggregator = new KudafAggregator(
+        aggValToFunctionMap, aggValToValColumnMap);
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(

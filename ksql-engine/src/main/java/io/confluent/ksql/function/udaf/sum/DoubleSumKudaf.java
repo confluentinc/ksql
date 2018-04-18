@@ -36,8 +36,8 @@ public class DoubleSumKudaf extends KsqlUndoableAggregationFunction<Double, Doub
   }
 
   @Override
-  public Double aggregate(Double currentVal, Double currentAggVal) {
-    return currentVal + currentAggVal;
+  public Double aggregate(Double currentValue, Double aggregateValue) {
+    return currentValue + aggregateValue;
   }
 
   @Override
@@ -46,8 +46,8 @@ public class DoubleSumKudaf extends KsqlUndoableAggregationFunction<Double, Doub
   }
 
   @Override
-  public Double undo(Double currentVal, Double currentAggVal) {
-    return currentAggVal - currentVal;
+  public Double undo(Double valueToUndo, Double aggregateValue) {
+    return aggregateValue - valueToUndo;
   }
 
   @Override

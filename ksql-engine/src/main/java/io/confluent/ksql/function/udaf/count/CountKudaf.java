@@ -36,8 +36,8 @@ public class CountKudaf extends KsqlUndoableAggregationFunction<Object, Long> {
   }
 
   @Override
-  public Long aggregate(Object currentVal, Long currentAggVal) {
-    return currentAggVal + 1;
+  public Long aggregate(Object currentValue, Long aggregateValue) {
+    return aggregateValue + 1;
   }
 
   @Override
@@ -46,8 +46,8 @@ public class CountKudaf extends KsqlUndoableAggregationFunction<Object, Long> {
   }
 
   @Override
-  public Long undo(Object currentVal, Long currentAggVal) {
-    return currentAggVal - 1;
+  public Long undo(Object valueToUndo, Long aggregateValue) {
+    return aggregateValue - 1;
   }
 
   @Override

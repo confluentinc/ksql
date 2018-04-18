@@ -35,11 +35,11 @@ public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public Double aggregate(Double currentVal, Double currentAggVal) {
-    if (currentVal < currentAggVal) {
-      return currentVal;
+  public Double aggregate(Double currentValue, Double aggregateValue) {
+    if (currentValue < aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override

@@ -60,7 +60,7 @@ public abstract class KsqlAggregateFunction<V, A> {
     return this.arguments.equals(argTypeList);
   }
 
-  public abstract A aggregate(V currentVal, A currentAggVal);
+  public abstract A aggregate(V currentValue, A aggregateValue);
 
   public Supplier<A> getInitialValueSupplier() {
     return initialValueSupplier;

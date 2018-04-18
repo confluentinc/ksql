@@ -113,9 +113,10 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     log.debug("Initiating embedded Kafka cluster startup");
 
     zookeeper = new ZooKeeperEmbedded();
+    brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
+
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
-    brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
   }
 

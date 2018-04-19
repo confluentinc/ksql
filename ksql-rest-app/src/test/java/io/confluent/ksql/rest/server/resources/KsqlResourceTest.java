@@ -363,7 +363,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowStreamsDescriptions() throws Exception {
+  public void shouldReturnDescriptionsForShowStreamsExtended() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
@@ -374,7 +374,7 @@ public class KsqlResourceTest {
         DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
         "new_ksql_topic", schema);
 
-    String ksqlString = "SHOW STREAMS DESCRIPTIONS;";
+    String ksqlString = "SHOW STREAMS EXTENDED;";
     SourceDescriptionList descriptionList = makeSingleRequest(
         testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
     assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
@@ -383,19 +383,19 @@ public class KsqlResourceTest {
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"),
-                true, "serdes", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 kafkaTopicClient)));
     assertThat(
         descriptionList.getSourceDescriptions(),
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("new_stream"),
-                true, "serdes", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 kafkaTopicClient)));
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowTablesDescriptions() throws Exception {
+  public void shouldReturnDescriptionsForShowTablesExtended() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
@@ -406,7 +406,7 @@ public class KsqlResourceTest {
         DataSource.DataSourceType.KTABLE, "new_table", "new_topic",
         "new_ksql_topic", schema);
 
-    String ksqlString = "SHOW TABLES DESCRIPTIONS;";
+    String ksqlString = "SHOW TABLES EXTENDED;";
     SourceDescriptionList descriptionList = makeSingleRequest(
         testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
     assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
@@ -415,19 +415,19 @@ public class KsqlResourceTest {
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"),
-                true, "serdes", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 kafkaTopicClient)));
     assertThat(
         descriptionList.getSourceDescriptions(),
         hasItem(
              new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("new_table"),
-                 true, "serdes", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                 true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 kafkaTopicClient)));
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowQueriesDescriptions() throws Exception {
+  public void shouldReturnDescriptionsForShowQueriesExtended() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Map<String, Object> overriddenProperties =
@@ -437,7 +437,7 @@ public class KsqlResourceTest {
             "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;",
         overriddenProperties);
 
-    String ksqlString = "SHOW QUERIES DESCRIPTIONS;";
+    String ksqlString = "SHOW QUERIES EXTENDED;";
     QueryDescriptionList descriptionList = makeSingleRequest(
         testResource, ksqlString, Collections.emptyMap(), QueryDescriptionList.class);
     assertThat(descriptionList.getQueryDescriptions().size(), equalTo(2));
@@ -465,7 +465,7 @@ public class KsqlResourceTest {
 
     SourceDescription expectedDescription =
         new SourceDescription(
-            testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes",
+            testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "JSON",
             Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
 
     assertEquals(expectedDescription, testDescription.getSourceDescription());

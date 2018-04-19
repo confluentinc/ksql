@@ -26,7 +26,7 @@ import java.util.Objects;
 @JsonTypeName("description")
 @JsonSubTypes({})
 public class SourceDescriptionEntity extends KsqlEntity {
-  private SourceDescription sourceDescription;
+  private final SourceDescription sourceDescription;
 
   @JsonCreator
   public SourceDescriptionEntity(

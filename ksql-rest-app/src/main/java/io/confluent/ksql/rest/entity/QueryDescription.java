@@ -56,12 +56,12 @@ public class QueryDescription {
   ) {
     this.id = id;
     this.statementText = statementText;
-    this.schema = schema;
-    this.sources = sources;
-    this.sinks = sinks;
+    this.schema = Collections.unmodifiableList(schema);
+    this.sources = Collections.unmodifiableSet(sources);
+    this.sinks = Collections.unmodifiableSet(sinks);
     this.topology = topology;
     this.executionPlan = executionPlan;
-    this.overriddenProperties = overriddenProperties;
+    this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
   }
 
   private QueryDescription(QueryId queryId, QueryMetadata queryMetadata) {
@@ -127,18 +127,19 @@ public class QueryDescription {
       return false;
     }
     QueryDescription that = (QueryDescription) o;
-    return Objects.equals(getId(), that.getId())
-        && Objects.equals(getStatementText(), that.getStatementText())
-        && Objects.equals(getSchema(), that.getSchema())
-        && Objects.equals(getTopology(), that.getTopology())
-        && Objects.equals(getExecutionPlan(), that.getExecutionPlan())
-        && Objects.equals(getSources(), that.getSources())
-        && Objects.equals(getSinks(), that.getSinks())
-        && Objects.equals(getOverriddenProperties(), that.getOverriddenProperties());
+    return Objects.equals(id, that.id)
+        && Objects.equals(statementText, that.statementText)
+        && Objects.equals(schema, that.schema)
+        && Objects.equals(topology, that.topology)
+        && Objects.equals(executionPlan, that.executionPlan)
+        && Objects.equals(sources, that.sources)
+        && Objects.equals(sinks, that.sinks)
+        && Objects.equals(overriddenProperties, that.overriddenProperties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getId());
+    return Objects.hash(
+        id, statementText, schema, topology, executionPlan, sources, sinks, overriddenProperties);
   }
 }

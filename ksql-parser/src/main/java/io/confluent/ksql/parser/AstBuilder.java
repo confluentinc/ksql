@@ -625,20 +625,20 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
     return new ListStreams(
-        Optional.ofNullable(getLocation(context)), context.DESCRIPTIONS() != null);
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
   }
 
   @Override
   public Node visitListTables(SqlBaseParser.ListTablesContext context) {
     return new ListTables(
-        Optional.ofNullable(getLocation(context)), context.DESCRIPTIONS() != null);
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
   }
 
 
   @Override
   public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
     return new ListQueries(
-        Optional.ofNullable(getLocation(context)), context.DESCRIPTIONS() != null);
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
   }
 
   @Override

@@ -541,7 +541,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListStreams);
     ListStreams listStreams = (ListStreams) statement;
     Assert.assertTrue(listStreams.toString().equalsIgnoreCase("ListStreams{}"));
-    Assert.assertThat(listStreams.getShowDescriptions(), is(false));
+    Assert.assertThat(listStreams.getShowExtended(), is(false));
   }
 
   @Test
@@ -551,7 +551,7 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof ListTables);
     ListTables listTables = (ListTables) statement;
     Assert.assertTrue(listTables.toString().equalsIgnoreCase("ListTables{}"));
-    Assert.assertThat(listTables.getShowDescriptions(), is(false));
+    Assert.assertThat(listTables.getShowExtended(), is(false));
   }
 
   @Test
@@ -560,7 +560,7 @@ public class KsqlParserTest {
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowDescriptions(), is(false));
+    Assert.assertThat(listQueries.getShowExtended(), is(false));
   }
 
   @Test
@@ -615,28 +615,28 @@ public class KsqlParserTest {
 
   @Test
   public void shouldSetShowDescriptionsForShowStreamsDescriptions() {
-    String statementString = "SHOW STREAMS DESCRIPTIONS;";
+    String statementString = "SHOW STREAMS EXTENDED;";
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     Assert.assertThat(statement, instanceOf(ListStreams.class));
     ListStreams listStreams = (ListStreams)statement;
-    Assert.assertThat(listStreams.getShowDescriptions(), is(true));
+    Assert.assertThat(listStreams.getShowExtended(), is(true));
   }
 
   @Test
   public void shouldSetShowDescriptionsForShowTablesDescriptions() {
-    String statementString = "SHOW TABLES DESCRIPTIONS;";
+    String statementString = "SHOW TABLES EXTENDED;";
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     Assert.assertThat(statement, instanceOf(ListTables.class));
     ListTables listTables = (ListTables)statement;
-    Assert.assertThat(listTables.getShowDescriptions(), is(true));
+    Assert.assertThat(listTables.getShowExtended(), is(true));
   }
 
   @Test
   public void shouldSetShowDescriptionsForShowQueriesDescriptions() {
-    String statementString = "SHOW QUERIES DESCRIPTIONS;";
+    String statementString = "SHOW QUERIES EXTENDED;";
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     ListQueries listQueries = (ListQueries)statement;
-    Assert.assertThat(listQueries.getShowDescriptions(), is(true));
+    Assert.assertThat(listQueries.getShowExtended(), is(true));
   }
 }

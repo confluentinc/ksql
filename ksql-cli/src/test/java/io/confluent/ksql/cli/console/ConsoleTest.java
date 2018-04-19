@@ -136,7 +136,7 @@ public class ConsoleTest {
                 "TestSource", Collections.emptyList(), Collections.emptyList(),
                 buildTestSchema(2), DataSource.DataSourceType.KTABLE.getKqlType(),
                 "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
-                2, 1)));
+                2, 1))));
 
     terminal.printKsqlEntityList(entityList);
 

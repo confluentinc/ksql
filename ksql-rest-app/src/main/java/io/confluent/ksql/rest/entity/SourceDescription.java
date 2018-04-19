@@ -25,6 +25,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,9 +75,9 @@ public class SourceDescription {
       @JsonProperty("replication") int replication
   ) {
     this.name = name;
-    this.readQueries = readQueries;
-    this.writeQueries = writeQueries;
-    this.schema = schema;
+    this.readQueries = Collections.unmodifiableList(readQueries);
+    this.writeQueries = Collections.unmodifiableList(writeQueries);
+    this.schema = Collections.unmodifiableList(schema);
     this.type = type;
     this.key = key;
     this.timestamp = timestamp;
@@ -212,15 +213,22 @@ public class SourceDescription {
       return false;
     }
     SourceDescription that = (SourceDescription) o;
-    return Objects.equals(getName(), that.getName())
-           && Objects.equals(getSchema(), that.getSchema())
-           && getType().equals(that.getType())
-           && Objects.equals(getKey(), that.getKey())
-           && Objects.equals(getTimestamp(), that.getTimestamp());
+    return Objects.equals(name, that.name)
+           && Objects.equals(schema, that.schema)
+           && extended == that.extended
+           && Objects.equals(type, that.type)
+           && Objects.equals(serdes, that.serdes)
+           && Objects.equals(topic, that.topic)
+           && Objects.equals(key, that.key)
+           && Objects.equals(writeQueries, that.writeQueries)
+           && Objects.equals(readQueries, that.readQueries)
+           && Objects.equals(timestamp, that.timestamp)
+           && Objects.equals(statistics, that.statistics)
+           && Objects.equals(errorStats, that.errorStats);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
+    return Objects.hash(name, schema, type, key, timestamp);
   }
 }

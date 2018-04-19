@@ -270,11 +270,11 @@ public class KsqlResource {
     } else if (statement instanceof ListRegisteredTopics) {
       return listRegisteredTopics(statementText);
     } else if (statement instanceof ListStreams) {
-      return listStreams(statementText, ((ListStreams)statement).getShowDescriptions());
+      return listStreams(statementText, ((ListStreams)statement).getShowExtended());
     } else if (statement instanceof ListTables) {
-      return listTables(statementText, ((ListTables)statement).getShowDescriptions());
+      return listTables(statementText, ((ListTables)statement).getShowExtended());
     } else if (statement instanceof ListQueries) {
-      return showQueries(statementText, ((ListQueries)statement).getShowDescriptions());
+      return showQueries(statementText, ((ListQueries)statement).getShowExtended());
     } else if (statement instanceof ShowColumns) {
       ShowColumns showColumns = (ShowColumns) statement;
       if (showColumns.isTopic()) {

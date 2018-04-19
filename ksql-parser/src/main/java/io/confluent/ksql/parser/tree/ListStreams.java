@@ -23,15 +23,15 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ListStreams
     extends Statement {
-  boolean showDescriptions;
+  boolean showExtended;
 
-  public ListStreams(Optional<NodeLocation> location, boolean showDescriptions) {
+  public ListStreams(Optional<NodeLocation> location, boolean showExtended) {
     super(location);
-    this.showDescriptions = showDescriptions;
+    this.showExtended = showExtended;
   }
 
-  public boolean getShowDescriptions() {
-    return showDescriptions;
+  public boolean getShowExtended() {
+    return showExtended;
   }
 
   @Override

@@ -30,6 +30,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public class KsqlBareOutputNode extends OutputNode {
 
@@ -37,8 +38,10 @@ public class KsqlBareOutputNode extends OutputNode {
   public KsqlBareOutputNode(@JsonProperty("id") final PlanNodeId id,
                             @JsonProperty("source") final PlanNode source,
                             @JsonProperty("schema") final Schema schema,
-                            @JsonProperty("limit") final Optional<Integer> limit) {
-    super(id, source, schema, limit);
+                            @JsonProperty("limit") final Optional<Integer> limit,
+                            @JsonProperty("timestampExtraction")
+                              final TimestampExtractionPolicy extractionPolicy) {
+    super(id, source, schema, limit, extractionPolicy);
 
 
   }

@@ -49,8 +49,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
+
 
 public class SchemaKStreamTest {
 
@@ -75,7 +79,7 @@ public class SchemaKStreamTest {
 
 
   @Test
-  public void testSelectSchemaKStream() throws Exception {
+  public void testSelectSchemaKStream() {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
@@ -137,15 +141,15 @@ public class SchemaKStreamTest {
                                              SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
-                      filteredSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
-                      filteredSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
                       filteredSchemaKStream.getSchema().fields().get(2));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
                       filteredSchemaKStream.getSchema().fields().get(3));
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
+                      filteredSchemaKStream.getSchema().fields().get(4));
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
+                      filteredSchemaKStream.getSchema().fields().get(5));
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type() == Schema.Type.STRING);
@@ -156,17 +160,17 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testSelectKey() throws Exception {
+  public void testSelectKey() {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
-                                                                            .getSchema().fields()
-                                                                            .get(1), true);
-    Assert.assertTrue(rekeyedSchemaKStream.getKeyField().name().equalsIgnoreCase("TEST1.COL1"));
+        .getSchema().fields()
+        .get(3), true);
+    assertThat(rekeyedSchemaKStream.getKeyField().name().toUpperCase(), equalTo("TEST1.COL1"));
   }
 
   @Test

@@ -54,6 +54,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
 
   @Test
+
   public void shouldBuildSourceNode() {
     build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
@@ -72,6 +73,7 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldHaveTwoSubTopologies() {
+    // We always require rekey at the moment.
     buildRequireRekey();
     final TopologyDescription description = builder.build().describe();
     assertThat(description.subtopologies().size(), equalTo(2));

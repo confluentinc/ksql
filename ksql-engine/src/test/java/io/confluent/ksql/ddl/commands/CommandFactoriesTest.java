@@ -25,8 +25,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
-import io.confluent.ksql.QueryTerminator;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -52,7 +53,7 @@ public class CommandFactoriesTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final CommandFactories commandFactories = new CommandFactories(
       topicClient,
-      EasyMock.createMock(QueryTerminator.class),
+      EasyMock.createMock(SchemaRegistryClient.class),
       true);
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";
@@ -125,7 +126,7 @@ public class CommandFactoriesTest {
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true,
@@ -141,7 +142,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldFailCreateTableIfKeyIsNotProvided() {
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true, properties),

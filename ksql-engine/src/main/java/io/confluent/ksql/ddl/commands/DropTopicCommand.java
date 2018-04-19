@@ -33,7 +33,7 @@ public class DropTopicCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     metaStore.deleteTopic(topicName);
     return new DdlCommandResult(true, "Topic " + topicName + " was dropped");
   }

@@ -62,7 +62,6 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -278,7 +277,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStatements(String line)
-      throws IOException, InterruptedException, ExecutionException {
+      throws InterruptedException, IOException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext :
         new KsqlParser().getStatements(line)) {
@@ -356,7 +355,7 @@ public class Cli implements Closeable, AutoCloseable {
       StringBuilder consecutiveStatements,
       SqlBaseParser.SingleStatementContext statementContext,
       String statementText
-  ) throws IOException, InterruptedException, ExecutionException {
+  ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
@@ -385,12 +384,7 @@ public class Cli implements Closeable, AutoCloseable {
       KsqlEntityList ksqlEntities = response.getResponse();
       boolean noErrorFromServer = true;
       for (KsqlEntity entity : ksqlEntities) {
-        if (entity instanceof ErrorMessageEntity) {
-          ErrorMessageEntity errorMsg = (ErrorMessageEntity) entity;
-          terminal.printErrorMessage(errorMsg.getErrorMessage());
-          LOGGER.error(errorMsg.getErrorMessage().getMessage());
-          noErrorFromServer = false;
-        } else if (entity instanceof CommandStatusEntity
+        if (entity instanceof CommandStatusEntity
             && (
             ((CommandStatusEntity) entity).getCommandStatus().getStatus()
                 == CommandStatus.Status.ERROR)
@@ -409,9 +403,11 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException, IOException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
+
+    LOGGER.debug("Handling streamed query");
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
@@ -427,6 +423,8 @@ public class Cli implements Closeable, AutoCloseable {
                   // the stream interface that queryStream uses isn't smart enough to figure
                   // out when the socket is closed, so just break here since we know there will
                   // be nothing more to read.
+                  LOGGER.debug("Going to stop reading results for row {} since there was an error"
+                               + " in the response stream: {}", row, row.getErrorMessage());
                   break;
                 }
               } catch (IOException exception) {

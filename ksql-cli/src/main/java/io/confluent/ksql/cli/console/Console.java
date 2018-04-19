@@ -19,6 +19,8 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
@@ -43,8 +45,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -130,7 +130,10 @@ public abstract class Console implements Closeable {
     return lineReader;
   }
 
-  public void printErrorMessage(ErrorMessage errorMessage) {
+  public void printErrorMessage(KsqlErrorMessage errorMessage) throws IOException {
+    if (errorMessage instanceof KsqlStatementErrorMessage) {
+      printKsqlEntityList(((KsqlStatementErrorMessage)errorMessage).getEntities());
+    }
     printError(errorMessage.getMessage(), errorMessage.toString());
   }
 
@@ -193,6 +196,10 @@ public abstract class Console implements Closeable {
           OutputFormat.VALID_FORMATS
       );
     }
+  }
+
+  public OutputFormat getOutputFormat() {
+    return outputFormat;
   }
 
   /* private */
@@ -360,10 +367,6 @@ public abstract class Console implements Closeable {
       tableBuilder
           .withColumnHeaders("Message")
           .withRow(commandStatus.getMessage().split("\n", 2)[0]);
-    } else if (ksqlEntity instanceof ErrorMessageEntity) {
-      ErrorMessage errorMessage = ((ErrorMessageEntity) ksqlEntity).getErrorMessage();
-      printErrorMessage(errorMessage);
-      return;
     } else if (ksqlEntity instanceof PropertiesList) {
       PropertiesList
           propertiesList =
@@ -477,26 +480,27 @@ public abstract class Console implements Closeable {
   }
 
   private void printQueryInfo(SourceDescription source) {
-    if (!"QUERY".equals(source.getType())) {
-      writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+    if ("QUERY".equals(source.getType())) {
+      return;
+    }
+
+    final String timestamp = source.getTimestamp().isEmpty()
+                             ? "Not set - using <ROWTIME>"
+                             : source.getTimestamp();
+
+    writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+    writer().println(String.format("%-20s : %s", "Key format", "STRING"));
+    writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
+    writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
+
+    if (!source.getTopic().isEmpty()) {
       writer().println(String.format(
-          "%-20s : %s",
-          "Timestamp field",
-          source.getTimestamp().isEmpty()
-              ? "Not set - using <ROWTIME>"
-              : source.getTimestamp()
+          "%-20s : %s (partitions: %d, replication: %d)",
+          "Kafka topic",
+          source.getTopic(),
+          source.getPartitions(),
+          source.getReplication()
       ));
-      writer().println(String.format("%-20s : %s", "Key format", "STRING"));
-      writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
-      if (!source.getTopic().isEmpty()) {
-        writer().println(String.format(
-            "%-20s : %s (partitions: %d, replication: %d)",
-            "Kafka output topic",
-            source.getTopic(),
-            source.getPartitions(),
-            source.getReplication()
-        ));
-      }
     }
   }
 

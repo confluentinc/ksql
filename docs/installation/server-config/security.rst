@@ -46,7 +46,7 @@ The following configuration connects KSQL with the Confluent Schema Registry ove
 
    .. code:: bash
 
-      $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>
+      $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 The exact settings will vary depending on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
 are signed. For more information, see :ref:`schemaregistry_security`.

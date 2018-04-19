@@ -204,6 +204,31 @@ public class SourceDescription {
     return errorStats;
   }
 
+  private boolean equals2(SourceDescription that) {
+    if (!Objects.equals(topic, that.topic)) {
+      return false;
+    }
+    if (!Objects.equals(key, that.key)) {
+      return false;
+    }
+    if (!Objects.equals(writeQueries, that.writeQueries)) {
+      return false;
+    }
+    if (!Objects.equals(readQueries, that.readQueries)) {
+      return false;
+    }
+    if (!Objects.equals(timestamp, that.timestamp)) {
+      return false;
+    }
+    if (!Objects.equals(statistics, that.statistics)) {
+      return false;
+    }
+    if (!Objects.equals(errorStats, that.errorStats)) {
+      return false;
+    }
+    return true;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -213,18 +238,22 @@ public class SourceDescription {
       return false;
     }
     SourceDescription that = (SourceDescription) o;
-    return Objects.equals(name, that.name)
-           && Objects.equals(schema, that.schema)
-           && extended == that.extended
-           && Objects.equals(type, that.type)
-           && Objects.equals(serdes, that.serdes)
-           && Objects.equals(topic, that.topic)
-           && Objects.equals(key, that.key)
-           && Objects.equals(writeQueries, that.writeQueries)
-           && Objects.equals(readQueries, that.readQueries)
-           && Objects.equals(timestamp, that.timestamp)
-           && Objects.equals(statistics, that.statistics)
-           && Objects.equals(errorStats, that.errorStats);
+    if (!Objects.equals(name, that.name)) {
+      return false;
+    }
+    if (!Objects.equals(schema, that.schema)) {
+      return false;
+    }
+    if (!Objects.equals(extended, that.extended)) {
+      return false;
+    }
+    if (!Objects.equals(type, that.type)) {
+      return false;
+    }
+    if (!Objects.equals(serdes, that.serdes)) {
+      return false;
+    }
+    return equals2(that);
   }
 
   @Override

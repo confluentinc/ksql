@@ -51,6 +51,9 @@ Download the Tutorial and Start KSQL
       :start-line: 19
       :end-line: 40
 
+.. note::
+    The 4.1.0 ``ksql-cli`` image will display version 4.1.1-SNAPSHOT due to a cosmetic bug.
+
 .. include:: ../includes/ksql-includes.rst
     :start-line: 82
     :end-line: 327

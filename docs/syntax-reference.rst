@@ -187,6 +187,10 @@ The WITH clause supports the following properties:
 |                         | in Kafka's Streams API). Time-based operations such as windowing will process a record     |
 |                         | according to the timestamp in ``ROWTIME``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 
 .. include:: includes/ksql-includes.rst
@@ -264,6 +268,10 @@ The WITH clause supports the following properties:
 |                         | Kafka's Streams API). Time-based operations such as windowing will process a record        |
 |                         | according to the timestamp in ``ROWTIME``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
     :start-line: 2
@@ -335,6 +343,10 @@ The WITH clause for the result supports the following properties:
 |               | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
 |               | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
 +---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
     :start-line: 2
@@ -400,6 +412,10 @@ The WITH clause supports the following properties:
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a          |
+|                  | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format            |
+|                  | that can be parsed with the java ``DateTimeFormatter``.                                           |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
     :start-line: 2

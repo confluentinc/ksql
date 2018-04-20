@@ -35,14 +35,12 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   public CreateTableCommand(
       String sqlExpression,
       CreateTable createTable,
-      Map<String, Object> overriddenProperties,
       KafkaTopicClient kafkaTopicClient,
       boolean enforceTopicExistence
   ) {
     super(sqlExpression,
           createTable,
-          overriddenProperties,
-          kafkaTopicClient,
+        kafkaTopicClient,
           enforceTopicExistence);
 
     Map<String, Expression> properties = createTable.getProperties();
@@ -63,9 +61,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore);
+      registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
     KsqlTable ksqlTable = new KsqlTable(
@@ -73,11 +71,8 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sourceName,
         schema,
         (keyColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
-        (timestampColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
+          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        timestampExtractionPolicy,
         metaStore.getTopic(topicName),
         stateStoreName, isWindowed
     );
@@ -85,7 +80,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
-    return new DDLCommandResult(true, "Table created");
+    return new DdlCommandResult(true, "Table created");
   }
 
 }

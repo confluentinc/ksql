@@ -25,11 +25,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
-import io.confluent.ksql.QueryTerminator;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -52,7 +53,7 @@ public class CommandFactoriesTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final CommandFactories commandFactories = new CommandFactories(
       topicClient,
-      EasyMock.createMock(QueryTerminator.class),
+      EasyMock.createMock(SchemaRegistryClient.class),
       true);
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";
@@ -67,7 +68,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateDDLCommandForRegisterTopic() {
-    final DDLCommand result = commandFactories.create(
+    final DdlCommand result = commandFactories.create(
         sqlExpression, new RegisterTopic(QualifiedName.of("blah"),
             true, properties),
         Collections.emptyMap());
@@ -76,7 +77,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForCreateStream() {
-    final DDLCommand result = commandFactories.create(
+    final DdlCommand result = commandFactories.create(
         sqlExpression, new CreateStream(QualifiedName.of("foo"),
             Collections.emptyList(), true, properties),
         Collections.emptyMap());
@@ -89,7 +90,7 @@ public class CommandFactoriesTest {
     HashMap<String, Expression> tableProperties = new HashMap<>();
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
-    final DDLCommand result = commandFactories.create(sqlExpression,
+    final DdlCommand result = commandFactories.create(sqlExpression,
         new CreateTable(QualifiedName.of("foo"),
                         Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                             ("COL2", "VARCHAR")), true,
@@ -105,7 +106,7 @@ public class CommandFactoriesTest {
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
-      final DDLCommand result = commandFactories.create(sqlExpression,
+      final DdlCommand result = commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true,
@@ -125,7 +126,7 @@ public class CommandFactoriesTest {
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
-      final DDLCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true,
@@ -141,7 +142,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldFailCreateTableIfKeyIsNotProvided() {
     try {
-      final DDLCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
                               ("COL2", "VARCHAR")), true, properties),
@@ -155,7 +156,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForDropStream() {
-    final DDLCommand result = commandFactories.create(sqlExpression,
+    final DdlCommand result = commandFactories.create(sqlExpression,
         new DropStream(QualifiedName.of("foo"), true),
         Collections.emptyMap());
     assertThat(result, instanceOf(DropSourceCommand.class));
@@ -163,7 +164,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForDropTable() {
-    final DDLCommand result = commandFactories.create(sqlExpression,
+    final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTable(QualifiedName.of("foo"), true),
         Collections.emptyMap());
     assertThat(result, instanceOf(DropSourceCommand.class));
@@ -171,7 +172,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForDropTopic() {
-    final DDLCommand result = commandFactories.create(sqlExpression,
+    final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTopic(QualifiedName.of("foo"), true),
         Collections.emptyMap());
     assertThat(result, instanceOf(DropTopicCommand.class));
@@ -179,7 +180,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForSetProperty() {
-    final DDLCommand result = commandFactories.create(sqlExpression,
+    final DdlCommand result = commandFactories.create(sqlExpression,
         new SetProperty(Optional.empty(), "prop", "value"),
         new HashMap<>());
     assertThat(result, instanceOf(SetPropertyCommand.class));
@@ -187,6 +188,6 @@ public class CommandFactoriesTest {
 
   @Test(expected = KsqlException.class)
   public void shouldThowKsqlExceptionIfCommandFactoryNotFound() {
-    commandFactories.create(sqlExpression, new DDLStatement() {}, Collections.emptyMap());
+    commandFactories.create(sqlExpression, new DdlStatement() {}, Collections.emptyMap());
   }
 }

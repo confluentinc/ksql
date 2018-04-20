@@ -19,12 +19,7 @@ package io.confluent.ksql.integration;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,13 +28,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -56,10 +52,10 @@ import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
+@Category({IntegrationTest.class})
 public class JsonFormatTest {
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
@@ -101,9 +97,9 @@ public class JsonFormatTest {
   }
 
   private void createInitTopics() {
-    topicClient.createTopic(inputTopic, 1, (short)1, false);
-    topicClient.createTopic(usersTopic, 1, (short)1, false);
-    topicClient.createTopic(messageLogTopic, 1, (short)1, false);
+    topicClient.createTopic(inputTopic, 1, (short) 1);
+    topicClient.createTopic(usersTopic, 1, (short) 1);
+    topicClient.createTopic(messageLogTopic, 1, (short) 1);
   }
 
   private void produceInitData() throws Exception {
@@ -193,6 +189,7 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
         streamName, resultPartitionCount, inputStream);
+
     executePersistentQuery(queryString);
 
     TestUtils.waitForCondition(
@@ -274,7 +271,7 @@ public class JsonFormatTest {
         .buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
-    queryId = ((PersistentQueryMetadata)queryMetadata).getId();
+    queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 
   private Map<String, GenericRow> readNormalResults(String resultTopic, Schema resultSchema, int expectedNumMessages) {

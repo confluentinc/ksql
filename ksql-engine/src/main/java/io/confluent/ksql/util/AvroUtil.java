@@ -92,7 +92,7 @@ public class AvroUtil {
       }
     } catch (Exception e) {
       String errorMessage = String.format(
-          " Could not fetch the AVRO schema from schema registry. %s ",
+          " Unable to verify the AVRO schema is compatible with KSQL. %s ",
           e.getMessage()
       );
       throw new KsqlException(errorMessage);
@@ -144,7 +144,7 @@ public class AvroUtil {
     List<TableElement> elements = new ArrayList<>();
     for (Field field : schema.fields()) {
       TableElement tableElement = new TableElement(field.name().toUpperCase(), SchemaUtil
-          .getSQLTypeName(field.schema()));
+          .getSqlTypeName(field.schema()));
       elements.add(tableElement);
     }
     StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));

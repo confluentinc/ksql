@@ -19,6 +19,9 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
@@ -31,8 +34,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,14 +45,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
-import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
@@ -61,10 +60,12 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.StringUtil;
 
 public abstract class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
+  private static final List<String> PROPERTIES_COLUMN_HEADERS = Arrays.asList("Property", "Value");
 
   private LineReader lineReader;
   private final ObjectMapper objectMapper;
@@ -129,7 +130,10 @@ public abstract class Console implements Closeable {
     return lineReader;
   }
 
-  public void printErrorMessage(ErrorMessage errorMessage) {
+  public void printErrorMessage(KsqlErrorMessage errorMessage) throws IOException {
+    if (errorMessage instanceof KsqlStatementErrorMessage) {
+      printKsqlEntityList(((KsqlStatementErrorMessage)errorMessage).getEntities());
+    }
     printError(errorMessage.getMessage(), errorMessage.toString());
   }
 
@@ -194,7 +198,20 @@ public abstract class Console implements Closeable {
     }
   }
 
+  public OutputFormat getOutputFormat() {
+    return outputFormat;
+  }
+
   /* private */
+
+  private static List<List<String>> propertiesRowValues(Map<String, Object> properties) {
+    return properties.entrySet().stream()
+        .map(propertyEntry -> Arrays.asList(
+            propertyEntry.getKey(),
+            Objects.toString(propertyEntry.getValue())
+        )).collect(Collectors.toList());
+  }
+
 
   private void registerDefaultCommands() {
     registerCliSpecificCommand(new Help());
@@ -211,77 +228,145 @@ public abstract class Console implements Closeable {
   }
 
 
-  private void printTable(
-      List<String> columnHeaders,
-      List<List<String>> rowValues,
-      List<String> header,
-      List<String> footer
-  ) {
+  private static class Table {
+    private final List<String> columnHeaders;
+    private final List<List<String>> rowValues;
+    private final List<String> header;
+    private final List<String> footer;
 
-    header.forEach(m -> writer().println(m));
-
-    if (columnHeaders.size() > 0) {
-      addResult(columnHeaders, rowValues);
-
-      Integer[] columnLengths = new Integer[columnHeaders.size()];
-      int separatorLength = -1;
-
-      for (int i = 0; i < columnLengths.length; i++) {
-        int columnLength = getColumnLength(columnHeaders, rowValues, i);
-        columnLengths[i] = columnLength;
-        separatorLength += columnLength + 3;
-      }
-
-      String rowFormatString = constructRowFormatString(columnLengths);
-
-      writer().printf(rowFormatString, columnHeaders.toArray());
-
-      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
-      for (List<String> row : rowValues) {
-        writer().printf(rowFormatString, row.toArray());
-      }
-      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+    public Table(List<String> columnHeaders, List<List<String>> rowValues, List<String> header,
+                 List<String> footer) {
+      this.columnHeaders = columnHeaders;
+      this.rowValues = rowValues;
+      this.header = header;
+      this.footer = footer;
     }
 
-    footer.forEach(m -> writer().println(m));
+    public Table(List<String> columnHeaders, List<List<String>> rowValues) {
+      this(columnHeaders, rowValues, Collections.emptyList(), Collections.emptyList());
+    }
 
+    public static class Builder {
+      private final List<String> columnHeaders = new LinkedList<>();
+      private final List<List<String>> rowValues = new LinkedList<>();
+      private final List<String> header = new LinkedList<>();
+      private final List<String> footer = new LinkedList<>();
+
+      Builder() {}
+
+      Table build() {
+        return new Table(columnHeaders, rowValues, header, footer);
+      }
+
+      Builder withColumnHeaders(List<String> columnHeaders) {
+        this.columnHeaders.addAll(columnHeaders);
+        return this;
+      }
+
+      Builder withColumnHeaders(String... columnHeaders) {
+        this.columnHeaders.addAll(Arrays.asList(columnHeaders));
+        return this;
+      }
+
+      Builder withRows(List<List<String>> rowValues) {
+        this.rowValues.addAll(rowValues);
+        return this;
+      }
+
+      Builder withRow(String... row) {
+        this.rowValues.add(Arrays.asList(row));
+        return this;
+      }
+
+      Builder withRow(List<String> row) {
+        this.rowValues.add(row);
+        return this;
+      }
+
+      Builder withHeaderLine(String headerLine) {
+        this.header.add(headerLine);
+        return this;
+      }
+
+      Builder withFooterLine(String footerLine) {
+        this.footer.add(footerLine);
+        return this;
+      }
+    }
+
+    private int getMultiLineStringLength(String multiLineString) {
+      String[] split = multiLineString.split("\n");
+      return Arrays.asList(split)
+          .stream()
+          .mapToInt(String::length)
+          .max()
+          .orElse(0);
+    }
+
+    private int getColumnLength(List<String> columnHeaders, List<List<String>> rowValues, int i) {
+      return Math.max(
+          columnHeaders.get(i).length(),
+          rowValues
+              .stream()
+              .mapToInt(r -> getMultiLineStringLength(r.get(i)))
+              .max()
+              .orElse(0));
+    }
+
+    public void print(final Console console) {
+
+      header.forEach(m -> console.writer().println(m));
+
+      if (columnHeaders.size() > 0) {
+        console.addResult(columnHeaders, rowValues);
+
+        Integer[] columnLengths = new Integer[columnHeaders.size()];
+        int separatorLength = -1;
+
+        for (int i = 0; i < columnLengths.length; i++) {
+          int columnLength = getColumnLength(columnHeaders, rowValues, i);
+          columnLengths[i] = columnLength;
+          separatorLength += columnLength + 3;
+        }
+
+        String rowFormatString = constructRowFormatString(columnLengths);
+
+        console.writer().printf(rowFormatString, columnHeaders.toArray());
+
+        String separator = StringUtils.repeat('-', separatorLength);
+        console.writer().println(separator);
+        for (List<String> row : rowValues) {
+          console.writer().printf(rowFormatString, row.toArray());
+        }
+        console.writer().println(separator);
+      }
+
+      footer.forEach(m -> console.writer().println(m));
+
+      console.flush();
+    }
+  }
+
+  private void printAsTable(GenericRow row) {
+    addResult(row);
+    writer().println(
+        String.join(
+            " | ",
+            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        )
+    );
     flush();
   }
 
-  private int getColumnLength(List<String> columnHeaders, List<List<String>> rowValues, int i) {
-    int columnLength = columnHeaders.get(i).length();
-    for (List<String> row : rowValues) {
-      columnLength = Math.max(columnLength, getMultiLineStringLength(row.get(i)));
-    }
-    return columnLength;
-  }
-
-  private int getMultiLineStringLength(String s) {
-    String[] split = s.split("\n");
-    String longest = Collections.max(
-        Arrays.asList(split),
-        Comparator.comparing(line -> line.length())
-    );
-    return longest.length();
-  }
-
   private void printAsTable(KsqlEntity ksqlEntity) {
-    List<String> header = new ArrayList<>();
-    List<String> footer = new ArrayList<>();
-    List<String> columnHeaders = new ArrayList<>();
-    List<List<String>> rowValues = new ArrayList<>();
+    Table.Builder tableBuilder = new Table.Builder();
 
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
-      columnHeaders = Arrays.asList("Message");
       CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
-      rowValues = Collections.singletonList(Arrays.asList(
-          commandStatus.getMessage().split("\n", 2)[0]
-      ));
-    } else if (ksqlEntity instanceof ErrorMessageEntity) {
-      ErrorMessage errorMessage = ((ErrorMessageEntity) ksqlEntity).getErrorMessage();
-      printErrorMessage(errorMessage);
-      return;
+      tableBuilder
+          .withColumnHeaders("Message")
+          .withRow(commandStatus.getMessage().split("\n", 2)[0]);
     } else if (ksqlEntity instanceof PropertiesList) {
       PropertiesList
           propertiesList =
@@ -290,114 +375,86 @@ public abstract class Console implements Closeable {
               restClient.getLocalProperties()
           );
       Map<String, Object> properties = propertiesList.getProperties();
-      columnHeaders = Arrays.asList("Property", "Value");
-      rowValues = properties.entrySet().stream()
-          .map(propertyEntry -> Arrays.asList(
-              propertyEntry.getKey(),
-              Objects.toString(propertyEntry.getValue())
-          )).collect(Collectors.toList());
+      tableBuilder
+          .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
+          .withRows(propertiesRowValues(properties));
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
-      rowValues = runningQueries.stream()
-          .map(runningQuery -> Arrays.asList(
-              runningQuery.getId().toString(),
-              runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString()
-          )).collect(Collectors.toList());
-      footer.add("For detailed information on a Query run: EXPLAIN <Query ID>;");
+      tableBuilder.withColumnHeaders("Query ID", "Kafka Topic", "Query String");
+      runningQueries.forEach(
+          r -> tableBuilder.withRow(r.getId().toString(), r.getKafkaTopic(), r.getQueryString()));
+      tableBuilder.withFooterLine("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
-      List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
-
-      if (!fields.isEmpty()) {
-        columnHeaders = Arrays.asList("Field", "Type");
-        rowValues = fields.stream()
-            .map(field -> Arrays.asList(
-                field.getName(),
-                formatFieldType(field, sourceDescription.getKey())
-            ))
-            .collect(Collectors.toList());
-      }
-
-      printExtendedInformation(header, footer, sourceDescription);
-
-
+      printExtendedInformation(sourceDescription);
+      return;
     } else if (ksqlEntity instanceof TopicDescription) {
-      columnHeaders = new ArrayList<>();
-      columnHeaders.add("Topic Name");
-      columnHeaders.add("Kafka Topic");
-      columnHeaders.add("Type");
+      tableBuilder.withColumnHeaders("Topic Name", "Kafka Topic", "Type");
       List<String> topicInfo = new ArrayList<>();
       TopicDescription topicDescription = (TopicDescription) ksqlEntity;
       topicInfo.add(topicDescription.getName());
       topicInfo.add(topicDescription.getKafkaTopic());
       topicInfo.add(topicDescription.getFormat());
       if (topicDescription.getFormat().equalsIgnoreCase("AVRO")) {
-        columnHeaders.add("AvroSchema");
+        tableBuilder.withColumnHeaders("AvroSchema");
         topicInfo.add(topicDescription.getSchemaString());
       }
-      rowValues = Arrays.asList(topicInfo);
+      tableBuilder.withRow(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
-      List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
-      columnHeaders = Arrays.asList("Stream Name", "Kafka Topic", "Format");
-      rowValues = streamInfos.stream()
-          .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic(),
-                                           streamInfo.getFormat()
-          ))
-          .collect(Collectors.toList());
+      tableBuilder.withColumnHeaders("Stream Name", "Kafka Topic", "Format");
+      ((StreamsList) ksqlEntity).getStreams().forEach(
+          s -> tableBuilder.withRow(s.getName(), s.getTopic(), s.getFormat()));
     } else if (ksqlEntity instanceof TablesList) {
-      List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
-      columnHeaders = Arrays.asList("Table Name", "Kafka Topic", "Format", "Windowed");
-      rowValues = tableInfos.stream()
-          .map(tableInfo -> Arrays.asList(
-              tableInfo.getName(),
-              tableInfo.getTopic(),
-              tableInfo.getFormat(),
-              Boolean.toString(tableInfo.getIsWindowed())
-               )
-          ).collect(Collectors.toList());
+      tableBuilder.withColumnHeaders("Table Name", "Kafka Topic", "Format", "Windowed");
+      ((TablesList) ksqlEntity).getTables().forEach(
+          t -> tableBuilder.withRow(t.getName(), t.getTopic(), t.getFormat(),
+              Boolean.toString(t.getIsWindowed())));
     } else if (ksqlEntity instanceof KsqlTopicsList) {
-      List<KsqlTopicInfo> topicInfos = ((KsqlTopicsList) ksqlEntity).getTopics();
-      columnHeaders = Arrays.asList("Ksql Topic", "Kafka Topic", "Format");
-      rowValues = topicInfos.stream()
-          .map(topicInfo -> Arrays.asList(
-              topicInfo.getName(),
-              topicInfo.getKafkaTopic(),
-              topicInfo.getFormat().name()
-          )).collect(Collectors.toList());
+      tableBuilder.withColumnHeaders("Ksql Topic", "Kafka Topic", "Format");
+      ((KsqlTopicsList) ksqlEntity).getTopics().forEach(
+          t -> tableBuilder.withRow(t.getName(), t.getKafkaTopic(), t.getFormat().name()));
     } else if (ksqlEntity instanceof KafkaTopicsList) {
-      List<KafkaTopicInfo> topicInfos = ((KafkaTopicsList) ksqlEntity).getTopics();
-      columnHeaders = Arrays.asList(
+      tableBuilder.withColumnHeaders(
           "Kafka Topic",
           "Registered",
           "Partitions",
           "Partition Replicas",
           "Consumers",
-          "Consumer Groups"
-      );
-      rowValues = topicInfos.stream()
-          .map(topicInfo -> Arrays.asList(
-              topicInfo.getName(),
-              topicInfo.getRegistered(),
-              Integer.toString(topicInfo.getPartitionCount()),
-              topicInfo.getReplicaInfo(),
-              Integer.toString(topicInfo.getConsumerCount()),
-              Integer.toString(topicInfo.getConsumerGroupCount())
-          )).collect(Collectors.toList());
+          "ConsumerGroups");
+      ((KafkaTopicsList) ksqlEntity).getTopics().forEach(
+          t -> tableBuilder.withRow(
+              t.getName(),
+              Boolean.toString(t.getRegistered()),
+              Integer.toString(t.getReplicaInfo().size()),
+              getTopicReplicaInfo(t.getReplicaInfo()),
+              Integer.toString(t.getConsumerCount()),
+              Integer.toString(t.getConsumerGroupCount())));
     } else if (ksqlEntity instanceof ExecutionPlan) {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
-      columnHeaders = Arrays.asList("Execution Plan");
-      rowValues = Collections.singletonList(Arrays.asList(
-          executionPlan.getExecutionPlan()
-      ));
+      tableBuilder.withColumnHeaders("Execution Plan");
+      tableBuilder.withRow(executionPlan.getExecutionPlan());
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",
           ksqlEntity.getClass().getCanonicalName()
       ));
     }
-    printTable(columnHeaders, rowValues, header, footer);
+    tableBuilder.build().print(this);
+  }
+
+  /**
+   * Pretty print replica info.
+   * @param replicaSizes list of replicas per partition
+   * @return single value if all values are equal, else a csv representation
+   */
+  private static String getTopicReplicaInfo(List<Integer> replicaSizes) {
+    if (replicaSizes.isEmpty()) {
+      return "0";
+    } else if (replicaSizes.stream().distinct().limit(2).count() <= 1) {
+      return String.valueOf(replicaSizes.get(0));
+    } else {
+      return StringUtil.join(", ", replicaSizes);
+    }
   }
 
   private String formatFieldType(SourceDescription.FieldSchemaInfo field, String keyField) {
@@ -411,95 +468,131 @@ public abstract class Console implements Closeable {
     }
   }
 
-  private void printExtendedInformation(
-      List<String> header,
-      List<String> footer,
-      SourceDescription source
-  ) {
-    if (source.isExtended()) {
-      header.add(String.format("%-20s : %s", "Type", source.getType()));
-      if (source.getStatementText().length() > 0) {
-        header.add(String.format("%-20s : %s", "SQL", source.getStatementText()));
-      }
-
-      if (!source.getType().equals("QUERY")) {
-        header.add(String.format("%-20s : %s", "Key field", source.getKey()));
-        header.add(String.format(
-            "%-20s : %s",
-            "Timestamp field",
-            source.getTimestamp().length() == 0
-            ? "Not set - using <ROWTIME>"
-            : source.getTimestamp()
-        ));
-        header.add(String.format("%-20s : %s", "Key format", "STRING"));
-        header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
-        if (source.getKafkaTopic().length() > 0) {
-          header.add(String.format(
-              "%-20s : %s (partitions: %d, replication: %d)",
-              "Kafka output topic",
-              source.getKafkaTopic(),
-              source.getPartitions(),
-              source.getReplication()
-          ));
-        }
-      }
-      header.add("");
-
-      if (!source.getWriteQueries().isEmpty()) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s",
-            "Queries that write into this " + source.getType(),
-            "-----------------------------------"
-        ));
-        for (String writeQuery : source.getWriteQueries()) {
-          footer.add(writeQuery);
-        }
-        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
-      }
-
-      footer.add(String.format(
-          "\n%-20s\n%s",
-          "Local runtime statistics",
-          "------------------------"
-      ));
-      footer.add(source.getStatistics());
-      footer.add(source.getErrorStats());
-      footer.add(String.format(
-          "(%s)",
-          "Statistics of the local KSQL server interaction with the Kafka topic "
-          + source.getKafkaTopic()
-      ));
-
-      if (source.getExecutionPlan().length() > 0) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s\n%s",
-            "Execution plan",
-            "--------------",
-            source.getExecutionPlan()
-        ));
-      }
-      if (source.getTopology().length() > 0) {
-        footer.add(String.format(
-            "\n%-20s\n%-20s\n%s",
-            "Processing topology",
-            "-------------------",
-            source.getTopology()
-        ));
-      }
-    } else {
-      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+  private void printSchema(SourceDescription source) {
+    Table.Builder tableBuilder = new Table.Builder();
+    List<SourceDescription.FieldSchemaInfo> fields = source.getSchema();
+    if (!fields.isEmpty()) {
+      tableBuilder.withColumnHeaders("Field", "Type");
+      fields.forEach(
+          f -> tableBuilder.withRow(f.getName(), formatFieldType(f, source.getKey())));
+      tableBuilder.build().print(this);
     }
   }
 
-  private void printAsTable(GenericRow row) {
-    addResult(row);
-    writer().println(
-        String.join(
-            " | ",
-            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
-        )
-    );
-    flush();
+  private void printQueryInfo(SourceDescription source) {
+    if ("QUERY".equals(source.getType())) {
+      return;
+    }
+
+    final String timestamp = source.getTimestamp().isEmpty()
+                             ? "Not set - using <ROWTIME>"
+                             : source.getTimestamp();
+
+    writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
+    writer().println(String.format("%-20s : %s", "Key format", "STRING"));
+    writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
+    writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
+
+    if (!source.getTopic().isEmpty()) {
+      writer().println(String.format(
+          "%-20s : %s (partitions: %d, replication: %d)",
+          "Kafka topic",
+          source.getTopic(),
+          source.getPartitions(),
+          source.getReplication()
+      ));
+    }
+  }
+
+  private void printWriteQueries(SourceDescription source) {
+    if (!source.getWriteQueries().isEmpty()) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s",
+          "Queries that write into this " + source.getType(),
+          "-----------------------------------"
+      ));
+      for (String writeQuery : source.getWriteQueries()) {
+        writer().println(writeQuery);
+      }
+      writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
+    }
+  }
+
+  private void printExecutionPlan(SourceDescription source) {
+    if (!source.getExecutionPlan().isEmpty()) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s\n%s",
+          "Execution plan",
+          "--------------",
+          source.getExecutionPlan()
+      ));
+    }
+  }
+
+  private void printTopology(SourceDescription source) {
+    if (!source.getTopology().isEmpty()) {
+      writer().println(String.format(
+          "\n%-20s\n%-20s\n%s",
+          "Processing topology",
+          "-------------------",
+          source.getTopology()
+      ));
+    }
+  }
+
+  private void printOverriddenProperties(SourceDescription source) {
+    if (source.getOverriddenProperties().size() > 0) {
+      new Table.Builder()
+          .withHeaderLine(String.format(
+              "\n%-20s\n%-20s",
+              "Overridden Properties",
+              "---------------------"))
+          .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
+          .withRows(propertiesRowValues(source.getOverriddenProperties()))
+          .build()
+          .print(this);
+    }
+  }
+
+  private void printExtendedInformation(
+      SourceDescription source
+  ) {
+    if (!source.isExtended()) {
+      printSchema(source);
+      writer().println(
+          "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+      return;
+    }
+    writer().println(String.format("%-20s : %s", "Type", source.getType()));
+    if (source.getStatementText().length() > 0) {
+      writer().println(String.format("%-20s : %s", "SQL", source.getStatementText()));
+    }
+
+    printQueryInfo(source);
+    writer().println("");
+
+    printSchema(source);
+
+    printWriteQueries(source);
+
+    writer().println(String.format(
+        "\n%-20s\n%s",
+        "Local runtime statistics",
+        "------------------------"
+    ));
+    writer().println(source.getStatistics());
+    writer().println(source.getErrorStats());
+    writer().println(String.format(
+        "(%s)",
+        "Statistics of the local KSQL server interaction with the Kafka topic "
+            + source.getTopic()
+    ));
+
+    printExecutionPlan(source);
+
+    printTopology(source);
+
+    printOverriddenProperties(source);
   }
 
   private void printAsJson(Object o) throws IOException {

@@ -19,11 +19,9 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Optional;
-
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public class KsqlStream extends StructuredDataSource {
 
@@ -32,7 +30,7 @@ public class KsqlStream extends StructuredDataSource {
       final String datasourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic
   ) {
     super(
@@ -40,8 +38,20 @@ public class KsqlStream extends StructuredDataSource {
         datasourceName,
         schema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         DataSourceType.KSTREAM,
+        ksqlTopic
+    );
+  }
+
+  @Override
+  public StructuredDataSource copy() {
+    return new KsqlStream(
+        sqlExpression,
+        dataSourceName,
+        schema,
+        keyField,
+        timestampExtractionPolicy,
         ksqlTopic
     );
   }
@@ -54,25 +64,20 @@ public class KsqlStream extends StructuredDataSource {
         dataSourceName,
         newSchema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         ksqlTopic
     );
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
-    Optional<Field> newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
-    if (newTimestampField.get().schema().type() != Schema.Type.INT64) {
-      throw new KsqlException(
-          "Timestamp column, " + timestampfieldName + ", should be LONG" + "(INT64)."
-      );
-    }
+  public StructuredDataSource cloneWithTimeExtractionPolicy(
+      final TimestampExtractionPolicy policy) {
     return new KsqlStream(
         sqlExpression,
         dataSourceName,
         schema,
         keyField,
-        newTimestampField.get(),
+        policy,
         ksqlTopic
     );
   }

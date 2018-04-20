@@ -28,11 +28,11 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -223,13 +223,13 @@ public class StatementExecutor {
   ) throws Exception {
     String statementStr = command.getStatement();
 
-    DDLCommandResult result = null;
+    DdlCommandResult result = null;
     String successMessage = "";
-    if (statement instanceof DDLStatement) {
+    if (statement instanceof DdlStatement) {
       result =
           ksqlEngine.executeDdlStatement(
               statementStr,
-              (DDLStatement) statement,
+              (DdlStatement) statement,
               command.getKsqlProperties()
           );
     } else if (statement instanceof CreateAsSelect) {
@@ -341,7 +341,7 @@ public class StatementExecutor {
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-      final QueryId queryId = persistentQueryMetadata.getId();
+      final QueryId queryId = persistentQueryMetadata.getQueryId();
 
       if (terminatedQueries != null && terminatedQueries.containsKey(queryId)) {
         CommandId terminateId = terminatedQueries.get(queryId);

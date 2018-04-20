@@ -16,8 +16,9 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -27,11 +28,28 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
   @Override
   public Response toResponse(Throwable exception) {
     // TODO: Distinguish between exceptions that warrant a stack trace and ones that don't
-    // TODO: Return actually meaningful status codes
+    if (exception instanceof KsqlRestException) {
+      KsqlRestException restException = (KsqlRestException)exception;
+      return restException.getResponse();
+    }
+    if (exception instanceof WebApplicationException) {
+      WebApplicationException webApplicationException = (WebApplicationException)exception;
+      return Response
+          .status(
+              Response.Status.fromStatusCode(
+                  webApplicationException.getResponse().getStatus()))
+          .type(MediaType.APPLICATION_JSON_TYPE)
+          .entity(
+              new KsqlErrorMessage(
+                  webApplicationException.getResponse().getStatus()
+                      * Errors.HTTP_TO_ERROR_CODE_MULTIPLIER,
+                  webApplicationException))
+          .build();
+    }
     return Response
-        .status(Response.Status.BAD_REQUEST)
+        .status(Response.Status.INTERNAL_SERVER_ERROR)
         .type(MediaType.APPLICATION_JSON_TYPE)
-        .entity(new ErrorMessage(exception))
+        .entity(new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception))
         .build();
   }
 }

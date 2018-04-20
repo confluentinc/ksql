@@ -1,0 +1,104 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "max hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 30000},
+        {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 45000},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300", "timestamp": 50000},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,100", "timestamp": 35000},
+        {"topic": "test_topic", "key": 0, "value": "0,100,2000", "timestamp": 40000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 40000, "window": {"start": 40000, "end": 70000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 40000, "window": {"start": 40000, "end": 70000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 50000, "end": 80000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 40000, "end": 70000}}
+
+      ]
+    },
+    {
+      "name": "min hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, min(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
+      ]
+    },
+    {
+      "name": "topk hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, topk(value, 2) as topk FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[0.0,null],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
+      ]
+    },
+    {
+      "name": "topkdistinct hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, topkdistinct(value, 2) as topk FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[0.0,null],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
+      ]
+    }
+  ]
+}

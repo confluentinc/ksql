@@ -41,6 +41,7 @@ import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -53,7 +54,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class SchemaKStream {
 
-  public enum Type {SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM}
+  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
   protected final Schema schema;
   protected final KStream<String, GenericRow> kstream;
@@ -233,11 +234,9 @@ public class SchemaKStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream selectKey(final Field newKeyField, boolean updateRowKey) {
-    if (keyField != null
-        && keyField.name().equals(newKeyField.name())) {
+    if (keyField != null && keyField.name().equals(newKeyField.name())) {
       return this;
     }
-
 
     KStream keyedKStream = kstream.filter((key, value) ->
         value != null
@@ -274,6 +273,9 @@ public class SchemaKStream {
       DereferenceExpression dereferenceExpression =
           (DereferenceExpression) expression;
       return dereferenceExpression.getFieldName();
+    } else if (expression instanceof QualifiedNameReference) {
+      QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) expression;
+      return qualifiedNameReference.getName().toString();
     }
     return null;
   }
@@ -338,7 +340,6 @@ public class SchemaKStream {
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to
     //       repartition.
-
     Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,
@@ -387,5 +388,17 @@ public class SchemaKStream {
 
   public void setOutputNode(final OutputNode output) {
     this.output = output;
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return functionRegistry;
+  }
+
+  public SchemaRegistryClient getSchemaRegistryClient() {
+    return schemaRegistryClient;
   }
 }

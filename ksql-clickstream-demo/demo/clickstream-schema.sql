@@ -17,11 +17,11 @@ CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varcha
 
  -- number of events per minute - think about key-for-distribution-purpose - shuffling etc - shouldnt use 'userid'
 DROP TABLE events_per_min;
-CREATE table events_per_min AS SELECT userid, count(*) AS events FROM clickstream window  TUMBLING (size 10 second) GROUP BY userid;
+CREATE table events_per_min AS SELECT userid, count(*) AS events FROM clickstream window TUMBLING (size 60 second) GROUP BY userid;
 
 -- VIEW
 DROP TABLE events_per_min_max_avg;
-CREATE TABLE events_per_min_max_avg AS SELECT userid, min(events) AS min, max(events) AS max, sum(events)/count(events) AS avg from events_per_min  WINDOW TUMBLING (size 10 second) GROUP BY userid;
+CREATE TABLE events_per_min_max_avg AS SELECT userid, min(events) AS min, max(events) AS max, sum(events)/count(events) AS avg from events_per_min  WINDOW TUMBLING (size 60 second) GROUP BY userid;
 
 
 -- 3. BUILD STATUS_CODES
@@ -31,7 +31,7 @@ CREATE TABLE clickstream_codes (code int, definition varchar) with (key='code', 
 
 -- 4. BUILD PAGE_VIEWS
 DROP TABLE pages_per_min;
-CREATE TABLE pages_per_min AS SELECT userid, count(*) AS pages FROM clickstream WINDOW HOPPING (size 10 second, advance by 5 second) WHERE request like '%html%' GROUP BY userid ;
+CREATE TABLE pages_per_min AS SELECT userid, count(*) AS pages FROM clickstream WINDOW HOPPING (size 60 second, advance by 5 second) WHERE request like '%html%' GROUP BY userid ;
 
 ----------------------------------------------------------------------------------------------------------------------------
 -- URL STATUS CODES (Join AND Alert)
@@ -44,7 +44,7 @@ DROP TABLE ERRORS_PER_MIN_ALERT;
 CREATE TABLE ERRORS_PER_MIN_ALERT AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 30 second, advance by 20 second) WHERE status > 400 GROUP BY status HAVING count(*) > 5 AND count(*) is not NULL;
 
 DROP TABLE ERRORS_PER_MIN;
-CREATE table ERRORS_PER_MIN AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 10 second, advance by 5  second) WHERE status > 400 GROUP BY status;
+CREATE table ERRORS_PER_MIN AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 60 second, advance by 5  second) WHERE status > 400 GROUP BY status;
 
 -- VIEW - Enrich Codes with errors with Join to Status-Code definition
 DROP STREAM ENRICHED_ERROR_CODES;

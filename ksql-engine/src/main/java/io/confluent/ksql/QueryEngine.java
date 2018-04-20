@@ -31,18 +31,17 @@ import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.DDLCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandFactory;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommand;
+import io.confluent.ksql.ddl.commands.DdlCommandFactory;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
@@ -53,21 +52,24 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 class QueryEngine {
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final KsqlEngine ksqlEngine;
-  private final DDLCommandFactory ddlCommandFactory;
+  private final DdlCommandFactory ddlCommandFactory;
 
 
-  QueryEngine(final KsqlEngine ksqlEngine, final DDLCommandFactory ddlCommandFactory) {
+  QueryEngine(final KsqlEngine ksqlEngine, final DdlCommandFactory ddlCommandFactory) {
     this.ddlCommandFactory = ddlCommandFactory;
     this.ksqlEngine = ksqlEngine;
   }
@@ -123,9 +125,7 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getId().toString(),
               ksqlStructuredDataOutputNode.getSchema(),
               ksqlStructuredDataOutputNode.getKeyField(),
-              ksqlStructuredDataOutputNode.getTimestampField() == null
-              ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
-              : ksqlStructuredDataOutputNode.getTimestampField(),
+              ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
 
@@ -135,12 +135,18 @@ class QueryEngine {
     return logicalPlan;
   }
 
+  private TimestampExtractionPolicy getTimestampExtractionPolicy(final OutputNode outputNode) {
+    return outputNode.getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy
+        ? outputNode.getTheSourceNode().getTimestampExtractionPolicy()
+        : outputNode.getTimestampExtractionPolicy();
+  }
+
   List<QueryMetadata> buildPhysicalPlans(
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
-  ) throws Exception {
+  ) {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
@@ -149,13 +155,13 @@ class QueryEngine {
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
       if (statementPlanPair.getRight() == null) {
         Statement statement = statementList.get(i).getRight();
-        if (!(statement instanceof DDLStatement)) {
+        if (!(statement instanceof DdlStatement)) {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: "
                                   + statement.getClass());
         }
         handleDdlStatement(
             statementPlanPair.getLeft(),
-            (DDLStatement) statement,
+            (DdlStatement) statement,
             overriddenProperties
         );
       } else {
@@ -174,7 +180,7 @@ class QueryEngine {
       final Pair<String, PlanNode> statementPlanPair,
       final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
-  ) throws Exception {
+  ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
 
@@ -183,27 +189,25 @@ class QueryEngine {
         builder,
         ksqlEngine.getKsqlConfig().cloneWithPropertyOverwrite(overriddenProperties),
         ksqlEngine.getTopicClient(),
-        new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
         overriddenProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
         ksqlEngine.getSchemaRegistryClient()
     );
-
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }
 
 
-  DDLCommandResult handleDdlStatement(
-      String sqlExpression, DDLStatement statement,
+  DdlCommandResult handleDdlStatement(
+      String sqlExpression, DdlStatement statement,
       final Map<String, Object> overriddenProperties
   ) {
 
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      Pair<DDLStatement, String> avroCheckResult =
+      Pair<DdlStatement, String> avroCheckResult =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
       if (avroCheckResult.getRight() != null) {
@@ -211,8 +215,8 @@ class QueryEngine {
         sqlExpression = avroCheckResult.getRight();
       }
     }
-    DDLCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
-    return ksqlEngine.getDDLCommandExec().execute(command);
+    DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
+    return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {
@@ -237,7 +241,7 @@ class QueryEngine {
     );
   }
 
-  private Pair<DDLStatement, String> maybeAddFieldsFromSchemaRegistry(
+  private Pair<DdlStatement, String> maybeAddFieldsFromSchemaRegistry(
       AbstractStreamCreateStatement streamCreateStatement
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -37,6 +38,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.*;
 
@@ -50,6 +52,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@Category({IntegrationTest.class})
 public class CliTest extends TestRunner {
 
   @ClassRule
@@ -129,8 +132,8 @@ public class CliTest extends TestRunner {
 
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
-    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1", "0", "0"),
-        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1", "0", "0")));
+    testResult.addRows(Arrays.asList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
+                                                   "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
@@ -199,8 +202,17 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
+    terminateQuery("CSAS_" + resultKStreamName);
+
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));
+  }
+
+  private static void terminateQuery(String queryId) {
+    test(
+        String.format("terminate %s", queryId),
+        build("Query terminated.")
+    );
   }
 
   private static void dropStream(String name) {
@@ -337,8 +349,9 @@ public class CliTest extends TestRunner {
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0, new
-            Double[]{1100.0,
+        "ITEM_8", 80.0,
+        "2018-01-08",
+        new Double[]{1100.0,
             1110.99,
             970.0 },
         mapField)));
@@ -351,7 +364,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectLimit() throws Exception {
+  public void testSelectLimit() {
     TestResult.OrderedResult expectedResult = TestResult.build();
     Map<String, GenericRow> streamData = orderDataProvider.data();
     int limit = 3;
@@ -366,7 +379,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectUDFs() throws Exception {
+  public void testSelectUDFs() {
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";

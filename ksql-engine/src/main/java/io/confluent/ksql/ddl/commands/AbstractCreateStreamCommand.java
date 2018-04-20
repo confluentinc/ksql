@@ -35,27 +35,28 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
 
 /**
  * Base class of create table/stream command
  */
-abstract class AbstractCreateStreamCommand implements DDLCommand {
+abstract class AbstractCreateStreamCommand implements DdlCommand {
 
   String sqlExpression;
   String sourceName;
   String topicName;
   Schema schema;
   String keyColumnName;
-  String timestampColumnName;
   boolean isWindowed;
   RegisterTopicCommand registerTopicCommand;
   private KafkaTopicClient kafkaTopicClient;
+  final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
       String sqlExpression,
       final AbstractStreamCreateStatement statement,
-      Map<String, Object> overriddenProperties,
       KafkaTopicClient kafkaTopicClient,
       boolean enforceTopicExistence
   ) {
@@ -76,8 +77,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
       checkTopicNameNotNull(properties);
     } else {
       this.registerTopicCommand = registerTopicFirst(properties,
-                                                     overriddenProperties,
-                                                     enforceTopicExistence);
+          enforceTopicExistence);
     }
 
     this.schema = getStreamTableSchema(statement.getElements());
@@ -97,25 +97,15 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
       }
     }
 
-    this.timestampColumnName = "";
-    if (properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)) {
-      timestampColumnName =
-          properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-      timestampColumnName = StringUtil.cleanQuotes(timestampColumnName);
-      if (!SchemaUtil.getFieldByName(this.schema, timestampColumnName).isPresent()) {
-        throw new KsqlException(String.format(
-            "No column with the provided timestamp column name in the "
-            + "WITH clause, %s, exists in the defined schema.",
-            timestampColumnName
-        ));
-      }
-      if (SchemaUtil.getFieldByName(schema, timestampColumnName).get().schema().type()
-          != Schema.Type.INT64) {
-        throw new KsqlException(
-            "Timestamp column, " + timestampColumnName + ", should be LONG(INT64)."
-        );
-      }
-    }
+    final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString()
+        : null;
+    final String timestampFormat = properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString()
+        : null;
+    this.timestampExtractionPolicy = TimestampExtractionPolicyFactory.create(schema,
+        timestampName,
+        timestampFormat);
 
     this.isWindowed = false;
     if (properties.containsKey(DdlConfig.IS_WINDOWED_PROPERTY)) {
@@ -157,7 +147,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     return tableSchema;
   }
 
-  protected void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {
+  void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {
     // TODO: move the check to the runtime since it accesses metaStore
     KsqlPreconditions.checkArgument(
         metaStore.getSource(sourceName) == null,
@@ -170,9 +160,8 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     );
   }
 
-  protected RegisterTopicCommand registerTopicFirst(
+  private RegisterTopicCommand registerTopicFirst(
       Map<String, Expression> properties,
-      Map<String, Object> overriddenProperties,
       boolean enforceTopicExistence
   ) {
     if (properties.size() == 0) {
@@ -207,6 +196,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
+    validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
 
     for (String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

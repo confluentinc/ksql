@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,13 +23,15 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.ksql.function.KsqlAggregateFunction;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkKudafTest {
-  Object[] valueArray;
-  TopKAggregateFunctionFactory topKFactory;
-  List<Schema> argumentType;
+  private Object[] valueArray;
+  private TopKAggregateFunctionFactory topKFactory;
+  private List<Schema> argumentType;
 
   @Before
   public void setup() {
@@ -66,8 +67,8 @@ public class StringTopkKudafTest {
   public void shouldMergeTopK() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
             topKFactory.getProperAggregateFunction(argumentType);
-    String[] array1 = new String[]{"123", "Hello", "paper"};
-    String[] array2 = new String[]{"Hi", "456", "Zzz"};
+    String[] array1 = new String[]{"paper", "Hello", "123"};
+    String[] array2 = new String[]{"Zzz", "Hi", "456"};
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
             equalTo(new String[]{"paper", "Zzz", "Hi"}));

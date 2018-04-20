@@ -17,6 +17,11 @@
 package io.confluent.ksql.rest.server;
 
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
@@ -24,10 +29,12 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
+import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
@@ -43,7 +50,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
+import javax.websocket.DeploymentException;
+import javax.websocket.server.ServerEndpoint;
+import javax.websocket.server.ServerEndpointConfig;
+import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -74,10 +86,12 @@ import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -104,8 +118,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final boolean isUiEnabled;
   private final String uiFolder;
 
+  private final ServerInfo serverInfo;
+
   private final Thread commandRunnerThread;
-  private final VersionCheckerAgent versionChckerAgent;
+  private final VersionCheckerAgent versionCheckerAgent;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -120,7 +136,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
       boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+      VersionCheckerAgent versionCheckerAgent,
+      ServerInfo serverInfo
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -130,7 +147,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
 
-    this.versionChckerAgent = versionCheckerAgent;
+    this.versionCheckerAgent = versionCheckerAgent;
+    this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
     final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
@@ -139,7 +157,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       log.warn("System property {} is not set. User interface will be disabled",
           KsqlRestConfig.INSTALL_DIR_CONFIG);
       this.uiFolder = null;
-    } else if (isUiEnabled){
+    } else if (isUiEnabled) {
       this.uiFolder = ksqlInstallDir + "/ui";
     } else {
       this.uiFolder = null;
@@ -150,7 +168,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(new ServerInfo(Version.getVersion())));
+    config.register(new ServerInfoResource(serverInfo));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -173,7 +191,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
 
     return super.getStaticResources();
-
   }
 
   @Override
@@ -182,8 +199,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     commandRunnerThread.start();
     Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
-    if (versionChckerAgent != null) {
-      versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+    if (versionCheckerAgent != null) {
+      versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
 
     displayWelcomeMessage();
@@ -206,10 +223,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
-    ObjectMapper jsonMapper = getJsonMapper();
-    new SchemaMapper().registerToObjectMapper(jsonMapper);
-
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(getJsonMapper());
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
 
@@ -218,6 +232,55 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     if (isUiEnabled) {
       loadUiWar();
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
+    }
+  }
+
+  @Override
+  protected ObjectMapper getJsonMapper() {
+    // superclass creates a new json mapper on every call
+    // we should probably ony create one per application
+    ObjectMapper jsonMapper = super.getJsonMapper();
+    new SchemaMapper().registerToObjectMapper(jsonMapper);
+    return jsonMapper;
+  }
+
+  @Override
+  protected void registerWebSocketEndpoints(ServerContainer container) {
+    try {
+      final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
+          Executors.newScheduledThreadPool(
+              config.getInt(KsqlRestConfig.KSQL_WEBSOCKETS_NUM_THREADS),
+              new ThreadFactoryBuilder()
+                  .setDaemon(true)
+                  .setNameFormat("websockets-query-thread-%d")
+                  .build()
+          )
+      );
+      final ObjectMapper mapper = getJsonMapper();
+      final StatementParser statementParser = new StatementParser(ksqlEngine);
+
+      container.addEndpoint(
+          ServerEndpointConfig.Builder
+              .create(
+                  WSQueryEndpoint.class,
+                  WSQueryEndpoint.class.getAnnotation(ServerEndpoint.class).value()
+              )
+              .configurator(new Configurator() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public <T> T getEndpointInstance(Class<T> endpointClass) {
+                  return (T) new WSQueryEndpoint(
+                      mapper,
+                      statementParser,
+                      ksqlEngine,
+                      exec
+                  );
+                }
+              })
+              .build()
+      );
+    } catch (DeploymentException e) {
+      log.error("Unable to create websockets endpoint", e);
     }
   }
 
@@ -237,14 +300,20 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    try (BrokerCompatibilityCheck compatibilityCheck =
-             BrokerCompatibilityCheck.create(ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
-      compatibilityCheck.checkCompatibility();
+    final String kafkaClusterId;
+    try {
+      kafkaClusterId = adminClient.describeCluster().clusterId().get();
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
     }
 
+    String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
-        restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
-    createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
+        restConfig.getCommandTopic(ksqlServiceId);
+    ensureCommandTopic(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -256,13 +325,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         new StringLiteral(commandTopic)
     );
 
-    ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
-    )));
+    )), false);
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(
+    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
         new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
@@ -276,10 +345,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                 new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
             )
         ),
-        Collections.emptyMap(),
         ksqlEngine.getTopicClient(),
         true
-    ));
+    ), false);
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
@@ -341,14 +409,24 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         streamedQueryResource,
         ksqlResource,
         isUiEnabled,
-        versionCheckerAgent
+        versionCheckerAgent,
+        new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
     );
   }
 
-  static void createCommandTopicIfNecessary(final KsqlRestConfig restConfig,
-                                            final KafkaTopicClient topicClient,
-                                            final String commandTopic) {
+  static void ensureCommandTopic(final KsqlRestConfig restConfig,
+                                 final KafkaTopicClient topicClient,
+                                 final String commandTopic) {
+    final long requiredTopicRetention = Long.MAX_VALUE;
     if (topicClient.isTopicExists(commandTopic)) {
+      final ImmutableMap<String, Object> requiredConfig =
+          ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
+
+      if (topicClient.addTopicConfig(commandTopic, requiredConfig)) {
+        log.info("Corrected retention.ms on command topic. topic:{}, retention.ms:{}",
+                 commandTopic, requiredTopicRetention);
+      }
+
       return;
     }
 
@@ -369,11 +447,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
       // for now we create the command topic with infinite retention so that we
       // don't lose any data in case of fail over etc.
-      topicClient.createTopic(commandTopic,
-                              1,
-                              replicationFactor,
-                              Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-                                                       String.valueOf(Long.MAX_VALUE)), false);
+      topicClient.createTopic(
+          commandTopic,
+          1,
+          replicationFactor,
+          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
+      );
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }

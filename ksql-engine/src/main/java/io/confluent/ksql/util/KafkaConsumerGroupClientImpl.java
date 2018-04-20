@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.util;
 
 import org.apache.kafka.common.TopicPartition;
@@ -52,12 +53,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   private final KsqlConfig ksqlConfig;
 
   public KafkaConsumerGroupClientImpl(KsqlConfig ksqlConfig) {
-
     this.ksqlConfig = ksqlConfig;
     Properties props = new Properties();
     props.putAll(ksqlConfig.getKsqlAdminClientConfigProps());
     this.adminClient = AdminClient.create(props);
-
   }
 
   @Override

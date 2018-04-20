@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -32,7 +35,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -41,13 +43,13 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
-  private final Field timestampField;
   private final Map<String, Object> outputProperties;
 
 
@@ -56,17 +58,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
       @JsonProperty("schema") final Schema schema,
-      @JsonProperty("timestamp") final Field timestampField,
+      @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
       @JsonProperty("key") final Field keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String topicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
-      @JsonProperty("limit") final Optional<Integer> limit
-  ) {
-    super(id, source, schema, limit);
+      @JsonProperty("limit") final Optional<Integer> limit) {
+    super(id, source, schema, limit, timestampExtractionPolicy);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
-    this.timestampField = timestampField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
   }
@@ -85,21 +85,21 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-
-    final SchemaKStream schemaKStream = getSource().buildStream(
+    final Map<String, Object> outputProperties = getOutputProperties();
+    final PlanNode source = getSource();
+    final SchemaKStream schemaKStream = source.buildStream(
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props,
         schemaRegistryClient
     );
+
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
@@ -109,7 +109,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-    final Map<String, Object> outputProperties = getOutputProperties();
 
     if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
       ksqlConfig.put(
@@ -136,7 +135,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     createSinkTopic(noRowKey.getKafkaTopicName(),
                     ksqlConfig,
                     kafkaTopicClient,
-                    shoulBeCompacted(result));
+                    shouldBeCompacted(result));
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -152,11 +151,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private boolean shoulBeCompacted(SchemaKStream result) {
+  private boolean shouldBeCompacted(SchemaKStream result) {
     return (result instanceof SchemaKTable)
            && !((SchemaKTable) result).isWindowed();
   }
 
+  @SuppressWarnings("unchecked")
   private SchemaKStream createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
@@ -207,22 +207,24 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void createSinkTopic(
       final String kafkaTopicName,
-      KsqlConfig ksqlConfig,
-      KafkaTopicClient kafkaTopicClient,
-      boolean isCompacted
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean isCompacted
   ) {
     int numberOfPartitions =
         (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     short numberOfReplications =
         (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+
+    final Map<String, ?> config = isCompacted
+        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+        : Collections.emptyMap();
+
     kafkaTopicClient.createTopic(kafkaTopicName,
                                  numberOfPartitions,
                                  numberOfReplications,
-                                 isCompacted);
-  }
-
-  public Field getTimestampField() {
-    return timestampField;
+                                 config
+    );
   }
 
   public KsqlTopic getKsqlTopic() {
@@ -242,7 +244,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private PlanNodeId id;
     private PlanNode source;
     private Schema schema;
-    private Field timestampField;
+    private TimestampExtractionPolicy timestampExtractionPolicy;
     private Field keyField;
     private KsqlTopic ksqlTopic;
     private String topicName;
@@ -254,7 +256,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           id,
           source,
           schema,
-          timestampField,
+          timestampExtractionPolicy,
           keyField,
           ksqlTopic,
           topicName,
@@ -268,13 +270,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withId(original.getId())
           .withSource(original.getSource())
           .withSchema(original.getSchema())
-          .withTimestampField(original.getTimestampField())
+          .withTimestampExtractionPolicy(original.getTimestampExtractionPolicy())
           .withKeyField(original.getKeyField())
           .withKsqlTopic(original.getKsqlTopic())
           .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
           .withLimit(original.getLimit());
     }
+
 
     Builder withLimit(final Optional<Integer> limit) {
       this.limit = limit;
@@ -301,8 +304,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withTimestampField(Field timestampField) {
-      this.timestampField = timestampField;
+    Builder withTimestampExtractionPolicy(final TimestampExtractionPolicy extractionPolicy) {
+      this.timestampExtractionPolicy = extractionPolicy;
       return this;
     }
 

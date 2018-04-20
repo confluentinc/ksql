@@ -16,6 +16,9 @@
 
 package io.confluent.ksql;
 
+import org.apache.kafka.common.utils.Utils;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,17 +30,20 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
-import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
@@ -80,6 +86,33 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldUpdateReferentialIntegrityTableCorrectly() throws Exception {
+    ksqlEngine.createQueries("create table bar as select * from test2;" +
+                                   "create table foo as select * from test2;");
+    MetaStore metaStore = ksqlEngine.getMetaStore();
+    assertThat(metaStore.getQueriesWithSource("TEST2"),
+               equalTo(Utils.mkSet("CTAS_BAR", "CTAS_FOO")));
+    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR")));
+    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO")));
+  }
+
+  @Test
+  public void shouldFailIfReferentialIntegrityIsViolated() {
+    try {
+      ksqlEngine.createQueries("create table bar as select * from test2;" +
+                               "create table foo as select * from test2;");
+      ksqlEngine.createQueries("drop table foo;");
+      Assert.fail();
+    } catch (Exception e) {
+      assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
+      assertThat(e.getMessage(), equalTo(
+          "Exception while processing statements :Cannot drop the data source. "
+          + "The following queries read from this source: [] and the following queries write into "
+          + "this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+    }
+  }
+
+  @Test
   public void shouldFailDDLStatementIfTopicDoesNotExist() {
     String ddlStatement = "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON');";
@@ -93,8 +126,17 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldDropTableIfAllReferencedQueriesTerminated() throws Exception {
+    ksqlEngine.createQueries("create table bar as select * from test2;" +
+                             "create table foo as select * from test2;");
+    ksqlEngine.terminateQuery(new QueryId("CTAS_FOO"), true);
+    ksqlEngine.createQueries("drop table foo;");
+    assertThat(ksqlEngine.getMetaStore().getSource("foo"), nullValue());
+  }
+
+  @Test
   public void shouldEnforceTopicExistenceCorrectly() throws Exception {
-    topicClient.createTopic("s1_topic", 1, (short) 1, false);
+    topicClient.createTopic("s1_topic", 1, (short) 1);
     StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
@@ -122,6 +164,47 @@ public class KsqlEngineTest {
 
     assertThat(parsedStatements.size(), equalTo(3));
 
+  }
+
+  @Test
+  public void shouldCleanUpSchemaRegistry() throws Exception {
+    ksqlEngine.buildMultipleQueries(
+            "create table bar with (value_format = 'avro') as select * from test2;"
+            + "create table foo as select * from test2;",
+            Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+    ksqlEngine.terminateQuery(new QueryId("CTAS_BAR"), true);
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicSchemasFromSchemaRegistry() throws Exception {
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "create stream s1  with (value_format = 'avro') as select * from test1;"
+        + "create table t1 as select col1, count(*) from s1 group by col1;",
+        Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register
+        ("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+         + "-changelog-value", schema);
+    ksqlEngine.getSchemaRegistryClient().register("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(true));
+    ksqlEngine.terminateQuery(new QueryId("CTAS_T1"), true);
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(false));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(false));
   }
 
 }

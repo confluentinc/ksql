@@ -71,6 +71,12 @@ Your output should resemble:
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
 
+=================
+Capacity Planning
+=================
+
+Check out our :ref:`capacity planning guide <ksql_capacity_planning>` for information on how to size your KSQL clusters.
+
 ===============
 Troubleshooting
 ===============

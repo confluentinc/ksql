@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
@@ -62,6 +64,7 @@ import static org.hamcrest.Matchers.greaterThan;
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
+@Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 
   private static final String INPUT_TOPIC = "orders_topic";
@@ -310,11 +313,10 @@ public class SecureIntegrationTest {
         (hostname, sslSession) -> hostname.equals("localhost"));
 
     try {
-      System.setProperty("javax.net.ssl.trustStore", ClientTrustStore.trustStorePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "password");
-
       final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
-      ksqlConfig.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://localhost:8481");
+      ksqlConfig.put("ksql.schema.registry.url", "https://localhost:8481");
+      ksqlConfig.put("ssl.truststore.location", ClientTrustStore.trustStorePath());
+      ksqlConfig.put("ssl.truststore.password", ClientTrustStore.trustStorePassword());
       givenTestSetupWithConfig(ksqlConfig);
 
       // Then:
@@ -392,7 +394,7 @@ public class SecureIntegrationTest {
       return;
     }
 
-    topicClient.createTopic(INPUT_TOPIC, 1, (short) 1, false);
+    topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
@@ -418,6 +420,6 @@ public class SecureIntegrationTest {
         .buildMultipleQueries(query, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
-    queryId = ((PersistentQueryMetadata) queryMetadata).getId();
+    queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
   }
 }

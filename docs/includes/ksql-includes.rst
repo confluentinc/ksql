@@ -8,12 +8,12 @@
 .. demo
 
 Learn More
-    Watch the `screencast of the KSQL demo <https://www.youtube.com/watch?v=illEpCOcCVg>`_ on YouTube.
+    Watch the `screencast of the KSQL demo <https://www.youtube.com/embed/illEpCOcCVg>`_ on YouTube.
 
     .. raw:: html
 
           <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-              <iframe src="https://www.youtube.com/watch?v=illEpCOcCVg" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+              <iframe src="https://www.youtube.com/embed/illEpCOcCVg" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
           </div>
 
 .. CLI welcome

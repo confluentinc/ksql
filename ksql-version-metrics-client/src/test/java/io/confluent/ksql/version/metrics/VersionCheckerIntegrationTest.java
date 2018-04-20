@@ -22,7 +22,6 @@ import org.junit.Test;
 import org.mockserver.integration.ClientAndProxy;
 import org.mockserver.socket.PortFactory;
 
-import java.io.IOException;
 import java.util.Properties;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
@@ -36,13 +35,13 @@ public class VersionCheckerIntegrationTest {
   private static ClientAndProxy clientAndProxy;
 
   @BeforeClass
-  public static void startProxy() throws Exception {
+  public static void startProxy() {
     proxyPort = PortFactory.findFreePort();
     clientAndProxy = ClientAndProxy.startClientAndProxy(proxyPort);
   }
 
   @Test
-  public void testMetricsAgent() throws InterruptedException, IOException {
+  public void testMetricsAgent() throws InterruptedException {
     KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
     Properties versionCheckProps = new Properties();
     versionCheckProps.setProperty(BaseSupportConfig
@@ -51,7 +50,7 @@ public class VersionCheckerIntegrationTest {
         BaseSupportConfig.CONFLUENT_SUPPORT_PROXY_CONFIG,
         "http://localhost:" + proxyPort
     );
-    versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, versionCheckProps);
+    versionCheckerAgent.start(KsqlModuleType.SERVER, versionCheckProps);
 
     TestUtils.waitForCondition(() -> {
           try {

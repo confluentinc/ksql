@@ -4,13 +4,8 @@
 
 KSQL is the streaming SQL engine for Apache Kafka.
 
-KSQL makes it easy to read, write, and process streaming data in real-time, at scale, using SQL-like semantics. It offers an easy way to express stream processing transformations as an alternative to writing an application in a programming language such as Java or Python.
-
-KSQL provides powerful stream processing capabilities such as filtering, transformations, joins, aggregations, event-time windowing, and more.  It is open-source (Apache 2.0 licensed), elastic, scalable, distributed, andfault-tolerant.
-
-Watch a [screencast of the KSQL demo](https://youtu.be/A45uRzJiv7I) on YouTube.
-<a href="https://youtu.be/A45uRzJiv7I" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
-
+Click here to watch a screencast of the KSQL demo on YouTube.
+<a href="https://www.youtube.com/watch?v=illEpCOcCVg" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
 
 <a name="getting-started"></a>
 # Getting Started and Download

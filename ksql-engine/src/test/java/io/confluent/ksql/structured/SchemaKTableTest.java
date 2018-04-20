@@ -37,8 +37,13 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Predicate;
+import org.easymock.Capture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,6 +53,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -193,7 +205,43 @@ public class SchemaKTableTest {
     SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
 
-    Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
-    Assert.assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST1.COL2|+|TEST1.COL1"));
+    assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
+    assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST1.COL2|+|TEST1.COL1"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldGroupKeysCorrectly() {
+    KTable mockKTable = mock(KTable.class);
+    KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
+    Capture<KeyValueMapper> capturedKeySelector = Capture.newInstance();
+    expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
+    expect(mockKTable.groupBy(capture(capturedKeySelector), anyObject()))
+        .andReturn(mockKGroupedTable);
+    replay(mockKTable, mockKGroupedTable);
+
+    String selectQuery = "SELECT col0, col1, col2 FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), mockKTable,
+        ksqlTable.getKeyField(), new ArrayList<>(), false,
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+    Expression col1Expression = new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
+    Expression col2Expression = new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL2");
+    KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
+    Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
+        initialSchemaKTable.getSchema(), null, false, null);
+    List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
+        Serdes.String(), rowSerde, groupByExpressions);
+
+    verify(mockKTable, mockKGroupedTable);
+    KeyValueMapper keySelector = capturedKeySelector.getValue();
+    GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
+    KeyValue<String, GenericRow> keyValue =
+        (KeyValue<String, GenericRow>) keySelector.apply("key", value);
+    assertThat(keyValue.key, equalTo("bar|+|foo"));
+    assertThat(keyValue.value, equalTo(value));
   }
 }

@@ -56,6 +56,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   @SuppressWarnings("unchecked")
+  @Override
   public SchemaKTable aggregate(
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,

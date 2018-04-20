@@ -145,16 +145,11 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-
-    final Pair<Schema, SelectValueMapper> schemaAndMapper
-        = createSelectValueMapperAndSchema(expressionPairList);
-
-    KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
-
+    Selection selection = new Selection(expressionPairList, functionRegistry, this);
     return new SchemaKTable(
-        schemaAndMapper.left,
-        projectedKTable,
-        keyField,
+        selection.getSchema(),
+        ktable.mapValues(selection.getSelectValueMapper()),
+        selection.getKey(),
         Collections.singletonList(this),
         isWindowed,
         Type.PROJECT,
@@ -181,7 +176,7 @@ public class SchemaKTable extends SchemaKStream {
       final Serde<String> keySerde,
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
-    final String aggregateKeyName = keyNameForGroupBy(getSchema(), groupByExpressions);
+    final String aggregateKeyName = keyNameForGroupBy(groupByExpressions);
     final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
 
     final KGroupedTable kgroupedTable = ktable.filter((key, value) -> value != null).groupBy(

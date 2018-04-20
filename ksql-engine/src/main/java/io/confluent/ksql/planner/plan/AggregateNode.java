@@ -142,7 +142,7 @@ public class AggregateNode extends PlanNode {
   private List<Pair<String, Expression>> getFinalSelectExpressions() {
     List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
-      throw new KsqlException(
+      throw new RuntimeException(
           "Incompatible aggregate schema, field count must match, "
           + "selected field count:"
           + finalSelectExpressions.size()
@@ -190,9 +190,8 @@ public class AggregateNode extends PlanNode {
     InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
                                                        getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded = maybeSetTheKeyField(
-        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList()),
-        internalSchema);
+    final SchemaKStream aggregateArgExpanded =
+        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
 
     KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopic()
@@ -260,8 +259,7 @@ public class AggregateNode extends PlanNode {
       result = result.filter(getHavingExpressions());
     }
 
-    return result.select(internalSchema.updateFinalSelectExpressions(
-        getFinalSelectExpressions()));
+    return result.select(internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()));
   }
 
   protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
@@ -358,39 +356,6 @@ public class AggregateNode extends PlanNode {
 
     return schemaBuilder.build();
   }
-
-  private SchemaKStream maybeSetTheKeyField(SchemaKStream schemaKStream,
-                                            InternalSchema internalSchema) {
-    Map<String, String> fieldsWithNoAlias = internalSchema
-        .getExpressionToInternalColumnNameMap()
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            e -> e.getKey().contains(".")
-                 ? e.getKey().substring(e.getKey().indexOf(".") + 1)
-                 : e.getKey(),
-            e -> e.getValue()
-        ));
-
-    if (schemaKStream.getKeyField() != null) {
-      String keyFieldName = schemaKStream.getKeyField().name();
-      return new SchemaKStream(schemaKStream.getSchema(),
-                               schemaKStream.getKstream(),
-                               fieldsWithNoAlias
-                                   .containsKey(keyFieldName)
-                               ? new Field(fieldsWithNoAlias.get(keyFieldName),
-                                           schemaKStream.getKeyField().index(),
-                                           schemaKStream.getKeyField().schema()
-                               )
-                               : null,
-                               schemaKStream.getSourceSchemaKStreams(),
-                               schemaKStream.getType(),
-                               schemaKStream.getFunctionRegistry(),
-                               schemaKStream.getSchemaRegistryClient());
-    }
-    return schemaKStream;
-  }
-
 
   class InternalSchema {
     private final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();

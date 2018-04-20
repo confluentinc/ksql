@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
@@ -32,6 +33,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 
@@ -51,14 +53,19 @@ public class KafkaTopicClientImplIntegrationTest {
 
   private String testTopic;
   private KafkaTopicClient client;
+  private AdminClient adminClient;
 
   @Before
   public void setUp() {
     testTopic = UUID.randomUUID().toString();
     KAFKA.createTopic(testTopic);
 
-    client = new KafkaTopicClientImpl(ImmutableMap.of(
+    adminClient = AdminClient.create(ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
+
+    client = new KafkaTopicClientImpl(adminClient);
+
+    allowForAsyncTopicCreation();
   }
 
   @After
@@ -197,4 +204,15 @@ public class KafkaTopicClientImplIntegrationTest {
     return client.describeTopics(Collections.singletonList(topicName)).get(topicName);
   }
 
+  private void allowForAsyncTopicCreation() {
+    final Supplier<Set<String>> topicNamesSupplier = () -> {
+      try {
+        return adminClient.listTopics().names().get();
+      } catch (final Exception e) {
+        return Collections.emptySet();
+      }
+    };
+
+    assertThatEventually(topicNamesSupplier, hasItem(testTopic));
+  }
 }

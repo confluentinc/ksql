@@ -1,3 +1,10 @@
+.. _ksql_supported_versions:
+
+Supported Versions and Interoperability
+=======================================
+
+.. include:: ../includes/ksql-supported-versions.rst
+
 .. _install_overview:
 
 Installing KSQL

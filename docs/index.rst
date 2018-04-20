@@ -75,3 +75,12 @@ KSQL CLI
     You can interactively write KSQL queries by using the KSQL command line interface (CLI). The KSQL CLI acts as a
     client to the KSQL server. For production scenarios you may also configure KSQL servers to run in non-interactive
     "headless" configuration, thereby preventing KSQL CLI access.
+
+
+.. raw:: html
+
+   <h2>Supported Versions and Interoperability</h2>
+
+---------------------
+
+.. include:: includes/ksql-supported-versions.rst

@@ -270,7 +270,8 @@ public class PhysicalPlanBuilder {
 
     final QueryId queryId;
     if (outputNode.isDoCreateInto()) {
-      queryId = sinkDataSource.getPersistentQueryId();
+      queryId = new QueryId(sinkDataSource.getPersistentQueryId().getId() + "_"
+                            + queryIdGenerator.getNextId());
     } else {
       queryId = new QueryId("InsertQuery_" + queryIdGenerator.getNextId());
     }
@@ -324,8 +325,10 @@ public class PhysicalPlanBuilder {
         throw new KsqlException(String.format("Incompatible schema between results and sink. "
                                               + "Result schema is %s, but the sink schema is %s"
                                               + ".",
-                                              SchemaUtil.schemaString(resultSchema), SchemaUtil
-                                                  .schemaString(structuredDataSource.getSchema())));
+                                              SchemaUtil.schemaString(resultSchema),
+                                              SchemaUtil.schemaString(
+                                                  SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+                                                      structuredDataSource.getSchema()))));
       }
       enforceKeyEquivalence(structuredDataSource.getKeyField(), sinkDataSource.getKeyField());
 

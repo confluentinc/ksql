@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,23 +21,22 @@ import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public abstract class StructuredDataSource implements DataSource {
 
-  final String dataSourceName;
-  final DataSourceType dataSourceType;
-  final Schema schema;
-  final Field keyField;
-  final TimestampExtractionPolicy timestampExtractionPolicy;
+  protected final String dataSourceName;
+  protected final DataSourceType dataSourceType;
+  protected final Schema schema;
+  protected final Field keyField;
+  protected final TimestampExtractionPolicy timestampExtractionPolicy;
 
-  final KsqlTopic ksqlTopic;
-  final String sqlExpression;
+  protected final KsqlTopic ksqlTopic;
+  protected final String sqlExpression;
 
   public StructuredDataSource(
-      String sqlExpression,
-      final String datasourceName,
+      final String sqlExpression,
+      final String dataSourceName,
       final Schema schema,
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
@@ -45,7 +44,7 @@ public abstract class StructuredDataSource implements DataSource {
       final KsqlTopic ksqlTopic
   ) {
     this.sqlExpression = sqlExpression;
-    this.dataSourceName = datasourceName;
+    this.dataSourceName = dataSourceName;
     this.schema = schema;
     this.keyField = keyField;
     this.timestampExtractionPolicy = timestampExtractionPolicy;
@@ -61,17 +60,6 @@ public abstract class StructuredDataSource implements DataSource {
   @Override
   public DataSourceType getDataSourceType() {
     return this.dataSourceType;
-  }
-
-  public static DataSourceType getDataSourceType(String dataSourceTypeName) {
-    switch (dataSourceTypeName) {
-      case "STREAM":
-        return DataSourceType.KSTREAM;
-      case "TABLE":
-        return DataSourceType.KTABLE;
-      default:
-        throw new KsqlException("DataSource Type is not supported: " + dataSourceTypeName);
-    }
   }
 
   public Schema getSchema() {

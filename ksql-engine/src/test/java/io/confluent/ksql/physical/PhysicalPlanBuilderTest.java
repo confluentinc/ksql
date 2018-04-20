@@ -230,7 +230,7 @@ public class PhysicalPlanBuilderTest {
                                                                               insertIntoQuery, new
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
-      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (ROWTIME : Schema{INT64}), (ROWKEY : Schema{STRING}), (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
+      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
       return;
     }
     Assert.fail();

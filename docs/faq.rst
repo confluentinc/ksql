@@ -46,15 +46,13 @@ product. However, KSQL is licensed under the Apache 2.0 license.
 How does KSQL compare to Apache Kafka’s Streams API?
 ====================================================
 
-KSQL is complementary to the Kafka Streams API, and indeed executes
-queries through Kafka Streams applications. One of the key benefits of
-KSQL is that it does not require the user to develop any code in Java or
-Scala. This enables users to use a SQL-like interface alone to construct
-streaming ETL pipelines, as well as responding to a real-time,
-continuous business requests. For full-fledged stream processing
-applications Kafka Streams remains a more appropriate choice. As with
-many technologies, each has its sweet-spot based on technical
-requirements, mission-criticality, and user skillset.
+KSQL is complementary to the Kafka Streams API, and indeed executes queries through Kafka Streams applications. They share some similarities such as having very flexible deployment models so you can integrate them easily into your existing technical and organizational processes and tooling, regardless of whether you have opted for containers, VMs, bare-metal machines, cloud services, or on-premise environments.
+
+One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. This enables users to leverage a SQL-like interface alone to construct streaming ETL pipelines, to respond to real-time, continuous business requests, to spot anomalies, and more. KSQL is a great fit when your processing logic can be naturally expressed through SQL.
+
+For full-fledged stream processing applications Kafka Streams remains a more appropriate choice. For example, implementing a finite state machine that is driven by streams of data is easier to achieve in a programming language such as Java or Scala than in SQL. In Kafka Streams you can also choose between the :ref:`DSL <streams_developer-guide_dsl>` (a functional programming API) and the :ref:`Processor API <streams_developer-guide_processor-api>` (an imperative programming API), and even combine the two.
+
+As with many technologies, each has its sweet-spot based on technical requirements, mission-criticality, and user skillset.
 
 =======================================================================================================================
 Does KSQL work with vanilla Apache Kafka clusters, or does it require the Kafka version included in Confluent Platform?
@@ -79,8 +77,7 @@ KSQL currently supports formats:
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
 -  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
-   KSQL server configuration file. For more information, see :ref:`<install_ksql-avro-schema>`.
-
+   KSQL server configuration file. For more information, see :ref:`install_ksql-avro-schema`.
 ====================================
 Is KSQL fully compliant to ANSI SQL?
 ====================================
@@ -156,7 +153,6 @@ Configure the ``ksql.schema.registry.url`` property in the KSQL server configura
 (see :ref:`install_ksql-avro-schema`).
 
 .. important::
-
     - To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
     - Avro message values are supported. Avro keys are not yet supported.
 

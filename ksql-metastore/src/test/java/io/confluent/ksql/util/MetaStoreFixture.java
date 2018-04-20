@@ -16,12 +16,13 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.connect.data.SchemaBuilder;
+
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 
@@ -110,32 +111,4 @@ public class MetaStoreFixture {
 
     return metaStore;
   }
-
-  public static void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                        Map<String, GenericRow> expectedResult) {
-    Assert.assertEquals(actualResult.size(), expectedResult.size());
-
-    for (String k: expectedResult.keySet()) {
-      Assert.assertTrue(actualResult.containsKey(k));
-      Assert.assertEquals(expectedResult.get(k), actualResult.get(k));
-    }
-  }
-
-  public static void assertExpectedWindowedResults(Map<Windowed<String>, GenericRow> actualResult,
-                                                Map<Windowed<String>, GenericRow> expectedResult) {
-    Map<String, GenericRow> actualResultSimplified = new HashMap<>();
-    Map<String, GenericRow> expectedResultSimplified = new HashMap<>();
-    for (Windowed<String> k: expectedResult.keySet()) {
-      expectedResultSimplified.put(k.key(), expectedResult.get(k));
-    }
-
-    for (Windowed<String> k: actualResult.keySet()) {
-      if (actualResult.get(k) != null) {
-        actualResultSimplified.put(k.key(), actualResult.get(k));
-      }
-
-    }
-    assertExpectedResults(actualResultSimplified, expectedResultSimplified);
-  }
-
 }

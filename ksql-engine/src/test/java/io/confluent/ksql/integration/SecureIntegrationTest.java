@@ -57,9 +57,11 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -396,10 +398,16 @@ public class SecureIntegrationTest {
 
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
+    awaitAsyncTopicCreation(INPUT_TOPIC);
+
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
     topicProducer
         .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
+  }
+
+  private void awaitAsyncTopicCreation(final String topicName) {
+    assertThatEventually(() -> topicClient.isTopicExists(topicName), is(true));
   }
 
   private void execInitCreateStreamQueries() throws Exception {

@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -46,11 +45,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlBareOutputNodeTest {
 
-  private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   private static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
-  private static final String MAP_NODE = "KSTREAM-MAP-0000000001";
+  private static final String SOURCE_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000001";
+  private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
-  private static final String MAP_VALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
+  private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
   private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
   private SchemaKStream stream;
   private StreamsBuilder builder;
@@ -69,13 +68,13 @@ public class KsqlBareOutputNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(MAP_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(SOURCE_MAPVALUES_NODE)));
     assertThat(node.topics(), equalTo("[test1]"));
   }
 
   @Test
   public void shouldBuildMapNode() throws Exception {
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(MAP_NODE),
+    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(SOURCE_MAPVALUES_NODE),
         Collections.singletonList(SOURCE_NODE),
         Collections.singletonList(TRANSFORM_NODE));
   }
@@ -83,25 +82,25 @@ public class KsqlBareOutputNodeTest {
   @Test
   public void shouldBuildTransformNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(MAP_NODE), Collections.singletonList(FILTER_NODE));
+    verifyProcessorNode(node, Collections.singletonList(SOURCE_MAPVALUES_NODE), Collections.singletonList(FILTER_NODE));
   }
 
   @Test
   public void shouldBuildFilterNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
-    verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE), Collections.singletonList(MAP_VALUES_NODE));
+    verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE), Collections.singletonList(FILTER_MAPVALUES_NODE));
   }
 
   @Test
   public void shouldBuildMapValuesNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(MAP_VALUES_NODE);
+    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_MAPVALUES_NODE);
     verifyProcessorNode(node, Collections.singletonList(FILTER_NODE), Collections.singletonList(FOREACH_NODE));
   }
 
   @Test
   public void shouldBuildForEachNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FOREACH_NODE);
-    verifyProcessorNode(node, Collections.singletonList(MAP_VALUES_NODE), Collections.emptyList());
+    verifyProcessorNode(node, Collections.singletonList(FILTER_MAPVALUES_NODE), Collections.emptyList());
   }
 
   @Test
@@ -122,7 +121,6 @@ public class KsqlBareOutputNodeTest {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

@@ -3,56 +3,56 @@
   {
     "__inputs": [
       {
-        "name": "errors_per_min_alert_ts",
-        "label": "errors_per_min_alert_ts",
+        "name": "errors_per_min_alert",
+        "label": "errors_per_min_alert",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "user_ip_activity_ts",
-        "label": "user_ip_activity_ts",
+        "name": "user_ip_activity",
+        "label": "user_ip_activity",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "click_user_sessions_ts",
-        "label": "click_user_sessions_ts",
+        "name": "click_user_sessions",
+        "label": "click_user_sessions",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "DS_PAGES_PER_MIN_TS",
-        "label": "pages_per_min_ts",
+        "name": "DS_PAGES_PER_MIN",
+        "label": "pages_per_min",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "events_per_min_max_avg_ts",
-        "label": "events_per_min_max_avg_ts",
+        "name": "events_per_min_max_avg",
+        "label": "events_per_min_max_avg",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "enriched_error_codes_ts",
-        "label": "enriched_error_codes_ts",
+        "name": "enriched_error_codes_count",
+        "label": "enriched_error_codes_count",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "events_per_min_ts",
-        "label": "events_per_min_ts",
+        "name": "events_per_min",
+        "label": "events_per_min",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
@@ -105,7 +105,7 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "errors_per_min_alert_ts",
+            "datasource": "errors_per_min_alert",
             "fill": 1,
             "id": 7,
             "legend": {
@@ -228,7 +228,7 @@
                 "value": "Count"
               }
             ],
-            "datasource": "user_ip_activity_ts",
+            "datasource": "user_ip_activity",
             "fontSize": "100%",
             "id": 10,
             "links": [],
@@ -399,7 +399,7 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "click_user_sessions_ts",
+            "datasource": "click_user_sessions",
             "fill": 1,
             "id": 8,
             "legend": {
@@ -519,7 +519,7 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "pages_per_min_ts",
+            "datasource": "pages_per_min",
             "fill": 1,
             "id": 3,
             "legend": {
@@ -615,7 +615,7 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "events_per_min_max_avg_ts",
+            "datasource": "events_per_min_max_avg",
             "fill": 1,
             "id": 1,
             "legend": {
@@ -749,7 +749,7 @@
                 "value": "Max"
               }
             ],
-            "datasource": "enriched_error_codes_ts",
+            "datasource": "enriched_error_codes_count",
             "fontSize": "100%",
             "id": 9,
             "links": [],
@@ -880,7 +880,7 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "events_per_min_ts",
+            "datasource": "events_per_min",
             "fill": 1,
             "id": 2,
             "legend": {

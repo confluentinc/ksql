@@ -1,0 +1,90 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "sum int",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,500", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,600", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sum long",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2147483648", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,2147483648", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,2147483748", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,500", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,600", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sum double",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,5.4", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100.1", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500.9", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300.8", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,5.4", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,105.5", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,500.9", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,801.7", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sum double map",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value['key1']) AS sum_val FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\",\"value\":{\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "{\"SUM_VAL\":10.0,\"ID\":0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"SUM_VAL\":20.0,\"ID\":0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"SUM_VAL\":30.0,\"ID\":0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"SUM_VAL\":40.0,\"ID\":0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"SUM_VAL\":50.0,\"ID\":0}", "timestamp": 0}
+      ]
+    }
+  ]
+}

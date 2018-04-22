@@ -25,18 +25,33 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.Objects;
 
 @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
-@JsonTypeName("KSQL Server Info")
+@JsonTypeName("KsqlServerInfo")
 @JsonSubTypes({})
 public class ServerInfo {
   private final String version;
+  private final String kafkaClusterId;
+  private final String ksqlServiceId;
 
   @JsonCreator
-  public ServerInfo(@JsonProperty("version") String version) {
+  public ServerInfo(
+      @JsonProperty("version") String version,
+      @JsonProperty("kafkaClusterId") String kafkaClusterId,
+      @JsonProperty("ksqlServiceId") String ksqlServiceId) {
     this.version = version;
+    this.kafkaClusterId = kafkaClusterId;
+    this.ksqlServiceId = ksqlServiceId;
   }
 
   public String getVersion() {
     return version;
+  }
+
+  public String getKafkaClusterId() {
+    return kafkaClusterId;
+  }
+
+  public String getKsqlServiceId() {
+    return ksqlServiceId;
   }
 
   @Override
@@ -44,15 +59,18 @@ public class ServerInfo {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ServerInfo)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ServerInfo serverInfo1 = (ServerInfo) o;
-    return Objects.equals(getVersion(), serverInfo1.getVersion());
+    ServerInfo that = (ServerInfo) o;
+    return Objects.equals(version, that.version)
+           && Objects.equals(kafkaClusterId, that.kafkaClusterId)
+           && Objects.equals(ksqlServiceId, that.ksqlServiceId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getVersion());
+
+    return Objects.hash(version, kafkaClusterId);
   }
 }

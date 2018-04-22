@@ -21,6 +21,7 @@ import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
@@ -29,36 +30,33 @@ public abstract class KsqlAggregateFunction<V, A> {
 
   /** An index of the function argument in the row that is used for computing the aggregate.
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
-   * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1. **/
+   * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1. 
+   **/
   private final int argIndexInValue;
-  private final A intialValue;
+  private final Supplier<A> initialValueSupplier;
   private final Schema returnType;
   private final List<Schema> arguments;
-  private final String functionName;
-  private final Class kudafClass;
 
   public KsqlAggregateFunction(Integer argIndexInValue) {
-    this.argIndexInValue = argIndexInValue;
-    this.intialValue = null;
-    this.returnType = null;
-    this.arguments = null;
-    this.functionName = null;
-    this.kudafClass = null;
+    this(argIndexInValue, null, null, null);
   }
 
-  public KsqlAggregateFunction(int argIndexInValue,
-                               A intialValue, Schema returnType, List<Schema> arguments,
-                               String functionName, Class kudafClass) {
+  public KsqlAggregateFunction(
+      final int argIndexInValue,
+      final Supplier<A> initialValueSupplier,
+      final Schema returnType,
+      final List<Schema> arguments
+  ) {
     this.argIndexInValue = argIndexInValue;
-    this.intialValue = intialValue;
+    this.initialValueSupplier = initialValueSupplier;
     this.returnType = returnType;
     this.arguments = arguments;
-    this.functionName = functionName;
-    this.kudafClass = kudafClass;
   }
 
-  public abstract KsqlAggregateFunction<V, A> getInstance(final Map<String, Integer> expressionNames,
-                                                          final List<Expression> functionArguments);
+  public abstract KsqlAggregateFunction<V, A> getInstance(
+      final Map<String, Integer> expressionNames,
+      final List<Expression> functionArguments
+  );
 
   public boolean hasSameArgTypes(List<Schema> argTypeList) {
     if (argTypeList == null) {
@@ -73,8 +71,8 @@ public abstract class KsqlAggregateFunction<V, A> {
    */
   public abstract A aggregate(V currentVal, A currentAggVal);
 
-  public A getIntialValue() {
-    return intialValue;
+  public Supplier<A> getInitialValueSupplier() {
+    return initialValueSupplier;
   }
 
   public int getArgIndexInValue() {

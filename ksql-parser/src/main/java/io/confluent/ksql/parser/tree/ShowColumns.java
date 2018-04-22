@@ -33,11 +33,21 @@ public class ShowColumns
     this(Optional.empty(), table, isTopic, isExtended);
   }
 
-  public ShowColumns(NodeLocation location, QualifiedName table, boolean isTopic, boolean isExtended) {
+  public ShowColumns(
+      NodeLocation location,
+      QualifiedName table,
+      boolean isTopic,
+      boolean isExtended
+  ) {
     this(Optional.of(location), table, isTopic, isExtended);
   }
 
-  private ShowColumns(Optional<NodeLocation> location, QualifiedName table, boolean isTopic, boolean isExtended) {
+  private ShowColumns(
+      Optional<NodeLocation> location,
+      QualifiedName table,
+      boolean isTopic,
+      boolean isExtended
+  ) {
     super(location);
     this.table = requireNonNull(table, "table is null");
     this.isTopic = isTopic;

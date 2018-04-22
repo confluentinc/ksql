@@ -36,10 +36,6 @@ public class WindowExpression extends Node {
     this.ksqlWindowExpression = ksqlWindowExpression;
   }
 
-  public String getWindowName() {
-    return windowName;
-  }
-
   public KsqlWindowExpression getKsqlWindowExpression() {
     return ksqlWindowExpression;
   }
@@ -68,24 +64,13 @@ public class WindowExpression extends Node {
 
 
   public static TimeUnit getWindowUnit(String windowUnitString) {
-    switch (windowUnitString) {
-      case "DAY":
-      case "DAYS":
-        return TimeUnit.DAYS;
-      case "HOUR":
-      case "HOURS":
-        return TimeUnit.HOURS;
-      case "MINUTE":
-      case "MINUTES":
-        return TimeUnit.MINUTES;
-      case "SECOND":
-      case "SECONDS":
-        return TimeUnit.SECONDS;
-      case "MILLISECOND":
-      case "MILLISECONDS":
-        return TimeUnit.MILLISECONDS;
-      default:
-        return null;
+    try {
+      if (!windowUnitString.endsWith("S")) {
+        return TimeUnit.valueOf(windowUnitString + "S");
+      }
+      return TimeUnit.valueOf(windowUnitString);
+    } catch (IllegalArgumentException | NullPointerException e) {
+      return null;
     }
   }
 

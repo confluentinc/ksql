@@ -21,8 +21,7 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
-public class ArithmeticUnaryExpression
-    extends Expression {
+public class ArithmeticUnaryExpression extends Expression {
 
   public enum Sign {
     PLUS,
@@ -53,12 +52,12 @@ public class ArithmeticUnaryExpression
     return new ArithmeticUnaryExpression(Optional.of(location), Sign.PLUS, value);
   }
 
-  public static ArithmeticUnaryExpression negative(NodeLocation location, Expression value) {
-    return new ArithmeticUnaryExpression(Optional.of(location), Sign.MINUS, value);
-  }
-
   public static ArithmeticUnaryExpression positive(Expression value) {
     return new ArithmeticUnaryExpression(Optional.empty(), Sign.PLUS, value);
+  }
+
+  public static ArithmeticUnaryExpression negative(NodeLocation location, Expression value) {
+    return new ArithmeticUnaryExpression(Optional.of(location), Sign.MINUS, value);
   }
 
   public static ArithmeticUnaryExpression negative(Expression value) {

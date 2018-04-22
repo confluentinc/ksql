@@ -16,12 +16,14 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
@@ -57,20 +60,30 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private boolean hasUserCredentials = false;
 
-  public KsqlRestClient(String serverAddress) {
-    this.serverAddress = serverAddress;
-    this.localProperties = new HashMap<>();
-    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  public KsqlRestClient(final String serverAddress) {
+    this(serverAddress, new HashMap<>());
+  }
+
+  public KsqlRestClient(final String serverAddress, final Properties properties) {
+    this(serverAddress, propertiesToMap(properties));
   }
 
   public KsqlRestClient(String serverAddress, Map<String, Object> localProperties) {
     this.serverAddress = serverAddress;
     this.localProperties = localProperties;
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+        false);
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  }
+
+  private static Map<String, Object> propertiesToMap(final Properties properties) {
+    final Map<String, Object> propertiesMap = new HashMap<>();
+    properties.stringPropertyNames().forEach(
+        prop -> propertiesMap.put(prop, properties.getProperty(prop)));
+
+    return propertiesMap;
   }
 
   // Visible for testing
@@ -81,8 +94,10 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public void setupAuthenticationCredentials(String userName, String password) {
-    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(Objects.requireNonNull(userName),
-            Objects.requireNonNull(password));
+    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(
+        Objects.requireNonNull(userName),
+        Objects.requireNonNull(password)
+    );
     client.register(feature);
     hasUserCredentials = true;
   }
@@ -101,13 +116,27 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
-    Response response = makeGetRequest("/");
+    return getServerInfo();
+  }
+
+  public RestResponse<ServerInfo> getServerInfo() {
+    return makeRequest("/info", ServerInfo.class);
+  }
+
+  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+    Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
-        return RestResponse.erroneous(new ErrorMessage(
-                new AuthenticationException("Could not authenticate successfully with the supplied credentials.")));
+        return RestResponse.erroneous(
+                new KsqlErrorMessage(
+                    Errors.ERROR_CODE_UNAUTHORIZED,
+                    new AuthenticationException(
+                        "Could not authenticate successfully with the supplied credentials."
+                    )
+                )
+        );
       }
-      ServerInfo result = response.readEntity(ServerInfo.class);
+      T result = response.readEntity(type);
       return RestResponse.successful(result);
     } finally {
       response.close();
@@ -117,9 +146,15 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
     KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("ksql", jsonRequest);
-    KsqlEntityList result = response.readEntity(KsqlEntityList.class);
-    response.close();
-    return RestResponse.successful(result);
+    try {
+      if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+        return RestResponse.successful(response.readEntity(KsqlEntityList.class));
+      } else {
+        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
+      }
+    } finally {
+      response.close();
+    }
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
@@ -135,7 +170,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       result = RestResponse.successful(response.readEntity(CommandStatus.class));
     } else {
-      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
     }
     response.close();
     return result;
@@ -147,7 +182,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       return RestResponse.successful(new QueryStream(response));
     } else {
-      return RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+      return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
     }
   }
 
@@ -160,7 +195,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       result = RestResponse.successful((InputStream) response.getEntity());
     } else {
-      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
     }
     return result;
   }
@@ -173,9 +208,9 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private Response makePostRequest(String path, Object jsonEntity) {
     try {
       return client.target(serverAddress)
-              .path(path)
-              .request(MediaType.APPLICATION_JSON_TYPE)
-              .post(Entity.json(jsonEntity));
+          .path(path)
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .post(Entity.json(jsonEntity));
     } catch (Exception exception) {
       throw new KsqlRestClientException("Error issuing POST to KSQL server", exception);
     }
@@ -184,14 +219,15 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private Response makeGetRequest(String path) {
     try {
       return client.target(serverAddress).path(path)
-              .request(MediaType.APPLICATION_JSON_TYPE)
-              .get();
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .get();
     } catch (Exception exception) {
       throw new KsqlRestClientException("Error issuing GET to KSQL server", exception);
     }
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+
     private final Response response;
     private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
@@ -203,19 +239,26 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
+      InputStreamReader isr = new InputStreamReader(
+          (InputStream) response.getEntity(),
+          StandardCharsets.UTF_8
+      );
       QueryStream stream = this;
       this.responseScanner = new Scanner((buf) -> {
         int wait = 1;
         // poll the input stream's readiness between interruptable sleeps
         // this ensures we cannot block indefinitely on read()
         while (true) {
-          if (closed) throw stream.closedIllegalStateException("hasNext()");
+          if (closed) {
+            throw stream.closedIllegalStateException("hasNext()");
+          }
           if (isr.ready()) {
             break;
           }
-          synchronized(stream) {
-            if (closed) throw stream.closedIllegalStateException("hasNext()");
+          synchronized (stream) {
+            if (closed) {
+              throw stream.closedIllegalStateException("hasNext()");
+            }
             try {
               wait = java.lang.Math.min(wait * 2, 200);
               stream.wait(wait);
@@ -279,7 +322,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         throw closedIllegalStateException("close()");
       }
 
-      synchronized(this) {
+      synchronized (this) {
         closed = true;
         this.notifyAll();
       }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -47,54 +48,68 @@ public class QueryAnalyzer {
     AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
 
-    processSelectExpressions(analysis,
+    processSelectExpressions(
+        analysis,
         aggregateAnalysis,
         aggregateAnalyzer,
-        aggregateExpressionRewriter);
+        aggregateExpressionRewriter
+    );
 
-    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty() &&
-        analysis.getGroupByExpressions().isEmpty()) {
+    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty()
+        && analysis.getGroupByExpressions().isEmpty()) {
       throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
     }
 
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
-      processHavingExpression(analysis,
+      processHavingExpression(
+          analysis,
           aggregateAnalysis,
           aggregateAnalyzer,
-          aggregateExpressionRewriter);
+          aggregateExpressionRewriter
+      );
     }
 
     enforceAggregateRules(query, aggregateAnalysis);
     return aggregateAnalysis;
   }
 
-  private void processHavingExpression(final Analysis analysis,
-                                       final AggregateAnalysis aggregateAnalysis,
-                                       final AggregateAnalyzer aggregateAnalyzer,
-                                       final AggregateExpressionRewriter aggregateExpressionRewriter) {
-    aggregateAnalyzer.process(analysis.getHavingExpression(),
-        new AnalysisContext());
+  private void processHavingExpression(
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer,
+      final AggregateExpressionRewriter aggregateExpressionRewriter
+  ) {
+    aggregateAnalyzer.process(
+        analysis.getHavingExpression(),
+        new AnalysisContext()
+    );
     if (!aggregateAnalyzer.isHasAggregateFunction()) {
       aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
     }
     aggregateAnalysis
-        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-            analysis.getHavingExpression()));
+        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(
+            aggregateExpressionRewriter,
+            analysis.getHavingExpression()
+        ));
     aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
-  private void processSelectExpressions(final Analysis analysis,
-                                        final AggregateAnalysis aggregateAnalysis,
-                                        final AggregateAnalyzer aggregateAnalyzer,
-                                        final AggregateExpressionRewriter aggregateExpressionRewriter) {
-    for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer
-          .process(expression, new AnalysisContext());
+  private void processSelectExpressions(
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer,
+      final AggregateExpressionRewriter aggregateExpressionRewriter
+  ) {
+    for (Expression expression : analysis.getSelectExpressions()) {
+      aggregateAnalyzer.process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(
+          aggregateExpressionRewriter,
+          expression
+      ));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
   }

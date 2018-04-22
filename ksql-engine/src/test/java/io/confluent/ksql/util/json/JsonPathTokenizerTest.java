@@ -18,24 +18,28 @@ package io.confluent.ksql.util.json;
 
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
 
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+
 public class JsonPathTokenizerTest {
 
   @Test
   public void testJsonPathTokenizer() throws IOException {
-    JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.log.cloud.region");
+    JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
     ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
     List<String> tokenList = tokens.asList();
-    Assert.assertTrue(tokenList.size() == 3);
-    Assert.assertTrue(tokenList.get(0).equalsIgnoreCase("log"));
-    Assert.assertTrue(tokenList.get(1).equalsIgnoreCase("cloud"));
-    Assert.assertTrue(tokenList.get(2).equalsIgnoreCase("region"));
+    assertThat(tokenList.size(), is(equalTo(4)));
+    assertThat(tokenList.get(0), is(equalTo("logs")));
 
+    assertThat(tokenList.get(1), is(equalTo("0")));
+    assertThat(tokenList.get(2), is(equalTo("cloud")));
+    assertThat(tokenList.get(3), is(equalTo("region")));
   }
 
 }

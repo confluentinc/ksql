@@ -20,14 +20,28 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 public class KsqlStdOut extends StructuredDataSource {
 
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
-  public KsqlStdOut(final String datasourceName, final Schema schema, final Field keyField,
-                    final Field timestampField, final DataSourceType dataSourceType) {
-    super("not-applicable-for-stdout", datasourceName, schema, keyField, timestampField, dataSourceType, null);
+  public KsqlStdOut(
+      final String datasourceName,
+      final Schema schema,
+      final Field keyField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final DataSourceType dataSourceType
+  ) {
+    super(
+        "not-applicable-for-stdout",
+        datasourceName,
+        schema,
+        keyField,
+        timestampExtractionPolicy,
+        dataSourceType,
+        null
+    );
   }
 
   @Override
@@ -51,12 +65,17 @@ public class KsqlStdOut extends StructuredDataSource {
   }
 
   @Override
+  public StructuredDataSource copy() {
+    return this;
+  }
+
+  @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     return this;
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+  public StructuredDataSource cloneWithTimeExtractionPolicy(TimestampExtractionPolicy policy) {
     return this;
   }
 

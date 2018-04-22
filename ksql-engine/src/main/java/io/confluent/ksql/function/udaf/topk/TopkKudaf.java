@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,11 @@
 package io.confluent.ksql.function.udaf.topk;
 
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -31,78 +30,103 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
+public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFunction<T, T[]> {
 
-public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
+  private final int topKSize;
+  private final Class<T> clazz;
+  private final Schema returnType;
+  private final List<Schema> argumentTypes;
+  private final Comparator<T> comparator;
 
-  private Integer tkVal;
-  private T[] tempTopkArray;
-  private Class<T> ttClass;
-
-  TopkKudaf(int argIndexInValue,
-            Integer tkVal,
-            Class<T> ttClass) {
+  @SuppressWarnings("unchecked")
+  TopkKudaf(final int argIndexInValue,
+            final int topKSize,
+            final Schema returnType,
+            final List<Schema> argumentTypes,
+            final Class<T> clazz) {
     super(argIndexInValue,
-          (T[]) Array.newInstance(ttClass,tkVal),
-          SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-          Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "TOPK",
-          TopkKudaf.class);
-    this.tkVal = tkVal;
-    this.tempTopkArray = (T[]) Array.newInstance(ttClass,tkVal + 1);
-    this.ttClass = ttClass;
+        () -> (T[]) Array.newInstance(clazz, topKSize),
+          returnType,
+          argumentTypes
+    );
+    this.topKSize = topKSize;
+    this.returnType = returnType;
+    this.argumentTypes = argumentTypes;
+    this.clazz = clazz;
+    this.comparator = (v1, v2) -> {
+      if (v1 == null && v2 == null) {
+        return 0;
+      }
+      if (v1 == null) {
+        return 1;
+      }
+      if (v2 == null) {
+        return -1;
+      }
+
+      return Comparator.<T>reverseOrder().compare(v1, v2);
+    };
   }
 
-
+  @SuppressWarnings("unchecked")
   @Override
-  public T[] aggregate(T currentVal, T[] currentAggVal) {
-    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
+  public T[] aggregate(final T currentVal, final T[] currentAggVal) {
     if (currentVal == null) {
       return currentAggVal;
     }
 
-    int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
-    if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
+    final T last = currentAggVal[currentAggVal.length - 1];
+    if (last != null && currentVal.compareTo(last) <= 0) {
       return currentAggVal;
     }
-    System.arraycopy(currentAggVal, 0, tempTopkArray, 0, tkVal);
-    tempTopkArray[tkVal] = currentVal;
-    Arrays.sort(tempTopkArray, Collections.reverseOrder());
-    return Arrays.copyOf(tempTopkArray, tkVal);
+
+    final int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
+    if (nullIndex != -1) {
+      currentAggVal[nullIndex] = currentVal;
+      Arrays.sort(currentAggVal, comparator);
+      return currentAggVal;
+    }
+
+    currentAggVal[currentAggVal.length - 1] = currentVal;
+    Arrays.sort(currentAggVal, comparator);
+    return currentAggVal;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Merger<String, T[]> getMerger() {
-    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     return (aggKey, aggOne, aggTwo) -> {
-      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
-      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
+      final T[] merged = (T[]) Array.newInstance(clazz, topKSize);
 
-      for (int i = 0; i < nullIndex1; i++) {
-        tempMergeTopkArray[i] = aggOne[i];
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != topKSize; ++i) {
+        final T v1 = idx1 < aggOne.length ? aggOne[idx1] : null;
+        final T v2 = idx2 < aggTwo.length ? aggTwo[idx2] : null;
+
+        if (comparator.compare(v1, v2) < 0) {
+          merged[i] = v1;
+          idx1++;
+        } else {
+          merged[i] = v2;
+          idx2++;
+        }
       }
-      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        tempMergeTopkArray[i] = aggTwo[i - nullIndex1];
-      }
-      Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
-      if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull((Class<T>) ttClass, tempMergeTopkArray, tkVal);
-        return tempMergeTopkArray;
-      }
-      return Arrays.copyOf(tempMergeTopkArray, tkVal);
+
+      return merged;
     };
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
-                                                             List<Expression> functionArguments) {
+  public KsqlAggregateFunction<T, T[]> getInstance(final Map<String, Integer> expressionNames,
+                                                   final List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
-      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
-                                            + ".", functionArguments.size()));
+      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",
+                                            functionArguments.size()));
     }
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkKudaf(udafIndex, tkValFromArg, ttClass);
+
+    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    final int topKSize = Integer.parseInt(functionArguments.get(1).toString());
+    return new TopkKudaf<>(udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

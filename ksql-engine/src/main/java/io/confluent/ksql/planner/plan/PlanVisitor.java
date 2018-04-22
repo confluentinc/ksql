@@ -22,23 +22,27 @@ public class PlanVisitor<C, R> {
     return null;
   }
 
-  public R visitFilter(FilterNode node, C context) {
+  protected R visitFilter(FilterNode node, C context) {
     return visitPlan(node, context);
   }
 
-  public R visitProject(ProjectNode node, C context) {
+  protected R visitProject(ProjectNode node, C context) {
     return visitPlan(node, context);
   }
 
-  public R visitStructuredDataSourceNode(StructuredDataSourceNode node, C context) {
+  protected R visitStructuredDataSourceNode(StructuredDataSourceNode node, C context) {
     return visitPlan(node, context);
   }
 
-  public R visitAggregate(AggregateNode node, C context) {
+  protected R visitAggregate(AggregateNode node, C context) {
     return visitPlan(node, context);
   }
 
-  public R visitOutput(OutputNode node, C context) {
+  protected R visitJoin(JoinNode node, C context) {
+    return visitPlan(node, context);
+  }
+
+  protected R visitOutput(OutputNode node, C context) {
     return visitPlan(node, context);
   }
 

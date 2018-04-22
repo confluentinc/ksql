@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,25 +16,30 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.collect.Lists;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.kafka.streams.KeyValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import javax.ws.rs.core.StreamingOutput;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import org.apache.kafka.streams.KeyValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.core.StreamingOutput;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 class QueryStreamWriter implements StreamingOutput {
 
@@ -51,8 +56,8 @@ class QueryStreamWriter implements StreamingOutput {
       KsqlEngine ksqlEngine,
       long disconnectCheckInterval,
       String queryString,
-      Map<String, Object> overriddenProperties)
-      throws Exception {
+      Map<String, Object> overriddenProperties
+  ) throws Exception {
     QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
@@ -75,8 +80,10 @@ class QueryStreamWriter implements StreamingOutput {
   public void write(OutputStream out) throws IOException {
     try {
       while (true) {
-
-        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(disconnectCheckInterval, TimeUnit.MILLISECONDS);
+        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
+            disconnectCheckInterval,
+            TimeUnit.MILLISECONDS
+        );
         if (value != null) {
           write(out, value.value);
         } else {
@@ -85,9 +92,7 @@ class QueryStreamWriter implements StreamingOutput {
           out.write("\n".getBytes(StandardCharsets.UTF_8));
           out.flush();
         }
-        if (streamsException != null) {
-          throw streamsException;
-        }
+        drainAndThrowOnError(out);
       }
     } catch (EOFException exception) {
       // The user has terminated the connection; we can stop writing
@@ -110,13 +115,29 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
+      queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }
 
-  void write(OutputStream output, GenericRow row) throws IOException {
+  private void write(OutputStream output, GenericRow row) throws IOException {
     objectMapper.writeValue(output, new StreamedRow(row));
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
+  }
+
+  private void drainAndThrowOnError(final OutputStream out) throws Throwable {
+    if (streamsException == null) {
+      return;
+    }
+
+    final List<KeyValue<String, GenericRow>> rows = Lists.newArrayList();
+    queryMetadata.getRowQueue().drainTo(rows);
+
+    for (final KeyValue<String, GenericRow> row : rows) {
+      write(out, row.value);
+    }
+
+    throw streamsException;
   }
 
   private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {

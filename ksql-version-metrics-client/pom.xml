@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>4.1.0-SNAPSHOT</version>
+        <version>5.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-version-metrics-client</artifactId>
@@ -71,24 +71,25 @@
     </dependencies>
 
     <build>
-    <plugins>
-    <plugin>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro-maven-plugin</artifactId>
-        <version>${avro.version}</version>
-        <executions>
-            <execution>
-                <phase>generate-sources</phase>
-                <goals>
-                    <goal>schema</goal>
-                </goals>
-                <configuration>
-                    <sourceDirectory>${project.basedir}/src/main/avro/</sourceDirectory>
-                    <testSourceDirectory>${project.basedir}/src/test/</testSourceDirectory>
-                    <stringType>String</stringType>
-                </configuration>
-            </execution>
-        </executions>
-    </plugin>
-    </plugins></build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro-maven-plugin</artifactId>
+                <version>${avro.version}</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>schema</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>${project.basedir}/src/main/avro/</sourceDirectory>
+                            <testSourceDirectory>${project.basedir}/src/test/</testSourceDirectory>
+                            <stringType>String</stringType>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

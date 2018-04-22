@@ -1,18 +1,28 @@
 # ![KSQL rocket](ksq-lrocket.png) KSQL - Streaming SQL for Apache Kafka
 
-> *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
+> **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
+
+KSQL is the streaming SQL engine for Apache Kafka.
 
 KSQL is an open source streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
 Click here to watch a screencast of the KSQL demo on YouTube.
-<a href="https://youtu.be/A45uRzJiv7I" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
-<!-- [![KSQL screencast](screencast.jpg)](https://youtu.be/A45uRzJiv7I) -->
+<a href="https://www.youtube.com/watch?v=illEpCOcCVg" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
 
-# Quick Start
-If you are ready to see the power of KSQL, try out these:
+<a name="getting-started"></a>
+# Getting Started and Download
 
-- [KSQL Quick Start](https://github.com/confluentinc/ksql/tree/v0.3/docs/quickstart#quick-start): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-- [Clickstream Analysis Demo](https://github.com/confluentinc/ksql/tree/v0.3/ksql-clickstream-demo#clickstream-analysis): Shows how to build an application that performs real-time user analytics.
+1. [Download KSQL](https://www.confluent.io/download/), which is included in the Enterprise and Open Source editions
+   of Confluent Platform.
+2. Follow the [Quick Start](https://docs.confluent.io/current/quickstart.html).
+
+For more information, see the [KSQL Tutorials and Examples](https://docs.confluent.io/current/ksql/docs/tutorials/), which includes Docker-based variants.
+
+
+# Documentation
+
+See [KSQL documentation](https://docs.confluent.io/current/ksql/docs/).
+
 
 # Use Cases and Examples
 
@@ -60,21 +70,52 @@ CREATE TABLE error_counts AS
 ```
 
 
-# Documentation
-You can [find the KSQL documentation here](https://github.com/confluentinc/ksql/tree/v0.3/docs#ksql-documentation)
+# Latest News
+
+* [Confluent Platform 4.1 with Production-Ready KSQL Now Available](https://www.confluent.io/blog/confluent-platform-4-1-with-production-ready-ksql-now-available/)
+* [Press Release: KSQL GA announced for early April 2018](https://www.confluent.io/press-release/confluent-makes-ksql-available-confluent-platform-announces-general-availability/)
+  -- until then you can download the latest KSQL Developer Preview release at
+  https://github.com/confluentinc/ksql/releases.
+* [KSQL Feb 2018 release available](https://www.confluent.io/blog/ksql-february-release-streaming-sql-for-apache-kafka/)
+  -- bug fixes, performance and stability improvements
+* [Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL](https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/)
+  -- stream processing examples using KSQL that show how companies are using Apache Kafka to grow their business and to
+  analyze data in real time; how to secure KSQL and the entire Confluent Platform with encryption, authentication, and
+  authorization
+* [KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data](https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data)
+  -- replacing batch extracts with event streams, and batch transformation with in-flight transformation; we take a
+  stream of data from a transactional system built on Oracle, transform it, and stream the results into Elasticsearch
+* [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
+  -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
+  aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place
+* [KSQL Dec 2017 release available](https://www.confluent.io/blog/ksql-december-release)
+  -- support for Avro and [Confluent Schema Registry](https://github.com/confluentinc/schema-registry); easy data
+  conversion between Avro, JSON, Delimited data; joining streams and tables across different data formats; operational
+  improvements (`DESCRIBE EXTENDED`, `EXPLAIN`, and new metrics); optimizations (faster server startup and recovery
+  times, better resource utilization)
+* [KSQL Nov 2017 release available](https://www.confluent.io/blog/november-update-ksql-developer-preview-available/)
+  -- focus on community-raised issues and requests (369 pull requests, 50 closed issues)
+
 
 # Join the Community
-Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).
+
+You can get help, learn how to contribute to KSQL, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
 
 * Ask a question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity). Account registration is free and self-service.
 * Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
+
 # Contributing
-Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).
+
+Contributions to the code, examples, documentation, etc. are very much appreciated.
 
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
+- Learn how to work with the KSQL source code, including building and testing KSQL as well as contributing code changes
+  to KSQL by reading our [Development and Contribution guidelines](CONTRIBUTING.md).
+
 
 # License
-The project is licensed under the Apache License, version 2.0.
+
+The project is [licensed](LICENSE) under the Apache License, version 2.0.
 
 *Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/).*

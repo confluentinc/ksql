@@ -17,14 +17,21 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import static org.apache.avro.Schema.create;
+import static org.apache.avro.Schema.createArray;
+import static org.apache.avro.Schema.createMap;
+import static org.apache.avro.Schema.createUnion;
 
 public class SchemaUtil {
 
@@ -94,11 +101,21 @@ public class SchemaUtil {
 
   private static Schema getKsqlComplexType(final String sqlType) {
     if (sqlType.startsWith(ARRAY)) {
-      return SchemaBuilder.array(getTypeSchema(sqlType.substring(ARRAY.length() + 1, sqlType.length() - 1)));
+      return SchemaBuilder.array(
+          getTypeSchema(
+              sqlType.substring(
+                  ARRAY.length() + 1,
+                  sqlType.length() - 1
+              )
+          )
+      );
     } else if (sqlType.startsWith(MAP)) {
-      //TODO: For now only primitive data types for map are supported. Will have to add nested types.
-      String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
-              .trim().split(",");
+      //TODO: For now only primitive data types for map are supported. Will have to add nested
+      // types.
+      String[] mapTypesStrs = sqlType
+          .substring("MAP".length() + 1, sqlType.length() - 1)
+          .trim()
+          .split(",");
       if (mapTypesStrs.length != 2) {
         throw new KsqlException("Map type is not defined correctly.: " + sqlType);
       }
@@ -108,7 +125,6 @@ public class SchemaUtil {
     }
     throw new KsqlException("Unsupported type: " + sqlType);
   }
-
 
 
   public static int getFieldIndexByName(final Schema schema, final String fieldName) {
@@ -160,8 +176,8 @@ public class SchemaUtil {
     if (field.schema().type() == Schema.Type.ARRAY) {
       return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + "," +
-             TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + ","
+          + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
     } else {
       return TYPE_MAP.get(field.schema().type().name());
     }
@@ -189,9 +205,9 @@ public class SchemaUtil {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
-    for (Field field: schema.fields()) {
-      if (!field.name().equals(SchemaUtil.ROWKEY_NAME) && !field.name().equals(SchemaUtil
-                                                                                   .ROWTIME_NAME)) {
+    for (Field field : schema.fields()) {
+      if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
+          && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
@@ -200,7 +216,7 @@ public class SchemaUtil {
 
   public static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf('.') + 1);
       if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
@@ -240,7 +256,7 @@ public class SchemaUtil {
     return stringBuilder.toString();
   }
 
-  public static String getSQLTypeName(Schema schema) {
+  public static String getSqlTypeName(Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "INT";
@@ -254,10 +270,13 @@ public class SchemaUtil {
       case STRING:
         return "VARCHAR";
       case ARRAY:
-        return "ARRAY<" + getSQLTypeName(schema.valueSchema()) + ">";
+        return "ARRAY<" + getSqlTypeName(schema.valueSchema()) + ">";
       case MAP:
-        return "MAP<" + getSQLTypeName(schema.keySchema()) + "," + getSQLTypeName(schema
-                                                                                       .valueSchema()) + ">";
+        return "MAP<"
+               + getSqlTypeName(schema.keySchema())
+               + ","
+               + getSqlTypeName(schema.valueSchema())
+               + ">";
       default:
         throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
     }
@@ -269,7 +288,10 @@ public class SchemaUtil {
         .record(name).namespace("ksql")
         .fields();
     for (Field field : schema.fields()) {
-      fieldAssembler.name(field.name().replace(".", "_")).type(getAvroSchemaForField(field.schema())).noDefault();
+      fieldAssembler
+          .name(field.name().replace(".", "_"))
+          .type(getAvroSchemaForField(field.schema()))
+          .withDefault(null);
     }
 
     return fieldAssembler.endRecord().toString();
@@ -278,56 +300,77 @@ public class SchemaUtil {
   private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
     switch (fieldSchema.type()) {
       case STRING:
-        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING);
+        return unionWithNull(create(org.apache.avro.Schema.Type.STRING));
       case BOOLEAN:
-        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN);
+        return unionWithNull(create(org.apache.avro.Schema.Type.BOOLEAN));
       case INT32:
-        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT);
+        return unionWithNull(create(org.apache.avro.Schema.Type.INT));
       case INT64:
-        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG);
+        return unionWithNull(create(org.apache.avro.Schema.Type.LONG));
       case FLOAT64:
-        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE);
+        return unionWithNull(create(org.apache.avro.Schema.Type.DOUBLE));
       default:
         if (fieldSchema.type() == Schema.Type.ARRAY) {
-          return org.apache.avro.Schema.createArray(getAvroSchemaForField(fieldSchema.valueSchema()));
+          return unionWithNull(
+              createArray(getAvroSchemaForField(fieldSchema.valueSchema())));
         } else if (fieldSchema.type() == Schema.Type.MAP) {
-          return org.apache.avro.Schema.createMap(getAvroSchemaForField(fieldSchema.valueSchema()));
+          return unionWithNull(
+              createMap(getAvroSchemaForField(fieldSchema.valueSchema())));
         }
         throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
     }
   }
 
+  private static org.apache.avro.Schema unionWithNull(org.apache.avro.Schema schema) {
+    return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
+  }
+
   /**
    * Rename field names to be consistent with the internal column names.
-   * @param schema
-   * @return
    */
   public static Schema getAvroSerdeKsqlSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       schemaBuilder.field(field.name().replace(".", "_"), field.schema());
     }
 
     return schemaBuilder.build();
   }
 
+  public static String getFieldNameWithNoAlias(Field field) {
+    String name = field.name();
+    if (name.contains(".")) {
+      return name.substring(name.indexOf(".") + 1);
+    } else {
+      return name;
+    }
+  }
+
   /**
    * Remove the alias when reading/writing from outside
-   *
-   * @param schema
-   * @return
    */
   public static Schema getSchemaWithNoAlias(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field: schema.fields()) {
-      String name = field.name();
-      if (name.contains(".")) {
-        schemaBuilder.field(name.substring(name.indexOf(".") + 1), field.schema());
-      } else {
-        schemaBuilder.field(name, field.schema());
+    for (Field field : schema.fields()) {
+      String name = getFieldNameWithNoAlias(field);
+      schemaBuilder.field(name, field.schema());
+    }
+    return schemaBuilder.build();
+  }
+
+  public static int getIndexInSchema(final String fieldName, final Schema schema) {
+    List<Field> fields = schema.fields();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (field.name().equals(fieldName)) {
+        return i;
       }
     }
-
-    return schemaBuilder.build();
+    throw new KsqlException(
+        "Couldn't find field with name="
+            + fieldName
+            + " in schema. fields="
+            + fields
+    );
   }
 }

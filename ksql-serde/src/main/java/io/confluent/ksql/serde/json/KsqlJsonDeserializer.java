@@ -19,9 +19,6 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -34,6 +31,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
@@ -61,7 +62,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     try {
       return getGenericRow(bytes);
     } catch (Exception e) {
-      throw new SerializationException("KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
+      throw new SerializationException(
+          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
+          e
+      );
     }
   }
 
@@ -71,7 +75,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       String jsonFieldName = field.name().substring(field.name().indexOf(".") + 1);
       JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
       if (fieldJsonNode == null) {
@@ -86,6 +90,9 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Object enforceFieldType(Schema fieldSchema, JsonNode fieldJsonNode) {
 
+    if (fieldJsonNode.isNull()) {
+      return null;
+    }
     switch (fieldSchema.type()) {
       case BOOLEAN:
         return fieldJsonNode.asBoolean();
@@ -102,31 +109,43 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
           return fieldJsonNode.toString();
         }
       case ARRAY:
-        ArrayNode arrayNode = (ArrayNode) fieldJsonNode;
-        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-        Object[] arrayField =
-            (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
-        for (int i = 0; i < arrayNode.size(); i++) {
-          arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
-        }
-        return arrayField;
+        return handleArray(fieldSchema, (ArrayNode) fieldJsonNode);
       case MAP:
-        Map<String, Object> mapField = new HashMap<>();
-        Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
-        while (iterator.hasNext()) {
-          Map.Entry<String, JsonNode> entry = iterator.next();
-          mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(),
-                                                        entry.getValue()));
-        }
-        return mapField;
+        return handleMap(fieldSchema, fieldJsonNode);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
-
     }
+  }
 
+  private Object handleMap(Schema fieldSchema, JsonNode fieldJsonNode) {
+    Map<String, Object> mapField = new HashMap<>();
+    Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
+    while (iterator.hasNext()) {
+      Map.Entry<String, JsonNode> entry = iterator.next();
+      mapField.put(
+          entry.getKey(),
+          enforceFieldType(
+            fieldSchema.valueSchema(),
+            entry.getValue()
+        )
+      );
+    }
+    return mapField;
+  }
+
+  private Object handleArray(Schema fieldSchema, ArrayNode fieldJsonNode) {
+    ArrayNode arrayNode = fieldJsonNode;
+    Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
+    Object[] arrayField =
+        (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
+    for (int i = 0; i < arrayNode.size(); i++) {
+      arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
+    }
+    return arrayField;
   }
 
   static class CaseInsensitiveJsonNode {
+
     Map<String, String> keyMap = new HashMap<>();
 
     CaseInsensitiveJsonNode(JsonNode jsonNode) {

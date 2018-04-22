@@ -16,72 +16,111 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface KafkaTopicClient extends Closeable {
 
-  /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
-   * [warn] synchronous call to get the response
-   * @param topic name of the topic to create
-   * @param numPartitions
-   * @param replicatonFactor
-   * @throws KafkaTopicException
-   * @throws KafkaResponseGetFailedException
-   */
-  void createTopic(String topic, int numPartitions, short replicatonFactor);
+  enum TopicCleanupPolicy {
+    COMPACT,
+    DELETE,
+    COMPACT_DELETE
+  }
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
+   *
    * @param topic name of the topic to create
-   * @param numPartitions
-   * @param replicatonFactor
+   */
+  void createTopic(String topic, int numPartitions, short replicationFactor);
+
+  /**
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
+   * [warn] synchronous call to get the response
+   * @param topic   name of the topic to create
    * @param configs any additional topic configs to use
-   * @throws KafkaTopicException
-   * @throws KafkaResponseGetFailedException
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs);
+  void createTopic(
+      String topic,
+      int numPartitions,
+      short replicationFactor,
+      Map<String, ?> configs
+  );
 
   /**
    * [warn] synchronous call to get the response
+   *
    * @param topic name of the topic
    * @return whether the topic exists or not
-   * @throws KafkaResponseGetFailedException
    */
   boolean isTopicExists(String topic);
 
   /**
    * [warn] synchronous call to get the response
+   *
    * @return set of existing topic names
-   * @throws KafkaResponseGetFailedException
    */
   Set<String> listTopicNames();
 
   /**
-   * [warn] synchronous call to get the response
+   * Synchronous call to retrieve list of internal topics
+   *
+   * @return set of all non-internal topics
+   */
+  Set<String> listNonInternalTopicNames();
+
+  /**
+   * Synchronous call to get a one or more topic's description.
+   *
    * @param topicNames topicNames to describe
-   * @throws KafkaResponseGetFailedException
+   * @return map of topic name to description.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
   /**
+   * Synchronous call to get the config of a topic.
+   *
+   * @param topicName the name of the topic.
+   * @return map of topic config if the topic is known, {@link Optional#empty()} otherwise.
+   */
+  Map<String, String> getTopicConfig(String topicName);
+
+  /**
+   * Synchronous call to write topic config overrides to ZK.
+   *
+   * <p>This will add additional overrides, and not replace any existing, unless they have the same
+   * name.
+   *
+   * <p>Note: each broker will pick up this change asynchronously.
+   *
+   * @param topicName the name of the topic.
+   * @param overrides new config overrides to add.
+   * @return {@code true} if any of the {@code overrides} did not already exist
+   */
+  boolean addTopicConfig(String topicName, Map<String, ?> overrides);
+
+  /**
+   * Synchronous call to get a topic's cleanup policy
+   *
+   * @param topicName topicNames to retrieve cleanup policy for.
+   * @return the clean up policy of the topic.
+   */
+  TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
+
+  /**
    * Delete the list of the topics in the given list.
-   * @param topicsToDelete
    */
   void deleteTopics(List<String> topicsToDelete);
 
   /**
    * Delete the internal topics of a given application.
-   * @param applicationId
    */
   void deleteInternalTopics(String applicationId);
 
@@ -89,5 +128,4 @@ public interface KafkaTopicClient extends Closeable {
    * Close the underlying Kafka admin client.
    */
   void close();
-
 }

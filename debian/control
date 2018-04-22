@@ -1,0 +1,13 @@
+Source: confluent-ksql
+Section: misc
+Priority: optional
+Maintainer: Confluent Packaging <packages@confluent.io>
+Build-Depends: debhelper (>= 9), dh-systemd, javahelper (>= 0.40),
+ make, maven
+Standards-Version: 3.9.3
+Homepage: http://confluent.io
+
+Package: confluent-ksql
+Architecture: all
+Depends: ${misc:Depends}, confluent-rest-utils, adduser
+Description: Streaming SQL engine for Apache Kafka.

@@ -1,0 +1,101 @@
+Summary: Streaming SQL engine for Kafka
+Name: confluent-ksql
+Version: ##RPMVERSION##
+Release: ##RPMRELEASE##
+Group: Applications/Internet
+License: Apache (v2)
+Source0: confluent-ksql-%{version}.tar.gz
+URL: http://confluent.io
+BuildRoot: %{_tmppath}/%{name}-%{version}-root
+Vendor: Confluent, Inc.
+Packager: Confluent Packaging <packages@confluent.io>
+BuildArch: noarch
+
+Requires: confluent-rest-utils
+
+%description
+
+Streaming SQL engine for Apache Kafka.
+
+%define __jar_repack %{nil}
+
+%pre
+
+_user=cp-ksql
+_group=confluent
+
+getent group $_group 2>&1 >/dev/null || groupadd -r $_group
+getent passwd $_user 2>&1 >/dev/null || \
+    useradd -r -g $_group --home-dir /tmp --no-create-home -s /sbin/nologin -c "Confluent KSQL" $_user
+
+_permwarn=
+for dir in /var/log/confluent ; do
+    if [ $dir = /var/log/confluent ]; then
+        # Confluent log directory should be writable by group
+        _perm="chown ${_user}:${_group} $dir && chmod u+wx,g+wx,o= $dir"
+    else
+        # Other dirs are only readable by group
+        _perm="chown ${_user}:${_group} $dir && chmod u+wx,g+r,o= $dir"
+    fi
+
+    if [ ! -d $dir ]; then
+        echo "Creating directory $dir with owner $_user:$_group"
+        mkdir -p $dir
+        eval $_perm
+    else
+        echo "Notice: Not creating existing directory $dir, ensure proper permissions for user $_user group $_group"
+        _permwarn="${_permwarn}${_perm}\n"
+    fi
+done
+
+if [ -n "$_permwarn" ]; then
+    echo "Notice: If you are planning to use the provided systemd service units for"
+    echo "Notice: confluent-ksql, make sure that read-write permissions"
+    echo "Notice: for user $_user and group $_group are set up according to the"
+    echo "Notice: following commands:"
+    /bin/echo -e "$_permwarn"
+fi
+
+%post
+
+%preun
+
+%postun
+
+%prep
+
+%setup
+
+%build
+
+%install
+
+# Clean out any previous builds not on slash
+[ "%{buildroot}" != "/" ] && %{__rm} -rf %{buildroot}
+
+%{__mkdir_p} %{buildroot}
+%{__cp} -R * %{buildroot}
+# The spec file gets included, get rid of it
+%{__rm} %{buildroot}/confluent-ksql.spec
+
+%{__mkdir_p} %{buildroot}/var/log/confluent
+
+
+%files
+%defattr(-,root,root)
+/usr/bin/*
+/usr/share/java/ksql
+/lib/systemd/system/
+
+%doc
+/usr/share/doc/ksql
+
+%config(noreplace) /etc/ksql/*
+
+%clean
+#used to cleanup things outside the build area and possibly inside.
+[ "%{buildroot}" != "/" ] && %{__rm} -rf %{buildroot}
+
+%changelog
+* Fri Jan 26 2018 Confluent Packaging <packages@confluent.io>
+- Initial import

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# (Copyright) [2018 - 2018] Confluent, Inc.
+
+: "${JAVA_HOME:=""}"
+
+function find_java_home {
+  local system=$(uname -s)
+  if (( $system == "Darwin" )); then
+    echo $(/usr/libexec/java_home)
+  fi
+}
+
+# Which java to use
+if [ -z "$JAVA_HOME" ]; then
+  JAVA_HOME=$(find_java_home)
+fi
+
+if [ -z "$JAVA_HOME" ]; then
+  echo "Could not find java home. Please set JAVA_HOME to path to jdk installation directory"
+  exit 1
+fi
+
+KSQL_CLASSPATH="$JAVA_HOME/lib/*"
+JAVA="$JAVA_HOME/bin/java"
+
+base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+
+for dir in "$base_dir/ksql-tools/target/ksql-tools"-*-development; do
+  KSQL_DIR="$dir/share/java/ksql-tools"
+  if [ -d $KSQL_DIR ]; then
+    KSQL_CLASSPATH="$KSQL_CLASSPATH:$KSQL_DIR/*"
+  fi
+done
+
+DIR="$base_dir/share/java/ksql"
+if [ -d "$DIR" ]; then
+  KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
+fi
+
+exec "$JAVA" -cp "$KSQL_CLASSPATH" io.confluent.ksql.tools.printmetrics.PrintMetrics "$@"

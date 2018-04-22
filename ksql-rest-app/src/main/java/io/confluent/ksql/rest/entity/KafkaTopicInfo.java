@@ -20,58 +20,67 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
+import java.util.List;
 import java.util.Objects;
 
 @JsonSubTypes({})
 public class KafkaTopicInfo {
 
   private final String name;
-  private final String registered;
-  private final String partitionCount;
-  private final String replicaInfo;
+  private final boolean registered;
+  private final List<Integer> replicaInfo;
+  private final int consumerGroupCount;
+  private final int consumerCount;
 
   @JsonCreator
   public KafkaTopicInfo(
       @JsonProperty("name") String name,
-      @JsonProperty("registered") String registered,
-      @JsonProperty("partitionCount") String partitionCount,
-      @JsonProperty("replicaInfo") String replicaInfo
+      @JsonProperty("registered") boolean registered,
+      @JsonProperty("replicaInfo") List<Integer> replicaInfo,
+      @JsonProperty("consumerCount") int consumerCount,
+      @JsonProperty("consumerGroupCount") int consumerGroupCount
   ) {
     this.name = name;
     this.registered = registered;
-    this.partitionCount = partitionCount;
     this.replicaInfo = replicaInfo;
+    this.consumerGroupCount = consumerGroupCount;
+    this.consumerCount = consumerCount;
   }
 
   public String getName() {
     return name;
   }
 
-  public String getRegistered() {
+  public boolean getRegistered() {
     return registered;
   }
 
-  public String getPartitionCount() {
-    return partitionCount;
+  public List<Integer> getReplicaInfo() {
+    return replicaInfo;
   }
 
-  public String getReplicaInfo() {
-    return replicaInfo;
+  public int getConsumerCount() {
+    return consumerCount;
+  }
+
+  public int getConsumerGroupCount() {
+    return consumerGroupCount;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     KafkaTopicInfo that = (KafkaTopicInfo) o;
-    return Objects.equals(name, that.name) &&
-        Objects.equals(partitionCount, that.partitionCount) &&
-        Objects.equals(replicaInfo, that.replicaInfo) &&
-        Objects.equals(registered, that.registered);
+    return Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, partitionCount, replicaInfo, registered);
+    return Objects.hash(name);
   }
 }

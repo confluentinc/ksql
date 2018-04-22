@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -30,6 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
 
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
@@ -50,8 +50,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     }
     String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
     try {
-      List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
-          .getRecords();
+      List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT).getRecords();
       if (csvRecords == null || csvRecords.isEmpty()) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
@@ -61,7 +60,14 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       List<Object> columns = new ArrayList<>();
       if (csvRecord.size() != schema.fields().size()) {
-        throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
+        throw new KsqlException(
+            String.format(
+              "Unexpected field count, csvFields:%d schemaFields:%d line: %s",
+              csvRecord.size(),
+              schema.fields().size(),
+              recordCsvString
+          )
+        );
       }
       for (int i = 0; i < csvRecord.size(); i++) {
         if (csvRecord.get(i) == null) {
@@ -73,8 +79,10 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       return new GenericRow(columns);
     } catch (Exception e) {
-      throw new SerializationException("Exception in deserializing the delimited row: " + recordCsvString,
-          e);
+      throw new SerializationException(
+          "Exception in deserializing the delimited row: " + recordCsvString,
+          e
+      );
     }
   }
 

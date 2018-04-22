@@ -75,7 +75,7 @@ For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
 Capacity Planning
 =================
 
-Check out our :ref:`capacity planning guide <ksql_capacity_planning>` for information on how to size your KSQL clusters.
+The :ref:`Capacity Planning guide <ksql_capacity_planning>` describes how to size your KSQL clusters.
 
 ===============
 Troubleshooting

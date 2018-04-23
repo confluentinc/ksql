@@ -29,7 +29,7 @@ Download the Tutorial and Start KSQL
 
 #. Switch to the correct |cp| release branch:
 
-   .. code:: bash
+   .. codewithvars:: bash
 
        $ git checkout |release_post_branch|
 

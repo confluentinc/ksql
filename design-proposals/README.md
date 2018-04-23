@@ -4,9 +4,9 @@ This is a place to collect improvement proposals for KSQL from the community. Th
 
 # KsqL Improvement Proposals (aka KLIPs)
 
-| KLIP                         | Status | Release |
-|------------------------------|:------:| ------: |
-| [KLIP-0](klip-0-coalesce.md) | Open   | N/A     |
+| KLIP                                   | Status | Release |
+|----------------------------------------|:------:| ------: |
+| [KLIP-0: Coalesce](klip-0-coalesce.md) | Open   | N/A     |
 
 
 

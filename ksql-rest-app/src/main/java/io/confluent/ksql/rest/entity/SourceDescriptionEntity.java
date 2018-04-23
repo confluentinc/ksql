@@ -48,8 +48,8 @@ public class SourceDescriptionEntity extends KsqlEntity {
     if (!(o instanceof SourceDescriptionEntity)) {
       return false;
     }
-    SourceDescriptionEntity sourceDescriptionEntity = (SourceDescriptionEntity)o;
-    return Objects.equals(getSourceDescription(), sourceDescriptionEntity.getSourceDescription());
+    SourceDescriptionEntity other = (SourceDescriptionEntity)o;
+    return Objects.equals(sourceDescription, other.sourceDescription);
   }
 
   @Override

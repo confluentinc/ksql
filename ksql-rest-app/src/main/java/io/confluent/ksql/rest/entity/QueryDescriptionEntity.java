@@ -48,8 +48,8 @@ public class QueryDescriptionEntity extends KsqlEntity {
     if (!(o instanceof QueryDescriptionEntity)) {
       return false;
     }
-    QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) o;
-    return Objects.equals(getQueryDescription(), queryDescriptionEntity.getQueryDescription());
+    QueryDescriptionEntity other = (QueryDescriptionEntity) o;
+    return Objects.equals(queryDescription, other.queryDescription);
   }
 
   @Override

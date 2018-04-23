@@ -21,8 +21,11 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -35,6 +38,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
 
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -48,6 +52,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -444,5 +450,23 @@ public class CliTest extends TestRunner {
     new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
+  }
+
+  @Test
+  public void shouldPrintErrorOnUnsupportedAPI() {
+    KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
+    EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
+        RestResponse.erroneous(
+            new KsqlErrorMessage(
+                NOT_ACCEPTABLE.getStatusCode() * Errors.HTTP_TO_ERROR_CODE_MULTIPLIER,
+                "Minimum supported client version: 1.0")));
+    EasyMock.replay(mockRestClient);
+    new Cli(1L, 1L, mockRestClient, terminal);
+    Assert.assertThat(
+        terminal.getOutputString(),
+        containsString("Current CLI version no longer supported"));
+    Assert.assertThat(
+        terminal.getOutputString(),
+        containsString("Minimum supported client version: 1.0"));
   }
 }

@@ -28,7 +28,7 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 public class Errors {
-  static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+  public static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
   public static final int ERROR_CODE_BAD_REQUEST
       = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;

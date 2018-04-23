@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.Versions;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -25,7 +27,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 @Path("/")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class RootDocument {
 
   private final boolean uiEnabled;

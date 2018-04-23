@@ -24,12 +24,14 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.Versions;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +88,14 @@ public class WSQueryEndpoint {
     log.debug("Opening websocket session {}", session.getId());
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
 
+    final List<String> versionParam = parameters.getOrDefault(
+        Versions.KSQL_V1_WS_PARAM, Arrays.asList(Versions.KSQL_V1_WS));
+    if (versionParam.size() != 1 || !versionParam.get(0).equals(Versions.KSQL_V1_WS)) {
+      log.debug("Received invalid api version: {}", String.join(",", versionParam));
+      closeSession(session, new CloseReason(CloseCodes.CANNOT_ACCEPT,"Invalid version in request"));
+      return;
+    }
+
     final KsqlRequest request;
     final String queryString;
     final Statement statement;
@@ -128,7 +138,7 @@ public class WSQueryEndpoint {
       try {
         session.getBasicRemote().sendBinary(ByteBuffer.wrap(
             mapper.writeValueAsBytes(
-                queryMetadata.getOutputNode().getSchema()
+                queryMetadata.getResultSchema()
             )
         ));
       } catch (IOException e) {

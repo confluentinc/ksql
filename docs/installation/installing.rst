@@ -1,10 +1,5 @@
 .. _ksql_supported_versions:
 
-Supported Versions and Interoperability
-=======================================
-
-.. include:: ../includes/ksql-supported-versions.rst
-
 .. _install_overview:
 
 Installing KSQL
@@ -21,6 +16,13 @@ Docker support
 
 .. contents::
     :local:
+
+
+---------------------------------------
+Supported Versions and Interoperability
+---------------------------------------
+
+.. include:: ../includes/ksql-supported-versions.rst
 
 
 .. _install_ksql-server:
@@ -73,6 +75,7 @@ Tip
     or with overriding properties:
 
     .. code:: bash
+
         $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.

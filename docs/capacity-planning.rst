@@ -5,24 +5,27 @@ KSQL Capacity Planning
 ======================
 
 .. contents::
+   :local:
+   :depth: 3
 
-KSQL is a simple and powerful tool for building streaming applications on top of Kafka. This guide will help you get started with planning for provisioning your KSQL deployment by helping you answer questions like:
+KSQL is a simple and powerful tool for building streaming applications on top of Kafka. This guide helps you plan for provisioning your KSQL deployment and answers these questions:
 
-    - What server specification should I use to run KSQL?
-    - Roughly how many KSQL server nodes will I need?
-    - Do I need to provision additional Kafka brokers to support KSQL?
-    - What kind of deployment mode makes sense for me?
-    - How do I know whether my KSQL queries are handling the incoming message rate, and how can I tune KSQL if it’s falling behind?
+- What server specification should I use to run KSQL?
+- Approximately how many KSQL server nodes do I need?
+- Do I need to provision additional Kafka brokers to support KSQL?
+- What kind of deployment mode makes sense for me?
+- How do I know whether my KSQL queries are handling the incoming message rate, and how can I tune KSQL if it’s falling behind?
 
-Background
-==========
-
-Before jumping into the following sections, you may find it instructive to look through the `Kafka Streams capacity planning guide <https://docs.confluent.io/current/streams/sizing.html>`_. Under the hood KSQL uses the `Kafka Streams API <https://docs.confluent.io/current/streams/developer-guide/dsl-api.html>`_  to perform the actual query processing, so the details covered there apply to KSQL as well.
+.. tip:: Because the underlying implementation of KSQL uses the `Kafka Streams API
+         <https://docs.confluent.io/current/streams/developer-guide/dsl-api.html>`_  for query
+         processing, the details covered in the Streams documentation apply to KSQL as well. The `Kafka
+         Streams capacity planning guide <https://docs.confluent.io/current/streams/sizing.html>`_
+         is another useful resource for KSQL capacity planning.
 
 Approach To Sizing
 ==================
 
-This guide will help you get a rough idea of the computing resources required to run your KSQL queries. The emphasis here is that it’s a rough idea. As you’ll see in the following sections there are many factors at play and the best practice is always to stage and test your queries against realistic load first, and adjust your planned provisioning accordingly.
+This document will provide you with a rough estimate of the computing resources required to run your KSQL queries. There are many factors that will determine your actual required resources, and the best practice is to stage and test your queries against realistic loads first, and then adjust your planned provisioning accordingly.
 
 General Guidelines
 ==================
@@ -30,19 +33,19 @@ General Guidelines
 KSQL
 ----
 
-**CPU**: KSQL consumes CPU to serialize/deserialize messages into the declared stream/table schemas, and then process each message as required by the query. We would recommend at least 4 cores.
+**CPU**: KSQL consumes CPU to serialize and deserialize messages into the declared stream and table schemas, and then process each message as required by the query. At least 4 cores are recommended.
 
-**Disk**: KSQL uses local disk to persist temporary state for aggregations and joins. We recommend using an SSD and starting with at least 100GB.
+**Disk**: KSQL uses local disk to persist temporary state for aggregations and joins. An SSD and at least 100 GB is recommended.
 
-**Memory**: KSQL memory usage is dominated by on-heap message processing and off-heap state for aggregations (e.g., SUM, COUNT, TOPKDISTINCT) and joins. Usage for message processing scales with message throughput, while aggregation/join state is a function of topic partition count, key space size, and windowing. A good starting point here is 32GB.
+**Memory**: KSQL memory usage is dominated by on-heap message processing and off-heap state for aggregations (e.g., SUM, COUNT, TOPKDISTINCT) and joins. Usage for message processing scales with message throughput, while aggregation and join state is a function of topic partition count, key space size, and windowing. A good starting point here is 32 GB.
 
-**Network**: KSQL relies heavily on Kafka, so fast and reliable network is important for optimal throughput. A 1Gib NIC is a good starting point.
+**Network**: KSQL relies heavily on Kafka, so fast and reliable network is important for optimal throughput. A 1 Gbit NIC is a good starting point.
 
 To recap, general guidelines for a basic KSQL server:
-    - 4 cores
-    - 32GB RAM
-    - 100GB SSD
-    - 1Gbit network
+- 4 cores
+- 32 GB RAM
+- 100 GB SSD
+- 1 Gbit network
 
 Kafka
 -----
@@ -58,15 +61,15 @@ KSQL creates the following types of topics on your KSQL cluster:
 
 Every query started by a ``CREATE STREAM AS SELECT`` or ``CREATE TABLE AS SELECT`` statement writes its results to an output topic. The created topic is configured with the following properties:
 
-    - Name: By default KSQL creates the output topic with the same name as the Stream or Table created by the statement. Users can specify a custom name in the ``KAFKA_TOPIC`` property of the statement's ``WITH`` clause.
-    - Partitions: By default KSQL creates an output topic with 4 partitions. Users can specify a custom partition count in the ``PARTITIONS`` property of the statement's ``WITH`` clause.
-    - Replication Factor: By default KSQL creates the output topic with a replication factor of 1. Users can specify a custom replication factor in the ``REPLICAS`` property of the statement's ``WITH`` clause.
+- Name: By default KSQL creates the output topic with the same name as the stream or table created by the statement. You can specify a custom name in the ``KAFKA_TOPIC`` property of the statement's ``WITH`` clause.
+- Partitions: By default KSQL creates an output topic with 4 partitions. You can specify a custom partition count in the ``PARTITIONS`` property of the statement's ``WITH`` clause.
+- Replication Factor: By default KSQL creates the output topic with a replication factor of 1. You can specify a custom replication factor in the ``REPLICAS`` property of the statement's ``WITH`` clause.
 
 **Internal Topics for Repartitioning**
 
-Some queries require that the input Stream be repartitioned so that all messages being aggregated or joined together reside in the same partition. Repartitioning means that an intermediate topic is created and every record is produced and consumed to/from that topic with a key that ensures the locality requirements of the query are satisfied. The intermediate topic is named with the suffix *repartition*. The repartition topic has the same number of partitions and replicas as the input Stream for aggregations, or the input Table for joins.
+Some queries require that the input stream be repartitioned so that all messages being aggregated or joined together reside in the same partition. Repartitioning means that an intermediate topic is created and every record is produced and consumed to and from that topic with a key that ensures the locality requirements of the query are satisfied. The intermediate topic is named with the suffix *repartition*. The repartition topic has the same number of partitions and replicas as the input stream for aggregations, or the input table for joins.
 
-Tip
+.. tip::
     To determine if your query needs a repartition, you can use the ``DESCRIBE EXTENDED`` and ``EXPLAIN`` statements.
     For example, consider the following table created from the quickstart:
 
@@ -156,45 +159,47 @@ For windowed aggregates the size is determined by the number of outstanding wind
 
 **KSQL Command Topics**
 
-When run in interactive configuration, a KSQL cluster creates an internal topic (whose name is derived from the ksql.service.id setting) to persist the log of queries to run across all the servers in this KSQL cluster. These special-purpose topics for KSQL are called command topics.  Command topics have a single partition and default to a replication factor of 1.
+When run in interactive configuration, a KSQL cluster creates an internal topic (whose name is derived from the ``ksql.service.id`` setting) to persist the log of queries to run across all the servers in this KSQL cluster. These special-purpose topics for KSQL are called command topics.  Command topics have a single partition and default to a replication factor of 1.
 
-Consumption/Production
-++++++++++++++++++++++
+Consumption and Production
+++++++++++++++++++++++++++
 
-You may need to provision additional Kafka brokers to accommodate KSQL production/consumption to/from your Kafka cluster.
+You might need to provision additional Kafka brokers to accommodate KSQL production and consumption to and from your Kafka cluster.
 
-At minimum, each query consumes each record from an input Kafka topic and produces records to an output Kafka topic.
+Minimally, each query consumes each record from an input Kafka topic and produces records to an output Kafka topic.
 
-Some queries require that the input Stream be repartitioned so that all messages being aggregated or joined together reside in the same partition. Each repartition produces and consumes every record.
+Some queries require that the input stream be repartitioned so that all messages being aggregated or joined together reside in the same partition. Each repartition produces and consumes every record.
 
 Finally, stateful queries such as aggregations and joins produce records to a changelog topic for their respective state stores. 
 
 Important Sizing Factors
 ========================
 
-In this section we’ll go over some of the important factors to consider when scoping out your KSQL deployment.
+This section describes the important factors to consider when scoping out your KSQL deployment.
 
 **Throughput**: In general, higher throughput requires more resources.
 
 **Query Types**: Your realized throughput will largely be a function of the type of queries you run. You can think of KSQL queries as falling into three categories:
 
-    1. Project/Filter, e.g. ``SELECT <columns> FROM <table/stream> WHERE <condition>``
-    2. Joins
-    3. Aggregations, e.g. ``SUM, COUNT, TOPK, TOPKDISTINCT``
+1. Project/Filter, e.g. ``SELECT <columns> FROM <table/stream> WHERE <condition>``
+2. Joins
+3. Aggregations, e.g. ``SUM, COUNT, TOPK, TOPKDISTINCT``
 
 A project/filter query reads records from an input stream or table, may filter the records according to some predicate, and performs stateless transformations on the columns before writing out records to a sink stream or table. Project/filter queries require the fewest resources. For a single project/filter query running on an instance provisioned as recommended above you can expect to realize from ~40 MB/second up to the rate supported by your network. The throughput largely depends on the average message size and complexity. Processing small messages with many columns is CPU intensive and will saturate your CPU. Processing large messages with fewer columns requires less CPU and KSQL will start saturating the network for such workloads.
 
-Stream-table joins read and write to Kafka Streams state stores and require around twice the CPU of project/filter. Though Kafka Streams state stores are stored on disk, we recommend that you provision sufficient memory to keep the working set memory-resident to avoid expensive disk i/os. So expect around half the throughput and expect to provision higher-memory instances.
+Stream-table joins read and write to Kafka Streams state stores and require around twice the CPU of project/filter. Though Kafka Streams state stores are stored on disk, it is recommended that you provision sufficient memory to keep the working set memory-resident to avoid expensive disk i/os. So expect around half the throughput and expect to provision higher-memory instances.
 
 Aggregations read from and may write to a state store for every record. They consume around twice the CPU of joins. The CPU required increases if the aggregation uses a window as the state store must be updated for every window.
 
-**Number of Queries**: The available resources on a server are shared across all queries. So expect that the processing throughput per server will decrease proportionally with the number of queries it is executing (see the notes on vertically/horizontally scaling a KSQL cluster in this document to add more processing capacity in such situations) . Furthermore, KSQL queries run as Kafka Streams applications. Each query starts its own Kafka Streams worker threads, and uses its own consumers and producers. This adds a little bit of CPU overhead per query. Currently we recommend avoiding running a large number of queries on one ksql cluster. Instead, use interactive mode to play with your data and develop sets of queries that function together. Then, run these in their own headless cluster. Check out the Recommendations and Best practices section for more details.
+**Number of Queries**: The available resources on a server are shared across all queries. So expect that the processing throughput per server will decrease proportionally with the number of queries it is executing (see the notes on vertically and horizontally scaling a KSQL cluster in this document to add more processing capacity in such situations) . Furthermore, KSQL queries run as Kafka Streams applications. Each query starts its own Kafka Streams worker threads, and uses its own consumers and producers. This adds a little bit of CPU overhead per query. Currently we recommend avoiding running a large number of queries on one KSQL cluster. Instead, use interactive mode to play with your data and develop sets of queries that function together. Then, run these in their own headless cluster. Check out the :ref:`Recommendations and Best Practices <ksql_sizing_best>` section for more details.
 
 **Data Schema**: KSQL handles mapping serialized Kafka records to columns in a stream or table’s schema. In general, more complex schemas with a higher ratio of columns to bytes of data require more CPU to process.
 
-**Number of Partitions**: Kafka Streams creates one RocksDB state store instance for aggregations and joins for every topic partition processed by a given KSQL server. Each RocksDB state store instance has a memory overhead of 50MB for its cache plus the data actually stored.
+**Number of Partitions**: Kafka Streams creates one RocksDB state store instance for aggregations and joins for every topic partition processed by a given KSQL server. Each RocksDB state store instance has a memory overhead of 50 MB for its cache plus the data actually stored.
 
 **Key Space**: For aggregations and joins, Kafka Streams/RocksDB will try and keep the working set of a state store in memory to avoid I/O operations. If there are many keys then this will require more memory. It also makes reads and writes to the state store more expensive. Note that the size of the data in a state store is not limited by memory (RAM) but only by available disk space on a KSQL server.
+
+.. _ksql_sizing_best:
 
 Recommendations and Best Practices
 ==================================
@@ -204,13 +209,13 @@ Interactive KSQL Servers vs Non-Interactive (“Headless”) Servers
 
 By default, KSQL servers are configured for interactive use, which means you can use the KSQL CLI to interact with a KSQL cluster in order to, for example, execute new queries. Interactive KSQL usage allows for easy and quick iterative development and testing of your KSQL queries via the KSQL CLI.
 
-You can also configure the servers for headless, non-interactive operation, where servers collaboratively run only a predefined list of queries [link to KSQL server configuration section]. The result is essentially an elastic, fault-tolerant, and distributed stream processing application that communicates to the outside world by reading from and writing to Kafka topics.  Sizing, deploying, and managing in this scenario is similar to a Kafka Streams application [link to KStreams docs] . We also recommend to integrate such KSQL deployments with your company's CI/CD pipeline to, for example, version-control the .sql file.
+You can also configure the servers for headless, non-interactive operation, where servers collaboratively run only a predefined list of queries [link to KSQL server configuration section]. The result is essentially an elastic, fault-tolerant, and distributed stream processing application that communicates to the outside world by reading from and writing to Kafka topics.  Sizing, deploying, and managing in this scenario is similar to a Kafka Streams application [link to KStreams docs] . Its also recommended to integrate such KSQL deployments with your company's CI/CD pipeline to, for example, version-control the .sql file.
 
 How to choose between these two configuration types?
 
-    - For production deployments we recommend headless, non-interactive KSQL clusters. This configuration provides the best isolation and, unlike interactive KSQL clusters, minimizes the likelihood of operator error and human mistakes.
-    - For exploring and experimenting with your data we recommend interactive KSQL clusters. It allows to quickly come up with sets of desired queries for your use case that together function as a streaming “application” to produce meaningful results. Then, run this “application” with headless, non-interactive KSQL clusters in production.
-    - Furthermore, for interactive KSQL usage we recommend that you deploy an interactive KSQL cluster per project or per team instead of a single, large KSQL cluster for your organization.
+- For production deployments, headless, non-interactive KSQL clusters are recommended. This configuration provides the best isolation and, unlike interactive KSQL clusters, minimizes the likelihood of operator error and human mistakes.
+- For exploring and experimenting with your data, interactive KSQL clusters are recommended. It allows you to quickly come up with sets of desired queries for your use case that together function as a streaming “application” to produce meaningful results. Then, run this “application” with headless, non-interactive KSQL clusters in production.
+- Furthermore, for interactive KSQL usage, you should deploy an interactive KSQL cluster per project or per team instead of a single, large KSQL cluster for your organization.
 
 Scaling KSQL
 ------------
@@ -251,10 +256,10 @@ The examples assume the following DDL statements to declare the schema for the i
 
 Let’s assume the following:
 
-    - The production rate into the ``pageviews`` topic is 50 MBps.
-    - The messages in ``pageviews`` average 256 bytes.
-    - The ``pageviews`` topic has 64 partitions.
-    - The messages are in JSON format. Serialization to JSON adds some space overhead. Let’s assume an extra 25% to account for this.
+- The production rate into the ``pageviews`` topic is 50 MBps.
+- The messages in ``pageviews`` average 256 bytes.
+- The ``pageviews`` topic has 64 partitions.
+- The messages are in JSON format. Serialization to JSON adds some space overhead. Let’s assume an extra 25% to account for this.
 
 Scenario 1: Project/Filter Only (Stateless Queries)
 ---------------------------------------------------
@@ -272,21 +277,21 @@ In this scenario my application is a single project/filter query that tries to c
 KSQL
 ++++
 
-Our example pageviews messages are small, under 256 bytes. For smaller messages let’s estimate that, in our hypothetical environment, each 4-core KSQL server is CPU bound at around 50MBps. So, we should be able to get by with a single KSQL server to handle this throughput. For better fault-tolerance it may be a good idea to run a second server to quickly pick up load in case one server fails.
+Our example pageviews messages are small, under 256 bytes. For smaller messages let’s estimate that, in our hypothetical environment, each 4-core KSQL server is CPU bound at around 50 MBps. So, we should be able to get by with a single KSQL server to handle this throughput. For better fault-tolerance it may be a good idea to run a second server to quickly pick up load in case one server fails.
 
 How much memory is required per server? Project/Filter is stateless, and therefore we do not need to account for state store memory. We recommend about 8GB for the Java heap space for record processing.
 
-Finally, KSQL uses the network to consume records from the Kafka input topic and produce records to the output topic. So for this example query we said we receive 50MBps. If we assume that 90% of page views are meaningful then we would produce 45MBps as output.
+Finally, KSQL uses the network to consume records from the Kafka input topic and produce records to the output topic. So for this example query we said we receive 50 MBps. If we assume that 90% of page views are meaningful then we would produce 45 MBps as output.
 
 Kafka
 +++++
 
-On the Kafka side we would need to provision for the additional production/consumption bandwidth as calculated above. Additionally, we would need to account for the output topic itself, which would add 64 partitions to the Kafka cluster.
+On the Kafka side we would need to provision for the additional production and consumption bandwidth as calculated above. Additionally, we would need to account for the output topic itself, which would add 64 partitions to the Kafka cluster.
 
 Scenario 2: Large Messages
 --------------------------
 
-Suppose we want to perform the same query, except this time each message is 8KB. For larger messages, each KSQL node will likely be network bound instead of CPU bound. One node with a 1Gbps should be able to handle the original 50MBps (400Mbps) of throughput coming into the pageviews_original topic. Let’s suppose the production throughput is larger, 256MBps. A 1Gbps full-duplex NIC can handle 1Gbps, or 128MBps in each direction. So we would estimate 2-3 KSQL nodes to handle this load.
+Suppose we want to perform the same query, except this time each message is 8KB. For larger messages, each KSQL node will likely be network bound instead of CPU bound. One node with a 1Gbps should be able to handle the original 50 MBps (400Mbps) of throughput coming into the pageviews_original topic. Let’s suppose the production throughput is larger, 256 MBps. A 1Gbps full-duplex NIC can handle 1Gbps, or 128 MBps in each direction. So we would estimate 2-3 KSQL nodes to handle this load.
 
 Scenario 3: More Advanced Usage
 -------------------------------
@@ -309,13 +314,13 @@ Let’s analyze a more interesting set of queries. Let’s assume small messages
 KSQL
 ++++
 
-Since our example messages are small, we expect KSQL to be CPU-bound. To estimate the throughput from each KSQL server, we first estimate the throughput each query would get from a single server if run in isolation. Remember our rule-of-thumb heuristic that the join will consume about twice the CPU of the project/filter. So in our hypothetical environment we estimate 25MBps for it. Aggregations consume around twice the CPU of joins, so lets estimate 12.5MBps for the query populating ``pageview_counts_by_city``. To estimate the cumulative throughput from this pipeline, we can use the following reasoning. Since we’re CPU-bound, for a query to process R bytes/second each byte consumes 1/R CPU-seconds. If we have 3 queries with rates R1, R2, and R3 then processing one record for each query takes 1/R1 + 1/R2 + 1/R3 CPU-seconds. So the expected throughput should be 1/(1/R1 + 1/R2 + 1/R3). Plugging in our rates gives us an expected throughput of ~7.7MBps. So we would need around 7 4-core KSQL nodes.
+Since our example messages are small, we expect KSQL to be CPU-bound. To estimate the throughput from each KSQL server, we first estimate the throughput each query would get from a single server if run in isolation. Remember our rule-of-thumb heuristic that the join will consume about twice the CPU of the project/filter. So in our hypothetical environment we estimate 25 MBps for it. Aggregations consume around twice the CPU of joins, so lets estimate 12.5 MBps for the query populating ``pageview_counts_by_city``. To estimate the cumulative throughput from this pipeline, we can use the following reasoning. Since we’re CPU-bound, for a query to process R bytes/second each byte consumes 1/R CPU-seconds. If we have 3 queries with rates R1, R2, and R3 then processing one record for each query takes 1/R1 + 1/R2 + 1/R3 CPU-seconds. So the expected throughput should be 1/(1/R1 + 1/R2 + 1/R3). Plugging in our rates gives us an expected throughput of ~7.7 MBps. So we would need around 7 4-core KSQL nodes.
 
-Now let’s see how much memory we require per server. We recommend that you reserve 8GB for the java heap. We also need to account for up front state store memory overhead. Across the join and aggregate we create 128 state store instances, one for each partition. Each state store allocates a 50MB cache, which comes to 6.25GB total and therefore a little under 1GB per KSQL server.
+Now let’s see how much memory we require per server. We recommend that you reserve 8GB for the java heap. We also need to account for up front state store memory overhead. Across the join and aggregate we create 128 state store instances, one for each partition. Each state store allocates a 50 MB cache, which comes to 6.25GB total and therefore a little under 1GB per KSQL server.
 
 To make joins as fast as possible, we should try and ensure that the users table fits in the page cache. To estimate the size of users, we need to know the number of registered users and the size of each user record and key. Each entry in the user table contains a registertime (13 bytes), gender(1 byte), city id (10 bytes), country id (10 bytes), userid (32 bytes), and email (32 bytes), coming to a total of 98 bytes. With JSON overhead we estimate 123 bytes. The key for the table is the userid, for which we estimate 32 bytes. Suppose our site has 100,000,000 registered users. Then, to store our whole table will require around 14.4GB, and therefore about 2.1GB per KSQL server.
 
-To make aggregation as fast as possible we should try and ensure all the aggregates fit in the page cache. To estimate the size of the aggregates, we need to know the number of aggregates and the size of the state required to store each one. Each aggregate requires storing a country ID (10 bytes), city ID (10 bytes) and count (20 bytes), coming to 40 bytes. With overhead we estimate 50 bytes. The number of the aggregates is the number of cities with registered users. Lets estimate 50,000 cities. Then, to store all the aggregates will require around 2.4MB of memory, which is negligible.
+To make aggregation as fast as possible we should try and ensure all the aggregates fit in the page cache. To estimate the size of the aggregates, we need to know the number of aggregates and the size of the state required to store each one. Each aggregate requires storing a country ID (10 bytes), city ID (10 bytes) and count (20 bytes), coming to 40 bytes. With overhead we estimate 50 bytes. The number of the aggregates is the number of cities with registered users. Lets estimate 50,000 cities. Then, to store all the aggregates will require around 2.4 MB of memory, which is negligible.
 
 So, each KSQL server should therefore have at least about 12 GB of memory.
 

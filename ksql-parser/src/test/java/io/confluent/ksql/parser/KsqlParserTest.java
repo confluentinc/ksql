@@ -45,11 +45,14 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.fail;
+import static org.testng.Assert.assertTrue;
 
 public class KsqlParserTest {
 
@@ -273,6 +276,20 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testReservedColumnIdentifers() {
+    assertQuery(KSQL_PARSER.buildAst("SELECT ROWTIME as ROWTIME FROM test1 t1;", metaStore).get(0));
+    assertQuery(KSQL_PARSER.buildAst("SELECT ROWKEY as ROWKEY FROM test1 t1;", metaStore).get(0));
+  }
+
+  @Test
+  public void testReservedColumnAliases() {
+    assertFailedQuery("SELECT C1 as ROWTIME FROM test1 t1;",
+            "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column.");
+    assertFailedQuery("SELECT C2 as ROWKEY FROM test1 t1;",
+            "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column.");
+  }
+
+  @Test
   public void testSelectAllJoin() throws Exception {
     String
         queryStr =
@@ -422,7 +439,7 @@ public class KsqlParserTest {
     String format = "json";
     String kafkaTopic = "case_insensitive_kafka_topic";
 
-    String queryStr = String.format(
+    String queryStr = format(
         "REGISTER TOPIC %s WITH (value_format = %s, kafka_topic = %s);",
         ksqlTopic,
         format,
@@ -443,7 +460,7 @@ public class KsqlParserTest {
     try {
       String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
       Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-      Assert.fail();
+      fail();
     } catch (ParseFailedException e) {
       String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
@@ -495,11 +512,6 @@ public class KsqlParserTest {
         equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
-  @Test
-  public void should() {
-    List<Statement> statements = KSQL_PARSER.buildAst("select * from orders;", metaStore);
-    System.out.println(statements);
-  }
   @Test
   public void testSelectSessionWindow() throws Exception {
 
@@ -600,4 +612,18 @@ public class KsqlParserTest {
     Assert.assertTrue(dropTable.getName().toString().equalsIgnoreCase("TABLE1"));
   }
 
+  private void assertQuery(Statement statement) {
+    assertTrue(statement instanceof Query);
+  }
+
+  private void assertFailedQuery(String sql, String exceptionMessage) {
+    try {
+      KSQL_PARSER.buildAst(sql, metaStore).get(0);
+      fail(format("Expected query: %s to fail with message: %s", sql, exceptionMessage));
+    } catch (RuntimeException exp) {
+      if(!exp.getMessage().equals(exceptionMessage)) {
+        fail(format("Expected exception message to match %s for query: %s", exceptionMessage, sql));
+      }
+    }
+  }
 }

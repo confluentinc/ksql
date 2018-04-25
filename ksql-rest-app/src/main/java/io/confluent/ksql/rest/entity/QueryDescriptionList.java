@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +18,26 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("streams")
-@JsonSubTypes({})
-public class StreamsList extends KsqlEntity {
-
-  private final Collection<SourceInfo.Stream> streams;
+@JsonTypeName("query_descriptions")
+public class QueryDescriptionList extends KsqlEntity {
+  private final List<QueryDescription> queryDescriptions;
 
   @JsonCreator
-  public StreamsList(
+  public QueryDescriptionList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("streams") Collection<SourceInfo.Stream> streams
+      @JsonProperty("queryDescriptions") List<QueryDescription> queryDescriptions
   ) {
     super(statementText);
-    this.streams = streams;
+    this.queryDescriptions = queryDescriptions;
   }
 
-  public List<SourceInfo.Stream> getStreams() {
-    return new ArrayList<>(streams);
+  public List<QueryDescription> getQueryDescriptions() {
+    return queryDescriptions;
   }
 
   @Override
@@ -50,15 +45,15 @@ public class StreamsList extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StreamsList)) {
+    if (!(o instanceof QueryDescriptionList)) {
       return false;
     }
-    StreamsList that = (StreamsList) o;
-    return Objects.equals(getStreams(), that.getStreams());
+    QueryDescriptionList that = (QueryDescriptionList) o;
+    return Objects.equals(queryDescriptions, that.queryDescriptions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStreams());
+    return Objects.hash(queryDescriptions);
   }
 }

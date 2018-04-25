@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +18,29 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("streams")
-@JsonSubTypes({})
-public class StreamsList extends KsqlEntity {
+public class FieldSchemaInfo {
 
-  private final Collection<SourceInfo.Stream> streams;
+  private final String name;
+  private final String type;
 
   @JsonCreator
-  public StreamsList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("streams") Collection<SourceInfo.Stream> streams
+  public FieldSchemaInfo(
+      @JsonProperty("name") String name,
+      @JsonProperty("type") String type
   ) {
-    super(statementText);
-    this.streams = streams;
+    this.name = name;
+    this.type = type;
   }
 
-  public List<SourceInfo.Stream> getStreams() {
-    return new ArrayList<>(streams);
+  public String getName() {
+    return name;
+  }
+
+  public String getType() {
+    return type;
   }
 
   @Override
@@ -50,15 +48,17 @@ public class StreamsList extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StreamsList)) {
+    if (!(o instanceof FieldSchemaInfo)) {
       return false;
     }
-    StreamsList that = (StreamsList) o;
-    return Objects.equals(getStreams(), that.getStreams());
+    FieldSchemaInfo that = (FieldSchemaInfo) o;
+    return Objects.equals(getName(), that.getName())
+        && Objects.equals(getType(), that.getType());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStreams());
+    return Objects.hash(getName(), getType());
   }
 }
+

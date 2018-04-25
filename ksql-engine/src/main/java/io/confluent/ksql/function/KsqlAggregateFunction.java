@@ -27,6 +27,11 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
+
+  /** An index of the function argument in the row that is used for computing the aggregate.
+   * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
+   * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1. 
+   **/
   private final int argIndexInValue;
   private final Supplier<A> initialValueSupplier;
   private final Schema returnType;
@@ -60,6 +65,10 @@ public abstract class KsqlAggregateFunction<V, A> {
     return this.arguments.equals(argTypeList);
   }
 
+  /**
+   * Merges values inside the window.
+   * @return A - type of return value
+   */
   public abstract A aggregate(V currentValue, A aggregateValue);
 
   public Supplier<A> getInitialValueSupplier() {
@@ -78,5 +87,8 @@ public abstract class KsqlAggregateFunction<V, A> {
     return arguments;
   }
 
+  /**
+   * Merges two session windows together with the same merge key.
+   */
   public abstract Merger<String, A> getMerger();
 }

@@ -279,15 +279,15 @@ public class KsqlParserTest {
 
   @Test
   public void testReservedColumnIdentifers() {
-    assertQuery(KSQL_PARSER.buildAst("SELECT ROWTIME as ROWTIME FROM test1 t1;", metaStore).get(0));
-    assertQuery(KSQL_PARSER.buildAst("SELECT ROWKEY as ROWKEY FROM test1 t1;", metaStore).get(0));
+    assertQuerySucceeds(KSQL_PARSER.buildAst("SELECT ROWTIME as ROWTIME FROM test1 t1;", metaStore).get(0));
+    assertQuerySucceeds(KSQL_PARSER.buildAst("SELECT ROWKEY as ROWKEY FROM test1 t1;", metaStore).get(0));
   }
 
   @Test
   public void testReservedColumnAliases() {
-    assertFailedQuery("SELECT C1 as ROWTIME FROM test1 t1;",
+    assertQueryFails("SELECT C1 as ROWTIME FROM test1 t1;",
             "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column.");
-    assertFailedQuery("SELECT C2 as ROWKEY FROM test1 t1;",
+    assertQueryFails("SELECT C2 as ROWKEY FROM test1 t1;",
             "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column.");
   }
 
@@ -652,18 +652,20 @@ public class KsqlParserTest {
     Assert.assertThat(listQueries.getShowExtended(), is(true));
   }
   
-    private void assertQuery(Statement statement) {
+  private void assertQuerySucceeds(Statement statement) {
     assertTrue(statement instanceof Query);
   }
 
-  private void assertFailedQuery(String sql, String exceptionMessage) {
+  private void assertQueryFails(String sql, String exceptionMessage) {
     try {
       KSQL_PARSER.buildAst(sql, metaStore).get(0);
       fail(format("Expected query: %s to fail with message: %s", sql, exceptionMessage));
-    } catch (RuntimeException exp) {
+    } catch (ParseFailedException exp) {
       if(!exp.getMessage().equals(exceptionMessage)) {
         fail(format("Expected exception message to match %s for query: %s", exceptionMessage, sql));
       }
+    } catch (RuntimeException exp) {
+      fail(format("Expected ParseFailedException.class but got: %s for query: %s", exp.getClass(), sql));
     }
   }
 }

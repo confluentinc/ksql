@@ -16,7 +16,14 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -49,6 +56,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
+import javax.xml.transform.Source;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -100,6 +108,7 @@ import io.confluent.rest.RestConfig;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -191,34 +200,34 @@ public class KsqlResourceTest {
 
     private static void addTestTopicAndSources(MetaStore metaStore, KafkaTopicClient kafkaTopicClient) {
       Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
-      KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe());
-      metaStore.putTopic(ksqlTopic1);
-      metaStore.putSource(new KsqlTable(
-          "statementText",
-          "TEST_TABLE",
-          schema1,
-          schema1.field("S1_F1"),
-          new MetadataTimestampExtractionPolicy(),
-          ksqlTopic1,
-          "statestore",
-          false));
-
-      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA)
-          .field("S2_F2", Schema.INT32_SCHEMA);
-      KsqlTopic ksqlTopic2 = new KsqlTopic(
-          "KSQL_TOPIC_2",
-          "KAFKA_TOPIC_2",
-          new KsqlJsonTopicSerDe());
-      metaStore.putTopic(ksqlTopic2);
-      metaStore.putSource(new KsqlStream(
-          "statementText",
-          "TEST_STREAM",
-          schema2,
-          schema2.field("S2_F2"),
-          new MetadataTimestampExtractionPolicy(),
-          ksqlTopic2));
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
+          "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
+      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA);
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
+          "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
       kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
+    }
 
+    public static void addSource(
+        MetaStore metaStore, KafkaTopicClient kafkaTopicClient, DataSource.DataSourceType type, String sourceName,
+        String topicName, String ksqlTopicName, Schema schema) {
+      KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
+      kafkaTopicClient.createTopic(topicName, 1, (short)1);
+      metaStore.putTopic(ksqlTopic);
+      if (type == DataSource.DataSourceType.KSTREAM) {
+        metaStore.putSource(
+            new KsqlStream(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic));
+      }
+      if (type == DataSource.DataSourceType.KTABLE) {
+        metaStore.putSource(
+            new KsqlTable(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", false));
+      }
     }
 
     private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
@@ -341,13 +350,6 @@ public class KsqlResourceTest {
   public void testShowQueries() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SHOW QUERIES;";
-    final ListQueries ksqlStatement = new ListQueries(Optional.empty());
-    final String testKafkaTopic = "lol";
-
-    final String testQueryStatement = String.format(
-        "CREATE STREAM %s AS SELECT * FROM test_stream WHERE S2_F2 > 69;",
-        testKafkaTopic
-    );
 
     Queries queries = makeSingleRequest(
         testResource,
@@ -361,30 +363,119 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnDescriptionsForShowStreamsExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Schema schema = SchemaBuilder.struct()
+        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.STRING_SCHEMA);
+    TestKsqlResourceUtil.addSource(
+        testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
+        DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
+        "new_ksql_topic", schema);
+
+    String ksqlString = "SHOW STREAMS EXTENDED;";
+    SourceDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
+    assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("new_stream"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+  }
+
+  @Test
+  public void shouldReturnDescriptionsForShowTablesExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Schema schema = SchemaBuilder.struct()
+        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.STRING_SCHEMA);
+    TestKsqlResourceUtil.addSource(
+        testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
+        DataSource.DataSourceType.KTABLE, "new_table", "new_topic",
+        "new_ksql_topic", schema);
+
+    String ksqlString = "SHOW TABLES EXTENDED;";
+    SourceDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
+    assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+             new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("new_table"),
+                 true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+  }
+
+  @Test
+  public void shouldReturnDescriptionsForShowQueriesExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Map<String, Object> overriddenProperties =
+        Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
+    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(
+        "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;" +
+            "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;",
+        overriddenProperties);
+
+    String ksqlString = "SHOW QUERIES EXTENDED;";
+    QueryDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), QueryDescriptionList.class);
+    assertThat(descriptionList.getQueryDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getQueryDescriptions(),
+        hasItem(QueryDescription.forQueryMetadata(queryMetadata.get(0))));
+    assertThat(
+        descriptionList.getQueryDescriptions(),
+        hasItem(QueryDescription.forQueryMetadata(queryMetadata.get(1))));
+  }
+
+  @Test
   public void testDescribeStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String tableName = "TEST_TABLE";
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false, false);
 
-    SourceDescription testDescription = makeSingleRequest(
+    SourceDescriptionEntity testDescription = makeSingleRequest(
         testResource,
         ksqlString,
         Collections.emptyMap(),
-        SourceDescription.class
+        SourceDescriptionEntity.class
     );
 
     SourceDescription expectedDescription =
-        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topo", "exec-plan", Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
+        new SourceDescription(
+            testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "JSON",
+            Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
 
-    assertEquals(expectedDescription, testDescription);
+    assertEquals(expectedDescription, testDescription.getSourceDescription());
   }
 
   @Test
   public void testListStreamsStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST STREAMS;";
-    final ListStreams ksqlStatement = new ListStreams(Optional.empty());
+    final ListStreams ksqlStatement = new ListStreams(Optional.empty(), false);
 
     StreamsList streamsList = makeSingleRequest(
         testResource,
@@ -406,7 +497,7 @@ public class KsqlResourceTest {
   public void testListTablesStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST TABLES;";
-    final ListTables ksqlStatement = new ListTables(Optional.empty());
+    final ListTables ksqlStatement = new ListTables(Optional.empty(), false);
 
     TablesList tablesList = makeSingleRequest(
         testResource,
@@ -568,7 +659,6 @@ public class KsqlResourceTest {
       String ksqlQueryString,
       Map<String, Object> overriddenProperties,
       KsqlEntity entity) throws Exception {
-    assertThat(entity, instanceOf(SourceDescription.class));
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         ksqlQueryString, overriddenProperties).get(0);
     validateQueryDescription(queryMetadata, overriddenProperties, entity);
@@ -578,21 +668,19 @@ public class KsqlResourceTest {
       QueryMetadata queryMetadata,
       Map<String, Object> overriddenProperties,
       KsqlEntity entity) {
-    assertThat(entity, instanceOf(SourceDescription.class));
-    SourceDescription sourceDescription = (SourceDescription) entity;
-    assertThat(sourceDescription.getType(), equalTo("QUERY"));
-    assertThat(sourceDescription.getExecutionPlan(), equalTo(queryMetadata.getExecutionPlan()));
-    assertThat(sourceDescription.getTopology(), equalTo(queryMetadata.getTopologyDescription()));
+    assertThat(entity, instanceOf(QueryDescriptionEntity.class));
+    QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
+    QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(
-        sourceDescription.getSchema(),
+        queryDescription.getSchema(),
         equalTo(
             queryMetadata.getOutputNode().getSchema().fields()
                 .stream()
-                .map(f -> new SourceDescription.FieldSchemaInfo(
+                .map(f -> new FieldSchemaInfo(
                     f.name(), SchemaUtil.getSchemaFieldName(f)))
                 .collect(Collectors.toList())));
     assertThat(
-        sourceDescription.getOverriddenProperties(),
+        queryDescription.getOverriddenProperties(),
         equalTo(overriddenProperties));
   }
 

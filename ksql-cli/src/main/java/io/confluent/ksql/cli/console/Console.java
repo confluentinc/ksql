@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import org.apache.commons.lang3.StringUtils;
@@ -385,10 +386,11 @@ public abstract class Console implements Closeable {
           .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
           .withRows(propertiesRowValues(properties));
     } else if (ksqlEntity instanceof Queries) {
-      List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
+      List<RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
       tableBuilder.withColumnHeaders("Query ID", "Kafka Topic", "Query String");
       runningQueries.forEach(
-          r -> tableBuilder.withRow(r.getId().toString(), r.getKafkaTopic(), r.getQueryString()));
+          r -> tableBuilder.withRow(
+              r.getId().toString(), String.join(",", r.getSinks()), r.getQueryString()));
       tableBuilder.withFooterLine("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescriptionEntity) {
       SourceDescriptionEntity sourceDescriptionEntity = (SourceDescriptionEntity) ksqlEntity;
@@ -522,8 +524,8 @@ public abstract class Console implements Closeable {
           "Queries that write into this " + source.getType(),
           "-----------------------------------"
       ));
-      for (String writeQuery : source.getWriteQueries()) {
-        writer().println(writeQuery);
+      for (RunningQuery writeQuery : source.getWriteQueries()) {
+        writer().println(writeQuery.getId() + " : " + writeQuery.getQueryString());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
     }
@@ -633,7 +635,7 @@ public abstract class Console implements Closeable {
   }
 
   private void printQueryDescription(QueryDescription query) {
-    writer().println(String.format("%-20s : %s", "ID", query.getId().getId()));
+    writer().println(String.format("%-20s : %s", "ID", query.getId()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }

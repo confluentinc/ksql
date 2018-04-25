@@ -19,24 +19,35 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
-public class SourceDescriptionList extends KsqlEntity {
-
-  private final List<SourceDescription> sourceDescriptions;
+public class RunningQuery {
+  private final String queryString;
+  private final Set<String> sinks;
+  private final String id;
 
   @JsonCreator
-  public SourceDescriptionList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("sourceDescriptions") List<SourceDescription> sourceDescriptions
+  public RunningQuery(
+      @JsonProperty("statementText") String queryString,
+      @JsonProperty("sinks") Set<String> sinks,
+      @JsonProperty("id") String id
   ) {
-    super(statementText);
-    this.sourceDescriptions = sourceDescriptions;
+    this.queryString = queryString;
+    this.sinks = sinks;
+    this.id = id;
   }
 
-  public List<SourceDescription> getSourceDescriptions() {
-    return sourceDescriptions;
+  public String getQueryString() {
+    return queryString;
+  }
+
+  public Set<String> getSinks() {
+    return sinks;
+  }
+
+  public String getId() {
+    return id;
   }
 
   @Override
@@ -44,15 +55,17 @@ public class SourceDescriptionList extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SourceDescriptionList)) {
+    if (!(o instanceof RunningQuery)) {
       return false;
     }
-    SourceDescriptionList that = (SourceDescriptionList) o;
-    return Objects.equals(sourceDescriptions, that.sourceDescriptions);
+    RunningQuery that = (RunningQuery) o;
+    return Objects.equals(id, that.id)
+        && Objects.equals(queryString, that.queryString)
+        && Objects.equals(sinks, that.sinks);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(sourceDescriptions);
+    return Objects.hash(id, queryString, id);
   }
 }

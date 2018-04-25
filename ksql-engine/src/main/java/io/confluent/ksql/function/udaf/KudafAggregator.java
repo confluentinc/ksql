@@ -42,10 +42,12 @@ public class KudafAggregator implements UdafAggregator {
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
+    // copy over group-by and aggregate parameter columns into the output row
     aggValToValColumnMap.forEach(
         (key, value) ->
             aggRowValue.getColumns().set(key, rowValue.getColumns().get(value)));
 
+    // compute the aggregation and write it into the output row
     aggValToAggFunctionMap.forEach((key, value) ->
         aggRowValue.getColumns().set(
             key,

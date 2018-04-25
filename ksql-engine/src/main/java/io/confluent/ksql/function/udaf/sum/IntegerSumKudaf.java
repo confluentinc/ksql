@@ -45,7 +45,7 @@ public class IntegerSumKudaf extends KsqlUndoableAggregationFunction<Integer, In
 
   @Override
   public Integer undo(Integer valueToUndo, Integer aggregateValue) {
-    return this.aggregate(-1 * valueToUndo, aggregateValue);
+    return aggregateValue - valueToUndo;
   }
 
   @Override

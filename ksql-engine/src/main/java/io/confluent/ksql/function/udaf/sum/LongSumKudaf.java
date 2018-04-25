@@ -46,7 +46,7 @@ public class LongSumKudaf extends KsqlUndoableAggregationFunction<Long, Long> {
 
   @Override
   public Long undo(Long valueToUndo, Long aggregateValue) {
-    return this.aggregate(-1 * valueToUndo, aggregateValue);
+    return aggregateValue - valueToUndo;
   }
 
   @Override

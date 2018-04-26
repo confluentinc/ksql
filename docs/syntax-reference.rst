@@ -102,6 +102,12 @@ RUN SCRIPT
 
 You can run a list of predefined queries and commands from in a file by using the RUN SCRIPT command.
 
+Example:
+
+.. code:: bash
+
+    ksql> RUN SCRIPT '/local/path/to/queries.sql';
+
 The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
@@ -114,7 +120,9 @@ It does not support statements such as:
 - TERMINATE
 - Non-persistent queries: SELECT etc
 
-For example syntax, see :ref:`running-ksql-command-line`.
+RUN SCRIPT can also be used from the command line, for instance when writing shell scripts.
+See :ref:`running-ksql-command-line` for more information.
+
 
 ===============
 KSQL statements

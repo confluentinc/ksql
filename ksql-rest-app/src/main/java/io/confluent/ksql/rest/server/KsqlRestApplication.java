@@ -151,18 +151,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
-    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
-    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
-      log.warn("System property {} is not set. User interface will be disabled",
-          KsqlRestConfig.INSTALL_DIR_CONFIG);
-      this.uiFolder = null;
-    } else if (isUiEnabled) {
-      this.uiFolder = ksqlInstallDir + "/ui";
-    } else {
-      this.uiFolder = null;
-    }
-    this.isUiEnabled = isUiEnabled && uiFolder != null;
+    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;
+    this.isUiEnabled = isUiEnabled;
   }
 
   @Override
@@ -292,8 +284,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   )
       throws Exception {
 
-    Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
+    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
+      log.warn("System property {} is not set. User interface will be disabled",
+               KsqlRestConfig.INSTALL_DIR_CONFIG);
+      isUiEnabled = false;
+    }
+
+    Map<String, Object> ksqlConfProperties = new HashMap<>(restConfig.getKsqlConfigProperties());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
 
@@ -382,9 +380,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         commandStore
     );
 
-    RootDocument rootDocument = new RootDocument(isUiEnabled,
-                                                 restConfig.getList(RestConfig.LISTENERS_CONFIG)
-                                                     .get(0));
+    RootDocument rootDocument = new RootDocument(isUiEnabled);
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(

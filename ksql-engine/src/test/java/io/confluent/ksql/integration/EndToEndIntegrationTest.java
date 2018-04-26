@@ -273,7 +273,7 @@ public class EndToEndIntegrationTest {
 
     executeStatement(createStreamStatement);
 
-    ksqlEngine.terminateQuery(new QueryId("CSAS_CART_EVENT_PRODUCT"), true);
+    ksqlEngine.terminateQuery(new QueryId("CSAS_CART_EVENT_PRODUCT_0"), true);
 
     executeStatement("DROP STREAM CART_EVENT_PRODUCT;");
 

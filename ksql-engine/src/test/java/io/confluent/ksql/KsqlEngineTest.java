@@ -91,9 +91,9 @@ public class KsqlEngineTest {
                                    "create table foo as select * from test2;");
     MetaStore metaStore = ksqlEngine.getMetaStore();
     assertThat(metaStore.getQueriesWithSource("TEST2"),
-               equalTo(Utils.mkSet("CTAS_BAR", "CTAS_FOO")));
-    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR")));
-    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO")));
+               equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
+    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR_0")));
+    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO_1")));
   }
 
   @Test
@@ -108,7 +108,7 @@ public class KsqlEngineTest {
       assertThat(e.getMessage(), equalTo(
           "Exception while processing statements :Cannot drop the data source. "
           + "The following queries read from this source: [] and the following queries write into "
-          + "this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+          + "this source: [CTAS_FOO_1]. You need to terminate them before dropping this source."));
     }
   }
 

@@ -225,10 +225,12 @@ public class SecureIntegrationTest {
     outputTopic = "ACLS_TEST_3";
 
     final String repartitionTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-repartition";
 
     final String changeLogTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-changelog";
 
     SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
     SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);

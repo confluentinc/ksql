@@ -184,7 +184,7 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        ksql> run script '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        ksql> RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
 
     The output should resemble:
 

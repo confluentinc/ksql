@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -585,8 +585,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       } else {
         alias = Optional.of("KSQL_COL_" + selectItemIndex);
       }
-    } else {
-      alias = Optional.of(alias.get());
     }
     selectItemIndex++;
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
@@ -1363,9 +1361,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
-      return unquote(context.getText(), "\"");
+      return unquote(context.getText().toUpperCase(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
-      return unquote(context.getText(), "`");
+      return unquote(context.getText().toUpperCase(), "`");
     } else {
       return context.getText().toUpperCase();
     }

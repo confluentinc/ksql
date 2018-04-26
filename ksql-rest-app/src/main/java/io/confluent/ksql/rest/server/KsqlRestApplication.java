@@ -274,6 +274,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                       exec
                   );
                 }
+
               })
               .build()
       );

@@ -292,8 +292,8 @@ zipcode for each user:
 
 .. _running-ksql-command-line:
 
-Running Single KSQL Statements From the Command Line
-----------------------------------------------------
+Running KSQL Statements From the Command Line
+---------------------------------------------
 
 In addition to using the KSQL CLI or launching KSQL servers with the ``--queries-file`` configuration, you can also execute
 KSQL statements from directly your terminal. This can be useful for scripting.

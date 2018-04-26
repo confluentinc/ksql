@@ -79,10 +79,12 @@ public class KafkaTopicsListTest {
         ImmutableList.of(new KafkaTopicInfo("thetopic", true, ImmutableList.of(1, 2, 3), 42, 12))
     );
     String json = mapper.writeValueAsString(expected);
-    assertEquals("{\"kafka_topics\":{\"statementText\":\"SHOW TOPICS;\","
-                        + "\"topics\":[{\"name\":\"thetopic\",\"registered\":true,"
-                        + "\"replicaInfo\":[1,2,3],\"consumerCount\":42,"
-                        + "\"consumerGroupCount\":12}]}}", json);
+    assertEquals(
+        "{\"@type\":\"kafka_topics\",\"statementText\":\"SHOW TOPICS;\"," +
+        "\"topics\":[{\"name\":\"thetopic\",\"registered\":true," +
+        "\"replicaInfo\":[1,2,3],\"consumerCount\":42," +
+        "\"consumerGroupCount\":12}]}",
+        json);
 
     KafkaTopicsList actual = mapper.readValue(json, KafkaTopicsList.class);
     assertEquals(expected, actual);

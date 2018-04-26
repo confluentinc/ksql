@@ -57,7 +57,6 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -67,6 +66,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -75,7 +75,12 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -87,6 +92,7 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -100,12 +106,14 @@ import io.confluent.rest.RestConfig;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class KsqlResourceTest {
+
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine ksqlEngine;
@@ -126,6 +134,7 @@ public class KsqlResourceTest {
   }
 
   private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
+
     public TestCommandProducer(Map configs, Serializer keySerializer, Serializer valueSerializer) {
       super(configs, keySerializer, valueSerializer);
     }
@@ -138,7 +147,9 @@ public class KsqlResourceTest {
   }
 
   private static class TestCommandConsumer<K, V> extends KafkaConsumer<K, V> {
-    public TestCommandConsumer(Map configs, Deserializer keyDeserializer, Deserializer valueDeserializer) {
+
+    public TestCommandConsumer(Map configs, Deserializer keyDeserializer,
+                               Deserializer valueDeserializer) {
       super(configs, keyDeserializer, valueDeserializer);
     }
   }
@@ -165,11 +176,16 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
-      StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
+                                                   commandConsumer, commandProducer,
+                                                   new CommandIdAssigner(
+                                                       ksqlEngine.getMetaStore()));
+      StatementExecutor
+          statementExecutor =
+          new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
 
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
-      return new KsqlResource(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+      return new KsqlResource(ksqlEngine, commandStore, statementExecutor,
+                              DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
 
     private static Properties getDefaultKsqlConfig() {
@@ -188,36 +204,38 @@ public class KsqlResourceTest {
       return properties;
     }
 
-    private static void addTestTopicAndSources(MetaStore metaStore, KafkaTopicClient kafkaTopicClient) {
+    private static void addTestTopicAndSources(MetaStore metaStore,
+                                               KafkaTopicClient kafkaTopicClient) {
       Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
-      KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe());
-      metaStore.putTopic(ksqlTopic1);
-      metaStore.putSource(new KsqlTable(
-          "statementText",
-          "TEST_TABLE",
-          schema1,
-          schema1.field("S1_F1"),
-          new MetadataTimestampExtractionPolicy(),
-          ksqlTopic1,
-          "statestore",
-          false));
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
+          "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
+      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA);
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
+          "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
+      kafkaTopicClient.createTopic("orders-topic", 1, (short) 1);
+    }
 
-      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA)
-          .field("S2_F2", Schema.INT32_SCHEMA);
-      KsqlTopic ksqlTopic2 = new KsqlTopic(
-          "KSQL_TOPIC_2",
-          "KAFKA_TOPIC_2",
-          new KsqlJsonTopicSerDe());
-      metaStore.putTopic(ksqlTopic2);
-      metaStore.putSource(new KsqlStream(
-          "statementText",
-          "TEST_STREAM",
-          schema2,
-          schema2.field("S2_F2"),
-          new MetadataTimestampExtractionPolicy(),
-          ksqlTopic2));
-      kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
-
+    public static void addSource(
+        MetaStore metaStore, KafkaTopicClient kafkaTopicClient, DataSource.DataSourceType type,
+        String sourceName,
+        String topicName, String ksqlTopicName, Schema schema) {
+      KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
+      kafkaTopicClient.createTopic(topicName, 1, (short) 1);
+      metaStore.putTopic(ksqlTopic);
+      if (type == DataSource.DataSourceType.KSTREAM) {
+        metaStore.putSource(
+            new KsqlStream(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic));
+      }
+      if (type == DataSource.DataSourceType.KTABLE) {
+        metaStore.putSource(
+            new KsqlTable(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", false));
+      }
     }
 
     private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
@@ -285,7 +303,9 @@ public class KsqlResourceTest {
         createTopicProperties
     );
 
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
+    final CommandId
+        commandId =
+        new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.QUEUED,
         "Statement written to command topic"
@@ -340,13 +360,6 @@ public class KsqlResourceTest {
   public void testShowQueries() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SHOW QUERIES;";
-    final ListQueries ksqlStatement = new ListQueries(Optional.empty());
-    final String testKafkaTopic = "lol";
-
-    final String testQueryStatement = String.format(
-        "CREATE STREAM %s AS SELECT * FROM test_stream WHERE S2_F2 > 69;",
-        testKafkaTopic
-    );
 
     Queries queries = makeSingleRequest(
         testResource,
@@ -360,30 +373,119 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnDescriptionsForShowStreamsExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Schema schema = SchemaBuilder.struct()
+        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.STRING_SCHEMA);
+    TestKsqlResourceUtil.addSource(
+        testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
+        DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
+        "new_ksql_topic", schema);
+
+    String ksqlString = "SHOW STREAMS EXTENDED;";
+    SourceDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
+    assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("new_stream"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+  }
+
+  @Test
+  public void shouldReturnDescriptionsForShowTablesExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Schema schema = SchemaBuilder.struct()
+        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.STRING_SCHEMA);
+    TestKsqlResourceUtil.addSource(
+        testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
+        DataSource.DataSourceType.KTABLE, "new_table", "new_topic",
+        "new_ksql_topic", schema);
+
+    String ksqlString = "SHOW TABLES EXTENDED;";
+    SourceDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), SourceDescriptionList.class);
+    assertThat(descriptionList.getSourceDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+    assertThat(
+        descriptionList.getSourceDescriptions(),
+        hasItem(
+            new SourceDescription(
+                testResource.getKsqlEngine().getMetaStore().getSource("new_table"),
+                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                kafkaTopicClient)));
+  }
+
+  @Test
+  public void shouldReturnDescriptionsForShowQueriesExtended() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+
+    Map<String, Object> overriddenProperties =
+        Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
+    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(
+        "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;" +
+        "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;",
+        overriddenProperties);
+
+    String ksqlString = "SHOW QUERIES EXTENDED;";
+    QueryDescriptionList descriptionList = makeSingleRequest(
+        testResource, ksqlString, Collections.emptyMap(), QueryDescriptionList.class);
+    assertThat(descriptionList.getQueryDescriptions().size(), equalTo(2));
+    assertThat(
+        descriptionList.getQueryDescriptions(),
+        hasItem(QueryDescription.forQueryMetadata(queryMetadata.get(0))));
+    assertThat(
+        descriptionList.getQueryDescriptions(),
+        hasItem(QueryDescription.forQueryMetadata(queryMetadata.get(1))));
+  }
+
+  @Test
   public void testDescribeStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String tableName = "TEST_TABLE";
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false, false);
 
-    SourceDescription testDescription = makeSingleRequest(
+    SourceDescriptionEntity testDescription = makeSingleRequest(
         testResource,
         ksqlString,
         Collections.emptyMap(),
-        SourceDescription.class
+        SourceDescriptionEntity.class
     );
 
     SourceDescription expectedDescription =
-        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topo", "exec-plan", Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
+        new SourceDescription(
+            testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "JSON",
+            Collections.EMPTY_LIST, Collections.EMPTY_LIST, null);
 
-    assertEquals(expectedDescription, testDescription);
+    assertEquals(expectedDescription, testDescription.getSourceDescription());
   }
 
   @Test
   public void testListStreamsStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST STREAMS;";
-    final ListStreams ksqlStatement = new ListStreams(Optional.empty());
+    final ListStreams ksqlStatement = new ListStreams(Optional.empty(), false);
 
     StreamsList streamsList = makeSingleRequest(
         testResource,
@@ -396,7 +498,8 @@ public class KsqlResourceTest {
     assertEquals(1, testStreams.size());
 
     SourceInfo expectedStream =
-        new SourceInfo.Stream((KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
+        new SourceInfo.Stream(
+            (KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
 
     assertEquals(expectedStream, testStreams.get(0));
   }
@@ -405,7 +508,7 @@ public class KsqlResourceTest {
   public void testListTablesStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST TABLES;";
-    final ListTables ksqlStatement = new ListTables(Optional.empty());
+    final ListTables ksqlStatement = new ListTables(Optional.empty(), false);
 
     TablesList tablesList = makeSingleRequest(
         testResource,
@@ -418,7 +521,8 @@ public class KsqlResourceTest {
     assertEquals(1, testTables.size());
 
     SourceInfo expectedTable =
-        new SourceInfo.Table((KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
+        new SourceInfo.Table(
+            (KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
 
     assertEquals(expectedTable, testTables.get(0));
   }
@@ -446,10 +550,12 @@ public class KsqlResourceTest {
         result1.getMessage(),
         equalTo(
             "Invalid result type. Your SELECT query produces a TABLE. " +
-                "Please use CREATE TABLE AS SELECT statement instead."));
+            "Please use CREATE TABLE AS SELECT statement instead."));
 
-    String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
-                         + "s2_f1;";
+    String
+        ksqlString2 =
+        "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
+        + "s2_f1;";
 
     Response response2 = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString2, new HashMap<>()));
@@ -478,7 +584,7 @@ public class KsqlResourceTest {
         result.getMessage(),
         containsString(
             "Invalid result type. Your SELECT query produces a STREAM. "
-                + "Please use CREATE STREAM AS SELECT statement instead."));
+            + "Please use CREATE STREAM AS SELECT statement instead."));
   }
 
   @Test
@@ -505,7 +611,7 @@ public class KsqlResourceTest {
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     KsqlErrorMessage result = (KsqlErrorMessage) response.getEntity();
     assertThat(result.getMessage().toLowerCase(),
-        equalTo("incompatible data source type is table, but statement was drop stream"));
+               equalTo("incompatible data source type is table, but statement was drop stream"));
   }
 
   @Test
@@ -535,7 +641,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_STATEMENT));
   }
 
@@ -547,7 +653,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 
@@ -559,7 +665,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 
@@ -567,7 +673,6 @@ public class KsqlResourceTest {
       String ksqlQueryString,
       Map<String, Object> overriddenProperties,
       KsqlEntity entity) throws Exception {
-    assertThat(entity, instanceOf(SourceDescription.class));
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         ksqlQueryString, overriddenProperties).get(0);
     validateQueryDescription(queryMetadata, overriddenProperties, entity);
@@ -577,21 +682,19 @@ public class KsqlResourceTest {
       QueryMetadata queryMetadata,
       Map<String, Object> overriddenProperties,
       KsqlEntity entity) {
-    assertThat(entity, instanceOf(SourceDescription.class));
-    SourceDescription sourceDescription = (SourceDescription) entity;
-    assertThat(sourceDescription.getType(), equalTo("QUERY"));
-    assertThat(sourceDescription.getExecutionPlan(), equalTo(queryMetadata.getExecutionPlan()));
-    assertThat(sourceDescription.getTopology(), equalTo(queryMetadata.getTopologyDescription()));
+    assertThat(entity, instanceOf(QueryDescriptionEntity.class));
+    QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
+    QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(
-        sourceDescription.getSchema(),
+        queryDescription.getSchema(),
         equalTo(
             queryMetadata.getOutputNode().getSchema().fields()
                 .stream()
-                .map(f -> new SourceDescription.FieldSchemaInfo(
+                .map(f -> new FieldSchemaInfo(
                     f.name(), SchemaUtil.getSchemaFieldName(f)))
                 .collect(Collectors.toList())));
     assertThat(
-        sourceDescription.getOverriddenProperties(),
+        queryDescription.getOverriddenProperties(),
         equalTo(overriddenProperties));
   }
 
@@ -623,7 +726,9 @@ public class KsqlResourceTest {
             overriddenProperties).get(0);
 
     final String ksqlString = "EXPLAIN " + queryMetadata.getQueryId() + ";";
-    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
+    Response
+        response =
+        testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
     KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Response should have 1 entity", result.size(), equalTo(1));
     validateQueryDescription(queryMetadata, overriddenProperties, result.get(0));
@@ -638,15 +743,16 @@ public class KsqlResourceTest {
     EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
     EasyMock.expect(
         mockEngine.getStatements(ksqlString)).andThrow(
-            new RuntimeException("internal error"));
+        new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);
 
     KsqlResource testResource = TestKsqlResourceUtil.get(mockEngine);
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getStatus(),
+               equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage result = (KsqlErrorMessage)response.getEntity();
+    KsqlErrorMessage result = (KsqlErrorMessage) response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
 
@@ -672,9 +778,10 @@ public class KsqlResourceTest {
 
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getStatus(),
+               equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    KsqlErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
 

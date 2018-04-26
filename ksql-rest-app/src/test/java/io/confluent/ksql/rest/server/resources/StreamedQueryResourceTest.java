@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.Query;
@@ -56,6 +57,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -121,6 +123,7 @@ public class StreamedQueryResourceTest {
         errorMessage.getMessage(), containsString("some msg only the engine would use"));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldStreamRowsCorrectly() throws Throwable {
     final AtomicReference<Throwable> threadException = new AtomicReference<>(null);
@@ -165,8 +168,8 @@ public class StreamedQueryResourceTest {
     expectLastCall();
 
     final OutputNode mockOutputNode = mock(OutputNode.class);
-    expect(mockOutputNode.getSchema())
-        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
+    expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))
+        .andReturn(null);
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
@@ -175,10 +178,14 @@ public class StreamedQueryResourceTest {
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
 
+    replay(mockOutputNode);
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
                                 rowQueue, DataSource.DataSourceType.KSTREAM, "",
                                 mockKafkaTopicClient, null, Collections.emptyMap());
+    reset(mockOutputNode);
+    expect(mockOutputNode.getSchema())
+        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
     expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);

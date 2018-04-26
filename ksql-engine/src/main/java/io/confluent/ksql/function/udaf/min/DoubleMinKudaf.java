@@ -23,10 +23,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
+public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
   DoubleMinKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,

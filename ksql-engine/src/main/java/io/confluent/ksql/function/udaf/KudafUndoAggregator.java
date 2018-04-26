@@ -17,7 +17,7 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 import java.util.Collections;
@@ -26,11 +26,11 @@ import java.util.Map;
 import java.util.Objects;
 
 public class KudafUndoAggregator implements Aggregator<String, GenericRow, GenericRow> {
-  private Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap;
+  private Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
 
   public KudafUndoAggregator(
-      Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap,
+      Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
       Map<Integer, Integer> aggValToValColumnMap) {
     Objects.requireNonNull(aggValToAggFunctionMap);
     Objects.requireNonNull(aggValToValColumnMap);

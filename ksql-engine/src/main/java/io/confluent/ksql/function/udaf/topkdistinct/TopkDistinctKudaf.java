@@ -27,13 +27,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
-    extends KsqlAggregateFunction<T, T[]> {
+    extends BaseAggregateFunction<T, T[]> {
 
   private final int tkVal;
   private final Class<T> ttClass;

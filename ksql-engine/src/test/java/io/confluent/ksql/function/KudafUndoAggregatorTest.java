@@ -48,15 +48,15 @@ public class KudafUndoAggregatorTest {
     Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     aggValToValColumnMap.put(0, 1);
     aggValToValColumnMap.put(1, 0);
-    Map<Integer, KsqlUndoableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
+    Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
     Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
     List<Expression> expressions = Collections.singletonList(
         new QualifiedNameReference(QualifiedName.of("baz")));
     KsqlAggregateFunction functionInfo = functionRegistry.getAggregateFunction(
         "SUM", expressions, schema);
-    assertThat(functionInfo, instanceOf(KsqlUndoableAggregationFunction.class));
+    assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
-        2, (KsqlUndoableAggregationFunction)functionInfo.getInstance(expressionNames, expressions));
+        2, (TableAggregationFunction)functionInfo.getInstance(expressionNames, expressions));
 
     GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
     GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));

@@ -16,7 +16,8 @@
 
 package io.confluent.ksql.function.udaf.count;
 
-import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -27,7 +28,8 @@ import java.util.Map;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class CountKudaf extends KsqlUndoableAggregationFunction<Object, Long> {
+public class CountKudaf
+    extends BaseAggregateFunction<Object, Long> implements TableAggregationFunction<Object, Long> {
 
   CountKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,

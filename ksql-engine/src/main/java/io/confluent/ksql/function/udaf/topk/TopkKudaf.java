@@ -25,12 +25,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
-public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFunction<T, T[]> {
+public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFunction<T, T[]> {
 
   private final int topKSize;
   private final Class<T> clazz;

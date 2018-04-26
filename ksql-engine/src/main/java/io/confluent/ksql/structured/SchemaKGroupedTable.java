@@ -20,7 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlUndoableAggregationFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -68,19 +68,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     }
     if (aggValToFunctionMap.values()
             .stream()
-            .map(e -> !(e instanceof KsqlUndoableAggregationFunction))
+            .map(e -> !(e instanceof TableAggregationFunction))
             .reduce(false, (result, notUndoable) ->  result || notUndoable)) {
       throw new KsqlException("Requested aggregation function cannot be applied to a table.");
     }
     final KudafAggregator aggregator = new KudafAggregator(
         aggValToFunctionMap, aggValToValColumnMap);
-    final Map<Integer, KsqlUndoableAggregationFunction> aggValToUndoFunctionMap =
+    final Map<Integer, TableAggregationFunction> aggValToUndoFunctionMap =
         aggValToFunctionMap.keySet()
             .stream()
             .collect(
                 Collectors.toMap(
                     k -> k,
-                    k -> ((KsqlUndoableAggregationFunction) aggValToFunctionMap.get(k))));
+                    k -> ((TableAggregationFunction) aggValToFunctionMap.get(k))));
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
         aggValToUndoFunctionMap, aggValToValColumnMap);
     final KTable aggKtable = kgroupedTable.aggregate(

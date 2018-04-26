@@ -16,19 +16,6 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.List;
-import java.util.function.Supplier;
-
-public abstract class KsqlUndoableAggregationFunction<V, A> extends KsqlAggregateFunction<V, A> {
-  public KsqlUndoableAggregationFunction(
-      final int argIndexInValue,
-      final Supplier<A> initialValueSupplier,
-      final Schema returnType,
-      final List<Schema> argument) {
-    super(argIndexInValue, initialValueSupplier, returnType, argument);
-  }
-
-  public abstract A undo(V valueToUndo, A aggregateValue);
+public interface TableAggregationFunction<V, A> extends KsqlAggregateFunction<V, A> {
+  A undo(V valueToUndo, A aggregateValue);
 }

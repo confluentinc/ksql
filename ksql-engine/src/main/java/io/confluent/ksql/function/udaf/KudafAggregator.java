@@ -47,7 +47,9 @@ public class KudafAggregator implements UdafAggregator {
         (key, value) ->
             aggRowValue.getColumns().set(key, rowValue.getColumns().get(value)));
 
-    // compute the aggregation and write it into the output row
+    // compute the aggregation and write it into the output row. Its assumed that
+    // the columns written by this statement do not overlap with those written by
+    // the above statement.
     aggValToAggFunctionMap.forEach((key, value) ->
         aggRowValue.getColumns().set(
             key,

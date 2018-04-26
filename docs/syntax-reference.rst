@@ -376,7 +376,7 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW clause can only be used if the from_item is a stream.
 
 The WITH clause supports the following properties:
 
@@ -608,7 +608,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW  clause can only be used if the from_item is a stream.
 
 In the above statements from_item is one of the following:
 

@@ -123,9 +123,8 @@ public class Cli implements Closeable, AutoCloseable {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
         KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
-        if ((ksqlError.getErrorCode() / Errors.HTTP_TO_ERROR_CODE_MULTIPLIER)
-            == NOT_ACCEPTABLE.getStatusCode()) {
-          writer.format("Current CLI version no longer supported: %s\n\n", ksqlError);
+        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
+          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
           return;
         }
         writer.format(

@@ -458,7 +458,7 @@ public class CliTest extends TestRunner {
     EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
         RestResponse.erroneous(
             new KsqlErrorMessage(
-                NOT_ACCEPTABLE.getStatusCode() * Errors.HTTP_TO_ERROR_CODE_MULTIPLIER,
+                Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")));
     EasyMock.replay(mockRestClient);
     new Cli(1L, 1L, mockRestClient, terminal);

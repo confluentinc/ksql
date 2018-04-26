@@ -390,7 +390,7 @@ public abstract class Console implements Closeable {
       tableBuilder.withColumnHeaders("Query ID", "Kafka Topic", "Query String");
       runningQueries.forEach(
           r -> tableBuilder.withRow(
-              r.getId().toString(), String.join(",", r.getSinks()), r.getQueryString()));
+              r.getId(), String.join(",", r.getSinks()), r.getQueryString()));
       tableBuilder.withFooterLine("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescriptionEntity) {
       SourceDescriptionEntity sourceDescriptionEntity = (SourceDescriptionEntity) ksqlEntity;
@@ -504,7 +504,7 @@ public abstract class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
     writer().println(String.format("%-20s : %s", "Key format", "STRING"));
     writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
-    writer().println(String.format("%-20s : %s", "Value format", source.getSerdes()));
+    writer().println(String.format("%-20s : %s", "Value format", source.getFormat()));
 
     if (!source.getTopic().isEmpty()) {
       writer().println(String.format(

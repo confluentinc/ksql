@@ -365,13 +365,13 @@ public class KsqlResource {
     if (descriptions) {
       return new QueryDescriptionList(
           statementText,
-          ksqlEngine.getPersistentQueries().values().stream()
+          ksqlEngine.getPersistentQueries().stream()
               .map(QueryDescription::forQueryMetadata)
               .collect(Collectors.toList()));
     }
     return new Queries(
         statementText,
-        ksqlEngine.getPersistentQueries().values().stream()
+        ksqlEngine.getPersistentQueries().stream()
             .map(
                 q -> new RunningQuery(
                     q.getStatementString(),
@@ -423,7 +423,7 @@ public class KsqlResource {
   }
 
   private List<RunningQuery> getQueries(Predicate<PersistentQueryMetadata> predicate) {
-    return ksqlEngine.getPersistentQueries().values()
+    return ksqlEngine.getPersistentQueries()
         .stream()
         .filter(predicate)
         .map(q -> new RunningQuery(
@@ -471,7 +471,7 @@ public class KsqlResource {
     String queryId = explain.getQueryId();
     if (queryId != null) {
       PersistentQueryMetadata metadata =
-          ksqlEngine.getPersistentQueries().get(new QueryId(queryId));
+          ksqlEngine.getPersistentQuery(new QueryId(queryId));
       if (metadata == null) {
         throw new KsqlException(
             "Query with id:" + queryId + " does not exist, use SHOW QUERIES to view the full "

@@ -71,7 +71,7 @@ public class SourceDescription {
       @JsonProperty("extended") boolean extended,
       @JsonProperty("format") String format,
       @JsonProperty("topic") String topic,
-      @JsonProperty("parititions") int partitions,
+      @JsonProperty("partitions") int partitions,
       @JsonProperty("replication") int replication
   ) {
     this.name = name;
@@ -172,7 +172,7 @@ public class SourceDescription {
     return type;
   }
 
-  public String getSerdes() {
+  public String getFormat() {
     return format;
   }
 

@@ -113,7 +113,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class KsqlResourceTest {
-
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine ksqlEngine;
@@ -134,7 +133,6 @@ public class KsqlResourceTest {
   }
 
   private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
-
     public TestCommandProducer(Map configs, Serializer keySerializer, Serializer valueSerializer) {
       super(configs, keySerializer, valueSerializer);
     }
@@ -147,9 +145,7 @@ public class KsqlResourceTest {
   }
 
   private static class TestCommandConsumer<K, V> extends KafkaConsumer<K, V> {
-
-    public TestCommandConsumer(Map configs, Deserializer keyDeserializer,
-                               Deserializer valueDeserializer) {
+    public TestCommandConsumer(Map configs, Deserializer keyDeserializer, Deserializer valueDeserializer) {
       super(configs, keyDeserializer, valueDeserializer);
     }
   }
@@ -176,16 +172,11 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-                                                   commandConsumer, commandProducer,
-                                                   new CommandIdAssigner(
-                                                       ksqlEngine.getMetaStore()));
-      StatementExecutor
-          statementExecutor =
-          new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
+                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+      StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
 
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
-      return new KsqlResource(ksqlEngine, commandStore, statementExecutor,
-                              DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+      return new KsqlResource(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
 
     private static Properties getDefaultKsqlConfig() {
@@ -204,8 +195,7 @@ public class KsqlResourceTest {
       return properties;
     }
 
-    private static void addTestTopicAndSources(MetaStore metaStore,
-                                               KafkaTopicClient kafkaTopicClient) {
+    private static void addTestTopicAndSources(MetaStore metaStore, KafkaTopicClient kafkaTopicClient) {
       Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
@@ -214,15 +204,14 @@ public class KsqlResourceTest {
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
           "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
-      kafkaTopicClient.createTopic("orders-topic", 1, (short) 1);
+      kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
     }
 
     public static void addSource(
-        MetaStore metaStore, KafkaTopicClient kafkaTopicClient, DataSource.DataSourceType type,
-        String sourceName,
+        MetaStore metaStore, KafkaTopicClient kafkaTopicClient, DataSource.DataSourceType type, String sourceName,
         String topicName, String ksqlTopicName, Schema schema) {
       KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
-      kafkaTopicClient.createTopic(topicName, 1, (short) 1);
+      kafkaTopicClient.createTopic(topicName, 1, (short)1);
       metaStore.putTopic(ksqlTopic);
       if (type == DataSource.DataSourceType.KSTREAM) {
         metaStore.putSource(
@@ -303,9 +292,7 @@ public class KsqlResourceTest {
         createTopicProperties
     );
 
-    final CommandId
-        commandId =
-        new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
+    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.QUEUED,
         "Statement written to command topic"
@@ -430,9 +417,9 @@ public class KsqlResourceTest {
     assertThat(
         descriptionList.getSourceDescriptions(),
         hasItem(
-            new SourceDescription(
+             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("new_table"),
-                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                 true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 kafkaTopicClient)));
   }
 
@@ -444,7 +431,7 @@ public class KsqlResourceTest {
         Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
     List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(
         "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;" +
-        "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;",
+            "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;",
         overriddenProperties);
 
     String ksqlString = "SHOW QUERIES EXTENDED;";
@@ -476,7 +463,7 @@ public class KsqlResourceTest {
     SourceDescription expectedDescription =
         new SourceDescription(
             testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "JSON",
-            Collections.EMPTY_LIST, Collections.EMPTY_LIST, null);
+            Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
 
     assertEquals(expectedDescription, testDescription.getSourceDescription());
   }
@@ -498,8 +485,7 @@ public class KsqlResourceTest {
     assertEquals(1, testStreams.size());
 
     SourceInfo expectedStream =
-        new SourceInfo.Stream(
-            (KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
+        new SourceInfo.Stream((KsqlStream) testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"));
 
     assertEquals(expectedStream, testStreams.get(0));
   }
@@ -521,8 +507,7 @@ public class KsqlResourceTest {
     assertEquals(1, testTables.size());
 
     SourceInfo expectedTable =
-        new SourceInfo.Table(
-            (KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
+        new SourceInfo.Table((KsqlTable) testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"));
 
     assertEquals(expectedTable, testTables.get(0));
   }
@@ -550,12 +535,10 @@ public class KsqlResourceTest {
         result1.getMessage(),
         equalTo(
             "Invalid result type. Your SELECT query produces a TABLE. " +
-            "Please use CREATE TABLE AS SELECT statement instead."));
+                "Please use CREATE TABLE AS SELECT statement instead."));
 
-    String
-        ksqlString2 =
-        "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
-        + "s2_f1;";
+    String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
+                         + "s2_f1;";
 
     Response response2 = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString2, new HashMap<>()));
@@ -584,7 +567,7 @@ public class KsqlResourceTest {
         result.getMessage(),
         containsString(
             "Invalid result type. Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead."));
+                + "Please use CREATE STREAM AS SELECT statement instead."));
   }
 
   @Test
@@ -611,7 +594,7 @@ public class KsqlResourceTest {
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     KsqlErrorMessage result = (KsqlErrorMessage) response.getEntity();
     assertThat(result.getMessage().toLowerCase(),
-               equalTo("incompatible data source type is table, but statement was drop stream"));
+        equalTo("incompatible data source type is table, but statement was drop stream"));
   }
 
   @Test
@@ -641,7 +624,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_STATEMENT));
   }
 
@@ -653,7 +636,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 
@@ -665,7 +648,7 @@ public class KsqlResourceTest {
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
+    KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
   }
 
@@ -726,9 +709,7 @@ public class KsqlResourceTest {
             overriddenProperties).get(0);
 
     final String ksqlString = "EXPLAIN " + queryMetadata.getQueryId() + ";";
-    Response
-        response =
-        testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
     KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Response should have 1 entity", result.size(), equalTo(1));
     validateQueryDescription(queryMetadata, overriddenProperties, result.get(0));
@@ -743,16 +724,15 @@ public class KsqlResourceTest {
     EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
     EasyMock.expect(
         mockEngine.getStatements(ksqlString)).andThrow(
-        new RuntimeException("internal error"));
+            new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);
 
     KsqlResource testResource = TestKsqlResourceUtil.get(mockEngine);
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(),
-               equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage result = (KsqlErrorMessage) response.getEntity();
+    KsqlErrorMessage result = (KsqlErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
 
@@ -778,10 +758,9 @@ public class KsqlResourceTest {
 
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(),
-               equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage result = (KsqlStatementErrorMessage) response.getEntity();
+    KsqlErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
 

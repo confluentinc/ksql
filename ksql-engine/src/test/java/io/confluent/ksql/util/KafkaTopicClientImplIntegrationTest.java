@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 
@@ -63,6 +64,8 @@ public class KafkaTopicClientImplIntegrationTest {
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
 
     client = new KafkaTopicClientImpl(adminClient);
+
+    allowForAsyncTopicCreation();
   }
 
   @After
@@ -201,4 +204,15 @@ public class KafkaTopicClientImplIntegrationTest {
     return client.describeTopics(Collections.singletonList(topicName)).get(topicName);
   }
 
+  private void allowForAsyncTopicCreation() {
+    final Supplier<Set<String>> topicNamesSupplier = () -> {
+      try {
+        return adminClient.listTopics().names().get();
+      } catch (final Exception e) {
+        return Collections.emptySet();
+      }
+    };
+
+    assertThatEventually(topicNamesSupplier, hasItem(testTopic));
+  }
 }

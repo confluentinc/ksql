@@ -39,11 +39,11 @@ statement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
-    | (LIST | SHOW) STREAMS                                                 #listStreams
-    | (LIST | SHOW) TABLES                                                  #listTables
+    | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
-    | (LIST | SHOW) QUERIES                                                 #listQueries
+    | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty

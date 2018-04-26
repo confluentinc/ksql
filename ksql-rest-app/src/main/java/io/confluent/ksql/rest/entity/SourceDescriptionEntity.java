@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,28 +21,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("streams")
+@JsonTypeName("description")
 @JsonSubTypes({})
-public class StreamsList extends KsqlEntity {
-
-  private final Collection<SourceInfo.Stream> streams;
+public class SourceDescriptionEntity extends KsqlEntity {
+  private final SourceDescription sourceDescription;
 
   @JsonCreator
-  public StreamsList(
+  public SourceDescriptionEntity(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("streams") Collection<SourceInfo.Stream> streams
-  ) {
+      @JsonProperty("description") SourceDescription sourceDescription) {
     super(statementText);
-    this.streams = streams;
+    this.sourceDescription = sourceDescription;
   }
 
-  public List<SourceInfo.Stream> getStreams() {
-    return new ArrayList<>(streams);
+  public SourceDescription getSourceDescription() {
+    return sourceDescription;
   }
 
   @Override
@@ -50,15 +45,15 @@ public class StreamsList extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StreamsList)) {
+    if (!(o instanceof SourceDescriptionEntity)) {
       return false;
     }
-    StreamsList that = (StreamsList) o;
-    return Objects.equals(getStreams(), that.getStreams());
+    SourceDescriptionEntity other = (SourceDescriptionEntity)o;
+    return Objects.equals(sourceDescription, other.sourceDescription);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStreams());
+    return Objects.hash(getSourceDescription());
   }
 }

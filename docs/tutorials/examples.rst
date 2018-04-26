@@ -300,6 +300,12 @@ KSQL statements from directly your terminal. This can be useful for scripting.
 
 The following examples show common usage:
 
+-   This example uses pipelines to run KSQL CLI commands.
+
+    .. code:: bash
+
+        $ echo -e "SHOW TOPICS;\nexit" | ksql
+
 -   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
     .. code:: bash

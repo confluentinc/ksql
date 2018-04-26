@@ -27,7 +27,7 @@ public class LongTopkDistinctKudafTest {
 
   Long[] valueArray;
   private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
-          = new TopkDistinctKudaf<>(0, 3, Schema.INT64_SCHEMA, Long.class);
+          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT64_SCHEMA);
 
   @Before
   public void setup() {

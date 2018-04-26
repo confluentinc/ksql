@@ -31,13 +31,15 @@ public interface KsqlAggregateFunction<V, A> {
       final Map<String, Integer> expressionNames,
       final List<Expression> functionArguments);
 
-  boolean hasSameArgTypes(List<Schema> argTypeList);
+  String getFunctionName();
 
   Supplier<A> getInitialValueSupplier();
 
   int getArgIndexInValue();
 
   Schema getReturnType();
+
+  boolean hasSameArgTypes(List<Schema> argTypeList);
 
   /**
    * Merges values inside the window.

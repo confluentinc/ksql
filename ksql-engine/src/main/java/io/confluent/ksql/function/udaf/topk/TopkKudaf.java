@@ -40,15 +40,17 @@ public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFun
   private final Comparator<T> comparator;
 
   @SuppressWarnings("unchecked")
-  TopkKudaf(final int argIndexInValue,
+  TopkKudaf(final String functionName,
+            final int argIndexInValue,
             final int topKSize,
             final Schema returnType,
             final List<Schema> argumentTypes,
             final Class<T> clazz) {
-    super(argIndexInValue,
+    super(functionName,
+        argIndexInValue,
         () -> (T[]) Array.newInstance(clazz, topKSize),
-          returnType,
-          argumentTypes
+        returnType,
+        argumentTypes
     );
     this.topKSize = topKSize;
     this.returnType = returnType;
@@ -128,6 +130,6 @@ public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFun
 
     final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     final int topKSize = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkKudaf<>(udafIndex, topKSize, returnType, argumentTypes, clazz);
+    return new TopkKudaf<>(functionName, udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

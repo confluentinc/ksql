@@ -32,8 +32,8 @@ public class DoubleSumKudaf
     extends BaseAggregateFunction<Double, Double>
     implements TableAggregationFunction<Double, Double> {
 
-  DoubleSumKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0.0, Schema.FLOAT64_SCHEMA,
+  DoubleSumKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0.0, Schema.FLOAT64_SCHEMA,
           Collections.singletonList(Schema.FLOAT64_SCHEMA)
     );
   }
@@ -57,7 +57,7 @@ public class DoubleSumKudaf
   public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
                                                            List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleSumKudaf(udafIndex);
+    return new DoubleSumKudaf(functionName, udafIndex);
   }
 
 

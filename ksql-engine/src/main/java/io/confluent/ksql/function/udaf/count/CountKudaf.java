@@ -31,8 +31,8 @@ import io.confluent.ksql.parser.tree.Expression;
 public class CountKudaf
     extends BaseAggregateFunction<Object, Long> implements TableAggregationFunction<Object, Long> {
 
-  CountKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
+  CountKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
           Collections.singletonList(Schema.FLOAT64_SCHEMA)
     );
   }
@@ -56,7 +56,7 @@ public class CountKudaf
   public KsqlAggregateFunction<Object, Long> getInstance(Map<String, Integer> expressionNames,
                                                          List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new CountKudaf(udafIndex);
+    return new CountKudaf(functionName, udafIndex);
   }
 
   @Override

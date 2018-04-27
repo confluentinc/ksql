@@ -279,8 +279,8 @@ public class KsqlParserTest {
 
   @Test
   public void testReservedColumnIdentifers() {
-    assertQuerySucceeds(KSQL_PARSER.buildAst("SELECT ROWTIME as ROWTIME FROM test1 t1;", metaStore).get(0));
-    assertQuerySucceeds(KSQL_PARSER.buildAst("SELECT ROWKEY as ROWKEY FROM test1 t1;", metaStore).get(0));
+    assertQuerySucceeds("SELECT ROWTIME as ROWTIME FROM test1 t1;");
+    assertQuerySucceeds("SELECT ROWKEY as ROWKEY FROM test1 t1;");
   }
 
   @Test
@@ -461,8 +461,8 @@ public class KsqlParserTest {
   public void testShouldFailIfWrongKeyword() {
     try {
       String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-      Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-      fail();
+      KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+      fail(format("Expected query: %s to fail", simpleQuery));
     } catch (ParseFailedException e) {
       String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
@@ -652,20 +652,19 @@ public class KsqlParserTest {
     Assert.assertThat(listQueries.getShowExtended(), is(true));
   }
   
-  private void assertQuerySucceeds(Statement statement) {
-    assertTrue(statement instanceof Query);
+  private void assertQuerySucceeds(String sql) {
+    Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0);
+    assertThat(statement, instanceOf(Query.class));
   }
 
   private void assertQueryFails(String sql, String exceptionMessage) {
     try {
       KSQL_PARSER.buildAst(sql, metaStore).get(0);
       fail(format("Expected query: %s to fail with message: %s", sql, exceptionMessage));
-    } catch (ParseFailedException exp) {
+    } catch (RuntimeException exp) {
       if(!exp.getMessage().equals(exceptionMessage)) {
         fail(format("Expected exception message to match %s for query: %s", exceptionMessage, sql));
       }
-    } catch (RuntimeException exp) {
-      fail(format("Expected ParseFailedException.class but got: %s for query: %s", exp.getClass(), sql));
     }
   }
 }

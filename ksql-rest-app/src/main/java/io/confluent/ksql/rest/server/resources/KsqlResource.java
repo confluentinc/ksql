@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,7 +86,6 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -364,18 +365,19 @@ public class KsqlResource {
     if (descriptions) {
       return new QueryDescriptionList(
           statementText,
-          ksqlEngine.getPersistentQueries().values().stream()
+          ksqlEngine.getPersistentQueries().stream()
               .map(QueryDescription::forQueryMetadata)
               .collect(Collectors.toList()));
     }
     return new Queries(
         statementText,
-        ksqlEngine.getPersistentQueries().values().stream()
+        ksqlEngine.getPersistentQueries().stream()
             .map(
-                q -> new Queries.RunningQuery(
+                q -> new RunningQuery(
                     q.getStatementString(),
-                    ((KsqlStructuredDataOutputNode)q.getOutputNode()).getKafkaTopicName(),
-                q.getQueryId())).collect(Collectors.toList()));
+                    q.getSinkNames(),
+                    q.getQueryId().getId()))
+            .collect(Collectors.toList()));
   }
 
   private TopicDescription describeTopic(String statementText, String name) throws KsqlException {
@@ -410,43 +412,24 @@ public class KsqlResource {
       ));
     }
 
-    List<PersistentQueryMetadata>
-        queries =
-        ksqlEngine
-            .getPersistentQueries()
-            .values()
-            .stream()
-            .filter(meta ->
-                        ((KsqlStructuredDataOutputNode) meta.getOutputNode())
-                            .getKafkaTopicName()
-                            .equals(dataSource
-                                        .getKsqlTopic()
-                                        .getTopicName()))
-            .collect(Collectors.toList());
     return new SourceDescription(
         dataSource,
         extended,
         dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
-        getReadQueryIds(queries),
-        getWriteQueryIds(queries),
+        getQueries(q -> q.getSourceNames().contains(dataSource.getName())),
+        getQueries(q -> q.getSinkNames().contains(dataSource.getName())),
         ksqlEngine.getTopicClient()
     );
   }
 
-  private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries
+  private List<RunningQuery> getQueries(Predicate<PersistentQueryMetadata> predicate) {
+    return ksqlEngine.getPersistentQueries()
         .stream()
-        .map(q -> q.getQueryId().toString() + " : " + q.getStatementString())
+        .filter(predicate)
+        .map(q -> new RunningQuery(
+            q.getStatementString(), q.getSinkNames(), q.getQueryId().getId()))
         .collect(Collectors.toList());
   }
-
-  private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries
-        .stream()
-        .map(q -> "id:" + q.getQueryId().toString() + " - " + q.getStatementString())
-        .collect(Collectors.toList());
-  }
-
 
   private PropertiesList listProperties(String statementText) {
     return new PropertiesList(statementText, ksqlEngine.getKsqlConfigProperties());
@@ -488,7 +471,7 @@ public class KsqlResource {
     String queryId = explain.getQueryId();
     if (queryId != null) {
       PersistentQueryMetadata metadata =
-          ksqlEngine.getPersistentQueries().get(new QueryId(queryId));
+          ksqlEngine.getPersistentQuery(new QueryId(queryId));
       if (metadata == null) {
         throw new KsqlException(
             "Query with id:" + queryId + " does not exist, use SHOW QUERIES to view the full "

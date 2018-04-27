@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -57,12 +56,6 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
-import io.confluent.ksql.parser.tree.ListStreams;
-import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -78,6 +71,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
@@ -96,11 +90,11 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 
@@ -286,12 +280,6 @@ public class KsqlResourceTest {
     createTopicProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
     createTopicProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral(format));
 
-    final RegisterTopic ksqlStatement = new RegisterTopic(
-        QualifiedName.of(ksqlTopic),
-        false,
-        createTopicProperties
-    );
-
     final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.QUEUED,
@@ -317,7 +305,6 @@ public class KsqlResourceTest {
   public void testListRegisteredTopics() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST REGISTERED TOPICS;";
-    final ListRegisteredTopics ksqlStatement = new ListRegisteredTopics(Optional.empty());
 
     KsqlTopicsList ksqlTopicsList = makeSingleRequest(
         testResource,
@@ -354,7 +341,7 @@ public class KsqlResourceTest {
         Collections.emptyMap(),
         Queries.class
     );
-    List<Queries.RunningQuery> testQueries = queries.getQueries();
+    List<RunningQuery> testQueries = queries.getQueries();
 
     assertEquals(0, testQueries.size());
   }
@@ -380,14 +367,14 @@ public class KsqlResourceTest {
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("TEST_STREAM"),
-                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.emptyList(), Collections.emptyList(),
                 kafkaTopicClient)));
     assertThat(
         descriptionList.getSourceDescriptions(),
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("new_stream"),
-                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.emptyList(), Collections.emptyList(),
                 kafkaTopicClient)));
   }
 
@@ -412,14 +399,14 @@ public class KsqlResourceTest {
         hasItem(
             new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("TEST_TABLE"),
-                true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                true, "JSON", Collections.emptyList(), Collections.emptyList(),
                 kafkaTopicClient)));
     assertThat(
         descriptionList.getSourceDescriptions(),
         hasItem(
              new SourceDescription(
                 testResource.getKsqlEngine().getMetaStore().getSource("new_table"),
-                 true, "JSON", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                 true, "JSON", Collections.emptyList(), Collections.emptyList(),
                 kafkaTopicClient)));
   }
 
@@ -449,22 +436,33 @@ public class KsqlResourceTest {
   @Test
   public void testDescribeStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
-    final String tableName = "TEST_TABLE";
-    final String ksqlString = String.format("DESCRIBE %s;", tableName);
-    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false, false);
 
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(
+        "CREATE STREAM described_stream AS SELECT * FROM test_stream;" +
+            "CREATE STREAM down_stream AS SELECT * FROM described_stream;",
+        Collections.emptyMap());
+    final String streamName = "DESCRIBED_STREAM";
+    final String ksqlString = String.format("DESCRIBE %s;", streamName);
     SourceDescriptionEntity testDescription = makeSingleRequest(
         testResource,
         ksqlString,
         Collections.emptyMap(),
-        SourceDescriptionEntity.class
-    );
+        SourceDescriptionEntity.class);
 
+    List<RunningQuery> writeQueries = Collections.singletonList(
+        new RunningQuery(
+            queries.get(0).getStatementString(),
+            ((PersistentQueryMetadata)queries.get(0)).getSinkNames(),
+            ((PersistentQueryMetadata)queries.get(0)).getQueryId().getId()));
+    List<RunningQuery> readQueries = Collections.singletonList(
+        new RunningQuery(
+            queries.get(1).getStatementString(),
+            ((PersistentQueryMetadata)queries.get(1)).getSinkNames(),
+            ((PersistentQueryMetadata)queries.get(1)).getQueryId().getId()));
     SourceDescription expectedDescription =
         new SourceDescription(
-            testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "JSON",
-            Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
-
+            testResource.getKsqlEngine().getMetaStore().getSource(streamName), false, "JSON",
+            readQueries, writeQueries,null);
     assertEquals(expectedDescription, testDescription.getSourceDescription());
   }
 
@@ -472,7 +470,6 @@ public class KsqlResourceTest {
   public void testListStreamsStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST STREAMS;";
-    final ListStreams ksqlStatement = new ListStreams(Optional.empty(), false);
 
     StreamsList streamsList = makeSingleRequest(
         testResource,
@@ -494,7 +491,6 @@ public class KsqlResourceTest {
   public void testListTablesStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST TABLES;";
-    final ListTables ksqlStatement = new ListTables(Optional.empty(), false);
 
     TablesList tablesList = makeSingleRequest(
         testResource,

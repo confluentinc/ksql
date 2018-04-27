@@ -56,7 +56,6 @@ public class KsqlContextTest {
         (Collections.emptyList());
     expect(ksqlEngine.buildMultipleQueries(statement2, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
-    expect(ksqlEngine.getPersistentQueries()).andReturn(new HashMap<>());
     replay(ksqlEngine);
 
     KsqlContext ksqlContext = new KsqlContext(ksqlEngine);

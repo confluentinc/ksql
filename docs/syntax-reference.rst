@@ -121,7 +121,7 @@ It does not support statements such as:
 - Non-persistent queries: SELECT etc
 
 RUN SCRIPT can also be used from the command line, for instance when writing shell scripts.
-See :ref:`running-ksql-command-line` for more information.
+For more information, see :ref:`running-ksql-command-line`.
 
 
 ===============

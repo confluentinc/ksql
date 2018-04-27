@@ -16,19 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.rest.entity.QueryDescription;
-import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
-import io.confluent.ksql.rest.entity.QueryDescriptionList;
-import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
-import io.confluent.ksql.rest.entity.SourceDescriptionList;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -56,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
-import javax.xml.transform.Source;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -70,9 +56,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -82,14 +66,21 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -100,9 +91,16 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 
@@ -126,8 +124,7 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    ksqlEngine = new KsqlEngine(
-        ksqlConfig, kafkaTopicClient, schemaRegistryClient, new MetaStoreImpl());
+    ksqlEngine = TestUtils.createKsqlEngine(ksqlConfig, kafkaTopicClient, schemaRegistryClient);
   }
 
   @After

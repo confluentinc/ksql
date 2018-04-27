@@ -26,7 +26,7 @@ import io.confluent.ksql.function.udf.Kudf;
  * desired unit for the output measurement. Default is KM.
  *
  */
-public class GeoDistance implements Kudf {
+public class GeoDistanceKudf implements Kudf {
 
   // effective value of Earth radius (note we technically live on a slightly squashed sphere, not
   // a truly round one, so different authorities will quote slightly different values for the 'best'

@@ -838,11 +838,11 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value                              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points, |
-|                        |               lat2, lon2,                                  | each specified in decimal degrees. |
-|                        |               unit)``                                      | An optional final parameter can  |
-|                        |                                                            | be used to specify either |
-|                        |                                                            | 'KM'(default) or 'Miles' |
+| GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points,              |
+|                        |               lat2, lon2,                                  | each specified in decimal degrees.                |
+|                        |               unit)``                                      | An optional final parameter can                   |
+|                        |                                                            | be used to specify either                         |
+|                        |                                                            | 'KM'(default) or 'Miles'                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

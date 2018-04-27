@@ -6,8 +6,8 @@ import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
 import static org.junit.Assert.assertEquals;
 
-public class GeoDistanceTest {
-  private GeoDistance distanceUdf = new GeoDistance();
+public class GeoDistanceKudfTest {
+  private GeoDistanceKudf distanceUdf = new GeoDistanceKudf();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -25,6 +25,19 @@ public class GeoDistanceTest {
         0.5);
   }
 
+  @Test
+  public void shouldFailWithTooFewParams() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
+    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663), 0.5);
+  }
+
+  @Test
+  public void shouldFailWithTooManyParams() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
+    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar"), 0.5);
+  }
   /**
    * Valid values for latitude range from 0->90 decimal degrees, and longitude is from -180->180
    */

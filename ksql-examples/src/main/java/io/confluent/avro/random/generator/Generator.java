@@ -1123,7 +1123,7 @@ public class Generator {
       }
       generexCache.put(schema, new Generex((String) regexProp));
     }
-    // Generex.random(low, high) generates in range [low, high]; we want [low, high), so subtract
+    // Generex.random(low, high) generates in range [low, high]; we want [low, high), so undo
     // 1 from maxLength
     return generexCache.get(schema).random(lengthBounds.min(), lengthBounds.max() - 1);
   }

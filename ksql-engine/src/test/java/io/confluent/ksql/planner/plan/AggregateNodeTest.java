@@ -115,22 +115,10 @@ public class AggregateNodeTest {
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
-
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     SchemaKStream stream = build();
     assertTrue(((SchemaKTable)stream).isWindowed());
-  }
-
-  @Test
-  public void shouldFailAggregationOfTable() {
-    try {
-      buildQuery("SELECT col1, count(col3) FROM test2 GROUP BY col1;");
-    } catch (KsqlException e) {
-      assertThat(
-          e.getMessage(),
-          equalTo("Unsupported aggregation. KSQL currently only supports aggregation on a Stream."));
-    }
   }
 
   private SchemaKStream build() {

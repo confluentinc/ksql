@@ -106,11 +106,6 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream select(Schema selectSchema) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public SchemaKStream select(List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }

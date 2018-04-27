@@ -16,6 +16,11 @@
 
 package io.confluent.ksql.analyzer;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+
+import java.util.Optional;
+
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -30,10 +35,6 @@ import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Optional;
 
 
 public class ExpressionAnalyzer {
@@ -111,7 +112,7 @@ public class ExpressionAnalyzer {
       }
       Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (!schemaField.isPresent()) {
-        throw new RuntimeException(
+        throw new AnalysisException(
             String.format("Column %s cannot be resolved.", columnName));
       }
       return null;
@@ -129,7 +130,7 @@ public class ExpressionAnalyzer {
       String columnName = node.getName().getSuffix();
       Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (!schemaField.isPresent()) {
-        throw new RuntimeException(
+        throw new AnalysisException(
             String.format("Column %s cannot be resolved.", columnName));
       }
       return null;

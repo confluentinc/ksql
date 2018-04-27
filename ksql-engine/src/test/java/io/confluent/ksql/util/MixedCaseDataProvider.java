@@ -19,41 +19,54 @@ package io.confluent.ksql.util;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import io.confluent.ksql.GenericRow;
 
-public class KeywordDataProvider extends TestDataProvider {
+public class MixedCaseDataProvider extends TestDataProvider {
 
   private static final String namePrefix =
-      "KEYWORD";
+      "MIXED_CASE";
 
   private static final String ksqlSchemaString =
-      "(`Group` varchar, `From` varchar, `Where` varchar)";
+      "("
+      + "\"thing1\" varchar, `thing2` varchar,"
+      + "\"Thing1\" varchar, `Thing2` varchar,"
+      + "\"THING1\" varchar, `THING2` varchar"
+      + ")";
 
-  private static final String key = "GROUP";
+  private static final String key = "col1";
 
+  // Deliberately uses a mix of case:
   private static final Schema schema = SchemaBuilder.struct()
-      .field("Group", SchemaBuilder.STRING_SCHEMA)
-      .field("From", SchemaBuilder.STRING_SCHEMA)
-      .field("Where", SchemaBuilder.STRING_SCHEMA)
+      .field("thing1", SchemaBuilder.STRING_SCHEMA)
+      .field("thing2", SchemaBuilder.STRING_SCHEMA)
+      .field("Thing1", SchemaBuilder.STRING_SCHEMA)
+      .field("Thing2", SchemaBuilder.STRING_SCHEMA)
+      .field("THING1", SchemaBuilder.STRING_SCHEMA)
+      .field("THING2", SchemaBuilder.STRING_SCHEMA)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();
 
-  public KeywordDataProvider() {
+  public MixedCaseDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
   private static Map<String, GenericRow> buildData() {
+    final Function<Long, GenericRow> rowGenerator = idx -> {
+      final List<Object> values = schema.fields().stream()
+          .map(f -> f.name() + "_" + idx)
+          .collect(Collectors.toList());
+      return new GenericRow(values);
+    };
+
     return LongStream.range(0, 5)
         .boxed()
-        .collect(Collectors.toMap(
-            Object::toString,
-            idx -> new GenericRow(Arrays.asList("group_" + idx, "from_" + idx, "where_" + idx))
-        ));
+        .collect(Collectors.toMap(Object::toString, rowGenerator));
   }
 }

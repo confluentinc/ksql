@@ -40,7 +40,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldGetQuotedIdentifierTextInUpperCase() {
+  public void shouldGetQuotedIdentifierTextInSuppliedCase() {
     // Given:
     final SqlBaseParser.IdentifierContext context =
         mock(SqlBaseParser.QuotedIdentifierAlternativeContext.class);
@@ -51,11 +51,11 @@ public class AstBuilderTest {
     final String identifier = AstBuilder.getIdentifierText(context);
 
     // Then:
-    assertThat(identifier, is("SOME_COLUMN"));
+    assertThat(identifier, is("Some_Column"));
   }
 
   @Test
-  public void shouldGetBackQuotedIdentifierTextInUpperCase() {
+  public void shouldGetBackQuotedIdentifierTextInSuppliedCase() {
     // Given:
     final SqlBaseParser.IdentifierContext context =
         mock(SqlBaseParser.BackQuotedIdentifierContext.class);
@@ -66,6 +66,6 @@ public class AstBuilderTest {
     final String identifier = AstBuilder.getIdentifierText(context);
 
     // Then:
-    assertThat(identifier, is("SOME_COLUMN"));
+    assertThat(identifier, is("Some_Column"));
   }
 }

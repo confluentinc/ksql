@@ -1361,9 +1361,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
-      return unquote(context.getText().toUpperCase(), "\"");
+      return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
-      return unquote(context.getText().toUpperCase(), "`");
+      return unquote(context.getText(), "`");
     } else {
       return context.getText().toUpperCase();
     }

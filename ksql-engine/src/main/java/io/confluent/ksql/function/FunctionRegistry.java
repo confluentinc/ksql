@@ -24,7 +24,7 @@ import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
-import io.confluent.ksql.function.udf.geo.GeoDistance;
+import io.confluent.ksql.function.udf.geo.GeoDistanceKudf;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
@@ -156,7 +156,7 @@ public class FunctionRegistry {
                                                                     Schema.FLOAT64_SCHEMA,
                                                                     Schema.FLOAT64_SCHEMA,
                                                                     Schema.OPTIONAL_STRING_SCHEMA),
-                                        "GEO_DISTANCE", GeoDistance.class);
+                                        "GEO_DISTANCE", GeoDistanceKudf.class);
     addFunction(geoDistance);
 
     /***************************************

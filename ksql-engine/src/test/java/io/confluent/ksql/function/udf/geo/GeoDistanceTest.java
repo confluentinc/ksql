@@ -39,7 +39,7 @@ public class GeoDistanceTest {
   public void shouldFailInvalidUnitOfMeasure() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("GeoDistance function fifth parameter must be");
-    assertEquals(8634.6528, (double) distanceUdf.evaluate(90.1, -122.1663, 51.5257, -0.1122, "Widget"), 0.5);
+    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Widget"), 0.5);
   }
 
 }

@@ -13,6 +13,7 @@ KSQL
    operations
    tutorials/index
    syntax-reference
+   ksql-http-api
    faq
 
 .. raw:: html

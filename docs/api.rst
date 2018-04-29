@@ -6,19 +6,19 @@ HTTP API Reference
 Content Types
 -------------
 
-The ksql HTTP server uses content types for requests and responses to indicate the serialization formato f the data. Currently, the only serialization format supported is JSON, specified as ``application/json``. Your request should specify this content type in the ``Accept`` header::
+The ksql HTTP server uses content types for requests and responses to indicate the serialization format of the data. Currently, the only serialization format supported is JSON, specified as ``application/json``. Your request should specify this content type in the ``Accept`` header::
 
     Accept: application/json
 
 Errors
 ------
 
-All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses): 
+All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses):
 
    .. sourcecode:: http
 
       HTTP/1.1 <Error Status>
-      Content-Type: application/json 
+      Content-Type: application/json
 
       {
           "message": <Error Message>
@@ -39,25 +39,14 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
 
    The response json is an array of result objects. The contents of each result object depends on the statement for which it is returning results. The following sections detail the contents of the result objects by statement.
 
-   **CREATE**
+   **CREATE, DROP, TERMINATE**
 
    :>json string currentStatus.statementText: The ksql statement for which the result is being returned.
-   :>json string currentStatus.commandStatus: One of QUEUED, PARSING, EXECUTING, RUNNING, TERMINATED, SUCCESS, or ERROR
-   :>json string currrentStatus.message: Detailed message about the status of the execution of the statement. 
+   :>json string currentStauts.commandId: A string that identifies the requested operation. This id can be used to poll the result of the operation using the status endpoint.
+   :>json string currentStatus.commandStatus.status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR
+   :>json string currrentStatus.commandStatus.message: Detailed message about the status of the execution of the statement.
 
-   **DROP**
-
-   :>json string currentStatus.statementText: The ksql statement for which the result is being returned.
-   :>json string currentStatus.commandStatus: One of QUEUED, PARSING, EXECUTING, RUNNING, TERMINATED, SUCCESS, or ERROR
-   :>json string currrentStatus.message: Detailed message about the status of the execution of the statement.
-
-   **TERMINATE**
-
-   :>json string currentStatus.statementText: The ksql statement for which the result is being returned.
-   :>json string currentStatus.commandStatus: One of QUEUED, PARSING, EXECUTING, RUNNING, TERMINATED, SUCCESS, or ERROR
-   :>json string currrentStatus.message: Detailed message about the status of the execution of the statement.
-
-   **LIST/SHOW STREAMS**
+   **LIST STREAMS, SHOW STREAMS**
 
    :>json string streams.statementText: The ksql statement for which the result is being returned.
    :>json array  streams.streams: List of streams.
@@ -65,7 +54,7 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
    :>json string streams.streams[i].topic: The topic backing the stream.
    :>json string streams.streams[i].format: The serialization format of the data in the stream. One of JSON, AVRO, or DELIMITED.
 
-   **LIST/SHOW TABLES**
+   **LIST TABLES, SHOW TABLES**
 
    :>json string tables.statementText: The ksql statement for which the result is being returned.
    :>json array  tables.tables: List of tables.
@@ -73,18 +62,18 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
    :>json string tables.tables[i].topic: The topic backing the table.
    :>json string tables.tables[i].format: The serialization format of the data in the table. One of JSON, AVRO, or DELIMITED.
 
-   **LIST/SHOW QUERIES**
+   **LIST QUERIES, SHOW QUERIES**
 
    :>json string queries.statementText: The ksql statement for which the result is being returned.
    :>json array  queries.queries: List of queries.
-   :>json string queries.queries[i].queryString: The text of the statement that started the query. 
+   :>json string queries.queries[i].queryString: The text of the statement that started the query.
    :>json string queries.queries[i].kafkaTopic: The topic that the query is writing into.
    :>json string queries.queries[i].id.id: The query id.
 
-   **LIST/SHOW PROPERTIES**
+   **LIST PROPERTIES, SHOW PROPERTIES**
 
    :>json string properties.statementText: The ksql statement for which the result is being returned.
-   :>json map    properties.properties: The properties the ksql server runs queries with. 
+   :>json map    properties.properties: The properties the ksql server runs queries with.
    :>json string properties.roperties[<property-name>]: The value of the property named by property-name.
 
    **DESCRIBE**
@@ -109,9 +98,9 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
 
    **EXPLAIN**
 
-   :>json string description.statementText: The ksql statement for which the query being explained is running. 
+   :>json string description.statementText: The ksql statement for which the query being explained is running.
    :>json string description.name: The ksql statement for which the query being explained is running.
-   :>json string description.type: QUERY 
+   :>json string description.type: QUERY
    :>json string description.serdes: The serialization format of the data in the query's output topic. One of JSON, AVRO, or DELIMITED.
    :>json string description.kafkaTopic: The topic the query is writing into.
    :>json string description.statistics: A string containing statistics about production/consumption to/from the topic the query is writing to.
@@ -171,7 +160,7 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
         }
       ]
 
-Run A Query And Stream Back The Output 
+Run A Query And Stream Back The Output
 --------------------------------------
 
 The query resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statment then the response is streamed until the client closes the connection.
@@ -189,7 +178,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
    :>json object row: A single row being returned. This will be null if an error is being returned.
    :>json array  row.columns: The values contained in the row.
    :>json ?      row.columns[i]: The value contained in a single column for the row. Its type depends on the type of the column.
-   :>json string errorMessage: If this field is non-null then running of the statement has hit an error. In this case no more rows will be returned and the server will end the response. Note that when the limit is reached for a query that specified a limit in the LIMIT clause the server returns a row with error message "LIMIT reached for the partition.". 
+   :>json string errorMessage: If this field is non-null then running of the statement has hit an error. In this case no more rows will be returned and the server will end the response. Note that when the limit is reached for a query that specified a limit in the LIMIT clause the server returns a row with error message "LIMIT reached for the partition.".
 
    **Example request**
 
@@ -217,3 +206,24 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
       ...
       {"row":{"columns":[1524760769983,"1",1524760769747,"alice","home"]},"errorMessage":null}
       ...
+
+Get The Status Of A CREATE, DROP, or TERMINATE
+----------------------------------------------
+
+CREATE, DROP, and TERMINATE statements return a command status object indicating the current state of statement execution. A statement can be in one of the following states:
+
+- QUEUED, PARSING, EXECUTING: The statement was accepted by the server and is being processed.
+- SUCCESS: The statement was successfully processed.
+- ERROR: There was an error processing the statement. The statement was not executed.
+- TERMINATED: The query started by the statement was terminated. Only returned for ``CREATE STREAM|TABLE AS SELECT``.
+
+If a CREATE, DROP, or TERMINATE statement returns a command status with state QUEUED, PARSING, or EXECUTING from the ``/ksql`` endpoint, you can use the ``/status`` endpoint to poll the status of the command.
+
+.. http:get:: /status/(string:commandId)
+
+   Get the current command status for a CREATE, DROP, or TERMINATE statement.
+
+   :param string commandId: The command id of the statement. This id is returned by the /ksql endpoint.
+
+   :>json string status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR
+   :>json string message: Detailed message about the status of the execution of the statement.

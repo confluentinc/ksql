@@ -184,12 +184,11 @@ public class WSQueryEndpointTest {
     expectLastCall();
 
     // result expectations
-    basic.sendBinary(
-        ByteBuffer.wrap(objectMapper.writeValueAsBytes(schema)));
+    basic.sendText(objectMapper.writeValueAsString(schema));
     expectLastCall().once();
     for (KeyValue<String, GenericRow> row : rows) {
-      async.sendBinary(
-          eq(ByteBuffer.wrap(objectMapper.writeValueAsBytes(new StreamedRow(row.value)))),
+      async.sendText(
+          eq(objectMapper.writeValueAsString(new StreamedRow(row.value))),
           anyObject());
       expectLastCall().once();
     }

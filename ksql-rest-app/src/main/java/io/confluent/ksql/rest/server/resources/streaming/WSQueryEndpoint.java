@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import java.util.Collections;
@@ -139,7 +138,7 @@ public class WSQueryEndpoint {
 
       try {
         session.getBasicRemote().sendText(
-            mapper.writeValueAsString(queryMetadata.getOutputNode().getSchema())
+            mapper.writeValueAsString(queryMetadata.getResultSchema())
         );
       } catch (IOException e) {
         log.error("Error sending schema", e);

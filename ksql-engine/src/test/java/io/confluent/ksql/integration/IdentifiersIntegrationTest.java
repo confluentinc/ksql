@@ -137,7 +137,7 @@ public class IdentifiersIntegrationTest {
 
     // Then:
     assertThat(fieldNames(result.schema), containsInAnyOrder(
-        "thing1", "thing2", "Thing1", "Thing2", "THING1", "THING2"));
+        "thing1", "thing2", "Thing1", "Thing2", "THING1", "THING2", "ROWTIME", "ROWKEY"));
 
     assertThat(dropRowTimeAndKey(result.row), is(genericRow(
         "thing1_0", "thing2_0",
@@ -180,7 +180,7 @@ public class IdentifiersIntegrationTest {
 
     // Then:
     assertThat(fieldNames(result.schema), containsInAnyOrder(
-        "Group", "From"));
+        "Group", "From", "ROWTIME", "ROWKEY"));
 
     assertThat(dropRowTimeAndKey(result.row), is(genericRow("group_0", "from_0")));
   }
@@ -230,7 +230,7 @@ public class IdentifiersIntegrationTest {
 
     // Then:
     assertThat(fieldNames(result.schema), containsInAnyOrder(
-        "object1", "object2", "Object1", "Object2", "OBJECT1", "OBJECT2"));
+        "object1", "object2", "Object1", "Object2", "OBJECT1", "OBJECT2", "ROWTIME", "ROWKEY"));
 
     assertThat(dropRowTimeAndKey(result.row), is(genericRow(
         "thing1_0", "thing2_0",
@@ -282,7 +282,7 @@ public class IdentifiersIntegrationTest {
 
     // Then:
     assertThat(fieldNames(result.schema), containsInAnyOrder(
-        "From", "BY"));
+        "From", "BY", "ROWTIME", "ROWKEY"));
 
     assertThat(dropRowTimeAndKey(result.row), is(genericRow("group_0", "where_0")));
   }
@@ -372,11 +372,6 @@ public class IdentifiersIntegrationTest {
         INPUT_STREAM, inputTopic);
 
     produceInputData(new KeywordDataProvider());
-
-    executeQuery(
-        "CREATE STREAM %s AS SELECT "
-        + "\"Group\" AS \"From\", `Where` AS `BY` FROM %s;",
-        outputStream, INPUT_STREAM);
 
     // When:
     final SchemaAndRow result = getFirstRow(

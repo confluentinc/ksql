@@ -42,7 +42,7 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
    **CREATE, DROP, TERMINATE**
 
    :>json string currentStatus.statementText: The ksql statement for which the result is being returned.
-   :>json string currentStauts.commandId: A string that identifies the requested operation. This id can be used to poll the result of the operation using the status endpoint.
+   :>json string currentStatus.commandId: A string that identifies the requested operation. This id can be used to poll the result of the operation using the status endpoint.
    :>json string currentStatus.commandStatus.status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR
    :>json string currrentStatus.commandStatus.message: Detailed message about the status of the execution of the statement.
 
@@ -227,3 +227,22 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
    :>json string status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR
    :>json string message: Detailed message about the status of the execution of the statement.
+
+   **Example request**
+
+   .. sourcecode:: http
+
+      GET /status/stream/PAGEVIEWS/create HTTP/1.1
+      Accept: application/json
+      Content-Type: application/json
+
+   **Example response**
+
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Content-Type application/json
+
+      {
+        "status": "SUCCESS"
+      }

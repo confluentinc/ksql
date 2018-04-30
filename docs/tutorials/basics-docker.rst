@@ -31,7 +31,7 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ git checkout master
+       $ git checkout 5.0.0-beta
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.

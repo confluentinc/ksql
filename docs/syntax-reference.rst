@@ -417,7 +417,7 @@ The WITH clause supports the following properties:
 |               | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
 |               | e.g. given the statement                                                                             |
 |               |                                                                                                      |
-|               | .. literalinclude:: ctas-snippet.sql                                                                 |
+|               | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |               |    :language: sql                                                                                    |
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |

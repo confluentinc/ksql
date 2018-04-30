@@ -491,10 +491,11 @@ public class CliTest extends TestRunner {
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")));
     EasyMock.replay(mockRestClient);
+    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
     new Cli(1L, 1L, mockRestClient, terminal);
     Assert.assertThat(
         terminal.getOutputString(),
-        containsString("Current CLI version no longer supported"));
+        containsString("This CLI version no longer supported"));
     Assert.assertThat(
         terminal.getOutputString(),
         containsString("Minimum supported client version: 1.0"));

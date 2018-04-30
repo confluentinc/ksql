@@ -32,8 +32,9 @@ public class KudafAggregator implements UdafAggregator {
   private Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
 
-  public KudafAggregator(Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap, Map<Integer,
-      Integer> aggValToValColumnMap) {
+  public KudafAggregator(
+      Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap,
+      Map<Integer, Integer> aggValToValColumnMap) {
     this.aggValToAggFunctionMap = aggValToAggFunctionMap;
     this.aggValToValColumnMap = aggValToValColumnMap;
   }
@@ -41,15 +42,21 @@ public class KudafAggregator implements UdafAggregator {
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
-    aggValToValColumnMap.forEach((key, value) ->
-        aggRowValue.getColumns().set(key, rowValue.getColumns().get(value))
-    );
+    // copy over group-by and aggregate parameter columns into the output row
+    aggValToValColumnMap.forEach(
+        (key, value) ->
+            aggRowValue.getColumns().set(key, rowValue.getColumns().get(value)));
 
+    // compute the aggregation and write it into the output row. Its assumed that
+    // the columns written by this statement do not overlap with those written by
+    // the above statement.
     aggValToAggFunctionMap.forEach((key, value) ->
-        aggRowValue.getColumns().set(key,
-            value.aggregate(rowValue.getColumns().get(value.getArgIndexInValue()),
-                aggRowValue.getColumns().get(key)))
-    );
+        aggRowValue.getColumns().set(
+            key,
+            value.aggregate(
+                rowValue.getColumns().get(value.getArgIndexInValue()),
+                aggRowValue.getColumns().get(key))));
+
     return aggRowValue;
   }
 

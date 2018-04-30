@@ -24,71 +24,29 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KsqlException;
 
-public abstract class KsqlAggregateFunction<V, A> {
+public interface KsqlAggregateFunction<V, A> {
 
-  /** An index of the function argument in the row that is used for computing the aggregate.
-   * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
-   * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1. 
-   **/
-  private final int argIndexInValue;
-  private final Supplier<A> initialValueSupplier;
-  private final Schema returnType;
-  private final List<Schema> arguments;
-
-  public KsqlAggregateFunction(Integer argIndexInValue) {
-    this(argIndexInValue, null, null, null);
-  }
-
-  public KsqlAggregateFunction(
-      final int argIndexInValue,
-      final Supplier<A> initialValueSupplier,
-      final Schema returnType,
-      final List<Schema> arguments
-  ) {
-    this.argIndexInValue = argIndexInValue;
-    this.initialValueSupplier = initialValueSupplier;
-    this.returnType = returnType;
-    this.arguments = arguments;
-  }
-
-  public abstract KsqlAggregateFunction<V, A> getInstance(
+  KsqlAggregateFunction<V, A> getInstance(
       final Map<String, Integer> expressionNames,
-      final List<Expression> functionArguments
-  );
+      final List<Expression> functionArguments);
 
-  public boolean hasSameArgTypes(List<Schema> argTypeList) {
-    if (argTypeList == null) {
-      throw new KsqlException("Argument type list is null.");
-    }
-    return this.arguments.equals(argTypeList);
-  }
+  boolean hasSameArgTypes(List<Schema> argTypeList);
+
+  Supplier<A> getInitialValueSupplier();
+
+  int getArgIndexInValue();
+
+  Schema getReturnType();
 
   /**
    * Merges values inside the window.
    * @return A - type of return value
    */
-  public abstract A aggregate(V currentVal, A currentAggVal);
-
-  public Supplier<A> getInitialValueSupplier() {
-    return initialValueSupplier;
-  }
-
-  public int getArgIndexInValue() {
-    return argIndexInValue;
-  }
-
-  public Schema getReturnType() {
-    return returnType;
-  }
-
-  public List<Schema> getArguments() {
-    return arguments;
-  }
+  A aggregate(V currentValue, A aggregateValue);
 
   /**
    * Merges two session windows together with the same merge key.
    */
-  public abstract Merger<String, A> getMerger();
+  Merger<String, A> getMerger();
 }

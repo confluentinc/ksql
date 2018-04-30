@@ -27,13 +27,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
-    extends KsqlAggregateFunction<T, T[]> {
+    extends BaseAggregateFunction<T, T[]> {
 
   private final int tkVal;
   private final Class<T> ttClass;
@@ -70,30 +71,30 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   }
 
   @Override
-  public T[] aggregate(final T currentVal, final T[] currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public T[] aggregate(final T currentValue, final T[] aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
 
-    final T last = currentAggVal[currentAggVal.length - 1];
-    if (last != null && currentVal.compareTo(last) <= 0) {
-      return currentAggVal;
+    final T last = aggregateValue[aggregateValue.length - 1];
+    if (last != null && currentValue.compareTo(last) <= 0) {
+      return aggregateValue;
     }
 
-    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
-      return currentAggVal;
+    if (ArrayUtil.containsValue(currentValue, aggregateValue)) {
+      return aggregateValue;
     }
 
-    final int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
+    final int nullIndex = ArrayUtil.getNullIndex(aggregateValue);
     if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
-      Arrays.sort(currentAggVal, comparator);
-      return currentAggVal;
+      aggregateValue[nullIndex] = currentValue;
+      Arrays.sort(aggregateValue, comparator);
+      return aggregateValue;
     }
 
-    currentAggVal[currentAggVal.length - 1] = currentVal;
-    Arrays.sort(currentAggVal, comparator);
-    return currentAggVal;
+    aggregateValue[aggregateValue.length - 1] = currentValue;
+    Arrays.sort(aggregateValue, comparator);
+    return aggregateValue;
   }
 
   @SuppressWarnings("unchecked")

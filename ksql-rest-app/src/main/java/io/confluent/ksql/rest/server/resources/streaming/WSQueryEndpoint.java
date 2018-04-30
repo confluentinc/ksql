@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 
 @ServerEndpoint(value = "/query")
 public class WSQueryEndpoint {
+
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
   private static final int WS_STREAMS_POLL_DELAY_MS = 500;
 
@@ -136,11 +138,9 @@ public class WSQueryEndpoint {
       ).get(0);
 
       try {
-        session.getBasicRemote().sendBinary(ByteBuffer.wrap(
-            mapper.writeValueAsBytes(
-                queryMetadata.getResultSchema()
-            )
-        ));
+        session.getBasicRemote().sendText(
+            mapper.writeValueAsString(queryMetadata.getOutputNode().getSchema())
+        );
       } catch (IOException e) {
         log.error("Error sending schema", e);
         closeSession(session, new CloseReason(
@@ -167,9 +167,9 @@ public class WSQueryEndpoint {
 
         for (KeyValue<String, GenericRow> row : rows) {
           try {
-            byte[] buffer = mapper.writeValueAsBytes(new StreamedRow(row.value));
-            session.getAsyncRemote().sendBinary(
-                ByteBuffer.wrap(buffer), result -> {
+            String buffer = mapper.writeValueAsString(new StreamedRow(row.value));
+            session.getAsyncRemote().sendText(
+                buffer, result -> {
                   if (!result.isOK()) {
                     log.warn(
                         "Error sending websocket message for session {}",

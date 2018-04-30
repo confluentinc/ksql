@@ -11,8 +11,10 @@ KSQL
    quickstart
    installation/index
    operations
+   capacity-planning
    tutorials/index
    syntax-reference
+   api
    faq
 
 .. raw:: html

@@ -24,12 +24,12 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -54,8 +54,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
-    ksqlEngine = new KsqlEngine(
-        new KsqlConfig(props), new MockKafkaTopicClient());
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+    ksqlEngine = TestUtils.createKsqlEngine(
+        ksqlConfig,
+        new MockKafkaTopicClient(),
+        new MockSchemaRegistryClient());
 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -63,7 +66,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @After
-  public void tearDown() throws IOException {
+  public void tearDown() {
     ksqlEngine.close();
   }
 

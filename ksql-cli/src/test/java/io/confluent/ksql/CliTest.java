@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
-
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -44,10 +43,41 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TopicConsumer;
+import io.confluent.ksql.util.TopicProducer;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 
 import static io.confluent.ksql.TestResult.build;
-import static io.confluent.ksql.util.KsqlConfig.*;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;

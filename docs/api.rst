@@ -1,7 +1,7 @@
 .. _ksql-http-api:
 
-HTTP API Reference
-==================
+KSQL HTTP API Reference
+=======================
 
 Content Types
 -------------
@@ -23,15 +23,15 @@ Errors
 
 All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses):
 
-   .. sourcecode:: http
+.. sourcecode:: http
 
-      HTTP/1.1 <Error Status>
-      Content-Type: application/json
+   HTTP/1.1 <Error Status>
+   Content-Type: application/json
 
-      {
-          "error_code": <Error code>
-          "message": <Error Message>
-      }
+   {
+       "error_code": <Error code>
+       "message": <Error Message>
+   }
 
 Some endpoints may include additional fields that provide more context for handling the error.
 

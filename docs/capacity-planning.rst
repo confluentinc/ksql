@@ -309,9 +309,9 @@ Scenario 2: Large Messages
 --------------------------
 
 In this example the same query as scenario 1 is performed, but each message is 8 KB. For larger messages, each KSQL node is usually
-network bound, instead of CPU bound. One node with a 1 GB/s should be able to manage the original 50 MB/s (400 MB/s) of
+network bound, instead of CPU bound. One node with a 1 Gb/s should be able to manage the original 50 MB/s (400 Mb/s) of
 throughput coming into the ``pageviews_original`` topic. You can assume the production throughput is larger at 256 MB/s.
-A 1 GB/s full-duplex NIC can handle 1 GB/s, or 128 MB/s in each direction. You can estimate 2-3 KSQL nodes are required
+A 1 Gb/s full-duplex NIC can handle 1 Gb/s, or 128 MB/s in each direction. You can estimate 2-3 KSQL nodes are required
 to manage this load.
 
 Scenario 3: More Advanced Usage

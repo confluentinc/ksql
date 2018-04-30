@@ -127,7 +127,7 @@ The ksql resource runs a sequence of ksql statements. Any statement except those
    If KSQL fails to execute a statement, it returns a response with an error status code (4xx/5xx). Even if an error is returned, the server may have been able to successfully execute some statements in the request. If this is the case, then In addition to the ``error_code`` and ``message`` fields, the response includes a ``statementText`` field with the text of the failed statement, and an ``entities`` field that contains an array of result objects:
 
    :>json string statementText: The text of the KSQL statement for which the error occurred. 
-   :>json array  entities: Result objects for statements that were successfully exeucted by the server.
+   :>json array  entities: Result objects for statements that were successfully executed by the server.
 
    The ``/ksql`` endpoint may return the following error codes in the ``error_code`` field:
 
@@ -243,7 +243,7 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
    :>json string status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR
    :>json string message: Detailed message about the status of the execution of the statement.
 
-**Example request**
+   **Example request**
 
    .. sourcecode:: http
 
@@ -259,5 +259,6 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
       Content-Type application/vnd.ksql.v1+json
 
       {
-        "status": "SUCCESS"
+        "status": "SUCCESS",
+        "message":"Stream created and running"
       }

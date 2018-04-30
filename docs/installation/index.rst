@@ -9,5 +9,4 @@ Installation and Configuration
     installing
     server-config/index
     cli-config
-    common-scenarios
     upgrading

@@ -51,6 +51,7 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KeywordDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MixedCaseDataProvider;
+import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -405,6 +406,53 @@ public class IdentifiersIntegrationTest {
 
     // Then:
     // Should throw due to unknown columns
+  }
+
+  @Test
+  public void shouldImportQuotedStreamIdentifier() throws Exception {
+    // Given:
+    executeImportStatement(
+        "CREATE STREAM `%s` (ORDERTIME bigint) "
+        + "WITH (value_format = 'json', kafka_topic='%s');",
+        INPUT_STREAM.toLowerCase(), inputTopic);
+
+    produceInputData(new OrderDataProvider());
+
+    // When:
+    final SchemaAndRow result = getFirstRow("\"" + INPUT_STREAM.toLowerCase() + "\"");
+
+    // Then:
+    assertThat(fieldNames(result.schema), containsInAnyOrder(
+        "ORDERTIME", "ROWTIME", "ROWKEY"));
+
+    assertThat(dropRowTimeAndKey(result.row), is(genericRow(1L)));
+  }
+
+  @Test
+  public void shouldUseQuotedIdenfitierToSetSinkTopicName() throws Exception {
+    // Given:
+    executeImportStatement(
+        "CREATE STREAM %s (`Group` varchar, `From` varchar, `Where` varchar) "
+        + "WITH (value_format = 'json', kafka_topic='%s');",
+        INPUT_STREAM, inputTopic);
+
+    produceInputData(new KeywordDataProvider());
+
+    executeQuery(
+        "CREATE STREAM `%s` AS SELECT "
+        + "\"Group\" AS \"From\", `Where` AS `BY` FROM %s;",
+        outputStream.toLowerCase(), INPUT_STREAM);
+
+    // When:
+    final SchemaAndRow result = getFirstRow("`" + outputStream.toLowerCase() + "`");
+
+    // Then:
+    assertThat(fieldNames(result.schema), containsInAnyOrder(
+        "From", "BY", "ROWTIME", "ROWKEY"));
+
+    assertThat(dropRowTimeAndKey(result.row), is(genericRow("group_0", "where_0")));
+
+    assertThat(topicClient.isTopicExists(outputStream.toLowerCase()), is(true));
   }
 
   private void tryDropStream(final String inputStream) throws Exception {

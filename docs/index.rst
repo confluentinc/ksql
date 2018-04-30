@@ -14,6 +14,7 @@ KSQL
    capacity-planning
    tutorials/index
    syntax-reference
+   api
    faq
 
 .. raw:: html

@@ -244,5 +244,6 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
       Content-Type application/json
 
       {
-        "status": "SUCCESS"
+        "status": "SUCCESS",
+        "message":"Stream created and running"
       }

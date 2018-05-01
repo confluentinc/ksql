@@ -60,7 +60,7 @@ public class TopicStreamWriterFormatTest {
 
     /** Assert
      */
-    assertTrue(TopicStreamWriter.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
+    assertTrue(TopicStream.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -79,7 +79,7 @@ public class TopicStreamWriterFormatTest {
 
     /** Assert
      */
-    assertFalse(TopicStreamWriter.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
+    assertFalse(TopicStream.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -97,7 +97,7 @@ public class TopicStreamWriterFormatTest {
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
-    assertTrue(TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient));
+    assertTrue(TopicStream.Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -116,6 +116,6 @@ public class TopicStreamWriterFormatTest {
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
 
-    assertFalse(TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient));
+    assertFalse(TopicStream.Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
 }

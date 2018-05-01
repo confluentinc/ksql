@@ -16,11 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -34,134 +29,19 @@ import org.slf4j.LoggerFactory;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.StreamingOutput;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
 
-import static io.confluent.ksql.rest.server.resources.streaming.TopicStreamWriter.Format.getFormatter;
+import static io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format.getFormatter;
 
 public class TopicStreamWriter implements StreamingOutput {
-
-  public enum Format {
-
-    UNDEFINED {
-    },
-    AVRO {
-      private String topicName;
-      private KafkaAvroDeserializer avroDeserializer;
-
-      @Override
-      public boolean isFormat(
-          String topicName, ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
-      ) {
-        this.topicName = topicName;
-        try {
-          avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
-          avroDeserializer.deserialize(topicName, record.value().get());
-          return true;
-        } catch (Throwable t) {
-          return false;
-        }
-      }
-
-      @Override
-      String print(ConsumerRecord<String, Bytes> consumerRecord) {
-        String time = dateFormat.format(new Date(consumerRecord.timestamp()));
-        GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
-            topicName,
-            consumerRecord
-                .value()
-                .get()
-        );
-        String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
-        return time + ", " + key + ", " + record.toString() + "\n";
-      }
-    },
-    JSON {
-      final ObjectMapper objectMapper = new ObjectMapper();
-
-      @Override
-      public boolean isFormat(
-          String topicName, ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
-      ) {
-        try {
-          objectMapper.readTree(record.value().toString());
-          return true;
-        } catch (Throwable t) {
-          return false;
-        }
-      }
-
-      @Override
-      String print(ConsumerRecord<String, Bytes> record) throws IOException {
-        JsonNode jsonNode = objectMapper.readTree(record.value().toString());
-        ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-        objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null) ? record.key() : "null");
-        objectNode.setAll((ObjectNode) jsonNode);
-        StringWriter stringWriter = new StringWriter();
-        objectMapper.writeValue(stringWriter, objectNode);
-        return stringWriter.toString() + "\n";
-      }
-    },
-    STRING {
-      @Override
-      public boolean isFormat(
-          String topicName,
-          ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
-      ) {
-        /**
-         * STRING always returns true because its last in the enum list
-         */
-        return true;
-      }
-    };
-
-    final DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
-
-    static Format getFormatter(
-        String topicName,
-        ConsumerRecord<String, Bytes> record,
-        SchemaRegistryClient schemaRegistryClient
-    ) {
-      Format result = Format.UNDEFINED;
-      while (!(result.isFormat(topicName, record, schemaRegistryClient))) {
-        result = Format.values()[result.ordinal() + 1];
-      }
-      return result;
-
-    }
-
-    boolean isFormat(
-        String topicName,
-        ConsumerRecord<String, Bytes> record,
-        SchemaRegistryClient schemaRegistryClient
-    ) {
-      return false;
-    }
-
-    String print(ConsumerRecord<String, Bytes> record) throws IOException {
-      String key = record.key() != null ? record.key() : "null";
-      return dateFormat.format(new Date(record.timestamp())) + " , " + key
-          + " , " + record.value().toString() + "\n";
-    }
-
-  }
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
   private final Long interval;

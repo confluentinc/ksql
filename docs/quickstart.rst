@@ -5,7 +5,7 @@ Quick Start
 
 
 |cp| Quick Start
-    The |cp| :ref:`quickstart` is the easiest way to get you up and running with |cp| and KSQL. It will demonstrate a simple
+    The :ref:`quickstart` is the easiest way to get you up and running with |cp| and KSQL. It will demonstrate a simple
     workflow with topic management, monitoring, and using KSQL to write streaming queries against data in Kafka.
 
 KSQL Tutorials and Examples

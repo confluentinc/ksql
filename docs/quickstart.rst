@@ -1,7 +1,7 @@
 .. _ksql_quickstart:
 
-Quick Start
-===========
+KSQL Quick Start
+================
 
 
 |cp| Quick Start

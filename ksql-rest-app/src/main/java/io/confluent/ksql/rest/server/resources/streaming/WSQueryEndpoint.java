@@ -24,19 +24,18 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.Versions;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.websocket.CloseReason;
@@ -55,6 +54,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
@@ -83,6 +83,8 @@ public class WSQueryEndpoint {
 
   private volatile QueuedQueryMetadata queryMetadata;
   private volatile ListenableScheduledFuture future;
+  private volatile boolean drain = false;
+  private final CountDownLatch drainLatch = new CountDownLatch(1);
 
   @OnOpen
   public void onOpen(Session session, EndpointConfig endpointConfig) {
@@ -150,18 +152,13 @@ public class WSQueryEndpoint {
         return;
       }
 
-      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler((thread, e) -> {
-        log.error("streams exception in session {}", session.getId(), e);
-        closeSession(session, new CloseReason(
-            CloseCodes.UNEXPECTED_CONDITION,
-            "streams exception"
-        ));
-      });
-      log.info("Running query {}", queryMetadata.getQueryApplicationId());
-      queryMetadata.getKafkaStreams().start();
-
-      future = exec.scheduleWithFixedDelay(() -> {
+      final Runnable drainQueue = () -> {
         List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
+
+        boolean hasDrained = false;
+        if (drain) {
+          hasDrained = true;
+        }
         queryMetadata.getRowQueue().drainTo(rows);
 
         for (KeyValue<String, GenericRow> row : rows) {
@@ -181,7 +178,31 @@ public class WSQueryEndpoint {
             log.warn("Error serializing row in session {}", session.getId(), e);
           }
         }
-      }, 0, WS_STREAMS_POLL_DELAY_MS, TimeUnit.MILLISECONDS);
+        if (hasDrained) {
+          drainLatch.countDown();
+        }
+      };
+
+      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler((thread, e) -> {
+        log.error("streams exception in session {}", session.getId(), e);
+        drain = true;
+        try {
+          drainLatch.await();
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+        }
+        exec.submit(() -> {
+          closeSession(session, new CloseReason(
+              CloseCodes.UNEXPECTED_CONDITION,
+              "streams exception"
+          ));
+        });
+      });
+
+      log.info("Running query {}", queryMetadata.getQueryApplicationId());
+      queryMetadata.getKafkaStreams().start();
+
+      future = exec.scheduleWithFixedDelay(drainQueue, 0, WS_STREAMS_POLL_DELAY_MS, TimeUnit.MILLISECONDS);
 
       future.addListener(this::closeAndRemoveQuery, exec);
     } catch (Exception e) {

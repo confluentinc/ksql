@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -26,7 +28,9 @@ import java.util.Map;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
+public class IntegerSumKudaf
+    extends BaseAggregateFunction<Integer, Integer>
+    implements TableAggregationFunction<Integer, Integer> {
 
   IntegerSumKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> 0, Schema.INT32_SCHEMA,
@@ -35,11 +39,16 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(Integer currentValue, Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return currentVal + currentAggVal;
+    return currentValue + aggregateValue;
+  }
+
+  @Override
+  public Integer undo(Integer valueToUndo, Integer aggregateValue) {
+    return aggregateValue - valueToUndo;
   }
 
   @Override
@@ -53,6 +62,4 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     return new IntegerSumKudaf(udafIndex);
   }
-
-
 }

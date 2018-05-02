@@ -24,12 +24,12 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -54,8 +54,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
-    ksqlEngine = new KsqlEngine(
-        new KsqlConfig(props), new MockKafkaTopicClient());
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+    ksqlEngine = TestUtils.createKsqlEngine(
+        ksqlConfig,
+        new MockKafkaTopicClient(),
+        new MockSchemaRegistryClient());
 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -63,7 +66,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @After
-  public void tearDown() throws IOException {
+  public void tearDown() {
     ksqlEngine.close();
   }
 
@@ -300,10 +303,10 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus1
             .get()
             .getMessage()
-            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: "
-                        + "Cannot drop the data source. The following queries read from this source:"
-                        + " [CSAS_USER1PV, CTAS_TABLE1] and the following queries write into this "
-                        + "source: []. You need to terminate them before dropping this source."));
+            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop PAGEVIEW. \n"
+                        + "The following queries read from this source: [CSAS_USER1PV, CTAS_TABLE1]. \n"
+                        + "The following queries write into this source: []. \n"
+                        + "You need to terminate them before dropping PAGEVIEW."));
 
 
     Command dropStreamCommand2 = new Command("drop stream user1pv;", new HashMap<>());
@@ -322,10 +325,10 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus2.get()
             .getMessage(),
         containsString(
-            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop the "
-            + "data source. The following queries read from this source: [] and the "
-            + "following queries write into this source: [CSAS_USER1PV]. You need to "
-            + "terminate them before dropping this source."));
+            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop USER1PV. \n"
+            + "The following queries read from this source: []. \n"
+            + "The following queries write into this source: [CSAS_USER1PV]. \n"
+            + "You need to terminate them before dropping USER1PV."));
 
     Command dropTableCommand1 = new Command("drop table table1;", new HashMap<>());
     CommandId dropTableCommandId1 =
@@ -342,10 +345,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(
         dropTableCommandStatus1.get().getMessage(),
         containsString(
-            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop the "
-            + "data source. The following queries read from this source: [] and the following "
-            + "queries write into this source: [CTAS_TABLE1]. You need to terminate them before "
-            + "dropping this source."));
+            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop TABLE1. \n"
+            + "The following queries read from this source: []. \n"
+            + "The following queries write into this source: [CTAS_TABLE1]. \n"
+            + "You need to terminate them before dropping TABLE1."));
 
 
   }

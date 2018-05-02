@@ -18,17 +18,11 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import io.confluent.ksql.query.QueryId;
-
-@JsonTypeName("queries")
-@JsonSubTypes({})
 public class Queries extends KsqlEntity {
   private final List<RunningQuery> queries;
 
@@ -43,54 +37,6 @@ public class Queries extends KsqlEntity {
 
   public List<RunningQuery> getQueries() {
     return new ArrayList<>(queries);
-  }
-
-  public static class RunningQuery {
-    private final String queryString;
-    private final String kafkaTopic;
-    private final QueryId id;
-
-    @JsonCreator
-    public RunningQuery(
-        @JsonProperty("queryString") String queryString,
-        @JsonProperty("kafkaTopic") String kafkaTopic,
-        @JsonProperty("id") QueryId id
-    ) {
-      this.queryString = queryString;
-      this.kafkaTopic = kafkaTopic;
-      this.id = id;
-    }
-
-    public String getQueryString() {
-      return queryString;
-    }
-
-    public String getKafkaTopic() {
-      return kafkaTopic;
-    }
-
-    public QueryId getId() {
-      return id;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof RunningQuery)) {
-        return false;
-      }
-      RunningQuery that = (RunningQuery) o;
-      return getId() == that.getId()
-          && Objects.equals(getQueryString(), that.getQueryString())
-          && Objects.equals(getKafkaTopic(), that.getKafkaTopic());
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(getQueryString(), getKafkaTopic(), getId());
-    }
   }
 
   @Override

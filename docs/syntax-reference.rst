@@ -102,6 +102,12 @@ RUN SCRIPT
 
 You can run a list of predefined queries and commands from in a file by using the RUN SCRIPT command.
 
+Example:
+
+.. code:: bash
+
+    ksql> RUN SCRIPT '/local/path/to/queries.sql';
+
 The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
@@ -114,7 +120,9 @@ It does not support statements such as:
 - TERMINATE
 - Non-persistent queries: SELECT etc
 
-For example syntax, see :ref:`running-ksql-command-line`.
+RUN SCRIPT can also be used from the command line, for instance when writing shell scripts.
+For more information, see :ref:`running-ksql-command-line`.
+
 
 ===============
 KSQL statements
@@ -162,7 +170,7 @@ The supported column data types are:
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
-timestamp and message key, respectively.
+timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
 The WITH clause supports the following properties:
 
@@ -184,8 +192,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
 |                         | specified field/column within the Kafka message value (similar to timestamp extractors     |
-|                         | in Kafka's Streams API). Time-based operations such as windowing will process a record     |
-|                         | according to the timestamp in ``ROWTIME``.                                                 |
+|                         | in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations,    |
+|                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.        |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
@@ -233,7 +241,7 @@ The supported column data types are:
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
-timestamp and message key, respectively.
+timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
 KSQL has currently the following equirements for creating a table from a Kafka topic:
 
@@ -265,8 +273,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
 |                         | specified field/column within the Kafka message value (similar to timestamp extractors in  |
-|                         | Kafka's Streams API). Time-based operations such as windowing will process a record        |
-|                         | according to the timestamp in ``ROWTIME``.                                                 |
+|                         | Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations, such  |
+|                         | as windowing, will process a record according to the timestamp in ``ROWTIME``.             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
@@ -335,6 +343,7 @@ The WITH clause for the result supports the following properties:
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field. By default,                |
 |               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
+|               | Timestamps have a millisecond accuracy.
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |
@@ -376,7 +385,7 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW clause can only be used if the from_item is a stream.
 
 The WITH clause supports the following properties:
 
@@ -401,13 +410,14 @@ The WITH clause supports the following properties:
 | TIMESTAMP     | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for         |
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field.                            |
+|               | Timestamps have a millisecond accuracy.                                                              |
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |
 |               | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
 |               | e.g. given the statement                                                                             |
 |               |                                                                                                      |
-|               | .. literalinclude:: ctas-snippet.sql                                                                 |
+|               | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |               |    :language: sql                                                                                    |
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
@@ -608,7 +618,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW  clause can only be used if the from_item is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -848,13 +858,13 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given              |
 |                        |                                                            | format into the BIGINT value                      |
-|                        |                                                            | that represents the timestamp.                    |
+|                        |                                                            | that represents the millisecond timestamp.        |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
 |                        |                                                            | indices                                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT timestamp value into the        |
-|                        |                                                            | string representation of the timestamp in         |
+| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
+|                        |                                                            | the string representation of the timestamp in     |
 |                        |                                                            | the given format.                                 |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |

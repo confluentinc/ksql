@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 
 package io.confluent.ksql;
 
-import org.apache.kafka.common.utils.Utils;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.common.utils.Utils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -30,8 +30,8 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -40,9 +40,14 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.niceMock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -106,9 +111,10 @@ public class KsqlEngineTest {
     } catch (Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statements :Cannot drop the data source. "
-          + "The following queries read from this source: [] and the following queries write into "
-          + "this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+          "Exception while processing statements :Cannot drop FOO. \n"
+          + "The following queries read from this source: []. \n"
+          + "The following queries write into this source: [CTAS_FOO]. \n"
+          + "You need to terminate them before dropping FOO."));
     }
   }
 
@@ -207,4 +213,21 @@ public class KsqlEngineTest {
     assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(false));
   }
 
+  @Test
+  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+    // Given:
+    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
+    topicClient.close();
+    expectLastCall();
+    replay(topicClient);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(Collections.emptyMap()), topicClient,
+        schemaRegistryClient, metaStore);
+
+    // When:
+    ksqlEngine.close();
+
+    // Then:
+    verify(topicClient);
+  }
 }

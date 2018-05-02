@@ -82,13 +82,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private Map<String, FakeTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicationFactor) {
-    if (!topicMap.containsKey(topic)) {
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicationFactor, TopicCleanupPolicy.DELETE));
-    }
-  }
-
-  @Override
   public void createTopic(String topic, int numPartitions, short replicationFactor, Map<String, ?> configs) {
     if (!topicMap.containsKey(topic)) {
       final TopicCleanupPolicy cleanUpPolicy =

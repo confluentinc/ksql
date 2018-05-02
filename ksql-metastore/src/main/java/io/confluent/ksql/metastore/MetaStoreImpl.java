@@ -104,11 +104,11 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
           .stream()
           .collect(Collectors.joining(", "));
       throw new KsqlReferentialIntegrityException(
-          String.format("Cannot drop the data source. The following queries "
-                        + "read from this source: [%s] and the following "
-                        + "queries write into this source: [%s]. You need to "
-                        + "terminate them before dropping this source.",
-                        sourceForQueriesMessage, sinkForQueriesMessage));
+          String.format("Cannot drop %s. \nThe following queries "
+                        + "read from this source: [%s]. \nThe following "
+                        + "queries write into this source: [%s]. \nYou need to "
+                        + "terminate them before dropping %s.",
+                        sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
     }
     dataSourceMap.remove(sourceName);
   }

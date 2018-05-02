@@ -57,18 +57,23 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private final AdminClient adminClient;
   private final boolean isDeleteTopicEnabled;
 
-  public KafkaTopicClientImpl(final AdminClient adminClient) {
-    this.adminClient = adminClient;
-    this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
+  /**
+   * Construct a topic client.
+   *
+   * @param adminClientConfig the admin client config.
+   */
+  public KafkaTopicClientImpl(final Map<String, Object> adminClientConfig) {
+    this(AdminClient.create(adminClientConfig));
   }
 
-  @Override
-  public void createTopic(
-      final String topic,
-      final int numPartitions,
-      final short replicationFactor
-  ) {
-    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+  /**
+   * Construct a topic client from an existing admin client.
+   *
+   * @param adminClient the admin client. Note: Will be closed on {@link #close()}.
+   */
+  KafkaTopicClientImpl(final AdminClient adminClient) {
+    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
+    this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
   }
 
   @Override

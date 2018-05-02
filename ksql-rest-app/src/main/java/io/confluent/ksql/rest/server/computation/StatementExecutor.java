@@ -375,7 +375,7 @@ public class StatementExecutor {
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
 
     final QueryId queryId = terminateQuery.getQueryId();
-    final QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
+    final QueryMetadata queryMetadata = ksqlEngine.getPersistentQuery(queryId);
     if (!ksqlEngine.terminateQuery(queryId, true)) {
       throw new Exception(String.format("No running query with id %s was found", queryId));
     }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,10 @@
 
 package io.confluent.ksql;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +27,6 @@ import java.util.Set;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -42,8 +37,6 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-  private final AdminClient adminClient;
-  private final KafkaTopicClient topicClient;
 
   public static KsqlContext create(KsqlConfig ksqlConfig) {
     return create(ksqlConfig, null);
@@ -66,37 +59,19 @@ public class KsqlContext {
           KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
       );
     }
-    AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-    if (schemaRegistryClient == null) {
-      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient));
-    } else {
-      return new KsqlContext(
-          adminClient,
-          topicClient,
-          new KsqlEngine(
-              ksqlConfig,
-              topicClient,
-              schemaRegistryClient,
-              new MetaStoreImpl()
-          )
-      );
-    }
 
+    final KsqlEngine engine = schemaRegistryClient == null
+                              ? new KsqlEngine(ksqlConfig)
+                              : new KsqlEngine(ksqlConfig, schemaRegistryClient);
+
+    return new KsqlContext(engine);
   }
-
 
   /**
    * Create a KSQL context object with the given properties.
    * A KSQL context has it's own metastore valid during the life of the object.
    */
-  KsqlContext(
-      final AdminClient adminClient,
-      final KafkaTopicClient topicClient,
-      final KsqlEngine ksqlEngine
-  ) {
-    this.adminClient = adminClient;
-    this.topicClient = topicClient;
+  KsqlContext(final KsqlEngine ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
   }
 
@@ -115,8 +90,6 @@ public class KsqlContext {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.getKafkaStreams().start();
-        ksqlEngine.getPersistentQueries()
-            .put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
       } else {
         System.err.println("Ignoring statemenst: " + sql);
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");
@@ -130,10 +103,7 @@ public class KsqlContext {
     return ksqlEngine.getLivePersistentQueries();
   }
 
-  public void close() throws IOException {
+  public void close() {
     ksqlEngine.close();
-    topicClient.close();
-    adminClient.close();
   }
-
 }

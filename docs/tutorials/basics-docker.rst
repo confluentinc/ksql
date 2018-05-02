@@ -24,13 +24,13 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ git clone git@github.com:confluentinc/ksql.git
+       $ git clone https://github.com/confluentinc/ksql.git
        $ cd ksql
 
 #. Switch to the correct |cp| release branch:
 
    .. codewithvars:: bash
-
+   
        $ git checkout |release_post_branch|
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
@@ -50,6 +50,8 @@ Download the Tutorial and Start KSQL
    .. include:: ../includes/ksql-includes.rst
       :start-line: 19
       :end-line: 40
+
+    The 5.0.0-beta1 ``ksql-cli`` image will display version 5.0.0-SNAPSHOT due to a cosmetic bug.
 
 .. include:: ../includes/ksql-includes.rst
     :start-line: 82

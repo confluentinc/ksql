@@ -40,6 +40,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -51,7 +52,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 
 import static org.junit.Assert.assertThat;
@@ -186,7 +186,7 @@ public class KsqlRestClientTest {
     Assert.assertThat(commandStatus.getStatus(), CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
   }
 
-  @Test(expected = KsqlRestException.class)
+  @Test(expected = KsqlRestClientException.class)
   public void shouldThrowOnInvalidServerAddress() {
     new KsqlRestClient("not-valid-address", Collections.emptyMap());
   }

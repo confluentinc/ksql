@@ -24,7 +24,7 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ git clone git@github.com:confluentinc/ksql.git
+       $ git clone https://github.com/confluentinc/ksql.git
        $ cd ksql
 
 #. Switch to the correct Confluent Platform release branch:

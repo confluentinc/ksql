@@ -28,13 +28,11 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,7 +136,6 @@ public class JoinNodeTest {
   public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
-
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
     FunctionRegistry functionRegistry = mock(FunctionRegistry.class);
@@ -202,10 +199,10 @@ public class JoinNodeTest {
     buildJoin();
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
+        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
     final List<String> predecessors = leftJoin.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KSTREAM-REDUCE-STATE-STORE-0000000003")));
-    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000013")));
+    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
+    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000014")));
   }
 
   @Test

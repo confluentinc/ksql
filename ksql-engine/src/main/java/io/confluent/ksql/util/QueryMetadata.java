@@ -16,15 +16,21 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class QueryMetadata {
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
@@ -36,15 +42,18 @@ public class QueryMetadata {
   private final String queryApplicationId;
   private final KafkaTopicClient kafkaTopicClient;
   private final Topology topoplogy;
+  private final Map<String, Object> overriddenProperties;
+  private final Set<String> sourceNames;
 
-  public QueryMetadata(final String statementString,
+  protected QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,
                        final OutputNode outputNode,
                        final String executionPlan,
                        final DataSource.DataSourceType dataSourceType,
                        final String queryApplicationId,
                        final KafkaTopicClient kafkaTopicClient,
-                       final Topology topoplogy) {
+                       final Topology topoplogy,
+                       final Map<String, Object> overriddenProperties) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
@@ -53,6 +62,14 @@ public class QueryMetadata {
     this.queryApplicationId = queryApplicationId;
     this.kafkaTopicClient = kafkaTopicClient;
     this.topoplogy = topoplogy;
+    this.overriddenProperties = overriddenProperties;
+    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    planSourceExtractorVisitor.process(outputNode, null);
+    this.sourceNames = planSourceExtractorVisitor.getSourceNames();
+  }
+
+  public Map<String, Object> getOverriddenProperties() {
+    return overriddenProperties;
   }
 
   public String getStatementString() {
@@ -83,6 +100,14 @@ public class QueryMetadata {
     return topoplogy;
   }
 
+  public Schema getResultSchema() {
+    return outputNode.getSchema();
+  }
+
+  public Set<String> getSourceNames() {
+    return sourceNames;
+  }
+
   public void close() {
 
     kafkaStreams.close();
@@ -93,6 +118,36 @@ public class QueryMetadata {
       log.error("Could not clean up the query with application id: {}. Query status is: {}",
                 queryApplicationId, kafkaStreams.state());
     }
+  }
+
+  private Set<String> getInternalSubjectNameSet(SchemaRegistryClient schemaRegistryClient) {
+    try {
+      final String suffix1 = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
+                             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final String suffix2 = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
+                             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+      return schemaRegistryClient.getAllSubjects().stream()
+          .filter(subjectName -> subjectName.startsWith(getQueryApplicationId()))
+          .filter(subjectName -> subjectName.endsWith(suffix1) || subjectName.endsWith(suffix2))
+          .collect(Collectors.toSet());
+    } catch (Exception e) {
+      // Do nothing! Schema registry clean up is best effort!
+      log.warn("Could not clean up the schema registry for query: " + queryApplicationId, e);
+    }
+    return new HashSet<>();
+  }
+
+
+  public void cleanUpInternalTopicAvroSchemas(SchemaRegistryClient schemaRegistryClient) {
+    getInternalSubjectNameSet(schemaRegistryClient).forEach(subjectName -> {
+      try {
+        schemaRegistryClient.deleteSubject(subjectName);
+      } catch (Exception e) {
+        log.warn("Could not clean up the schema registry for query: " + queryApplicationId
+                 + ", topic: " + subjectName, e);
+      }
+    });
   }
 
   @Override

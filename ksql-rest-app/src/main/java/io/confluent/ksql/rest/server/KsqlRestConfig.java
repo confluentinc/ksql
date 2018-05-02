@@ -72,6 +72,11 @@ public class KsqlRestConfig extends RestConfig {
 
   public static final String COMMAND_TOPIC_SUFFIX = "command_topic";
 
+  public static final String KSQL_WEBSOCKETS_NUM_THREADS = "ksql.server.websockets.num.threads";
+
+  private static final int DEFAULT_WEBSOCKETS_THREADS = 5;
+
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -99,6 +104,12 @@ public class KsqlRestConfig extends RestConfig {
         "",
         ConfigDef.Importance.LOW,
         INSTALL_DIR_DOC
+    ).define(
+        KSQL_WEBSOCKETS_NUM_THREADS,
+        ConfigDef.Type.INT,
+        DEFAULT_WEBSOCKETS_THREADS,
+        ConfigDef.Importance.LOW,
+        "The number of websocket threads to handle query results"
     );
   }
 

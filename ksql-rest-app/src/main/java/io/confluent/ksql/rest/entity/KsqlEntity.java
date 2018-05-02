@@ -21,20 +21,22 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.WRAPPER_OBJECT
+    include = JsonTypeInfo.As.PROPERTY
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = CommandStatusEntity.class, name = "currentStatus"),
-    @JsonSubTypes.Type(value = ErrorMessageEntity.class, name = "error"),
     @JsonSubTypes.Type(value = PropertiesList.class, name = "properties"),
     @JsonSubTypes.Type(value = Queries.class, name = "queries"),
-    @JsonSubTypes.Type(value = SourceDescription.class, name = "description"),
-    @JsonSubTypes.Type(value = TopicDescription.class, name = "topic_description"),
+    @JsonSubTypes.Type(value = SourceDescriptionEntity.class, name = "sourceDescription"),
+    @JsonSubTypes.Type(value = QueryDescriptionEntity.class, name = "queryDescription"),
+    @JsonSubTypes.Type(value = TopicDescription.class, name = "topicDescription"),
     @JsonSubTypes.Type(value = StreamsList.class, name = "streams"),
     @JsonSubTypes.Type(value = TablesList.class, name = "tables"),
     @JsonSubTypes.Type(value = KsqlTopicsList.class, name = "ksql_topics"),
     @JsonSubTypes.Type(value = KafkaTopicsList.class, name = "kafka_topics"),
-    @JsonSubTypes.Type(value = ExecutionPlan.class, name = "executionPlan")
+    @JsonSubTypes.Type(value = ExecutionPlan.class, name = "executionPlan"),
+    @JsonSubTypes.Type(value = SourceDescriptionList.class, name = "source_descriptions"),
+    @JsonSubTypes.Type(value = QueryDescriptionList.class, name = "query_descriptions")
 })
 public abstract class KsqlEntity {
   private final String statementText;

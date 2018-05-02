@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,8 +21,11 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -33,21 +36,54 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
-
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TopicConsumer;
+import io.confluent.ksql.util.TopicProducer;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 
 import static io.confluent.ksql.TestResult.build;
-import static io.confluent.ksql.util.KsqlConfig.*;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -202,8 +238,17 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
+    terminateQuery("CSAS_" + resultKStreamName);
+
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));
+  }
+
+  private static void terminateQuery(String queryId) {
+    test(
+        String.format("terminate %s", queryId),
+        build("Query terminated.")
+    );
   }
 
   private static void dropStream(String name) {
@@ -340,8 +385,9 @@ public class CliTest extends TestRunner {
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0, new
-            Double[]{1100.0,
+        "ITEM_8", 80.0,
+        "2018-01-08",
+        new Double[]{1100.0,
             1110.99,
             970.0 },
         mapField)));
@@ -354,7 +400,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectLimit() throws Exception {
+  public void testSelectLimit() {
     TestResult.OrderedResult expectedResult = TestResult.build();
     Map<String, GenericRow> streamData = orderDataProvider.data();
     int limit = 3;
@@ -369,7 +415,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectUDFs() throws Exception {
+  public void testSelectUDFs() {
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
@@ -434,5 +480,24 @@ public class CliTest extends TestRunner {
     new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
+  }
+
+  @Test
+  public void shouldPrintErrorOnUnsupportedAPI() {
+    KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
+    EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
+        RestResponse.erroneous(
+            new KsqlErrorMessage(
+                Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
+                "Minimum supported client version: 1.0")));
+    EasyMock.replay(mockRestClient);
+    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
+    new Cli(1L, 1L, mockRestClient, terminal);
+    Assert.assertThat(
+        terminal.getOutputString(),
+        containsString("This CLI version no longer supported"));
+    Assert.assertThat(
+        terminal.getOutputString(),
+        containsString("Minimum supported client version: 1.0"));
   }
 }

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 
 /**
  * Execute DDL Commands
@@ -43,23 +44,25 @@ public class DdlCommandExec {
           "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
       );
     }
-    return executeOnMetaStore(ddlCommand, tempMetaStore);
+    return executeOnMetaStore(ddlCommand, tempMetaStore, true);
   }
 
   /**
    * execute on real metaStore
    */
-  public DdlCommandResult execute(DdlCommand ddlCommand) {
-    return executeOnMetaStore(ddlCommand, this.metaStore);
+  public DdlCommandResult execute(DdlCommand ddlCommand, boolean isValidatePhase) {
+    return executeOnMetaStore(ddlCommand, this.metaStore, isValidatePhase);
   }
 
-  private static DdlCommandResult executeOnMetaStore(DdlCommand ddlCommand, MetaStore metaStore) {
+  private static DdlCommandResult executeOnMetaStore(DdlCommand ddlCommand, MetaStore metaStore,
+                                                     boolean isValidatePhase) {
     // TODO: create new task to run
     try {
-      return ddlCommand.run(metaStore);
-    } catch (Exception e) {
-      LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
-      return new DdlCommandResult(false, e.getMessage());
+      return ddlCommand.run(metaStore, isValidatePhase);
+    } catch (KsqlReferentialIntegrityException referentialIntegrityException) {
+      LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand),
+                  referentialIntegrityException);
+      throw referentialIntegrityException;
     }
   }
 }

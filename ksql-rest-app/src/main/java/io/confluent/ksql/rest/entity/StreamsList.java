@@ -18,19 +18,12 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
-import io.confluent.ksql.metastore.KsqlStream;
-
-@JsonTypeName("streams")
-@JsonSubTypes({})
 public class StreamsList extends KsqlEntity {
 
   private final Collection<SourceInfo.Stream> streams;
@@ -42,15 +35,6 @@ public class StreamsList extends KsqlEntity {
   ) {
     super(statementText);
     this.streams = streams;
-  }
-
-  public static StreamsList fromKsqlStreams(
-      String statementText,
-      Collection<KsqlStream> ksqlStreams
-  ) {
-    Collection<SourceInfo.Stream> streamInfos =
-        ksqlStreams.stream().map(SourceInfo.Stream::new).collect(Collectors.toList());
-    return new StreamsList(statementText, streamInfos);
   }
 
   public List<SourceInfo.Stream> getStreams() {

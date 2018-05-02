@@ -19,6 +19,8 @@ package io.confluent.ksql.metastore;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.ksql.util.Pair;
+
 public interface MetaStore {
 
   public KsqlTopic getTopic(String topicName);
@@ -41,7 +43,18 @@ public interface MetaStore {
 
   public Set<String> getAllTopicNames();
 
-  public void putAll(MetaStore otherMetaStore);
+
+  public void updateForPersistentQuery(String queryId,
+                                       Set<String> sourceNames,
+                                       Set<String> sinkNames);
+
+  public void removePersistentQuery(String queryId);
+
+  public Set<String> getQueriesWithSource(String sourceName);
+
+  public Set<String> getQueriesWithSink(String sourceName);
 
   public MetaStore clone();
+
+  public Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> getDataSourceMap();
 }

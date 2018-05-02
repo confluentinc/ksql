@@ -88,7 +88,7 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {

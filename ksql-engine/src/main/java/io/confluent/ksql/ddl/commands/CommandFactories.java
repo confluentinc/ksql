@@ -19,7 +19,7 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.QueryTerminator;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -38,21 +38,18 @@ public class CommandFactories implements DdlCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final QueryTerminator queryTerminator,
+      final SchemaRegistryClient schemaRegistryClient,
       final boolean enforceTopicExistence
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand(
-            (RegisterTopic) ddlStatement
-        )
-    );
+        (sqlExpression, ddlStatement, properties) ->
+            new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
         (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )
@@ -62,7 +59,6 @@ public class CommandFactories implements DdlCommandFactory {
         (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )
@@ -70,28 +66,21 @@ public class CommandFactories implements DdlCommandFactory {
     factories.put(
         DropStream.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator
+            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, schemaRegistryClient
         )
     );
     factories.put(
         DropTable.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator
+            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, schemaRegistryClient
         )
     );
     factories.put(
-        DropTopic.class,
-        (sqlExpression, ddlStatement, properties) -> new DropTopicCommand(
-            (DropTopic) ddlStatement
-        )
-    );
+        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
+            new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(
-        SetProperty.class,
-        (sqlExpression, ddlStatement, properties) -> new SetPropertyCommand(
-            (SetProperty) ddlStatement,
-            properties
-        )
-    );
+        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
+            new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }
 
   @Override

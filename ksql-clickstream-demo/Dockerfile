@@ -14,7 +14,7 @@ ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${PROJECT_VERSI
 ENV KSQL_CONFIG_DIR="/etc/ksql"
 ENV KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
 
-RUN wget -q http://packages.confluent.io/archive/5.0/confluent-oss-5.0.0-beta1-2.11.tar.gz \
+RUN wget -q https://packages.confluent.io/archive/5.0/confluent-oss-5.0.0-beta1-2.11.tar.gz \
     && tar xzvf confluent-oss-5.0.0-beta1-2.11.tar.gz --strip-components 1 \
     && rm confluent-oss-5.0.0-beta1-2.11.tar.gz
 

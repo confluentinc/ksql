@@ -7,7 +7,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 **Prerequisites**
 
--  Docker must installed and configured with at least 4 GB of memory.
+-  Docker must be installed and configured with at least 4 GB of memory.
 
    -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
    -  `All platforms <https://docs.docker.com/engine/installation/>`__

@@ -27,6 +27,17 @@ Supported Versions and Interoperability
 
 .. _install_ksql-server:
 
+-------------------------
+Installation Instructions
+-------------------------
+
+Follow the instructions at :ref:`installing_cp`.
+
+It is also possible to install KSQL individually through :ref:`standalone packages <available_packages>`.
+
+
+.. _start_ksql-server:
+
 ------------------------
 Starting the KSQL Server
 ------------------------

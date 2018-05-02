@@ -16,12 +16,15 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import javax.ws.rs.Consumes;
@@ -40,7 +43,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 
 @Path("/query")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
@@ -62,14 +65,27 @@ public class StreamedQueryResource {
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Response streamQuery(KsqlRequest request) throws Exception {
-    String ksql = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
+    String ksql = request.getKsql();
+    Statement statement;
+    if (ksql == null) {
+      return Errors.badRequest("\"ksql\" field must be given");
+    }
     Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
-    Statement statement = statementParser.parseSingleStatement(ksql);
+    try {
+      statement = statementParser.parseSingleStatement(ksql);
+    } catch (IllegalArgumentException | KsqlException e) {
+      return Errors.badRequest(e);
+    }
 
     if (statement instanceof Query) {
-      QueryStreamWriter queryStreamWriter =
-          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+      QueryStreamWriter queryStreamWriter;
+      try {
+        queryStreamWriter =
+            new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+      } catch (KsqlException e) {
+        return Errors.badRequest(e);
+      }
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
 
@@ -79,12 +95,10 @@ public class StreamedQueryResource {
           (PrintTopic) statement
       );
       return Response.ok().entity(topicStreamWriter).build();
-    } else {
-      throw new Exception(String.format(
-          "Statement type `%s' not supported for this resource",
-          statement.getClass().getName()
-      ));
     }
+    return Errors.badRequest(String .format(
+        "Statement type `%s' not supported for this resource",
+        statement.getClass().getName()));
   }
 
   private TopicStreamWriter getTopicStreamWriter(
@@ -97,11 +111,11 @@ public class StreamedQueryResource {
         Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
-      throw new RuntimeException(String.format(
-          "Could not find topic '%s', KSQL uses uppercase.\n"
+      throw new KsqlRestException(
+          Errors.badRequest(String.format(
+              "Could not find topic '%s', KSQL uses uppercase.\n"
               + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
-          topicName
-      ));
+              topicName)));
     }
     Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
     properties.putAll(clientLocalProperties);

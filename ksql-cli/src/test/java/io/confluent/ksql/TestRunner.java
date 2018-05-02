@@ -29,6 +29,7 @@ import static junit.framework.TestCase.fail;
 
 public abstract class TestRunner {
 
+
   private static Cli localCli;
   private static TestTerminal testTerminal;
 

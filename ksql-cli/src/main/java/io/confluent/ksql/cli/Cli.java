@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.Errors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -62,7 +64,6 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -74,6 +75,8 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 public class Cli implements Closeable, AutoCloseable {
 
@@ -119,10 +122,13 @@ public class Cli implements Closeable, AutoCloseable {
     try {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
+        KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
+        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
+          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
+          return;
+        }
         writer.format(
-            "Couldn't connect to the KSQL server: %s\n\n",
-            restResponse.getErrorMessage().getMessage()
-        );
+            "Couldn't connect to the KSQL server: %s\n\n", ksqlError.getMessage());
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
@@ -385,12 +391,7 @@ public class Cli implements Closeable, AutoCloseable {
       KsqlEntityList ksqlEntities = response.getResponse();
       boolean noErrorFromServer = true;
       for (KsqlEntity entity : ksqlEntities) {
-        if (entity instanceof ErrorMessageEntity) {
-          ErrorMessageEntity errorMsg = (ErrorMessageEntity) entity;
-          terminal.printErrorMessage(errorMsg.getErrorMessage());
-          LOGGER.error(errorMsg.getErrorMessage().getMessage());
-          noErrorFromServer = false;
-        } else if (entity instanceof CommandStatusEntity
+        if (entity instanceof CommandStatusEntity
             && (
             ((CommandStatusEntity) entity).getCommandStatus().getStatus()
                 == CommandStatus.Status.ERROR)
@@ -409,7 +410,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException, IOException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 

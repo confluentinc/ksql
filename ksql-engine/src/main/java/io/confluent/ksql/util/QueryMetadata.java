@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
@@ -42,8 +43,9 @@ public class QueryMetadata {
   private final KafkaTopicClient kafkaTopicClient;
   private final Topology topoplogy;
   private final Map<String, Object> overriddenProperties;
+  private final Set<String> sourceNames;
 
-  public QueryMetadata(final String statementString,
+  protected QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,
                        final OutputNode outputNode,
                        final String executionPlan,
@@ -61,6 +63,9 @@ public class QueryMetadata {
     this.kafkaTopicClient = kafkaTopicClient;
     this.topoplogy = topoplogy;
     this.overriddenProperties = overriddenProperties;
+    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    planSourceExtractorVisitor.process(outputNode, null);
+    this.sourceNames = planSourceExtractorVisitor.getSourceNames();
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -97,6 +102,10 @@ public class QueryMetadata {
 
   public Schema getResultSchema() {
     return outputNode.getSchema();
+  }
+
+  public Set<String> getSourceNames() {
+    return sourceNames;
   }
 
   public void close() {

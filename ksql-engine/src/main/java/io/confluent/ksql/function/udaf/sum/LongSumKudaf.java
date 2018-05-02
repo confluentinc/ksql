@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -26,7 +28,8 @@ import java.util.Map;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
+public class LongSumKudaf
+    extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
 
   LongSumKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
@@ -34,13 +37,18 @@ public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    return currentVal + currentAggVal;
+  public Long aggregate(Long currentValue, Long aggregateValue) {
+    return currentValue + aggregateValue;
   }
 
   @Override
   public Merger<String, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
+  }
+
+  @Override
+  public Long undo(Long valueToUndo, Long aggregateValue) {
+    return aggregateValue - valueToUndo;
   }
 
   @Override

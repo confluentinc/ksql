@@ -24,59 +24,29 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KsqlException;
 
-public abstract class KsqlAggregateFunction<V, A> {
-  private final int argIndexInValue;
-  private final Supplier<A> initialValueSupplier;
-  private final Schema returnType;
-  private final List<Schema> arguments;
+public interface KsqlAggregateFunction<V, A> {
 
-  public KsqlAggregateFunction(Integer argIndexInValue) {
-    this(argIndexInValue, null, null, null);
-  }
-
-  public KsqlAggregateFunction(
-      final int argIndexInValue,
-      final Supplier<A> initialValueSupplier,
-      final Schema returnType,
-      final List<Schema> arguments
-  ) {
-    this.argIndexInValue = argIndexInValue;
-    this.initialValueSupplier = initialValueSupplier;
-    this.returnType = returnType;
-    this.arguments = arguments;
-  }
-
-  public abstract KsqlAggregateFunction<V, A> getInstance(
+  KsqlAggregateFunction<V, A> getInstance(
       final Map<String, Integer> expressionNames,
-      final List<Expression> functionArguments
-  );
+      final List<Expression> functionArguments);
 
-  public boolean hasSameArgTypes(List<Schema> argTypeList) {
-    if (argTypeList == null) {
-      throw new KsqlException("Argument type list is null.");
-    }
-    return this.arguments.equals(argTypeList);
-  }
+  boolean hasSameArgTypes(List<Schema> argTypeList);
 
-  public abstract A aggregate(V currentVal, A currentAggVal);
+  Supplier<A> getInitialValueSupplier();
 
-  public Supplier<A> getInitialValueSupplier() {
-    return initialValueSupplier;
-  }
+  int getArgIndexInValue();
 
-  public int getArgIndexInValue() {
-    return argIndexInValue;
-  }
+  Schema getReturnType();
 
-  public Schema getReturnType() {
-    return returnType;
-  }
+  /**
+   * Merges values inside the window.
+   * @return A - type of return value
+   */
+  A aggregate(V currentValue, A aggregateValue);
 
-  public List<Schema> getArguments() {
-    return arguments;
-  }
-
-  public abstract Merger<String, A> getMerger();
+  /**
+   * Merges two session windows together with the same merge key.
+   */
+  Merger<String, A> getMerger();
 }

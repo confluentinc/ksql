@@ -23,10 +23,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
+public class IntegerMinKudaf extends BaseAggregateFunction<Integer, Integer> {
 
   IntegerMinKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> Integer.MAX_VALUE, Schema.INT32_SCHEMA,
@@ -35,11 +36,11 @@ public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(Integer currentValue, Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return Math.min(currentVal, currentAggVal);
+    return Math.min(currentValue, aggregateValue);
   }
 
   @Override

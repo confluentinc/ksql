@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -127,7 +128,7 @@ public class CommandFactoriesTest {
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
                               ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true,
@@ -143,7 +144,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldFailCreateTableIfKeyIsNotProvided() {
     try {
-      final DdlCommand result = commandFactories.create(sqlExpression,
+      commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
                           Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
                               ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true, properties),

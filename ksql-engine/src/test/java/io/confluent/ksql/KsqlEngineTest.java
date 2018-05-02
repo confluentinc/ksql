@@ -111,9 +111,10 @@ public class KsqlEngineTest {
     } catch (Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statements :Cannot drop the data source. "
-          + "The following queries read from this source: [] and the following queries write into "
-          + "this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+          "Exception while processing statements :Cannot drop FOO. \n"
+          + "The following queries read from this source: []. \n"
+          + "The following queries write into this source: [CTAS_FOO]. \n"
+          + "You need to terminate them before dropping FOO."));
     }
   }
 

@@ -27,11 +27,12 @@ import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 
 @Path("/status")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
   private final StatementExecutor statementExecutor;
@@ -50,8 +51,7 @@ public class StatusResource {
   public Response getStatus(
       @PathParam("type") String type,
       @PathParam("entity") String entity,
-      @PathParam("action") String action
-  ) throws Exception {
+      @PathParam("action") String action) {
     CommandId commandId = new CommandId(type, entity, action);
 
     Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);

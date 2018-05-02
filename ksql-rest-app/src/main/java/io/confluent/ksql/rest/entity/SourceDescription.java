@@ -43,8 +43,8 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 public class SourceDescription {
 
   private final String name;
-  private final List<String> readQueries;
-  private final List<String> writeQueries;
+  private final List<RunningQuery> readQueries;
+  private final List<RunningQuery> writeQueries;
   private final List<FieldSchemaInfo> schema;
   private final String type;
   private final String key;
@@ -52,7 +52,7 @@ public class SourceDescription {
   private final String statistics;
   private final String errorStats;
   private final boolean extended;
-  private final String serdes;
+  private final String format;
   private final String topic;
   private final int partitions;
   private final int replication;
@@ -60,8 +60,8 @@ public class SourceDescription {
   @JsonCreator
   public SourceDescription(
       @JsonProperty("name") String name,
-      @JsonProperty("readQueries") List<String> readQueries,
-      @JsonProperty("writeQueries") List<String> writeQueries,
+      @JsonProperty("readQueries") List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") List<RunningQuery> writeQueries,
       @JsonProperty("schema") List<FieldSchemaInfo> schema,
       @JsonProperty("type") String type,
       @JsonProperty("key") String key,
@@ -69,9 +69,9 @@ public class SourceDescription {
       @JsonProperty("statistics") String statistics,
       @JsonProperty("errorStats") String errorStats,
       @JsonProperty("extended") boolean extended,
-      @JsonProperty("serdes") String serdes,
+      @JsonProperty("format") String format,
       @JsonProperty("topic") String topic,
-      @JsonProperty("parititions") int partitions,
+      @JsonProperty("partitions") int partitions,
       @JsonProperty("replication") int replication
   ) {
     this.name = name;
@@ -84,7 +84,7 @@ public class SourceDescription {
     this.statistics = statistics;
     this.errorStats = errorStats;
     this.extended = extended;
-    this.serdes = serdes;
+    this.format = format;
     this.topic = topic;
     this.partitions = partitions;
     this.replication = replication;
@@ -93,9 +93,9 @@ public class SourceDescription {
   public SourceDescription(
       StructuredDataSource dataSource,
       boolean extended,
-      String serdes,
-      List<String> readQueries,
-      List<String> writeQueries,
+      String format,
+      List<RunningQuery> readQueries,
+      List<RunningQuery> writeQueries,
       KafkaTopicClient topicClient
   ) {
     this(
@@ -113,7 +113,7 @@ public class SourceDescription {
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
         extended,
-        serdes,
+        format,
         dataSource.getKsqlTopic().getKafkaTopicName(),
         (
             extended && topicClient != null ? getPartitions(
@@ -172,8 +172,8 @@ public class SourceDescription {
     return type;
   }
 
-  public String getSerdes() {
-    return serdes;
+  public String getFormat() {
+    return format;
   }
 
   public String getTopic() {
@@ -184,11 +184,11 @@ public class SourceDescription {
     return key;
   }
 
-  public List<String> getWriteQueries() {
+  public List<RunningQuery> getWriteQueries() {
     return writeQueries;
   }
 
-  public List<String> getReadQueries() {
+  public List<RunningQuery> getReadQueries() {
     return readQueries;
   }
 
@@ -250,7 +250,7 @@ public class SourceDescription {
     if (!Objects.equals(type, that.type)) {
       return false;
     }
-    if (!Objects.equals(serdes, that.serdes)) {
+    if (!Objects.equals(format, that.format)) {
       return false;
     }
     return equals2(that);

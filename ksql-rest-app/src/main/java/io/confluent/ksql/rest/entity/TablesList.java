@@ -18,16 +18,12 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("tables")
-@JsonSubTypes({})
 public class TablesList extends KsqlEntity {
   private final Collection<SourceInfo.Table> tables;
 

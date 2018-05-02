@@ -288,7 +288,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectAllJoin fails", querySpecification.getFrom() instanceof Join);
     Join join = (Join) querySpecification.getFrom();
     Assert.assertTrue("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems
-        ().size() == 13);
+        ().size() == 15);
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
   }

@@ -14,6 +14,7 @@ KSQL
    capacity-planning
    tutorials/index
    syntax-reference
+   api
    faq
 
 .. raw:: html
@@ -85,3 +86,23 @@ KSQL CLI
 ---------------------
 
 .. include:: includes/ksql-supported-versions.rst
+
+
+.. raw:: html
+
+   <h2>KSQL Documentation</h2>
+
+---------------------
+
+.. toctree::
+    :titlesonly:
+    :maxdepth: 2
+
+    quickstart
+    installation/index
+    operations
+    capacity-planning
+    tutorials/index
+    syntax-reference
+    api
+    faq

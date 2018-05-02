@@ -28,18 +28,23 @@ import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 
 @Path("/status")
 @Produces(MediaType.APPLICATION_JSON)
 public class MockStatusResource {
+  Map<CommandId,CommandStatus.Status> statuses;
 
-  @GET
-  public Response getAllStatuses() {
-    Map<CommandId, CommandStatus.Status> statuses = new
+  public MockStatusResource() {
+    statuses = new
         HashMap<>();
     statuses.put(new CommandId(CommandId.Type.TOPIC, "c1", CommandId.Action.CREATE), CommandStatus.Status.SUCCESS);
     statuses.put(new CommandId(CommandId.Type.TOPIC, "c2", CommandId.Action.CREATE), CommandStatus.Status.ERROR);
+  }
+
+  @GET
+  public Response getAllStatuses() {
     CommandStatuses commandStatuses = new CommandStatuses(statuses);
     return Response.ok(commandStatuses).build();
   }
@@ -48,8 +53,11 @@ public class MockStatusResource {
   @Path("/{type}/{entity}/{action}")
   public Response getStatus(@PathParam("type") String type,
                             @PathParam("entity") String entity,
-                            @PathParam("action") String action)
-      throws Exception {
-    return Response.ok("status").build();
+                            @PathParam("action") String action) {
+    CommandStatus.Status status = statuses.get(new CommandId(type, entity, action));
+    if (status == null) {
+      return Response.status(Response.Status.NOT_FOUND).build();
+    }
+    return Response.ok(new CommandStatus(status, "")).build();
   }
 }

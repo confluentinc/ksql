@@ -102,6 +102,12 @@ RUN SCRIPT
 
 You can run a list of predefined queries and commands from in a file by using the RUN SCRIPT command.
 
+Example:
+
+.. code:: bash
+
+    ksql> RUN SCRIPT '/local/path/to/queries.sql';
+
 The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
@@ -114,7 +120,9 @@ It does not support statements such as:
 - TERMINATE
 - Non-persistent queries: SELECT etc
 
-For example syntax, see :ref:`running-ksql-command-line`.
+RUN SCRIPT can also be used from the command line, for instance when writing shell scripts.
+For more information, see :ref:`running-ksql-command-line`.
+
 
 ===============
 KSQL statements
@@ -377,7 +385,7 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW clause can only be used if the from_item is a stream.
 
 The WITH clause supports the following properties:
 
@@ -409,7 +417,7 @@ The WITH clause supports the following properties:
 |               | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
 |               | e.g. given the statement                                                                             |
 |               |                                                                                                      |
-|               | .. literalinclude:: ctas-snippet.sql                                                                 |
+|               | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |               |    :language: sql                                                                                    |
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
@@ -610,7 +618,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that the WINDOW  clause can only be used if the from_item is a stream.
 
 In the above statements from_item is one of the following:
 

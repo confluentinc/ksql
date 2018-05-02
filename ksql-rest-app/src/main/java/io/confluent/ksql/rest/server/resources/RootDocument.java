@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.Versions;
 import java.net.URI;
 
 import javax.ws.rs.GET;
@@ -28,7 +29,7 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
 @Path("/")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class RootDocument {
 
   private final String postFix;

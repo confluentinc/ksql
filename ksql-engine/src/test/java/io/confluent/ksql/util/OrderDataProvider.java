@@ -31,7 +31,7 @@ public class OrderDataProvider extends TestDataProvider {
       "ORDER";
 
   private static final String ksqlSchemaString =
-      "(ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>)";
+      "(ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>)";
 
   private static final String key = "ORDERTIME";
 
@@ -40,6 +40,7 @@ public class OrderDataProvider extends TestDataProvider {
       .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
       .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
       .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
+      .field("TIMESTAMP", Schema.STRING_SCHEMA)
       .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
       .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA)).build();
 
@@ -58,54 +59,53 @@ public class OrderDataProvider extends TestDataProvider {
 
     Map<String, GenericRow> dataMap = new HashMap<>();
     dataMap.put("1", new GenericRow(Arrays.asList(1l, "ORDER_1",
-        "ITEM_1", 10.0,
+        "ITEM_1", 10.0, "2018-01-01",
     new ArrayList<>(Arrays.asList(100.0,
             110.99,
             90.0 )),
         mapField)));
     dataMap.put("2", new GenericRow(Arrays.asList(2l, "ORDER_2",
-        "ITEM_2", 20.0,
+        "ITEM_2", 20.0, "2018-01-02",
     new ArrayList<>(Arrays.asList(10.0,
             10.99,
             9.0 )),
         mapField)));
 
     dataMap.put("3", new GenericRow(Arrays.asList(3l, "ORDER_3",
-        "ITEM_3", 30.0,
+        "ITEM_3", 30.0, "2018-01-03",
             new ArrayList<>(Arrays.asList(10.0,
             10.99,
             91.0)),
         mapField)));
 
     dataMap.put("4", new GenericRow(Arrays.asList(4l, "ORDER_4",
-        "ITEM_4", 40.0,
+        "ITEM_4", 40.0, "2018-01-04",
         new ArrayList<>(Arrays.asList(10.0,
             140.99,
             94.0 )),
         mapField)));
 
     dataMap.put("5", new GenericRow(Arrays.asList(5l, "ORDER_5",
-        "ITEM_5", 50.0, new ArrayList<>(Arrays.asList(160.0,
+        "ITEM_5", 50.0, "2018-01-05", new ArrayList<>(Arrays.asList(160.0,
             160.99,
             98.0 )),
         mapField)));
 
     dataMap.put("6", new GenericRow(Arrays.asList(6l, "ORDER_6",
-        "ITEM_6", 60.0,
-                                                  new ArrayList<>(Arrays.asList(1000.0,
+        "ITEM_6", 60.0, "2018-01-06", new ArrayList<>(Arrays.asList(1000.0,
             1100.99,
             900.0 )),
         mapField)));
 
     dataMap.put("7", new GenericRow(Arrays.asList(7l, "ORDER_6",
-        "ITEM_7", 70.0,
+        "ITEM_7", 70.0, "2018-01-07",
     new ArrayList<>(Arrays.asList(1100.0,
             1110.99,
             190.0 )),
         mapField)));
 
     dataMap.put("8", new GenericRow(Arrays.asList(8l, "ORDER_6",
-        "ITEM_8", 80.0,
+        "ITEM_8", 80.0, "2018-01-08",
     new ArrayList<>(Arrays.asList(1100.0,
             1110.99,
             970.0 )),

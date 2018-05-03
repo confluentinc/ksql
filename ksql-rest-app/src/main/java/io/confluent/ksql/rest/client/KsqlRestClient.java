@@ -16,12 +16,14 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -70,6 +72,9 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
     this.localProperties = localProperties;
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+        false);
+    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
@@ -124,12 +129,16 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
         return RestResponse.erroneous(
-                new ErrorMessage(
-                        new AuthenticationException(
-                                "Could not authenticate successfully with the supplied credentials."
-                        )
+                new KsqlErrorMessage(
+                    Errors.ERROR_CODE_UNAUTHORIZED,
+                    new AuthenticationException(
+                        "Could not authenticate successfully with the supplied credentials."
+                    )
                 )
         );
+      }
+      if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
       }
       T result = response.readEntity(type);
       return RestResponse.successful(result);
@@ -141,28 +150,23 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
     KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("ksql", jsonRequest);
-    KsqlEntityList result = response.readEntity(KsqlEntityList.class);
-    response.close();
-    return RestResponse.successful(result);
+    try {
+      if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+        return RestResponse.successful(response.readEntity(KsqlEntityList.class));
+      } else {
+        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
+      }
+    } finally {
+      response.close();
+    }
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
-    Response response = makeGetRequest("status");
-    CommandStatuses result = response.readEntity(CommandStatuses.class);
-    response.close();
-    return RestResponse.successful(result);
+    return makeRequest("status", CommandStatuses.class);
   }
 
   public RestResponse<CommandStatus> makeStatusRequest(String commandId) {
-    RestResponse<CommandStatus> result;
-    Response response = makeGetRequest(String.format("status/%s", commandId));
-    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      result = RestResponse.successful(response.readEntity(CommandStatus.class));
-    } else {
-      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
-    }
-    response.close();
-    return result;
+    return makeRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
   public RestResponse<QueryStream> makeQueryRequest(String ksql) {
@@ -171,7 +175,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       return RestResponse.successful(new QueryStream(response));
     } else {
-      return RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+      return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
     }
   }
 
@@ -184,7 +188,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       result = RestResponse.successful((InputStream) response.getEntity());
     } else {
-      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
     }
     return result;
   }

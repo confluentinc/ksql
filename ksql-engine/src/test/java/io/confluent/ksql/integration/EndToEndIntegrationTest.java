@@ -15,7 +15,6 @@
  **/
 package io.confluent.ksql.integration;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -43,8 +42,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
@@ -89,10 +87,8 @@ public class EndToEndIntegrationTest {
     streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
     KsqlConfig ksqlconfig = new KsqlConfig(streamsConfig);
-    AdminClient adminClient = AdminClient.create(ksqlconfig.getKsqlAdminClientConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
 
-    ksqlEngine = new KsqlEngine(ksqlconfig, topicClient);
+    ksqlEngine = new KsqlEngine(ksqlconfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -272,7 +268,9 @@ public class EndToEndIntegrationTest {
 
     executeStatement(createStreamStatement);
 
-    executeStatement("DROP STREAM cart_event_product;");
+    ksqlEngine.terminateQuery(new QueryId("CSAS_CART_EVENT_PRODUCT"), true);
+
+    executeStatement("DROP STREAM CART_EVENT_PRODUCT;");
 
     executeStatement(createStreamStatement);
 

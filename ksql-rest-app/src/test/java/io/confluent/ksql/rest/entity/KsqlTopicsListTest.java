@@ -36,9 +36,10 @@ public class KsqlTopicsListTest {
         ImmutableList.of(new KsqlTopicInfo("ksqltopic", "kafkatopic", DataSourceSerDe.JSON))
     );
     String json = mapper.writeValueAsString(expected);
-    assertEquals("{\"ksql_topics\":{\"statementText\":\"SHOW TOPICS;\","
-                        + "\"topics\":[{\"name\":\"ksqltopic\",\"kafkaTopic\":\"kafkatopic\","
-                        + "\"format\":\"JSON\"}]}}", json);
+    assertEquals(
+        "{\"@type\":\"ksql_topics\",\"statementText\":\"SHOW TOPICS;\"," +
+        "\"topics\":[{\"name\":\"ksqltopic\",\"kafkaTopic\":\"kafkatopic\",\"format\":\"JSON\"}]}",
+        json);
 
     KsqlTopicsList actual = mapper.readValue(json, KsqlTopicsList.class);
     assertEquals(expected, actual);

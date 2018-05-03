@@ -18,7 +18,6 @@ package io.confluent.ksql.integration;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -57,9 +56,11 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -94,8 +95,8 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
-    topicClient = new KafkaTopicClientImpl(AdminClient.create(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps()));
+    topicClient = new KafkaTopicClientImpl(
+        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
 
     produceInitData();
   }
@@ -315,6 +316,8 @@ public class SecureIntegrationTest {
     try {
       final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
       ksqlConfig.put("ksql.schema.registry.url", "https://localhost:8481");
+      ksqlConfig.put("ssl.truststore.location", ClientTrustStore.trustStorePath());
+      ksqlConfig.put("ssl.truststore.password", ClientTrustStore.trustStorePassword());
       givenTestSetupWithConfig(ksqlConfig);
 
       // Then:
@@ -336,9 +339,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
-
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(
-        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     execInitCreateStreamQueries();
   }
@@ -394,10 +395,16 @@ public class SecureIntegrationTest {
 
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
+    awaitAsyncTopicCreation(INPUT_TOPIC);
+
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
     topicProducer
         .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
+  }
+
+  private void awaitAsyncTopicCreation(final String topicName) {
+    assertThatEventually(() -> topicClient.isTopicExists(topicName), is(true));
   }
 
   private void execInitCreateStreamQueries() throws Exception {
@@ -418,6 +425,6 @@ public class SecureIntegrationTest {
         .buildMultipleQueries(query, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
-    queryId = ((PersistentQueryMetadata) queryMetadata).getId();
+    queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
   }
 }

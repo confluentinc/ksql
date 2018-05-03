@@ -64,6 +64,27 @@
         {"topic": "S2", "key": 100, "value": "100,500.9", "timestamp": 0},
         {"topic": "S2", "key": 100, "value": "100,801.7", "timestamp": 0}
       ]
+    },
+    {
+      "name": "sum double map",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value['key1']) AS sum_val FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\",\"value\":{\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": {\"key1\":10.0, \"key2\":1.0}}", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"SUM_VAL\":10.0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"SUM_VAL\":20.0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"SUM_VAL\":30.0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"SUM_VAL\":40.0}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"SUM_VAL\":50.0}", "timestamp": 0}
+      ]
     }
   ]
 }

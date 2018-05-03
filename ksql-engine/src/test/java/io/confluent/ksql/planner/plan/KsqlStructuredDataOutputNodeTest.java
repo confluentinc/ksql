@@ -47,6 +47,8 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
@@ -73,14 +75,15 @@ public class KsqlStructuredDataOutputNodeTest {
       .field("key", Schema.STRING_SCHEMA)
       .build();
 
+  private final KsqlStream dataSource = new KsqlStream("sqlExpression", "datasource",
+      schema,
+      schema.field("key"),
+      new LongColumnTimestampExtractionPolicy("timestamp"),
+      new KsqlTopic("input", "input",
+          new KsqlJsonTopicSerDe()));
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("sqlExpression", "datasource",
-          schema,
-          schema.field("key"),
-          schema.field("timestamp"),
-          new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe())),
+      dataSource,
       schema);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
@@ -106,16 +109,17 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode = new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
         sourceNode,
         schema,
-        schema.field("timestamp"),
+        new LongColumnTimestampExtractionPolicy("timestamp"),
         schema.field("key"),
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
-        Optional.empty());
+        Optional.empty()
+    );
   }
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -262,7 +266,7 @@ public class KsqlStructuredDataOutputNodeTest {
             "sqlExpression", "datasource",
             schema,
             schema.field("key"),
-            schema.field("timestamp"),
+            new MetadataTimestampExtractionPolicy(),
             new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
             "TableStateStore",
             isWindowed),
@@ -272,7 +276,7 @@ public class KsqlStructuredDataOutputNodeTest {
         new PlanNodeId("0"),
         tableSourceNode,
         schema,
-        schema.field("timestamp"),
+        new MetadataTimestampExtractionPolicy(),
         schema.field("key"),
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",

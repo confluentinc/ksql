@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.collect.Lists;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -27,11 +29,11 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.StreamingOutput;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -90,9 +92,7 @@ class QueryStreamWriter implements StreamingOutput {
           out.write("\n".getBytes(StandardCharsets.UTF_8));
           out.flush();
         }
-        if (streamsException != null) {
-          throw streamsException;
-        }
+        drainAndThrowOnError(out);
       }
     } catch (EOFException exception) {
       // The user has terminated the connection; we can stop writing
@@ -115,6 +115,7 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
+      queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }
 
@@ -122,6 +123,21 @@ class QueryStreamWriter implements StreamingOutput {
     objectMapper.writeValue(output, new StreamedRow(row));
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
+  }
+
+  private void drainAndThrowOnError(final OutputStream out) throws Throwable {
+    if (streamsException == null) {
+      return;
+    }
+
+    final List<KeyValue<String, GenericRow>> rows = Lists.newArrayList();
+    queryMetadata.getRowQueue().drainTo(rows);
+
+    for (final KeyValue<String, GenericRow> row : rows) {
+      write(out, row.value);
+    }
+
+    throw streamsException;
   }
 
   private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {

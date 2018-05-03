@@ -54,6 +54,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
 
   @Test
+
   public void shouldBuildSourceNode() {
     build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
@@ -72,6 +73,7 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldHaveTwoSubTopologies() {
+    // We always require rekey at the moment.
     buildRequireRekey();
     final TopologyDescription description = builder.build().describe();
     assertThat(description.subtopologies().size(), equalTo(2));
@@ -80,21 +82,19 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
     buildRequireRekey();
-    final TopologyDescription.Source node =
-        (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
-    assertThat(node.topics(), containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition"));
+    assertThat(node.topics(), containsString("[KSTREAM-AGGREGATE-STATE-STORE-0000000006"));
+    assertThat(node.topics(), containsString("-repartition]"));
   }
 
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
     buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(),
-                                                                             "KSTREAM-SINK-0000000008");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder
-                                                                                             .build(), "KSTREAM-SOURCE-0000000010");
+    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
   }
@@ -115,22 +115,10 @@ public class AggregateNodeTest {
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
-
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     SchemaKStream stream = build();
     assertTrue(((SchemaKTable)stream).isWindowed());
-  }
-
-  @Test
-  public void shouldFailAggregationOfTable() {
-    try {
-      buildQuery("SELECT col1, count(col3) FROM test2 GROUP BY col1;");
-    } catch (KsqlException e) {
-      assertThat(
-          e.getMessage(),
-          equalTo("Unsupported aggregation. KSQL currently only supports aggregation on a Stream."));
-    }
   }
 
   private SchemaKStream build() {

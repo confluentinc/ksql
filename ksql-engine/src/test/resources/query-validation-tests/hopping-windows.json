@@ -26,22 +26,22 @@
       "outputs": [
         {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 20000, "end": 50000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 20000, "end": 50000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 0, "window": {"start": 40000, "end": 70000}},
-        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 0, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 0, "window": {"start": 40000, "end": 70000}},
-        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 0, "window": {"start": 50000, "end": 80000}},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 0, "window": {"start": 20000, "end": 50000}},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 0, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 0, "window": {"start": 20000, "end": 50000}},
-        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 0, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 0, "window": {"start": 40000, "end": 70000}}
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 40000, "window": {"start": 40000, "end": 70000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 40000, "window": {"start": 40000, "end": 70000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 50000, "end": 80000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 40000, "end": 70000}}
 
       ]
     },
@@ -59,10 +59,10 @@
       "outputs": [
         {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 20000, "end": 50000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0, "window": {"start": 30000, "end": 60000}}
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 20000, "window": {"start": 20000, "end": 50000}},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
       ]
     },
     {
@@ -78,7 +78,7 @@
       "outputs": [
         {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 0, "window": {"start": 10000, "end": 40000}}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
       ]
     },
     {
@@ -95,10 +95,9 @@
       "outputs": [
         {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 0, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
         {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 0, "window": {"start":
-        10000, "end": 40000}}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
       ]
     }
   ]

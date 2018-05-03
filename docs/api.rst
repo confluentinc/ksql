@@ -15,7 +15,7 @@ Errors
 
 All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses):
 
-.. sourcecode:: http
+.. code:: html
 
    HTTP/1.1 <Error Status>
    Content-Type: application/json
@@ -117,7 +117,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       POST /ksql HTTP/1.1
       Accept: application/json
@@ -132,7 +132,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type: application/json
@@ -182,7 +182,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       POST /query HTTP/1.1
       Accept: application/json
@@ -197,7 +197,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type: application/json
@@ -230,7 +230,7 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       GET /status/stream/PAGEVIEWS/create HTTP/1.1
       Accept: application/json
@@ -238,7 +238,7 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type application/json

@@ -89,6 +89,6 @@ KSQL CLI
     operations
     capacity-planning
     tutorials/index
-    syntax-reference
+    syntax-reference/index
     api
     faq

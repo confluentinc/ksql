@@ -30,17 +30,17 @@ public class SubstringKudf implements Kudf {
     if(args[0]!=null && args[1]!=null) {
     	
     	String string = args[0].toString();
-	    int start = (int) args[1];
+	    int start = Integer.parseInt(args[1].toString());
 	    if (args.length == 2) {
 	    	if(start < 0 || start > string.length()) {
-	    		throw new KsqlFunctionException("Substring start position smaller zero or greater length of string.");
+	    		throw new KsqlFunctionException("Substring udf start position smaller zero or greater length of string.");
 	    	}
 	    	return string.substring(start);
 	    } else {
 	      if(args[2]!=null) {
-	      	int end = (int) args[2];
+	      	int end = Integer.parseInt(args[1].toString());
 	      	if(end < 0 || end > string.length()) {
-	    		throw new KsqlFunctionException("Substring end position smaller zero or greater length of string.");
+	    		throw new KsqlFunctionException("Substring udf end position smaller zero or greater length of string.");
 	      	}
 	      	return string.substring(start, end);
 	      } else {

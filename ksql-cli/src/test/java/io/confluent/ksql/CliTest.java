@@ -16,20 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.cli.Cli;
-import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.*;
-import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -43,6 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,13 +37,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.ws.rs.ProcessingException;
+
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.KsqlConfig;
@@ -78,12 +72,11 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX
 import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
 import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
 import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -151,7 +144,6 @@ public class CliTest extends TestRunner {
 
     produceInputStream(orderDataProvider);
   }
-
 
   private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
@@ -470,29 +462,45 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void shouldPrintErrorIfCantConnectToRestServer() {
-    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+  public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
+    KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
+    EasyMock.expect(mockRestClient.makeRootRequest()).andThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
+    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
+        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
+    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
+    EasyMock.replay(mockRestClient);
+    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
+
+    new Cli(1L, 1L, mockRestClient, terminal)
+        .runInteractively();
+
     assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
   }
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+    new Cli(1L, 1L, new KsqlRestClient(LOCAL_REST_SERVER_ADDR, Collections.emptyMap()), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
 
   @Test
-  public void shouldPrintErrorOnUnsupportedAPI() {
+  public void shouldPrintErrorOnUnsupportedAPI() throws Exception {
     KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
     EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
         RestResponse.erroneous(
             new KsqlErrorMessage(
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")));
+    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
+        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
+    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
-    new Cli(1L, 1L, mockRestClient, terminal);
+
+    new Cli(1L, 1L, mockRestClient, terminal)
+        .runInteractively();
+
     Assert.assertThat(
         terminal.getOutputString(),
         containsString("This CLI version no longer supported"));

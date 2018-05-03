@@ -3,12 +3,6 @@
 Syntax Reference
 ================
 
-.. toctree::
-    :hidden:
-    :maxdepth: 1
-
-    key-constraints
-
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``
@@ -409,7 +403,7 @@ The WITH clause supports the following properties:
 |               | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
 |               | e.g. given the statement                                                                             |
 |               |                                                                                                      |
-|               | .. literalinclude:: includes/ctas-snippet.sql                                                     |
+|               | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |               |    :language: sql                                                                                    |
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
@@ -880,8 +874,6 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-
-
 
 
 .. _ksql_key_constraints:

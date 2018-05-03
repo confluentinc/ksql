@@ -15,7 +15,7 @@ Errors
 
 All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses):
 
-.. code:: html
+.. code:: http
 
    HTTP/1.1 <Error Status>
    Content-Type: application/json

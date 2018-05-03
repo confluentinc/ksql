@@ -25,19 +25,27 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
 
   private final QualifiedName tableName;
   private final boolean exists;
+  private final boolean withTopic;
 
-  public DropTable(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
+  public DropTable(QualifiedName tableName, boolean exists, boolean withTopic) {
+    this(Optional.empty(), tableName, exists, withTopic);
   }
 
-  public DropTable(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
+  public DropTable(NodeLocation location,
+                   QualifiedName tableName,
+                   boolean exists,
+                   boolean withTopic) {
+    this(Optional.of(location), tableName, exists, withTopic);
   }
 
-  private DropTable(Optional<NodeLocation> location, QualifiedName tableName, boolean exists) {
+  private DropTable(Optional<NodeLocation> location,
+                    QualifiedName tableName,
+                    boolean exists,
+                    boolean withTopic) {
     super(location);
     this.tableName = tableName;
     this.exists = exists;
+    this.withTopic = withTopic;
   }
 
   public QualifiedName getName() {
@@ -46,6 +54,14 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
 
   public boolean isExists() {
     return exists;
+  }
+
+  public QualifiedName getTableName() {
+    return tableName;
+  }
+
+  public boolean isWithTopic() {
+    return withTopic;
   }
 
   @Override
@@ -68,7 +84,8 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     }
     DropTable o = (DropTable) obj;
     return Objects.equals(tableName, o.tableName)
-           && (exists == o.exists);
+           && (exists == o.exists)
+           && (withTopic == o.withTopic);
   }
 
   @Override
@@ -76,6 +93,7 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     return toStringHelper(this)
         .add("tableName", tableName)
         .add("exists", exists)
+        .add("withTopic", withTopic)
         .toString();
   }
 }

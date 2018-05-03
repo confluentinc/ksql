@@ -606,20 +606,26 @@ public class KsqlResource {
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
+      DropStream dropStream = (DropStream) statement;
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
-          (DropStream) statement,
+          dropStream,
           DataSource.DataSourceType.KSTREAM,
-          ksqlEngine.getSchemaRegistryClient()
+          ksqlEngine.getTopicClient(),
+          ksqlEngine.getSchemaRegistryClient(),
+          dropStream.isWithTopic()
       );
       executeDdlCommand(dropSourceCommand);
       return null;
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
+      DropTable dropTable = (DropTable) statement;
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
-          (DropTable) statement,
+          dropTable,
           DataSource.DataSourceType.KTABLE,
-          ksqlEngine.getSchemaRegistryClient()
+          ksqlEngine.getTopicClient(),
+          ksqlEngine.getSchemaRegistryClient(),
+          dropTable.isWithTopic()
       );
       executeDdlCommand(dropSourceCommand);
       return null;

@@ -352,27 +352,37 @@ public class KsqlEngine implements Closeable {
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
+      DropStream dropStream = (DropStream) statement;
       ddlCommandExec.tryExecute(new DropSourceCommand(
-                                    (DropStream) statement,
+                                    dropStream,
                                     DataSource.DataSourceType.KSTREAM,
-                                    schemaRegistryClient),
+                                    topicClient,
+                                    schemaRegistryClient,
+                                    dropStream.isWithTopic()),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
-                                    (DropStream) statement,
+                                    dropStream,
                                     DataSource.DataSourceType.KSTREAM,
-                                    schemaRegistryClient),
+                                    topicClient,
+                                    schemaRegistryClient,
+                                    dropStream.isWithTopic()),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
+      DropTable dropTable = (DropTable) statement;
       ddlCommandExec.tryExecute(new DropSourceCommand(
-                                    (DropTable) statement,
+                                    dropTable,
                                     DataSource.DataSourceType.KTABLE,
-                                    schemaRegistryClient),
+                                    topicClient,
+                                    schemaRegistryClient,
+                                    dropTable.isWithTopic()),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
-                                    (DropTable) statement,
+                                    dropTable,
                                     DataSource.DataSourceType.KTABLE,
-                                    schemaRegistryClient),
+                                    topicClient,
+                                    schemaRegistryClient,
+                                    dropTable.isWithTopic()),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {

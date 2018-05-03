@@ -180,8 +180,28 @@ public class KsqlEngineTest {
 
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
     ksqlEngine.terminateQuery(new QueryId("CTAS_BAR"), true);
-    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar WITH TOPIC;", Collections.emptyMap());
+    assertThat(topicClient.isTopicExists("BAR"), equalTo(false));
     assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
+  }
+
+  @Test
+  public void shouldNotDeleteSchemaFromSchemaRegistry() throws Exception {
+    ksqlEngine.buildMultipleQueries(
+        "create table bar with (value_format = 'avro') as select * from test2;"
+        + "create table foo as select * from test2;",
+        Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+    ksqlEngine.terminateQuery(new QueryId("CTAS_BAR"), true);
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
+    assertThat(topicClient.isTopicExists("BAR"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(true));
   }
 
   @Test

@@ -16,11 +16,14 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import java.util.Arrays;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 
@@ -29,16 +32,22 @@ public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
+  private final KafkaTopicClient kafkaTopicClient;
   private final SchemaRegistryClient schemaRegistryClient;
+  private final boolean withTopic;
 
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
       final DataSource.DataSourceType dataSourceType,
-      final SchemaRegistryClient schemaRegistryClient) {
+      final KafkaTopicClient kafkaTopicClient,
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean withTopic) {
 
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
+    this.kafkaTopicClient = kafkaTopicClient;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.withTopic = withTopic;
   }
 
   @Override
@@ -58,8 +67,16 @@ public class DropSourceCommand implements DdlCommand {
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore, isValidatePhase);
-    if (!isValidatePhase && dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
+    if (!isValidatePhase
+        && withTopic
+        && dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
                             == DataSource.DataSourceSerDe.AVRO) {
+      try {
+        kafkaTopicClient.deleteTopics(Arrays.asList(dataSource.getKsqlTopic().getKafkaTopicName()));
+      } catch (Exception e) {
+        throw new KsqlException("Could not delete the corresponding kafka topic: "
+                                + dataSource.getKsqlTopic().getKafkaTopicName(), e);
+      }
       try {
         schemaRegistryClient
             .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

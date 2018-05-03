@@ -3,7 +3,7 @@
 Installation and Configuration
 ------------------------------
 
-.. toctree:: Contents
+.. toctree:: 
     :maxdepth: 2
 
     installing

@@ -23,7 +23,7 @@ Errors
 
 All API endpoints use a standard error message format for any requests that return an HTTP status indicating an error (any 4xx or 5xx statuses):
 
-.. sourcecode:: http
+.. code:: http
 
    HTTP/1.1 <Error Status>
    Content-Type: application/json
@@ -137,7 +137,7 @@ a ``statementText`` field with the text of the failed statement, and an ``entiti
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       POST /ksql HTTP/1.1
       Accept: application/vnd.ksql.v1+json
@@ -152,7 +152,7 @@ a ``statementText`` field with the text of the failed statement, and an ``entiti
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type: application/vnd.ksql.v1+json
@@ -199,7 +199,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       POST /query HTTP/1.1
       Accept: application/vnd.ksql.v1+json
@@ -214,7 +214,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type: application/vnd.ksql.v1+json
@@ -247,7 +247,7 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
    **Example request**
 
-   .. sourcecode:: http
+   .. code:: http
 
       GET /status/stream/PAGEVIEWS/create HTTP/1.1
       Accept: application/vnd.ksql.v1+json
@@ -255,7 +255,7 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
    **Example response**
 
-   .. sourcecode:: http
+   .. code:: http
 
       HTTP/1.1 200 OK
       Content-Type application/vnd.ksql.v1+json

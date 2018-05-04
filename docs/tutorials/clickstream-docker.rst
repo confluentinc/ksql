@@ -7,7 +7,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 **Prerequisites**
 
--  Docker is installed and configured with at least 4 GB of memory.
+-  Docker must be installed and configured with at least 4 GB of memory.
 
    -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
    -  `All platforms <https://docs.docker.com/engine/installation/>`__
@@ -109,6 +109,8 @@ Configure and Start Elastic, Grafana, and |cp|
         connect is [UP]
         Starting ksql-server
         ksql-server is [UP]
+
+    .. tip:: If you receive an out of memory error, see the :ref:`prerequisites <ksql_clickstream-docker>`.
 
 ---------------------------
 Create the Clickstream Data

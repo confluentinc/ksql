@@ -16,7 +16,9 @@
 
 package io.confluent.ksql;
 
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +48,14 @@ public class KsqlContext {
       KsqlConfig ksqlConfig,
       SchemaRegistryClient schemaRegistryClient
   ) {
+    return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
+  }
+
+  public static KsqlContext create(
+      KsqlConfig ksqlConfig,
+      SchemaRegistryClient schemaRegistryClient,
+      KafkaClientSupplier clientSupplier
+  ) {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }
@@ -61,8 +71,8 @@ public class KsqlContext {
     }
 
     final KsqlEngine engine = schemaRegistryClient == null
-                              ? new KsqlEngine(ksqlConfig)
-                              : new KsqlEngine(ksqlConfig, schemaRegistryClient);
+                              ? new KsqlEngine(ksqlConfig, clientSupplier)
+                              : new KsqlEngine(ksqlConfig, schemaRegistryClient, clientSupplier);
 
     return new KsqlContext(engine);
   }
@@ -83,8 +93,12 @@ public class KsqlContext {
    * Execute the ksql statement in this context.
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql, Collections
-        .emptyMap());
+    sql(sql, Collections.emptyMap());
+  }
+
+  public void sql(String sql, Map<String, Object> overriddenProperties) throws Exception {
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql,
+        overriddenProperties);
 
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

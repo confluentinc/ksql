@@ -378,8 +378,7 @@ public class KsqlEngine implements Closeable {
       InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
         throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
-                                              + "statement.", insertInto.getTarget().getSuffix()
-            .toString()));
+                                              + "statement.", insertInto.getTarget().getSuffix()));
       }
 
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()

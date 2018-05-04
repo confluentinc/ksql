@@ -230,7 +230,8 @@ public class PhysicalPlanBuilderTest {
                                                                               insertIntoQuery, new
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
-      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
+      assertThat(ksqlException.getMessage(),
+                 equalTo("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
       return;
     }
     Assert.fail();
@@ -256,9 +257,12 @@ public class PhysicalPlanBuilderTest {
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
-    Assert.assertTrue(lines.length == 2);
-    Assert.assertEquals(lines[0], " > [ PROJECT ] Schema: [ROWTIME : INT64 , ROWKEY : STRING , COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64 , COL3 : FLOAT64].");
-    Assert.assertEquals(lines[1], "\t\t > [ SOURCE ] Schema: [T1.ROWTIME : INT64 , T1.ROWKEY : STRING , T1.COL0 : INT64 , T1.COL1 : STRING , T1.COL2 : FLOAT64 , T1.COL3 : FLOAT64].");
+    assertThat(lines.length, equalTo(2));
+    assertThat(lines[0], equalTo(" > [ PROJECT ] Schema: [ROWTIME : INT64 , ROWKEY : STRING , COL0 : "
+                          + "INT64 , COL1 : STRING , COL2 : FLOAT64 , COL3 : FLOAT64]."));
+    assertThat(lines[1], equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : INT64 , T1.ROWKEY : STRING , "
+                          + "T1.COL0 : INT64 , T1.COL1 : STRING , T1.COL2 : FLOAT64 , T1.COL3 : "
+                                 + "FLOAT64]."));
   }
 
   @Test
@@ -312,12 +316,12 @@ public class PhysicalPlanBuilderTest {
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
-    Assert.assertTrue(lines.length == 4);
-    Assert.assertEquals(lines[0], " > [ REKEY ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
-    Assert.assertEquals(lines[1], "\t\t > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 "
-                                  + ": FLOAT64].");
-    Assert.assertEquals(lines[2], "\t\t\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING"
-                                   + " , COL2 : FLOAT64].");
+    assertThat(lines.length, equalTo(4));
+    assertThat(lines[0], equalTo(" > [ REKEY ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64]."));
+    assertThat(lines[1], equalTo("\t\t > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 "
+                                  + ": FLOAT64]."));
+    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING"
+                                   + " , COL2 : FLOAT64]."));
   }
 
   @Test
@@ -337,7 +341,9 @@ public class PhysicalPlanBuilderTest {
                                                                               insertIntoQuery, new
                                                                                   HashMap<>());
     } catch (Exception ksqlException) {
-      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible key fields for sink and results. Sink key field is COL0 (type: Schema{INT64}) while result key fiels is null (type: null)"));
+      assertThat(ksqlException.getMessage(), equalTo("Incompatible key fields for sink and "
+                                                    + "results. Sink key field is COL0 (type: "
+                                                     + "Schema{INT64}) while result key field is null (type: null)"));
       return;
     }
     Assert.fail();
@@ -348,7 +354,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldReturnCreatedKafkaStream() throws Exception {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
     List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    Assert.assertEquals(1, calls.size());
+    assertThat(1, equalTo(calls.size()));
     Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
   }
 
@@ -364,15 +370,15 @@ public class PhysicalPlanBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     List<String> consumerInterceptors = (List<String>) val;
-    Assert.assertEquals(1, consumerInterceptors.size());
-    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(0)));
+    assertThat(consumerInterceptors.size(), equalTo(1));
+    assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(0))));
 
     val = config.originals().get(
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     List<String> producerInterceptors = (List<String>) val;
-    Assert.assertEquals(1, producerInterceptors.size());
-    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(0)));
+    assertThat(producerInterceptors.size(), equalTo(1));
+    assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
@@ -417,17 +423,17 @@ public class PhysicalPlanBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     consumerInterceptors = (List<String>) val;
-    Assert.assertEquals(2, consumerInterceptors.size());
-    Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
-    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(1)));
+    assertThat(consumerInterceptors.size(), equalTo(2));
+    assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
+    assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = config.originals().get(
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     producerInterceptors = (List<String>) val;
-    Assert.assertEquals(2, producerInterceptors.size());
-    Assert.assertEquals(DummyProducerInterceptor.class.getName(), producerInterceptors.get(0));
-    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(1)));
+    assertThat(producerInterceptors.size(), equalTo(2));
+    assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
+    assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(1))));
   }
 
   @Test
@@ -443,24 +449,24 @@ public class PhysicalPlanBuilderTest {
     buildPhysicalPlan(simpleSelectFilter);
 
     List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    Assert.assertEquals(1, calls.size());
+    assertThat(calls.size(), equalTo(1));
     StreamsConfig config = calls.get(0).config;
 
     Object val = config.originals().get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     List<String> consumerInterceptors = (List<String>) val;
-    Assert.assertEquals(2, consumerInterceptors.size());
-    Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
-    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(1)));
+    assertThat(consumerInterceptors.size(), equalTo(2));
+    assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
+    assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
     val = config.originals().get(
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     List<String> producerInterceptors = (List<String>) val;
-    Assert.assertEquals(2, producerInterceptors.size());
-    Assert.assertEquals(DummyProducerInterceptor.class.getName(), producerInterceptors.get(0));
-    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(1)));
+    assertThat(producerInterceptors.size(), equalTo(2));
+    assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
+    assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(1))));
   }
 
   public static class DummyConsumerInterceptor2 implements ConsumerInterceptor {
@@ -492,10 +498,10 @@ public class PhysicalPlanBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     List<String> consumerInterceptors = (List<String>) val;
-    Assert.assertEquals(3, consumerInterceptors.size());
-    Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
-    Assert.assertEquals(DummyConsumerInterceptor2.class.getName(), consumerInterceptors.get(1));
-    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(2)));
+    assertThat(consumerInterceptors.size(), equalTo(3));
+    assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
+    assertThat(DummyConsumerInterceptor2.class.getName(), equalTo(consumerInterceptors.get(1)));
+    assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(2))));
   }
 
   @Test

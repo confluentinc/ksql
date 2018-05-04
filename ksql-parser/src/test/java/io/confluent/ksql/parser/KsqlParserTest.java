@@ -621,18 +621,18 @@ public class KsqlParserTest {
     Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0);
 
 
-    Assert.assertTrue("testSimpleQuery fails", statement instanceof InsertInto);
+    assertThat(statement, instanceOf(InsertInto.class));
     InsertInto insertInto = (InsertInto) statement;
-    Assert.assertTrue("", insertInto.getTarget().toString().equals("TEST2"));
+    assertThat(insertInto.getTarget().toString(), equalTo("TEST2"));
     Query query = insertInto.getQuery();
-    Assert.assertTrue("testInsertInto fails", query.getQueryBody() instanceof QuerySpecification);
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    Assert.assertTrue("testInsertInto fails", querySpecification.getSelect().getSelectItems().size() == 3);
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(3));
     assertThat(querySpecification.getFrom(), not(nullValue()));
-    Assert.assertTrue("testInsertInto fails", querySpecification.getWhere().isPresent());
-    Assert.assertTrue("testInsertInto fails", querySpecification.getWhere().get() instanceof ComparisonExpression);
+    assertThat(querySpecification.getWhere().isPresent(), equalTo(true));
+    assertThat(querySpecification.getWhere().get(),  instanceOf(ComparisonExpression.class));
     ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
-    Assert.assertTrue("testInsertInto fails", comparisonExpression.getType().getValue().equalsIgnoreCase(">"));
+    assertThat(comparisonExpression.getType().getValue(), equalTo(">"));
 
   }
 

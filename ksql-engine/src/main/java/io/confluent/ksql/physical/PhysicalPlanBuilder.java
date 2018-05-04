@@ -416,7 +416,7 @@ public class PhysicalPlanBuilder {
     throw new KsqlException(String.format(
         "Incompatible key fields for sink and results. Sink"
         + " key field is %s (type: %s) while result key "
-        + "fiels is %s (type: %s)",
+        + "field is %s (type: %s)",
         sinkKeyField == null ? null : sinkKeyField.name(),
         sinkKeyField == null ? null : sinkKeyField.schema().toString(),
         resultKeyField == null ? null : resultKeyField.name(),

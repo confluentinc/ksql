@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.Errors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -74,6 +76,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+
 public class Cli implements Closeable, AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
@@ -118,10 +122,13 @@ public class Cli implements Closeable, AutoCloseable {
     try {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
+        KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
+        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
+          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
+          return;
+        }
         writer.format(
-            "Couldn't connect to the KSQL server: %s\n\n",
-            restResponse.getErrorMessage().getMessage()
-        );
+            "Couldn't connect to the KSQL server: %s\n\n", ksqlError.getMessage());
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");

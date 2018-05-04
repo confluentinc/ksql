@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +40,9 @@ public interface KafkaTopicClient extends Closeable {
    *
    * @param topic name of the topic to create
    */
-  void createTopic(String topic, int numPartitions, short replicationFactor);
+  default void createTopic(String topic, int numPartitions, short replicationFactor) {
+    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+  }
 
   /**
    * Create a new topic with the specified name, numPartitions and replicationFactor.

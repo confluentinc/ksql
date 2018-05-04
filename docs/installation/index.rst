@@ -3,11 +3,10 @@
 Installation and Configuration
 ------------------------------
 
-.. toctree:: Contents
+.. toctree:: 
     :maxdepth: 2
 
     installing
     server-config/index
     cli-config
-    common-scenarios
     upgrading

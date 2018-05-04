@@ -28,23 +28,26 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 public class Errors {
-  static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+  public static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  public static final int ERROR_CODE_BAD_REQUEST
-      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
-  public static final int ERROR_CODE_BAD_STATEMENT
-      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER + 1;
-  public static final int ERROR_CODE_QUERY_ENDPOINT
-      = BAD_REQUEST.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER + 2;
+  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
+  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
+  public static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
-  public static final int ERROR_CODE_UNAUTHORIZED
-      = UNAUTHORIZED.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
-  public static final int ERROR_CODE_NOT_FOUND
-      = NOT_FOUND.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
-  public static final int ERROR_CODE_SERVER_ERROR
-      = INTERNAL_SERVER_ERROR.getStatusCode() * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  public static final int ERROR_CODE_SERVER_ERROR =
+      toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());
+
+  public static int toStatusCode(int errorCode) {
+    return errorCode / HTTP_TO_ERROR_CODE_MULTIPLIER;
+  }
+
+  public static int toErrorCode(int statusCode) {
+    return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  }
 
   public static Response badRequest(String msg) {
     return Response

@@ -74,6 +74,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
         false);
+    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
@@ -136,6 +137,9 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
                 )
         );
       }
+      if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
+      }
       T result = response.readEntity(type);
       return RestResponse.successful(result);
     } finally {
@@ -158,22 +162,11 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
-    Response response = makeGetRequest("status");
-    CommandStatuses result = response.readEntity(CommandStatuses.class);
-    response.close();
-    return RestResponse.successful(result);
+    return makeRequest("status", CommandStatuses.class);
   }
 
   public RestResponse<CommandStatus> makeStatusRequest(String commandId) {
-    RestResponse<CommandStatus> result;
-    Response response = makeGetRequest(String.format("status/%s", commandId));
-    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      result = RestResponse.successful(response.readEntity(CommandStatus.class));
-    } else {
-      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-    }
-    response.close();
-    return result;
+    return makeRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
   public RestResponse<QueryStream> makeQueryRequest(String ksql) {

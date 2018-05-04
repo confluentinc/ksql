@@ -18,7 +18,6 @@ package io.confluent.ksql.integration;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -96,8 +95,8 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
-    topicClient = new KafkaTopicClientImpl(AdminClient.create(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps()));
+    topicClient = new KafkaTopicClientImpl(
+        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
 
     produceInitData();
   }
@@ -340,9 +339,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
-
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(
-        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     execInitCreateStreamQueries();
   }

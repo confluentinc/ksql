@@ -20,8 +20,6 @@ import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,15 +28,13 @@ import java.util.Objects;
 
 import io.confluent.ksql.metastore.KsqlTopic;
 
-@JsonTypeName("ksql_topics")
-@JsonSubTypes({})
 public class KsqlTopicsList extends KsqlEntity {
   private final Collection<KsqlTopicInfo> topics;
 
   @JsonCreator
   public KsqlTopicsList(
           @JsonProperty("statementText") String statementText,
-          @JsonProperty("topics")   Collection<KsqlTopicInfo> topics
+          @JsonProperty("topics")        Collection<KsqlTopicInfo> topics
   ) {
     super(statementText);
     Preconditions.checkNotNull(topics, "topics field must not be null");

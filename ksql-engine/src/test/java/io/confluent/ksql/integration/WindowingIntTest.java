@@ -1,6 +1,5 @@
 package io.confluent.ksql.integration;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -22,17 +21,16 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
 public class WindowingIntTest {
 
-  public static final int WINDOW_SIZE_SEC = 5;
+  private static final int WINDOW_SIZE_SEC = 5;
   private static final int MAX_POLL_PER_ITERATION = 100;
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
@@ -48,7 +46,7 @@ public class WindowingIntTest {
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);
 
-    /**
+    /*
      * Setup test data - align to the next time unit to support tumbling window alignment
      */
     alignTimeToWindowSize(WINDOW_SIZE_SEC);
@@ -97,21 +95,18 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-
-    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
@@ -146,21 +141,18 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-
-    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
@@ -201,21 +193,18 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-
-    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
@@ -250,21 +239,18 @@ public class WindowingIntTest {
       return expectedResults.equals(actual) && results.size() == 6;
     }, 60000, "didn't receive correct results within timeout");
 
-    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-
-    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
+    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.DELETE));
 
   }

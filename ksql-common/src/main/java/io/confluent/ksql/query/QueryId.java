@@ -17,11 +17,9 @@ package io.confluent.ksql.query;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import java.util.Objects;
 
-@JsonSubTypes({})
 public class QueryId {
   private final String id;
 

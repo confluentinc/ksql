@@ -19,8 +19,6 @@ package io.confluent.ksql.parser.tree;
 import java.util.Objects;
 import java.util.Optional;
 
-import io.confluent.ksql.util.Pair;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
@@ -28,7 +26,8 @@ public class QuerySpecification
     extends QueryBody {
 
   private final Select select;
-  private final Pair<Relation, Boolean> into;
+  private final Relation into;
+  private final boolean shouldCreateInto;
   private final Relation from;
   private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
@@ -38,35 +37,39 @@ public class QuerySpecification
 
   public QuerySpecification(
       Select select,
-      Pair<Relation, Boolean> into,
+      Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       Optional<String> limit) {
-    this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
+    this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
          having, limit);
   }
 
   public QuerySpecification(
       NodeLocation location,
       Select select,
-      Pair<Relation, Boolean> into,
+      Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       Optional<String> limit) {
-    this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
+    this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
+         groupBy,
          having, limit);
   }
 
   private QuerySpecification(
       Optional<NodeLocation> location,
       Select select,
-      Pair<Relation, Boolean> into,
+      Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
@@ -85,6 +88,7 @@ public class QuerySpecification
 
     this.select = select;
     this.into = into;
+    this.shouldCreateInto = shouldCreateInto;
     this.from = from;
     this.windowExpression = windowExpression;
     this.where = where;
@@ -97,8 +101,12 @@ public class QuerySpecification
     return select;
   }
 
-  public Pair<Relation, Boolean> getInto() {
+  public Relation getInto() {
     return into;
+  }
+
+  public boolean isShouldCreateInto() {
+    return shouldCreateInto;
   }
 
   public Relation getFrom() {

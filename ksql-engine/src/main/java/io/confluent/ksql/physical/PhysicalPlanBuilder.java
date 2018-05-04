@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -408,7 +409,8 @@ public class PhysicalPlanBuilder {
       return;
     } else if (sinkKeyField != null && resultKeyField != null) {
       if (sinkKeyField.name().equalsIgnoreCase(
-          resultKeyField.name()) && sinkKeyField.schema() == resultKeyField.schema()) {
+          resultKeyField.name())
+          && Objects.equals(sinkKeyField.schema(), resultKeyField.schema())) {
         return;
       }
     }

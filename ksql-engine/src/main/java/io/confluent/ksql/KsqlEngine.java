@@ -536,7 +536,8 @@ public class KsqlEngine implements Closeable {
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
         querySpecification.getSelect(),
-        new Pair<>(intoTable, doCreateTable),
+        intoTable,
+        doCreateTable,
         querySpecification.getFrom(),
         querySpecification.getWindowExpression(),
         querySpecification.getWhere(),

@@ -87,7 +87,8 @@ public final class InsertInto
     }
     InsertInto o = (InsertInto) obj;
     return Objects.equals(target, o.target)
-           && Objects.equals(query, o.query);
+           && Objects.equals(query, o.query)
+           && Objects.equals(partitionByColumn, o.partitionByColumn);
   }
 
   @Override

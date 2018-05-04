@@ -90,10 +90,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new AnalysisContext(AnalysisContext.ParentType.FROM)
     );
 
-    process(node.getInto().getLeft(), new AnalysisContext(
+    process(node.getInto(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
-      analyzeNonStdOutSink(node.getInto().getRight());
+      analyzeNonStdOutSink(node.isShouldCreateInto());
     }
 
     process(node.getSelect(), new AnalysisContext(
@@ -396,7 +396,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitTable(final Table node, final AnalysisContext context) {
 
     StructuredDataSource into;
-    if (node.isStdOut) {
+    if (node.isStdOut()) {
       into = new KsqlStdOut(
           KsqlStdOut.KSQL_STDOUT_NAME,
           null,

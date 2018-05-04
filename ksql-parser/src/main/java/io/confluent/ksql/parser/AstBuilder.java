@@ -26,7 +26,6 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -337,6 +336,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               getLocation(context),
               query.getSelect(),
               query.getInto(),
+              query.isShouldCreateInto(),
               query.getFrom(),
               query.getWindowExpression(),
               query.getWhere(),
@@ -384,7 +384,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new QuerySpecification(
         getLocation(context),
         select,
-        new Pair<>(into, true),
+        into,
+        true,
         from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),

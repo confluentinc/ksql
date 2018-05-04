@@ -546,11 +546,13 @@ DROP STREAM
 
 .. code:: sql
 
-    DROP STREAM stream_name;
+    DROP STREAM stream_name [WITH TOPIC];
 
 **Description**
 
 Drops an existing stream.
+If WITH TOPIC clause is present, delete the corresponding topic in
+kafka and if the topic format is AVRO, delete the corresponding avro schema too.
 
 .. _drop-table:
 
@@ -561,11 +563,13 @@ DROP TABLE
 
 .. code:: sql
 
-    DROP TABLE table_name;
+    DROP TABLE table_name [WITH TOPIC];
 
 **Description**
 
 Drops an existing table.
+If WITH TOPIC clause is present, delete the corresponding topic in
+kafka and if the topic format is AVRO, delete the corresponding avro schema too.
 
 PRINT
 -----

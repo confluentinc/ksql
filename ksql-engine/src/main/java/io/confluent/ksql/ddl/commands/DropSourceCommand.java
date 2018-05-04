@@ -67,22 +67,22 @@ public class DropSourceCommand implements DdlCommand {
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore, isValidatePhase);
-    if (!isValidatePhase
-        && withTopic
-        && dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
-                            == DataSource.DataSourceSerDe.AVRO) {
+    if (!isValidatePhase && withTopic) {
       try {
         kafkaTopicClient.deleteTopics(Arrays.asList(dataSource.getKsqlTopic().getKafkaTopicName()));
       } catch (Exception e) {
         throw new KsqlException("Could not delete the corresponding kafka topic: "
                                 + dataSource.getKsqlTopic().getKafkaTopicName(), e);
       }
-      try {
-        schemaRegistryClient
-            .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-      } catch (Exception e) {
-        throw new KsqlException("Could not clean up the schema registry for topic: " + sourceName,
-                                e);
+      if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
+             == DataSource.DataSourceSerDe.AVRO) {
+        try {
+          schemaRegistryClient
+              .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        } catch (Exception e) {
+          throw new KsqlException("Could not clean up the schema registry for topic: " + sourceName,
+                                  e);
+        }
       }
     }
     return new DdlCommandResult(true, "Source " + sourceName + " was dropped");

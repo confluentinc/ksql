@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableSet;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +112,7 @@ public class KsqlEngine implements Closeable {
   private final FunctionRegistry functionRegistry;
   private SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
+  private final KafkaClientSupplier clientSupplier;
 
   public KsqlEngine(
       final KsqlConfig ksqlConfig
@@ -132,12 +135,38 @@ public class KsqlEngine implements Closeable {
 
   public KsqlEngine(
       final KsqlConfig ksqlConfig,
+      final KafkaClientSupplier clientSupplier
+  ) {
+    this(
+        ksqlConfig,
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
+        clientSupplier
+    );
+  }
+
+  public KsqlEngine(
+      final KsqlConfig ksqlConfig,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     this(
         ksqlConfig,
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
         schemaRegistryClient,
+        new DefaultKafkaClientSupplier(),
+        new MetaStoreImpl()
+    );
+  }
+
+  public KsqlEngine(
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaClientSupplier clientSupplier
+  ) {
+    this(
+        ksqlConfig,
+        new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
+        schemaRegistryClient,
+        clientSupplier,
         new MetaStoreImpl()
     );
   }
@@ -148,11 +177,28 @@ public class KsqlEngine implements Closeable {
       final SchemaRegistryClient schemaRegistryClient,
       final MetaStore metaStore
   ) {
+    this(
+        ksqlConfig,
+        topicClient,
+        schemaRegistryClient,
+        new DefaultKafkaClientSupplier(),
+        metaStore
+    );
+  }
+
+  public KsqlEngine(
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient topicClient,
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaClientSupplier clientSupplier,
+      final MetaStore metaStore
+  ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
     this.schemaRegistryClient =
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
+    this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
@@ -222,6 +268,7 @@ public class KsqlEngine implements Closeable {
         logicalPlans,
         statementList,
         overriddenProperties,
+        clientSupplier,
         true
     );
 
@@ -253,6 +300,7 @@ public class KsqlEngine implements Closeable {
         logicalPlans,
         Collections.singletonList(new Pair<>("", query)),
         Collections.emptyMap(),
+        clientSupplier,
         false
     );
     return runningQueries.get(0);

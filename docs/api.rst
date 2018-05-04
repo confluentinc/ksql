@@ -6,17 +6,9 @@ KSQL HTTP API Reference
 Content Types
 -------------
 
-The KSQL HTTP server uses content types for requests and responses to indicate the serialization format of the data and the API version. Currently, the only serialization format supported is JSON. The only version supported is v1. Your request should specify this serialization format and version in the ``Accept`` header as::
+The KSQL HTTP server uses content types for requests and responses to indicate the serialization format of the data. Currently, the only serialization format supported is JSON, specified as ``application/json``. Your request should specify this content type in the ``Accept`` header::
 
-    Accept: application/vnd.ksql.v1+json
-
-The less specific ``application/json`` content type is also permitted. However, this is only for compatibility and ease of use, and you should use the versioned value if possible.
-
-The server also supports content negotiation, so you may include multiple, weighted preferences::
-
-    Accept: application/vnd.ksql.v1+json; q=0.9, application/json; q=0.5
-
-For example, content negotiation is useful when a new version of the API is preferred, but you are not sure if it is available yet.
+    Accept: application/json
 
 Errors
 ------
@@ -140,8 +132,8 @@ a ``statementText`` field with the text of the failed statement, and an ``entiti
    .. sourcecode:: http
 
       POST /ksql HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Accept: application/json
+      Content-Type: application/json
 
       {
         "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice'",
@@ -155,7 +147,7 @@ a ``statementText`` field with the text of the failed statement, and an ``entiti
    .. sourcecode:: http
 
       HTTP/1.1 200 OK
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
 
       [
         {
@@ -202,8 +194,8 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
    .. sourcecode:: http
 
       POST /query HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Accept: application/json
+      Content-Type: application/json
 
       {
         "ksql": "SELECT * FROM pageviews;"
@@ -217,7 +209,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
    .. sourcecode:: http
 
       HTTP/1.1 200 OK
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
       Transfer-Encoding: chunked
 
       ...
@@ -250,15 +242,15 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
    .. sourcecode:: http
 
       GET /status/stream/PAGEVIEWS/create HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Accept: application/json
+      Content-Type: application/json
 
    **Example response**
 
    .. sourcecode:: http
 
       HTTP/1.1 200 OK
-      Content-Type application/vnd.ksql.v1+json
+      Content-Type application/json
 
       {
         "status": "SUCCESS",

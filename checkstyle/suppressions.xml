@@ -21,7 +21,8 @@
     <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(DataGenProducer|DataGen|Generator).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(ExpressionTypeManager|KsqlResource|Console).java" checks="CyclomaticComplexityCheck"/>
+    <suppress files="(ExpressionTypeManager|KsqlResource|Console|DropSourceCommand).java"
+              checks="CyclomaticComplexityCheck"/>
 
     <!-- EXAMPLES! -->
     <suppress files="(DataGenProducer|DataGen|Main|Generator).java" checks="CyclomaticComplexityCheck"/>

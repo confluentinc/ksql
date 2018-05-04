@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -29,6 +29,9 @@ import io.confluent.ksql.util.KsqlException;
 
 
 public class DropSourceCommand implements DdlCommand {
+
+  private static final int NUM_RETRIES = 5;
+  private static final int RETRY_BACKOFF_MS = 500;
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
@@ -67,24 +70,52 @@ public class DropSourceCommand implements DdlCommand {
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore, isValidatePhase);
+
+    deleteTopicIfNeeded(dataSource, isValidatePhase);
+
+    return new DdlCommandResult(true, "Source " + sourceName + " was dropped");
+  }
+
+  private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && withTopic) {
-      try {
-        kafkaTopicClient.deleteTopics(Arrays.asList(dataSource.getKsqlTopic().getKafkaTopicName()));
-      } catch (Exception e) {
-        throw new KsqlException("Could not delete the corresponding kafka topic: "
-                                + dataSource.getKsqlTopic().getKafkaTopicName(), e);
-      }
-      if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
-             == DataSource.DataSourceSerDe.AVRO) {
+      int retries = 0;
+      while (retries < NUM_RETRIES) {
         try {
-          schemaRegistryClient
-              .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+          if (retries != 0) {
+            Thread.sleep(RETRY_BACKOFF_MS);
+          }
+          kafkaTopicClient.deleteTopics(
+              Collections.singletonList(dataSource.getKsqlTopic().getKafkaTopicName()));
+          break;
         } catch (Exception e) {
-          throw new KsqlException("Could not clean up the schema registry for topic: " + sourceName,
-                                  e);
+          retries++;
+          if (retries >= NUM_RETRIES) {
+            throw new KsqlException("Could not delete the corresponding kafka topic: "
+                                    + dataSource.getKsqlTopic().getKafkaTopicName(), e);
+          }
+        }
+      }
+
+      if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
+          == DataSource.DataSourceSerDe.AVRO) {
+        retries = 0;
+        while (retries < NUM_RETRIES) {
+          try {
+            if (retries != 0) {
+              Thread.sleep(RETRY_BACKOFF_MS);
+            }
+            schemaRegistryClient
+                .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+            break;
+          } catch (Exception e) {
+            retries++;
+            if (retries >= NUM_RETRIES) {
+              throw new KsqlException("Could not clean up the schema registry for topic: "
+                                      + sourceName, e);
+            }
+          }
         }
       }
     }
-    return new DdlCommandResult(true, "Source " + sourceName + " was dropped");
   }
 }

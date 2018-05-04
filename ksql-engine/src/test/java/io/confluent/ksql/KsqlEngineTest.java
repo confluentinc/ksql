@@ -43,6 +43,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -201,7 +202,7 @@ public class KsqlEngineTest {
     ksqlEngine.terminateQuery(new QueryId("CTAS_BAR"), true);
     ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
     assertThat(topicClient.isTopicExists("BAR"), equalTo(true));
-    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
   }
 
   @Test
@@ -220,11 +221,11 @@ public class KsqlEngineTest {
          + "-changelog-value", schema);
     ksqlEngine.getSchemaRegistryClient().register("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value", schema);
 
-    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(true));
-    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"));
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"));
     ksqlEngine.terminateQuery(new QueryId("CTAS_T1"), true);
-    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(false));
-    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(false));
+    assertThat(schemaRegistryClient.getAllSubjects(), not(hasItem("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value")));
+    assertThat(schemaRegistryClient.getAllSubjects(), not(hasItem("_confluent-ksql-default_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value")));
   }
 
 }

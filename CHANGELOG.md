@@ -1,5 +1,19 @@
 # Change Log
 
+## [v4.1](https://github.com/confluentinc/ksql/tree/v4.1) (2018-04-17)
+[Full Changelog](https://github.com/confluentinc/ksql/compare/v0.5...v4.1.0)
+
+_Note: Because of the integration with Confluent Platform integration, KSQL now uses the former's versioning scheme._
+
+KSQL is now production ready and GA. It is distributed as part of Confluent Platform 4.1
+([download](https://www.confluent.io/download/)).
+
+Our [4.1 release blog](https://www.confluent.io/blog/confluent-platform-4-1-with-production-ready-ksql-now-available/)
+has the details about what's new in this release.
+The [KSQL 4.1 Upgrade Guide](https://docs.confluent.io/4.1.0/ksql/docs/installation/upgrading.html) provides information
+on how to upgrade from KSQL v0.x developer preview releases to v4.1.
+
+
 ## [v0.5](https://github.com/confluentinc/ksql/tree/v0.5) (2018-03-07)
 [Full Changelog](https://github.com/confluentinc/ksql/compare/v0.4...v0.5)
 

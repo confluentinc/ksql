@@ -32,7 +32,7 @@ In addition to supported [stable KSQL releases](#stable-releases), we also provi
 We encourage you to try them in development and testing environments and to take advantage of
 [Confluent Community resources](#community) to get help and share feedback.
 
-* [Download latest KSQL Preview](https://www.confluent.io/blog/introducing-confluent-platform-preview-releases/).
+* [Download latest KSQL Preview](https://www.confluent.io/preview-release).
 * Follow the [Preview Quick Start](https://docs.confluent.io/5.0.0-beta1/quickstart/index.html).
 * Read the [KSQL Preview Documentation](https://docs.confluent.io/5.0.0-beta1/ksql/docs/), notably
   [KSQL Tutorials and Examples](https://docs.confluent.io/5.0.0-beta1/ksql/docs/tutorials/), which include Docker-based

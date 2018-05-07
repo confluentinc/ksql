@@ -364,7 +364,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
 
   @Override
   protected Node visitStruct(Struct node, Node parent) {
-    node.setParent(parent == null ? Optional.empty() : Optional.of(parent));
+    node.setParent(parent);
     for (Pair<String, Type> structItem : node.getItems()) {
       process(structItem.getRight(), node);
     }

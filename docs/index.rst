@@ -3,20 +3,6 @@
 KSQL
 ====
 
-.. toctree::
-   :titlesonly:
-   :maxdepth: 1
-   :hidden:
-
-   quickstart
-   installation/index
-   operations
-   capacity-planning
-   tutorials/index
-   syntax-reference
-   api
-   faq
-
 .. raw:: html
 
    <h2>What Is KSQL?</h2>

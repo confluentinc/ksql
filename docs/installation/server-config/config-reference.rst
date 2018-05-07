@@ -79,6 +79,8 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
+.. _ksql-streams-num-streams-threads:
+
 -------------------------------
 ksql.streams.num.stream.threads
 -------------------------------

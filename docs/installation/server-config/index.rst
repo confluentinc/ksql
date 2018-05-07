@@ -3,7 +3,7 @@
 Configuring KSQL Server
 =======================
 
-.. toctree:: Contents
+.. toctree:: 
     :maxdepth: 1
 
     security

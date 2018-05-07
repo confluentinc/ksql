@@ -33,7 +33,7 @@ Installation Instructions
 
 Follow the instructions at :ref:`installing_cp`.
 
-It is also possible to install KSQL individually through :ref:`standalone packages <available_packages>`.
+It is also possible to install KSQL individually through :ref:`standalone packages <confluent-ksql-package>`.
 
 
 .. _start_ksql-server:

@@ -11,7 +11,7 @@ KSQL supports many of the security features of both Apache Kafka and the |sr|.
 and mutual authentication for authorization.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
-file and then :ref:`start the KSQL server <install_ksql-server>` with your configuration file specified.
+file and then :ref:`start the KSQL server <start_ksql-server>` with your configuration file specified.
 
 .. code:: bash
 

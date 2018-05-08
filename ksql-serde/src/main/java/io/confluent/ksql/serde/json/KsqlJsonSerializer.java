@@ -115,16 +115,25 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
   }
 
   private boolean compareSchemas(Schema schema1, Schema schema2) {
-    if (schema1.fields().size() != schema2.fields().size()
-        || schema1.type() != schema2.type()) {
+    if (schema1.type() != schema2.type()) {
       return false;
     }
-
-    for (int i = 0; i < schema1.fields().size(); i++) {
-      if (!compareSchemas(schema1.fields().get(i).schema(), schema2.fields().get(i).schema())
-          || !schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())) {
+    if (schema1.type() == Schema.Type.STRUCT) {
+      if (schema1.fields().size() != schema2.fields().size()) {
         return false;
       }
+      for (int i = 0; i < schema1.fields().size(); i++) {
+        if (!schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())
+            || !compareSchemas(schema1.fields().get(i).schema(),
+                               schema2.fields().get(i).schema())) {
+          return false;
+        }
+      }
+    } else if (schema1.type() == Schema.Type.ARRAY) {
+      return compareSchemas(schema1.valueSchema(), schema2.valueSchema());
+    } else if (schema1.type() == Schema.Type.MAP) {
+      return compareSchemas(schema1.valueSchema(), schema2.valueSchema())
+             && compareSchemas(schema1.keySchema(), schema2.keySchema());
     }
     return true;
   }

@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
@@ -71,6 +73,8 @@ public class QueryStreamWriterTest {
     rowQueue = new LinkedBlockingQueue<>(100);
     ehCapture = newCapture();
 
+    Schema schema = SchemaBuilder.struct().field("col1", Schema.STRING_SCHEMA).build();
+
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
     final QueuedQueryMetadata queryMetadata = niceMock(QueuedQueryMetadata.class);
 
@@ -79,9 +83,11 @@ public class QueryStreamWriterTest {
 
     expect(queryMetadata.getKafkaStreams()).andReturn(kStreams).anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
+    expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
 
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
+
 
     replay(queryMetadata, kStreams, ksqlEngine);
   }

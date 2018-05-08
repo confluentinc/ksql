@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,8 +60,9 @@ public class SchemaUtil {
       case ARRAY:
         return ArrayList.class;
       case MAP:
-      case STRUCT:
         return HashMap.class;
+      case STRUCT:
+        return Struct.class;
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
     }

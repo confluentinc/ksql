@@ -18,13 +18,13 @@ package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 
 import java.io.IOException;
@@ -133,49 +133,23 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         return map;
       case STRUCT:
         Map structMap = (Map) columnVal;
-        Map columnStructMap = new HashMap();
+        Struct columnStruct = new Struct(fieldSchema);
         Map<String, String> caseInsensitiveFieldNameMap =
             getCaseInsensitiveFieldNameMap(fieldSchema.fields());
         fieldSchema.fields()
             .stream()
             .forEach(
-                field -> columnStructMap.put(field.name(),
+                field -> columnStruct.put(field.name(),
                                              enforceFieldType(
                                                  field.schema(), structMap.get(
                                                      caseInsensitiveFieldNameMap.get(field.name())
                                                  ))));
-        return columnStructMap;
+        return columnStruct;
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
   }
 
-  private Object handleMap(Schema fieldSchema, JsonNode fieldJsonNode) {
-    Map<String, Object> mapField = new HashMap<>();
-    Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
-    while (iterator.hasNext()) {
-      Map.Entry<String, JsonNode> entry = iterator.next();
-      mapField.put(
-          entry.getKey(),
-          enforceFieldType(
-            fieldSchema.valueSchema(),
-            entry.getValue()
-        )
-      );
-    }
-    return mapField;
-  }
-
-  private Object handleArray(Schema fieldSchema, ArrayNode fieldJsonNode) {
-    ArrayNode arrayNode = fieldJsonNode;
-    Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-    Object[] arrayField =
-        (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
-    for (int i = 0; i < arrayNode.size(); i++) {
-      arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
-    }
-    return arrayField;
-  }
 
   private Map<String, String> getCaseInsensitiveFieldNameMap(List<Field> fields) {
     Map<String, String> fieldNameMap = new HashMap<>();

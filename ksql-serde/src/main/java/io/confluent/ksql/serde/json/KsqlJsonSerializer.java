@@ -27,7 +27,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
@@ -54,7 +53,14 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     try {
       Struct struct = new Struct(schema);
       for (int i = 0; i < data.getColumns().size(); i++) {
-        struct.put(schema.fields().get(i).name(), data.getColumns().get(i));
+        if (schema.fields().get(i).schema().type() == Schema.Type.STRUCT) {
+          struct.put(schema.fields().get(i), updateStructSchema(
+              (Struct) data.getColumns().get(i),
+              schema.fields().get(i).schema()));
+        } else {
+          struct.put(schema.fields().get(i), data.getColumns().get(i));
+        }
+
       }
 
       JsonConverter jsonConverter = new JsonConverter();
@@ -64,21 +70,6 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }
-  }
-
-  private Map<String, Object> dataToMap(final GenericRow data) {
-    if (data == null) {
-      return null;
-    }
-    Map<String, Object> result = new HashMap<>();
-
-    for (int i = 0; i < data.getColumns().size(); i++) {
-      String schemaColumnName = schema.fields().get(i).name();
-      String mapColumnName = schemaColumnName.substring(schemaColumnName.indexOf('.') + 1);
-      result.put(mapColumnName, data.getColumns().get(i));
-    }
-
-    return result;
   }
 
   private Schema makeOptional(Schema schema) {
@@ -107,6 +98,35 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       default:
         throw new KsqlException("Invalid type in schema: " + schema);
     }
+  }
+
+  /**
+   * Temporary work around until schema comparison is fixed.
+   *
+   */
+  private Struct updateStructSchema(Struct struct, Schema schema) {
+    if (!compareSchemas(schema, struct.schema())) {
+      throw new KsqlException("Incompatible schemas: " + schema + ", " + struct.schema());
+    }
+    Struct updatedStruct = new Struct(schema);
+    schema.fields().stream()
+        .forEach(field -> updatedStruct.put(field.name(), struct.get(field.name())));
+    return updatedStruct;
+  }
+
+  private boolean compareSchemas(Schema schema1, Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()
+        || schema1.type() != schema2.type()) {
+      return false;
+    }
+
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!compareSchemas(schema1.fields().get(i).schema(), schema2.fields().get(i).schema())
+          || !schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

@@ -19,17 +19,104 @@ package io.confluent.ksql.datagen;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
+import java.util.List;
+import java.util.LinkedList;
 
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.util.KsqlConfig;
 
 public class DataGen {
+
+  private static Thread startProducerThread(Arguments arguments, DataGenProducer dataProducer,
+                                            String schema, TokenBucket tokenBucket) {
+    Properties props = arguments.properties;
+    props.put("bootstrap.servers", arguments.bootstrapServer);
+    props.put("client.id", "KSQLDataGenProducer");
+    System.out.println("Producer Properties:" + props);
+
+    try {
+      if (arguments.propertiesFile != null) {
+        props.load(arguments.propertiesFile);
+      }
+    } catch (IOException exception) {
+      throw new RuntimeException(exception);
+    }
+
+    final TimestampGenerator timestampGenerator;
+    if (arguments.timeIncrement > 0) {
+      timestampGenerator = new TimestampGenerator(
+          System.currentTimeMillis(), arguments.timeIncrement, arguments.timeBurst);
+    } else {
+      timestampGenerator = null;
+    }
+
+    final Generator generator;
+    generator = new Generator(schema, new Random());
+
+    Thread t = new Thread(() -> {
+      try {
+        dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
+            arguments.iterations, arguments.maxInterval, arguments.printRows, timestampGenerator,
+            tokenBucket);
+      } catch (InterruptedException e) {
+        System.err.println("Producer thread interrupted");
+      }
+    });
+    t.setDaemon(true);
+    t.start();
+    return t;
+  }
+
+  private static DataGenProducer buildDatagenProducer(Arguments arguments) {
+    switch (arguments.format) {
+      case AVRO:
+        return new AvroProducer(
+            new KsqlConfig(
+                Collections.singletonMap(
+                    KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+                    arguments.schemaRegistryUrl
+                )
+            )
+        );
+      case JSON:
+        return new JsonProducer();
+      case DELIMITED:
+        return new DelimitedProducer();
+      default:
+        System.err.printf(
+            "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n",
+            arguments.format
+        );
+        usage(1);
+        return null;
+    }
+  }
+
+  private static String readSchema(InputStream schemaFile) {
+    String schema = "";
+    while (true) {
+      byte[] b = new byte[256];
+      int ret = 0;
+      try {
+        ret = schemaFile.read(b);
+      } catch (IOException exception) {
+        System.err.printf("IOException encountered: %s%n", exception.getMessage());
+        System.exit(1);
+      }
+      if (ret < 0) {
+        break;
+      }
+      schema += new String(b, Charset.forName("UTF-8"));
+    }
+    return schema;
+  }
 
   public static void main(String[] args) {
     Arguments arguments;
@@ -49,62 +136,30 @@ public class DataGen {
       usage(0);
     }
 
-    Generator generator;
-    try {
-      generator = new Generator(arguments.schemaFile, new Random());
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      return;
-    }
-    DataGenProducer dataProducer;
+    final DataGenProducer dataProducer = buildDatagenProducer(arguments);
 
-    switch (arguments.format) {
-      case AVRO:
-        dataProducer = new AvroProducer(
-            new KsqlConfig(
-                Collections.singletonMap(
-                  KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                  arguments.schemaRegistryUrl
-                )
-            )
-        );
-        break;
-      case JSON:
-        dataProducer = new JsonProducer();
-        break;
-      case DELIMITED:
-        dataProducer = new DelimitedProducer();
-        break;
-      default:
-        System.err.printf(
-            "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n",
-            arguments.format
-        );
-        usage(1);
-        return;
+    final String schema = readSchema(arguments.schemaFile);
+
+    final TokenBucket tokenBucket;
+    if (arguments.msgRate != -1) {
+      tokenBucket = new TokenBucket(arguments.msgRate, arguments.msgRate);
+    } else {
+      tokenBucket = null;
     }
 
-    Properties props = new Properties();
-    props.put("bootstrap.servers", arguments.bootstrapServer);
-    props.put("client.id", "KSQLDataGenProducer");
+    List<Thread> threads = new LinkedList<>();
+    for (int i = 0; i < arguments.numThreads; i++) {
+      threads.add(startProducerThread(arguments, dataProducer, schema, tokenBucket));
+    }
 
-    try {
-      if (arguments.propertiesFile != null) {
-        props.load(arguments.propertiesFile);
+    for (Thread t : threads) {
+      try {
+        t.join();
+      } catch (InterruptedException e) {
+        // interrupted. exit with error
+        System.exit(1);
       }
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      return;
     }
-
-    dataProducer.populateTopic(
-        props,
-        generator,
-        arguments.topicName,
-        arguments.keyName,
-        arguments.iterations,
-        arguments.maxInterval
-    );
   }
 
   private static void usage() {
@@ -142,30 +197,31 @@ public class DataGen {
     public final int iterations;
     public final long maxInterval;
     public final String schemaRegistryUrl;
+    public final boolean printRows;
+    public final Properties properties;
+    public final int numThreads;
     public final InputStream propertiesFile;
+    public final long timeIncrement;
+    public final long timeBurst;
+    public final int msgRate;
 
-    public Arguments(
-        boolean help,
-        String bootstrapServer,
-        InputStream schemaFile,
-        Format format,
-        String topicName,
-        String keyName,
-        int iterations,
-        long maxInterval,
-        String schemaRegistryUrl,
-        InputStream propertiesFile
-    ) {
-      this.help = help;
-      this.bootstrapServer = bootstrapServer;
-      this.schemaFile = schemaFile;
-      this.format = format;
-      this.topicName = topicName;
-      this.keyName = keyName;
-      this.iterations = iterations;
-      this.maxInterval = maxInterval;
-      this.schemaRegistryUrl = schemaRegistryUrl;
-      this.propertiesFile = propertiesFile;
+    public Arguments(Builder builder) {
+      this.help = builder.help;
+      this.bootstrapServer = builder.bootstrapServer;
+      this.schemaFile = builder.schemaFile;
+      this.format = builder.format;
+      this.topicName = builder.topicName;
+      this.keyName = builder.keyName;
+      this.iterations = builder.iterations;
+      this.maxInterval = builder.maxInterval;
+      this.schemaRegistryUrl = builder.schemaRegistryUrl;
+      this.printRows = builder.printRows;
+      this.properties = builder.properties;
+      this.numThreads = builder.numThreads;
+      this.propertiesFile = builder.propertiesFile;
+      this.timeIncrement = builder.timeIncrement;
+      this.timeBurst = builder.timeBurst;
+      this.msgRate = builder.msgRate;
     }
 
     public static class ArgumentParseException extends RuntimeException {
@@ -188,7 +244,13 @@ public class DataGen {
       private int iterations;
       private long maxInterval;
       private String schemaRegistryUrl;
+      private boolean printRows;
+      private Properties properties;
+      private int numThreads;
       private InputStream propertiesFile;
+      private long timeIncrement;
+      private long timeBurst;
+      private int msgRate;
 
       public Builder() {
         quickstart = null;
@@ -201,7 +263,13 @@ public class DataGen {
         iterations = 1000000;
         maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
+        printRows = true;
+        properties = new Properties();
+        numThreads = 1;
         propertiesFile = null;
+        timeIncrement = -1;
+        timeBurst = 1;
+        msgRate = -1;
       }
 
       private enum Quickstart {
@@ -244,7 +312,7 @@ public class DataGen {
 
       public Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0, -1, null, null);
+          return new Arguments(this);
         }
 
         if (quickstart != null) {
@@ -262,18 +330,7 @@ public class DataGen {
         } catch (NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
-        return new Arguments(
-            help,
-            bootstrapServer,
-            schemaFile,
-            format,
-            topicName,
-            keyName,
-            iterations,
-            maxInterval,
-            schemaRegistryUrl,
-            propertiesFile
-        );
+        return new Arguments(this);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -281,6 +338,68 @@ public class DataGen {
           parseArg(arg);
         }
         return this;
+      }
+
+      private void parseArgNameValue(String argName, String argValue) throws IOException {
+        switch (argName) {
+          case "quickstart":
+            try {
+              quickstart = Quickstart.valueOf(argValue.toUpperCase());
+            } catch (IllegalArgumentException iae) {
+              throw new ArgumentParseException(String.format(
+                  "Invalid quickstart in '%s'; was expecting one of "
+                      + Arrays.toString(Quickstart.values())
+                      + " (case-insensitive)",
+                  argValue
+              ));
+            }
+            break;
+          case "bootstrap-server":
+            bootstrapServer = argValue;
+            break;
+          case "schema":
+            schemaFile = new FileInputStream(argValue);
+            break;
+          case "format":
+            format = parseFormat(argValue);
+            break;
+          case "topic":
+            topicName = argValue;
+            break;
+          case "key":
+            keyName = argValue;
+            break;
+          case "iterations":
+            iterations = parseIterations(argValue);
+            break;
+          case "maxInterval":
+            maxInterval = parseMaxInterval(argValue);
+            break;
+          case "schemaRegistryUrl":
+            schemaRegistryUrl = argValue;
+            break;
+          case "printRows":
+            printRows = parsePrintRows(argValue);
+            break;
+          case "numThreads":
+            numThreads = parseNThreads(argValue);
+            break;
+          case "propertiesFile":
+            propertiesFile = new FileInputStream(argValue);
+            break;
+          case "timeIncrement":
+            timeIncrement = parseTimeIncrement(argValue);
+            break;
+          case "timeBurst":
+            timeBurst = parseTimeBurst(argValue);
+            break;
+          case "msgRate":
+            msgRate = parseMsgRate(argValue);
+            break;
+          default:
+            throw new ArgumentParseException(
+                String.format("Unknown argument name in '%s'",  argName));
+        }
       }
 
       public Builder parseArg(String arg) throws IOException {
@@ -314,52 +433,15 @@ public class DataGen {
           ));
         }
 
-        switch (argName) {
-          case "quickstart":
-            try {
-              quickstart = Quickstart.valueOf(argValue.toUpperCase());
-            } catch (IllegalArgumentException iae) {
-              throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of "
-                  + Arrays.toString(Quickstart.values())
-                  + " (case-insensitive)",
-                  argValue
-              ));
-            }
-            break;
-          case "bootstrap-server":
-            bootstrapServer = argValue;
-            break;
-          case "schema":
-            schemaFile = new FileInputStream(argValue);
-            break;
-          case "format":
-            format = parseFormat(argValue);
-            break;
-          case "topic":
-            topicName = argValue;
-            break;
-          case "key":
-            keyName = argValue;
-            break;
-          case "iterations":
-            iterations = parseIterations(argValue);
-            break;
-          case "maxInterval":
-            maxInterval = parseIterations(argValue);
-            break;
-          case "schemaRegistryUrl":
-            schemaRegistryUrl = argValue;
-            break;
-          case "propertiesFile":
-            propertiesFile = new FileInputStream(argValue);
-            break;
-          default:
-            throw new ArgumentParseException(String.format(
-                "Unknown argument name in '%s'",
-                argName
-            ));
+        if (argName.startsWith("producer")) {
+          String property = argName.substring("producer".length() + 1);
+          Object value = parsePropertyValue(argValue);
+          properties.put(property, value);
+          return this;
         }
+
+        parseArgNameValue(argName, argValue);
+
         return this;
       }
 
@@ -393,10 +475,74 @@ public class DataGen {
         }
       }
 
+      private int parseNThreads(String numThreadsString) {
+        try {
+          int result = Integer.valueOf(numThreadsString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid number of threads in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid number of threads in '%s'; must be a positive number",
+              numThreadsString));
+        }
+      }
+
+      private int parseTimeIncrement(String timeIncrementString) {
+        try {
+          int result = Integer.valueOf(timeIncrementString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid time increment in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid time increment in '%s'; must be a positive number",
+              timeIncrementString));
+        }
+      }
+
+      private int parseTimeBurst(String timeBurstString) {
+        try {
+          int result = Integer.valueOf(timeBurstString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid time burst in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid time burst in '%s'; must be a positive number",
+              timeBurstString));
+        }
+      }
+
+      private int parseMsgRate(String msgRateString) {
+        try {
+          int result = Integer.valueOf(msgRateString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid msg rate in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid msg rate in '%s'; must be a positive number",
+              msgRateString));
+        }
+      }
+
       private long parseMaxInterval(String maxIntervalString) {
         try {
           long result = Long.valueOf(maxIntervalString, 10);
-          if (result <= 0) {
+          if (result < 0) {
             throw new ArgumentParseException(String.format(
                 "Invalid number of maxInterval in '%d'; must be a positive number",
                 result
@@ -408,6 +554,37 @@ public class DataGen {
               "Invalid number of maxInterval in '%s'; must be a valid base 10 long",
               maxIntervalString
           ));
+        }
+      }
+
+      private boolean parsePrintRows(String printRowsString) {
+        switch (printRowsString.toLowerCase()) {
+          case "false":
+            return false;
+          case "true":
+            return true;
+          default:
+            throw new ArgumentParseException(String.format(
+                "Invalid value for printRows in '%s'; must be true or false",
+                printRowsString
+            ));
+        }
+      }
+
+      private Object parsePropertyValue(String propertyValueString) {
+        String[] split = propertyValueString.split(",", 2);
+        if (split.length != 2) {
+          throw new ArgumentParseException(
+              "Invalid value for property in %s; must be in format <type>,<value>");
+        }
+        switch (split[0]) {
+          case "int":
+            return Integer.valueOf(split[1]);
+          case "string":
+            return split[1];
+          default:
+            throw new ArgumentParseException(
+                "Invalid type for property in %s; must be string or int");
         }
       }
     }

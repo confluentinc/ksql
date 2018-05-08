@@ -50,16 +50,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Generates Java objects according to an {@link Schema Avro Schema}.
  */
 public class Generator {
 
-  private static final Schema.Parser schemaParser = new Schema.Parser();
   private static final Map<Schema, Generex> generexCache = new HashMap<>();
   private static final Map<Schema, List<Object>> optionsCache = new HashMap<>();
   private static final Map<String, Iterator<Object>> iteratorCache = new HashMap<>();
+  private final Map<Schema, List<String>> domainStringCache = new HashMap<>();
 
   /**
    * The name to use for the top-level JSON property when specifying ARG-specific attributes.
@@ -89,6 +90,12 @@ public class Generator {
    * be used in conjunction with {@link #LENGTH_PROP}. Must be given as a string.
    */
   public static final String REGEX_PROP = "regex";
+
+  /**
+   * The name of the attribute for specifying a domain size for the domain of string values for
+   * this field.
+   */
+  public static final String DOMAIN_PROP = "domain";
 
   /**
    * The name of the attribute for specifying specific values which should be randomly chosen from
@@ -187,7 +194,7 @@ public class Generator {
    * @param random The object to use for generating randomness when producing values.
    */
   public Generator(String schemaString, Random random) {
-    this(schemaParser.parse(schemaString), random);
+    this(new Schema.Parser().parse(schemaString), random);
   }
 
   /**
@@ -197,7 +204,7 @@ public class Generator {
    * @throws IOException if an error occurs while reading from the input stream.
    */
   public Generator(InputStream schemaStream, Random random) throws IOException {
-    this(schemaParser.parse(schemaStream), random);
+    this(new Schema.Parser().parse(schemaStream), random);
   }
 
   /**
@@ -207,7 +214,7 @@ public class Generator {
    * @throws IOException if an error occurs while reading from the schema file.
    */
   public Generator(File schemaFile, Random random) throws IOException {
-    this(schemaParser.parse(schemaFile), random);
+    this(new Schema.Parser().parse(schemaFile), random);
   }
 
   /**
@@ -1130,16 +1137,33 @@ public class Generator {
 
   private String generateRandomString(int length) {
     byte[] bytes = new byte[length];
+    ThreadLocalRandom tlRandom = ThreadLocalRandom.current();
     for (int i = 0; i < length; i++) {
-      bytes[i] = (byte) random.nextInt(128);
+      bytes[i] = (byte)((byte)'a' + ((byte) tlRandom.nextInt(32) % 26));
     }
     return new String(bytes, StandardCharsets.US_ASCII);
   }
 
+  private String generateDomainString(Schema schema, Object domainProp, int length) {
+    int domainSz = (Integer)domainProp;
+    domainStringCache.putIfAbsent(schema, new ArrayList<>());
+    List<String> domain  = domainStringCache.get(schema);
+    while (domain.size() < domainSz) {
+      String next = generateRandomString(length);
+      domain.add(next);
+    }
+    int off = random.nextInt(domainSz);
+    return domain.get(off);
+  }
+
   private String generateString(Schema schema, Map propertiesProp) {
     Object regexProp = propertiesProp.get(REGEX_PROP);
+    Object domainProp = propertiesProp.get(DOMAIN_PROP);
     if (regexProp != null) {
       return generateRegexString(schema, regexProp, getLengthBounds(propertiesProp));
+    } else if (domainProp != null) {
+      return generateDomainString(
+          schema, domainProp, getLengthBounds(propertiesProp).random());
     } else {
       return generateRandomString(getLengthBounds(propertiesProp).random());
     }

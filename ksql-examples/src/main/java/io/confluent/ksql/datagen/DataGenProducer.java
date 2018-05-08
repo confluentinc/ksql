@@ -43,14 +43,100 @@ public abstract class DataGenProducer {
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
+  private ProducerRecord<String, GenericRow> populateRow(
+      Generator generator, Schema avroSchema, SessionManager sessionManager,
+      TimestampGenerator timestampGenerator, String kafkaTopicName, String key) {
+    Object generatedObject = generator.generate();
+
+    if (!(generatedObject instanceof GenericRecord)) {
+      throw new RuntimeException(String.format(
+          "Expected Avro Random Generator to return instance of GenericRecord, found %s instead",
+          generatedObject.getClass().getName()
+      ));
+    }
+    GenericRecord randomAvroMessage = (GenericRecord) generatedObject;
+
+    List<Object> genericRowValues = new ArrayList<>();
+
+    SimpleDateFormat timeformatter = null;
+
+    /**
+     * Populate the record entries
+     */
+    String sessionisationValue = null;
+    for (Schema.Field field : avroSchema.getFields()) {
+
+      boolean isSession = field.schema().getProp("session") != null;
+      boolean isSessionSiblingIntHash =
+          field.schema().getProp("session-sibling-int-hash") != null;
+      String timeFormatFromLong = field.schema().getProp("format_as_time");
+
+      if (isSession) {
+        String currentValue = (String) randomAvroMessage.get(field.name());
+        String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
+        sessionisationValue = newCurrentValue;
+
+        genericRowValues.add(newCurrentValue);
+      } else if (isSessionSiblingIntHash && sessionisationValue != null) {
+
+        // super cheeky hack to link int-ids to session-values - if anything fails then we use
+        // the 'avro-gen' randomised version
+        handleSessionSiblingField(
+            randomAvroMessage,
+            genericRowValues,
+            sessionisationValue,
+            field
+        );
+
+      } else if (timeFormatFromLong != null) {
+        Date date = new Date(System.currentTimeMillis());
+        if (timeFormatFromLong.equals("unix_long")) {
+          genericRowValues.add(date.getTime());
+        } else {
+          if (timeformatter == null) {
+            timeformatter = new SimpleDateFormat(timeFormatFromLong);
+          }
+          genericRowValues.add(timeformatter.format(date));
+        }
+      } else {
+        genericRowValues.add(randomAvroMessage.get(field.name()));
+      }
+    }
+
+    GenericRow genericRow = new GenericRow(genericRowValues);
+
+    String keyString = randomAvroMessage.get(key).toString();
+
+    ProducerRecord<String, GenericRow> producerRecord;
+    if (timestampGenerator == null) {
+      producerRecord = new ProducerRecord<>(
+          kafkaTopicName,
+          keyString,
+          genericRow
+      );
+    } else {
+      producerRecord = new ProducerRecord<>(
+          kafkaTopicName,
+          null,
+          timestampGenerator.next(),
+          keyString,
+          genericRow);
+    }
+
+    return producerRecord;
+  }
+
   public void populateTopic(
       Properties props,
       Generator generator,
       String kafkaTopicName,
       String key,
       int messageCount,
-      long maxInterval
-  ) {
+      long maxInterval,
+      boolean printRows,
+      TimestampGenerator timestampGenerator,
+      TokenBucket tokenBucket
+  ) throws InterruptedException {
     if (maxInterval < 0) {
       maxInterval = INTER_MESSAGE_MAX_INTERVAL;
     }
@@ -67,79 +153,28 @@ public abstract class DataGenProducer {
 
     SessionManager sessionManager = new SessionManager();
 
+    int tokens = 0;
+
     for (int i = 0; i < messageCount; i++) {
-      Object generatedObject = generator.generate();
-
-      if (!(generatedObject instanceof GenericRecord)) {
-        throw new RuntimeException(String.format(
-            "Expected Avro Random Generator to return instance of GenericRecord, found %s instead",
-            generatedObject.getClass().getName()
-        ));
-      }
-      GenericRecord randomAvroMessage = (GenericRecord) generatedObject;
-
-      List<Object> genericRowValues = new ArrayList<>();
-
-      SimpleDateFormat timeformatter = null;
-
-      /**
-       * Populate the record entries
-       */
-      String sessionisationValue = null;
-      for (Schema.Field field : avroSchema.getFields()) {
-
-        boolean isSession = field.schema().getProp("session") != null;
-        boolean isSessionSiblingIntHash =
-            field.schema().getProp("session-sibling-int-hash") != null;
-        String timeFormatFromLong = field.schema().getProp("format_as_time");
-
-        if (isSession) {
-          String currentValue = (String) randomAvroMessage.get(field.name());
-          String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
-          sessionisationValue = newCurrentValue;
-
-          genericRowValues.add(newCurrentValue);
-        } else if (isSessionSiblingIntHash && sessionisationValue != null) {
-
-          // super cheeky hack to link int-ids to session-values - if anything fails then we use
-          // the 'avro-gen' randomised version
-          handleSessionSiblingField(
-              randomAvroMessage,
-              genericRowValues,
-              sessionisationValue,
-              field
-          );
-
-        } else if (timeFormatFromLong != null) {
-          Date date = new Date(System.currentTimeMillis());
-          if (timeFormatFromLong.equals("unix_long")) {
-            genericRowValues.add(date.getTime());
-          } else {
-            if (timeformatter == null) {
-              timeformatter = new SimpleDateFormat(timeFormatFromLong);
-            }
-            genericRowValues.add(timeformatter.format(date));
-          }
-        } else {
-          genericRowValues.add(randomAvroMessage.get(field.name()));
+      if (tokenBucket != null) {
+        if (tokens == 0) {
+          tokens = tokenBucket.take(10);
         }
+        tokens -= 1;
       }
 
-      GenericRow genericRow = new GenericRow(genericRowValues);
-
-      String keyString = randomAvroMessage.get(key).toString();
-
-      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(
-          kafkaTopicName,
-          keyString,
-          genericRow
-      );
+      ProducerRecord<String, GenericRow> producerRecord = populateRow(
+          generator, avroSchema, sessionManager, timestampGenerator, kafkaTopicName, key);
       producer.send(producerRecord);
-      System.err.println(keyString + " --> (" + genericRow + ")");
-      try {
-        Thread.sleep((long) (maxInterval * Math.random()));
-      } catch (InterruptedException e) {
-        // Ignore the exception.
+      if (printRows) {
+        System.err.println(producerRecord.key() + " --> (" + producerRecord.value() + ")");
+      }
+      if (maxInterval > 0) {
+        try {
+          Thread.sleep((long) (maxInterval * Math.random()));
+        } catch (InterruptedException e) {
+          // Ignore the exception.
+        }
       }
     }
     producer.flush();

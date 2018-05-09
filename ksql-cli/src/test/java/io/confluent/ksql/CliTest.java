@@ -230,7 +230,7 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    terminateQuery("CSAS_" + resultKStreamName);
+    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no -1));
 
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));

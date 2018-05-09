@@ -50,6 +50,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
+  final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
 
 
@@ -63,16 +64,22 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String topicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
-      @JsonProperty("limit") final Optional<Integer> limit) {
+      @JsonProperty("limit") final Optional<Integer> limit,
+      @JsonProperty("doCreateInto") final boolean doCreateInto) {
     super(id, source, schema, limit, timestampExtractionPolicy);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
+    this.doCreateInto = doCreateInto;
   }
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
+  }
+
+  public boolean isDoCreateInto() {
+    return doCreateInto;
   }
 
   @Override
@@ -132,10 +139,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
-    createSinkTopic(noRowKey.getKafkaTopicName(),
-                    ksqlConfig,
-                    kafkaTopicClient,
-                    shouldBeCompacted(result));
+    if (doCreateInto) {
+      createSinkTopic(noRowKey.getKafkaTopicName(),
+                      ksqlConfig,
+                      kafkaTopicClient,
+                      shouldBeCompacted(result));
+    }
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -239,6 +248,21 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
+  public KsqlStructuredDataOutputNode cloneWithDoCreateInto(boolean newDoCreateInto) {
+    return new KsqlStructuredDataOutputNode(
+        getId(),
+        getSource(),
+        getSchema(),
+        getTimestampExtractionPolicy(),
+        getKeyField(),
+        getKsqlTopic(),
+        getKafkaTopicName(),
+        getOutputProperties(),
+        getLimit(),
+        newDoCreateInto
+    );
+  }
+
   public static class Builder {
 
     private PlanNodeId id;
@@ -250,6 +274,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private String topicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
+    private boolean doCreateInto;
 
     public KsqlStructuredDataOutputNode build() {
       return new KsqlStructuredDataOutputNode(
@@ -261,8 +286,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           ksqlTopic,
           topicName,
           outputProperties,
-          limit
-      );
+          limit,
+          doCreateInto);
     }
 
     public static Builder from(final KsqlStructuredDataOutputNode original) {
@@ -275,7 +300,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withKsqlTopic(original.getKsqlTopic())
           .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
-          .withLimit(original.getLimit());
+          .withLimit(original.getLimit())
+          .withDoCreateInto(original.isDoCreateInto());
     }
 
 
@@ -323,5 +349,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       this.id = id;
       return this;
     }
+
+    Builder withDoCreateInto(final boolean doCreateInto) {
+      this.doCreateInto = doCreateInto;
+      return this;
+    }
+
   }
 }

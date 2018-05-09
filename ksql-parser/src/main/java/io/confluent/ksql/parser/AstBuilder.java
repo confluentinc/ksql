@@ -19,6 +19,13 @@ package io.confluent.ksql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlException;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -33,11 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -72,6 +74,7 @@ import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -135,8 +138,6 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
@@ -260,6 +261,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
+  public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
+    Optional<Expression> partitionByColumn = Optional.empty();
+    if (context.identifier() != null) {
+      partitionByColumn = Optional.of(new QualifiedNameReference(
+          QualifiedName.of(getIdentifierText(context.identifier()))));
+    }
+    return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
+                                   (Query) visitQuery(context.query()), partitionByColumn);
+  }
+
+  @Override
   public Node visitDropTopic(SqlBaseParser.DropTopicContext context) {
     return new DropTopic(
         getLocation(context),
@@ -328,6 +340,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               getLocation(context),
               query.getSelect(),
               query.getInto(),
+              query.isShouldCreateInto(),
               query.getFrom(),
               query.getWindowExpression(),
               query.getWhere(),
@@ -376,6 +389,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         select,
         into,
+        true,
         from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),

@@ -12,7 +12,7 @@
     <!-- TODO: Fix Me!-->
     <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
     <suppress files="(PersistentQueryMetadata|SourceDescription).java" checks="ParameterNumber"/>
-    <suppress files="(Console|Main|Generator).java" checks="JavaNCSSCheck"/>
+    <suppress files="(Console|Main|Generator|KsqlResource).java" checks="JavaNCSSCheck"/>
     <suppress files="Generator.java" checks="NPathComplexity"/>
     <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress
@@ -20,8 +20,10 @@
     <suppress files="(KafkaConsumerGroupClientImpl.java)" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(DataGenProducer|DataGen|Generator).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(ExpressionTypeManager|KsqlResource|Console).java" checks="CyclomaticComplexityCheck"/>
+    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder).java"
+              checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder).java"
+              checks="CyclomaticComplexityCheck"/>
 
     <!-- EXAMPLES! -->
     <suppress files="(DataGenProducer|DataGen|Main|Generator).java" checks="CyclomaticComplexityCheck"/>

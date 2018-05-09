@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.google.common.collect.Maps;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,17 +36,14 @@ import io.confluent.ksql.rest.util.JsonUtil;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
-import javax.naming.AuthenticationException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -53,48 +52,44 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
 
+import javax.naming.AuthenticationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+
 public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private final Client client;
 
-  private String serverAddress;
+  private URI serverAddress;
 
   private final Map<String, Object> localProperties;
 
   private boolean hasUserCredentials = false;
 
   public KsqlRestClient(final String serverAddress) {
-    this(serverAddress, new HashMap<>());
+    this(serverAddress, Collections.emptyMap());
   }
 
   public KsqlRestClient(final String serverAddress, final Properties properties) {
     this(serverAddress, propertiesToMap(properties));
   }
 
-  public KsqlRestClient(String serverAddress, Map<String, Object> localProperties) {
-    this.serverAddress = serverAddress;
-    this.localProperties = localProperties;
-    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-        false);
-    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
-  }
-
-  private static Map<String, Object> propertiesToMap(final Properties properties) {
-    final Map<String, Object> propertiesMap = new HashMap<>();
-    properties.stringPropertyNames().forEach(
-        prop -> propertiesMap.put(prop, properties.getProperty(prop)));
-
-    return propertiesMap;
+  public KsqlRestClient(final String serverAddress, final Map<String, Object> localProperties) {
+    this(buildClient(), serverAddress, localProperties);
   }
 
   // Visible for testing
-  KsqlRestClient(Client client, String serverAddress) {
-    this.client = client;
-    this.serverAddress = serverAddress;
-    this.localProperties = new HashMap<>();
+  KsqlRestClient(final Client client,
+                 final String serverAddress,
+                 final Map<String, Object> localProperties) {
+    this.client = Objects.requireNonNull(client, "client");
+    this.serverAddress = parseServerAddress(serverAddress);
+    this.localProperties = Maps.newHashMap(
+        Objects.requireNonNull(localProperties, "localProperties"));
   }
 
   public void setupAuthenticationCredentials(String userName, String password) {
@@ -111,12 +106,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return hasUserCredentials;
   }
 
-  public String getServerAddress() {
+  public URI getServerAddress() {
     return serverAddress;
   }
 
-  public void setServerAddress(String serverAddress) {
-    this.serverAddress = serverAddress;
+  public void setServerAddress(final String serverAddress) {
+    this.serverAddress = parseServerAddress(serverAddress);
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
@@ -341,12 +336,36 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public Object setProperty(String property, Object value) {
-    Object oldValue = localProperties.get(property);
-    localProperties.put(property, value);
-    return oldValue;
+    return localProperties.put(property, value);
   }
 
   public boolean unsetProperty(String property) {
     return localProperties.remove(property) != null;
+  }
+
+  private static Map<String, Object> propertiesToMap(final Properties properties) {
+    final Map<String, Object> propertiesMap = new HashMap<>();
+    properties.stringPropertyNames().forEach(
+        prop -> propertiesMap.put(prop, properties.getProperty(prop)));
+
+    return propertiesMap;
+  }
+
+  private static URI parseServerAddress(final String serverAddress) {
+    Objects.requireNonNull(serverAddress, "serverAddress");
+    try {
+      return new URL(serverAddress).toURI();
+    } catch (final Exception e) {
+      throw new KsqlRestClientException(
+          "The supplied serverAddress is invalid: " + serverAddress, e);
+    }
+  }
+
+  private static Client buildClient() {
+    final ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+    final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 }

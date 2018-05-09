@@ -180,7 +180,6 @@ public class FunctionRegistry {
         Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
 
-
     /***************************************
      * UDAFs                               *
      ***************************************/

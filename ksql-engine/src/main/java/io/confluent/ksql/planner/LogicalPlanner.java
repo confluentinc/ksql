@@ -111,7 +111,8 @@ public class LogicalPlanner {
           intoDataSource.getKsqlTopic(),
           intoDataSource.getKsqlTopic().getTopicName(),
           intoProperties,
-          analysis.getLimitClause()
+          analysis.getLimitClause(),
+          analysis.isDoCreateInto()
       );
 
     }

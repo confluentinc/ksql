@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -65,6 +66,23 @@ public class QueryAnalyzerTest {
     assertThat(analysis.getFromDataSources().size(), equalTo(1));
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("ORDERS"));
+  }
+
+  @Test
+  public void shouldCreateAnalysisForInserInto() {
+    final List<Statement> statements = ksqlParser.buildAst("insert into test2 select col1 "
+                                                           + "from test1;",
+                                                           metaStore);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query)((InsertInto)
+                                                                                 statements.get
+                                                                                     (0)).getQuery());
+    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    assertThat(analysis.getSelectExpressions(), equalTo(
+        Collections.singletonList(new DereferenceExpression(
+            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1"))));
+    assertThat(analysis.getFromDataSources().size(), equalTo(1));
+    assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
+    assertThat(fromDataSource.right, equalTo("TEST1"));
   }
 
   @Test

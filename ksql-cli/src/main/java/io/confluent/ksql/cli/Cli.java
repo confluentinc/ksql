@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.resources.Errors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -66,8 +64,10 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -101,7 +101,6 @@ public class Cli implements Closeable, AutoCloseable {
   ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
-    validateClient(terminal.writer(), restClient);
 
     this.streamedQueryRowLimit = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
@@ -135,19 +134,23 @@ public class Cli implements Closeable, AutoCloseable {
     } catch (KsqlRestClientException exception) {
       if (exception.getCause() instanceof ProcessingException) {
         writer.println();
-        writer.println("**************** WARNING ******************");
-        writer.println("Remote server address may not be valid:");
+        writer.println("**************** ERROR ********************");
+        writer.println("Remote server address may not be valid.");
+        writer.println("Address: " + restClient.getServerAddress());
         writer.println(ErrorMessageUtil.buildErrorMessage(exception));
         writer.println("*******************************************");
         writer.println();
       } else {
         throw exception;
       }
+    } finally {
+      writer.flush();
     }
   }
 
   public void runInteractively() {
     displayWelcomeMessage();
+    validateClient(terminal.writer(), restClient);
     boolean eof = false;
     while (!eof) {
       try {
@@ -679,8 +682,10 @@ public class Cli implements Closeable, AutoCloseable {
       } else {
         String serverAddress = commandStrippedLine.trim();
         restClient.setServerAddress(serverAddress);
-        validateClient(writer, restClient);
+        writer.write("Server now: " + commandStrippedLine);
       }
+
+      validateClient(writer, restClient);
     }
   }
 }

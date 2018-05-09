@@ -285,7 +285,11 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         if (!responseLine.isEmpty()) {
           try {
             GenericRow genericRow = new JsonUtil().buildGenericRowFromJson(responseLine);
-            bufferedRow = new StreamedRow(genericRow);
+            if (genericRow != null) {
+              bufferedRow = new StreamedRow(genericRow);
+            } else {
+              return false;
+            }
           } catch (IOException exception) {
             // TODO: Should the exception be handled somehow else?
             // Swallowing it silently seems like a bad idea...

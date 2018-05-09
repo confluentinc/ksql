@@ -32,11 +32,23 @@ public class JsonUtil {
   public GenericRow buildGenericRowFromJson(String jsonString) throws IOException {
     JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
     List columns = new ArrayList();
-    Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
-    while (fields.hasNext()) {
-      columns.add(fields.next().getValue());
+    if (jsonNode.has("row") && jsonNode.has("errorMessage")) {
+      if (jsonNode.get("errorMessage").toString().equalsIgnoreCase("null")) {
+        JsonNode columnsArray = jsonNode.get("row").get("columns");
+        for (JsonNode field: columnsArray) {
+          columns.add(field.asText());
+        }
+        return new GenericRow(columns);
+      } else {
+        return null;
+      }
+    } else {
+      Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
+      while (fields.hasNext()) {
+        columns.add(fields.next().getValue());
+      }
+      return new GenericRow(columns);
     }
-    return new GenericRow(columns);
   }
 
 }

@@ -21,12 +21,16 @@ import io.confluent.ksql.util.KsqlException;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
@@ -109,9 +113,73 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       throw new KsqlException("Incompatible schemas: " + schema + ", " + struct.schema());
     }
     Struct updatedStruct = new Struct(schema);
-    schema.fields().stream()
-        .forEach(field -> updatedStruct.put(field.name(), struct.get(field.name())));
+    for (Field field: schema.fields()) {
+      if (field.schema().type() == Schema.Type.STRUCT) {
+        Struct structField = updateStructSchema((Struct) struct.get(field.name()), field.schema());
+        updatedStruct.put(field.name(), structField);
+      } else if (field.schema().type() == Schema.Type.ARRAY) {
+        updatedStruct.put(field.name(),
+                          updateArraySchema((List) struct.get(field.name()), field.schema()));
+      } else if (field.schema().type() == Schema.Type.MAP) {
+        updatedStruct.put(field.name(),
+                          updateMapSchema((Map) struct.get(field.name()), field.schema()));
+      } else {
+        updatedStruct.put(field.name(), struct.get(field.name()));
+      }
+    }
+
     return updatedStruct;
+  }
+
+  private List updateArraySchema(List arrayList, Schema arraySchema) {
+    List updatedArray = new ArrayList();
+    if (arraySchema.valueSchema().type() == Schema.Type.STRUCT) {
+      arrayList.stream().forEach(
+          item -> updatedArray.add(updateStructSchema((Struct) item, arraySchema.valueSchema()))
+      );
+    } else if (arraySchema.valueSchema().type() == Schema.Type.ARRAY) {
+      arrayList.stream().forEach(
+          item -> updatedArray.add(updateArraySchema((List) item, arraySchema.valueSchema())));
+    } else if (arraySchema.valueSchema().type() == Schema.Type.MAP) {
+      arrayList.stream().forEach(
+          item -> updatedArray.add(updateMapSchema((Map) item, arraySchema.valueSchema())));
+    } else {
+      arrayList.stream().forEach(item -> updatedArray.add(item));
+    }
+    return updatedArray;
+  }
+
+  private Map updateMapSchema(Map map, Schema mapSchema) {
+    Map updatedMap = new HashMap();
+    if (mapSchema.valueSchema().type() == Schema.Type.STRUCT) {
+      map.entrySet()
+          .stream()
+          .forEach(entry ->
+                       updatedMap.put(((Map.Entry) entry).getKey(),
+                                      updateStructSchema((Struct)((Map.Entry) entry).getValue(),
+                                      mapSchema.valueSchema())));
+    } else if (mapSchema.valueSchema().type() == Schema.Type.ARRAY) {
+      map.entrySet()
+          .stream()
+          .forEach(entry ->
+                       updatedMap.put(((Map.Entry) entry).getKey(),
+                                      updateArraySchema((List) ((Map.Entry) entry).getValue(),
+                                                         mapSchema.valueSchema())));
+    } else if (mapSchema.valueSchema().type() == Schema.Type.MAP) {
+      map.entrySet()
+          .stream()
+          .forEach(entry ->
+                       updatedMap.put(((Map.Entry) entry).getKey(),
+                                      updateMapSchema((Map) ((Map.Entry) entry).getValue(),
+                                                        mapSchema.valueSchema())));
+    } else {
+      map.entrySet()
+          .stream()
+          .forEach(entry ->
+                       updatedMap.put(((Map.Entry) entry).getKey(),
+                                      ((Map.Entry) entry).getValue()));
+    }
+    return updatedMap;
   }
 
   private boolean compareSchemas(Schema schema1, Schema schema2) {

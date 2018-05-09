@@ -18,12 +18,16 @@ package io.confluent.ksql.serde.json;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
 
@@ -33,6 +37,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class KsqlJsonSerializerTest {
 
   Schema orderSchema;
+
+  Schema addressSchema;
+
+  Schema itemSchema;
+  Schema categorySchema;
+
 
   @Before
   public void before() {
@@ -70,5 +80,97 @@ public class KsqlJsonSerializerTest {
     String jsonString = new String(bytes);
     assertThat("Incorrect serialization.", jsonString, equalTo("{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":null,\"MAPCOL\":null}"));
   }
+
+  private Schema getSchemaWithStruct() {
+    addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.INT64_SCHEMA)
+        .field("STREET", Schema.STRING_SCHEMA)
+        .field("CITY", Schema.STRING_SCHEMA)
+        .field("STATE", Schema.STRING_SCHEMA)
+        .field("ZIPCODE", Schema.INT64_SCHEMA)
+        .build();
+
+    categorySchema = SchemaBuilder.struct()
+        .field("ID", Schema.INT64_SCHEMA)
+        .field("NAME", Schema.STRING_SCHEMA)
+        .build();
+
+    itemSchema = SchemaBuilder.struct()
+        .field("ITEMID", Schema.INT64_SCHEMA)
+        .field("NAME", Schema.STRING_SCHEMA)
+//        .field("CATEGORY", categorySchema)
+        .field("CATEGORIES", SchemaBuilder.array(categorySchema))
+        .build();
+
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    Schema schema = schemaBuilder
+        .field("ordertime", Schema.INT64_SCHEMA)
+        .field("orderid", Schema.INT64_SCHEMA)
+        .field("itemid", itemSchema)
+        .field("orderunits", Schema.INT32_SCHEMA)
+        .field("arraycol",schemaBuilder.array(Schema.FLOAT64_SCHEMA))
+        .field("mapcol", schemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("address", addressSchema).build();
+
+    return schema;
+  }
+
+  private GenericRow getGenericRow() {
+    List<Object> columns = new ArrayList();
+    long currentTime = System.currentTimeMillis();
+    currentTime = (long)(1000*Math.random()) + currentTime;
+    // ordertime
+    columns.add(Long.valueOf(currentTime));
+
+    //orderid
+    columns.add(10l);
+    //itemid
+    Struct category = new Struct(categorySchema);
+    category.put("ID", Math.random() > 0.5 ? 1l: 2l);
+    category.put("NAME", Math.random() > 0.5 ? "Produce": "Food");
+
+    Struct item = new Struct(itemSchema);
+    item.put("ITEMID", 10l);
+    item.put("NAME", "Item_10");
+    item.put("CATEGORIES", Collections.singletonList(category));
+
+    columns.add(item);
+
+    //units
+    columns.add(10);
+
+    Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
+
+
+//      columns.add(prices);
+    columns.add(Arrays.asList(prices));
+
+    Map<String, Double> map = new HashMap<>();
+    map.put("key1", 10.0);
+    map.put("key2", 20.0);
+    map.put("key3", 30.0);
+    columns.add(map);
+
+
+    Struct address = new Struct(addressSchema);
+    address.put("NUMBER", 101l);
+    address.put("STREET", "University Ave.");
+    address.put("CITY", "Palo Alto");
+    address.put("STATE", "CA");
+    address.put("ZIPCODE", 94301l);
+
+    columns.add(address);
+
+    GenericRow genericRow = new GenericRow(columns);
+    return genericRow;
+  }
+
+  @Test
+  public void shouldHandleStruct() {
+    KsqlJsonSerializer jsonSerializer = new KsqlJsonSerializer(getSchemaWithStruct());
+    byte[] bytes = jsonSerializer.serialize("", getGenericRow());
+    System.out.println();
+  }
+
 
 }

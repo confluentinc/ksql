@@ -64,7 +64,6 @@ public class SchemaUtil {
     }
   }
 
-
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
     if (schema.fields() != null) {
       for (Field field : schema.fields()) {
@@ -396,6 +395,33 @@ public class SchemaUtil {
       schemaBuilder.field(name, field.schema());
     }
     return schemaBuilder.build();
+  }
+
+  public static boolean areEqualSchemas(Schema schema1, Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()) {
+      return false;
+    }
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!schema1.fields().get(i).equals(schema2.fields().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static String schemaString(Schema schema) {
+    StringBuilder stringBuilder = new StringBuilder("[ ");
+    boolean addComma = false;
+    for (Field field : schema.fields()) {
+      if (addComma) {
+        stringBuilder.append(", ");
+      } else {
+        addComma = true;
+      }
+      stringBuilder.append(String.format("(%s : %s)", field.name(), field.schema()));
+    }
+    stringBuilder.append("]");
+    return stringBuilder.toString();
   }
 
   public static int getIndexInSchema(final String fieldName, final Schema schema) {

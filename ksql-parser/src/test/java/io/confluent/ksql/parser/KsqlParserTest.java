@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
@@ -638,6 +639,27 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testInsertInto() throws Exception {
+    String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
+                            + "100;";
+    Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0);
+
+
+    assertThat(statement, instanceOf(InsertInto.class));
+    InsertInto insertInto = (InsertInto) statement;
+    assertThat(insertInto.getTarget().toString(), equalTo("TEST2"));
+    Query query = insertInto.getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(3));
+    assertThat(querySpecification.getFrom(), not(nullValue()));
+    assertThat(querySpecification.getWhere().isPresent(), equalTo(true));
+    assertThat(querySpecification.getWhere().get(),  instanceOf(ComparisonExpression.class));
+    ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
+    assertThat(comparisonExpression.getType().getValue(), equalTo(">"));
+
+  }
+
   public void shouldSetShowDescriptionsForShowStreamsDescriptions() {
     String statementString = "SHOW STREAMS EXTENDED;";
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);

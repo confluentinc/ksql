@@ -28,19 +28,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.resources.streaming.PollingSubscription.Pollable;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
-
-import static io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format.getFormatter;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 
 public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 
@@ -92,7 +87,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
         subscriber,
         new Pollable<Collection<String>>() {
           Throwable error;
-          Format format = Format.UNDEFINED;
+          RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
 
           @Override
           public Schema getSchema() {
@@ -106,24 +101,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
               if (records.isEmpty()) {
                 return null;
               }
-              return StreamSupport
-                  .stream(records.records(topicName).spliterator(), false)
-                  .map((record) -> {
-                    if (record == null) {
-                      return null;
-                    }
-                    if (format == TopicStream.Format.UNDEFINED) {
-                      format = getFormatter(topicName, record, schemaRegistryClient);
-                    }
-                    try {
-                      return format.print(record);
-                    } catch (IOException e) {
-                      log.warn("Exception formatting record", e);
-                      return null;
-                    }
-                  })
-                  .filter(Objects::nonNull)
-                  .collect(Collectors.toList());
+              return formatter.format(records);
             } catch (Exception e) {
               error = e;
               return null;

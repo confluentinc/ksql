@@ -22,20 +22,68 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.utils.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.util.SchemaUtil;
 
+import static io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format.getFormatter;
+
 public class TopicStream {
+
+  public static class RecordFormatter {
+
+    private static final Logger log = LoggerFactory.getLogger(RecordFormatter.class);
+    private final SchemaRegistryClient schemaRegistryClient;
+    private final String topicName;
+
+    private Format format = Format.UNDEFINED;
+
+    public RecordFormatter(SchemaRegistryClient schemaRegistryClient, String topicName) {
+      this.schemaRegistryClient = schemaRegistryClient;
+      this.topicName = topicName;
+    }
+
+    public List<String> format(ConsumerRecords<String, Bytes> records) {
+      return StreamSupport
+          .stream(records.records(topicName).spliterator(), false)
+          .map((record) -> {
+            if (record == null) {
+              return null;
+            }
+            if (format == Format.UNDEFINED) {
+              format = getFormatter(topicName, record, schemaRegistryClient);
+            }
+            try {
+              return format.print(record);
+            } catch (IOException e) {
+              log.warn("Exception formatting record", e);
+              return null;
+            }
+          })
+          .filter(Objects::nonNull)
+          .collect(Collectors.toList());
+    }
+
+    public Format getFormat() {
+      return format;
+    }
+  }
 
   public enum Format {
 

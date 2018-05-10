@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -37,9 +36,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.StreamingOutput;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
-
-import static io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format.getFormatter;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 
 public class TopicStreamWriter implements StreamingOutput {
 
@@ -88,23 +85,24 @@ public class TopicStreamWriter implements StreamingOutput {
   @Override
   public void write(OutputStream out) {
     try {
-      Format format = Format.UNDEFINED;
+      final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
+      boolean printFormat = true;
       while (true) {
         ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
           out.write("\n".getBytes(StandardCharsets.UTF_8));
           out.flush();
         } else {
-          for (ConsumerRecord<String, Bytes> record : records.records(topicName)) {
-            if (record.value() != null) {
-              if (format == Format.UNDEFINED) {
-                format = getFormatter(topicName, record, schemaRegistryClient);
-                out.write(("Format:" + format.name() + "\n").getBytes(StandardCharsets.UTF_8));
-              }
-              if (messagesWritten++ % interval == 0) {
-                out.write(format.print(record).getBytes(StandardCharsets.UTF_8));
-                out.flush();
-              }
+          final List<String> values = formatter.format(records);
+          for (String value : values) {
+            if (printFormat) {
+              printFormat = false;
+              out.write(("Format:" + formatter.getFormat().name() + "\n")
+                            .getBytes(StandardCharsets.UTF_8));
+            }
+            if (messagesWritten++ % interval == 0) {
+              out.write(value.getBytes(StandardCharsets.UTF_8));
+              out.flush();
             }
           }
         }

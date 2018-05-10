@@ -39,6 +39,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   private final ObjectMapper mapper;
 
   private Flow.Subscription subscription;
+  private volatile boolean closed = false;
 
   public WebSocketSubscriber(Session session, ObjectMapper mapper) {
     this.session = session;
@@ -53,21 +54,23 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   @Override
   public void onNext(Collection<T> rows) {
     for (T row : rows) {
-      try {
-        String buffer = mapper.writeValueAsString(row);
-        session.getAsyncRemote().sendText(
-            buffer, result -> {
-              if (!result.isOK() && session.isOpen()) {
-                log.warn(
-                    "Error sending websocket message for session {}",
-                    session.getId(),
-                    result.getException()
-                );
-              }
-            });
+      if (!closed) {
+        try {
+          String buffer = mapper.writeValueAsString(row);
+          session.getAsyncRemote().sendText(
+              buffer, result -> {
+                if (!result.isOK()) {
+                  log.warn(
+                      "Error sending websocket message for session {}",
+                      session.getId(),
+                      result.getException()
+                  );
+                }
+              });
 
-      } catch (JsonProcessingException e) {
-        log.warn("Error serializing row in session {}", session.getId(), e);
+        } catch (JsonProcessingException e) {
+          log.warn("Error serializing row in session {}", session.getId(), e);
+        }
       }
     }
     subscription.request(1);
@@ -104,6 +107,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
 
   @Override
   public void close() {
+    closed = true;
     if (subscription != null) {
       subscription.cancel();
     }

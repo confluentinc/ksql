@@ -1,7 +1,5 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -11,11 +9,20 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.easymock.EasyMock.*;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
+
+import static org.easymock.EasyMock.anyInt;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class TopicStreamWriterFormatTest {
+public class TopicStreamTest {
 
   @Test
   public void shouldMatchAvroFormatter() throws Exception {
@@ -60,7 +67,7 @@ public class TopicStreamWriterFormatTest {
 
     /** Assert
      */
-    assertTrue(TopicStream.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
+    assertTrue(Format.AVRO.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -79,7 +86,7 @@ public class TopicStreamWriterFormatTest {
 
     /** Assert
      */
-    assertFalse(TopicStream.Format.AVRO.isFormat("topic", record, schemaRegistryClient));
+    assertFalse(Format.AVRO.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -97,7 +104,7 @@ public class TopicStreamWriterFormatTest {
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
-    assertTrue(TopicStream.Format.JSON.isFormat("topic", record, schemaRegistryClient));
+    assertTrue(Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -116,6 +123,6 @@ public class TopicStreamWriterFormatTest {
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
 
-    assertFalse(TopicStream.Format.JSON.isFormat("topic", record, schemaRegistryClient));
+    assertFalse(Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
 }

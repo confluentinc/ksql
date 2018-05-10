@@ -57,13 +57,15 @@ import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -105,7 +107,6 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
@@ -137,7 +138,7 @@ public class KsqlResource {
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
-    registerDdlCommandTasks();
+    this.registerDdlCommandTasks();
   }
 
   @POST
@@ -216,6 +217,7 @@ public class KsqlResource {
       explainQuery((Explain) statement, statementText);
     } else if (isExecutableDdlStatement(statement)
         || statement instanceof CreateAsSelect
+        || statement instanceof InsertInto
         || statement instanceof TerminateQuery) {
       Statement statementWithFields = statement;
       String statementTextWithFields = statementText;
@@ -295,6 +297,7 @@ public class KsqlResource {
       return distributeStatement(statementText, statement, streamsProperties);
     } else if (isExecutableDdlStatement(statement)
                || statement instanceof CreateAsSelect
+               || statement instanceof InsertInto
                || statement instanceof TerminateQuery
     ) {
       return distributeStatement(statementText, statement, streamsProperties);
@@ -509,8 +512,7 @@ public class KsqlResource {
   private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
-    ddlCommandTasks.put(
-        Query.class,
+    ddlCommandTasks.put(Query.class,
         (statement, statementText, properties) -> {
           QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan((Query)statement);
           return queryMetadata;
@@ -547,6 +549,17 @@ public class KsqlResource {
             (PersistentQueryMetadata) queryMetadata,
             ksqlEngine.getSchemaRegistryClient()
         );
+      }
+      queryMetadata.close();
+      return queryMetadata;
+    });
+
+    ddlCommandTasks.put(InsertInto.class, (statement, statementText, properties) -> {
+      QueryMetadata queryMetadata =
+          ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery());
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      ksqlEngine.getSchemaRegistryClient());
       }
       queryMetadata.close();
       return queryMetadata;

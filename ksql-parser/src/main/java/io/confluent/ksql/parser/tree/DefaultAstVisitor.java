@@ -330,6 +330,10 @@ public abstract class DefaultAstVisitor<R, C>
     return visitStatement(node, context);
   }
 
+  protected R visitInsertInto(InsertInto node, C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitDropTable(DropTable node, C context) {
     return visitStatement(node, context);
   }

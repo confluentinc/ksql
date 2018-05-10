@@ -22,7 +22,7 @@ KSQL provides start and stop scripts.
 
 ksql-server-start
     This script starts the KSQL server. It requires a server configuration file as an argument and is located in the ``/bin`` directory
-    of your |cp| installation. For more information, see :ref:`install_ksql-server`.
+    of your |cp| installation. For more information, see :ref:`start_ksql-server`.
 
 ksql-server-stop
     This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.

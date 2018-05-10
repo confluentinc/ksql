@@ -93,7 +93,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     process(node.getInto(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
-      analyzeNonStdOutSink();
+      analyzeNonStdOutSink(node.isShouldCreateInto());
     }
 
     process(node.getSelect(), new AnalysisContext(
@@ -122,7 +122,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private void analyzeNonStdOutSink() {
+  private void analyzeNonStdOutSink(boolean doCreateInto) {
     List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
     StructuredDataSource intoStructuredDataSource = analysis.getInto();
@@ -131,34 +131,44 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       intoKafkaTopicName = intoStructuredDataSource.getName();
     }
 
-    KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
-        .getKsqlTopicSerDe();
-    if (analysis.getIntoFormat() != null) {
-      switch (analysis.getIntoFormat().toUpperCase()) {
-        case DataSource.AVRO_SERDE_NAME:
+    KsqlTopic newIntoKsqlTopic;
+    if (doCreateInto) {
+      KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
+          .getKsqlTopicSerDe();
+      if (analysis.getIntoFormat() != null) {
+        switch (analysis.getIntoFormat().toUpperCase()) {
+          case DataSource.AVRO_SERDE_NAME:
+            intoTopicSerde = new KsqlAvroTopicSerDe();
+            break;
+          case DataSource.JSON_SERDE_NAME:
+            intoTopicSerde = new KsqlJsonTopicSerDe();
+            break;
+          case DataSource.DELIMITED_SERDE_NAME:
+            intoTopicSerde = new KsqlDelimitedTopicSerDe();
+            break;
+          default:
+            throw new KsqlException(
+                String.format("Unsupported format: %s", analysis.getIntoFormat()));
+        }
+      } else {
+        if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
           intoTopicSerde = new KsqlAvroTopicSerDe();
-          break;
-        case DataSource.JSON_SERDE_NAME:
-          intoTopicSerde = new KsqlJsonTopicSerDe();
-          break;
-        case DataSource.DELIMITED_SERDE_NAME:
-          intoTopicSerde = new KsqlDelimitedTopicSerDe();
-          break;
-        default:
-          throw new KsqlException(
-              String.format("Unsupported format: %s", analysis.getIntoFormat()));
+        }
       }
+
+      newIntoKsqlTopic = new KsqlTopic(
+          intoKafkaTopicName,
+          intoKafkaTopicName,
+          intoTopicSerde
+      );
     } else {
-      if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-        intoTopicSerde = new KsqlAvroTopicSerDe();
+      newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);
+      if (newIntoKsqlTopic == null) {
+        throw new KsqlException(
+            "Sink topic " + intoKafkaTopicName + " does not exist in th e metastore.");
       }
     }
 
-    KsqlTopic newIntoKsqlTopic = new KsqlTopic(
-        intoKafkaTopicName,
-        intoKafkaTopicName,
-        intoTopicSerde
-    );
     KsqlStream intoKsqlStream = new KsqlStream(
         sqlExpression,
         intoStructuredDataSource.getName(),
@@ -167,7 +177,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null,
         newIntoKsqlTopic
     );
-    analysis.setInto(intoKsqlStream);
+    analysis.setInto(intoKsqlStream, doCreateInto);
+
   }
 
   private void analyzeExpressions() {
@@ -385,21 +396,20 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitTable(final Table node, final AnalysisContext context) {
 
     StructuredDataSource into;
-    if (node.isStdOut) {
+    if (node.isStdOut()) {
       into = new KsqlStdOut(
           KsqlStdOut.KSQL_STDOUT_NAME,
           null,
           null,
           null,
-          StructuredDataSource.DataSourceType.KSTREAM
-      );
+          StructuredDataSource.DataSourceType.KSTREAM);
+      analysis.setInto(into, false);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = analyzeNonStdOutTable(node);
+      analysis.setInto(into, true);
     } else {
       throw new KsqlException("INTO clause is not set correctly!");
     }
-
-    analysis.setInto(into);
     return null;
   }
 

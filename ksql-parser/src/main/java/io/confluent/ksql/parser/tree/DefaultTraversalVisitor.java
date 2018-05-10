@@ -347,7 +347,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitDelete(Delete node, C context) {
     process(node.getTable(), context);
     node.getWhere().ifPresent(where -> process(where, context));
-
     return null;
   }
 
@@ -355,7 +354,12 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
     process(node.getQuery(), context);
     node.getProperties().values().forEach(expression -> process(expression, context));
+    return null;
+  }
 
+  @Override
+  protected R visitInsertInto(InsertInto node, C context) {
+    process(node.getQuery(), context);
     return null;
   }
 }

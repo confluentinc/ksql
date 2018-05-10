@@ -27,6 +27,7 @@ public class QuerySpecification
 
   private final Select select;
   private final Relation into;
+  private final boolean shouldCreateInto;
   private final Relation from;
   private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
@@ -37,13 +38,14 @@ public class QuerySpecification
   public QuerySpecification(
       Select select,
       Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       Optional<String> limit) {
-    this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
+    this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
          having, limit);
   }
 
@@ -51,13 +53,15 @@ public class QuerySpecification
       NodeLocation location,
       Select select,
       Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       Optional<String> limit) {
-    this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
+    this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
+         groupBy,
          having, limit);
   }
 
@@ -65,6 +69,7 @@ public class QuerySpecification
       Optional<NodeLocation> location,
       Select select,
       Relation into,
+      boolean shouldCreateInto,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
@@ -83,6 +88,7 @@ public class QuerySpecification
 
     this.select = select;
     this.into = into;
+    this.shouldCreateInto = shouldCreateInto;
     this.from = from;
     this.windowExpression = windowExpression;
     this.where = where;
@@ -97,6 +103,10 @@ public class QuerySpecification
 
   public Relation getInto() {
     return into;
+  }
+
+  public boolean isShouldCreateInto() {
+    return shouldCreateInto;
   }
 
   public Relation getFrom() {

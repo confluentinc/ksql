@@ -157,7 +157,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command("TERMINATE CSAS_USER1PV;",
+    Command terminateCommand = new Command("TERMINATE CSAS_USER1PV_0;",
                                       new HashMap<>());
 
     CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE,
@@ -299,14 +299,26 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertTrue(dropStreamCommandStatus1.isPresent());
     assertThat(dropStreamCommandStatus1.get().getStatus(),
                CoreMatchers.equalTo(CommandStatus.Status.ERROR));
-    Assert.assertTrue(
+    assertThat(
         dropStreamCommandStatus1
             .get()
-            .getMessage()
-            .startsWith("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop PAGEVIEW. \n"
-                        + "The following queries read from this source: [CSAS_USER1PV, CTAS_TABLE1]. \n"
-                        + "The following queries write into this source: []. \n"
-                        + "You need to terminate them before dropping PAGEVIEW."));
+            .getMessage(),
+        containsString("io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop PAGEVIEW."));
+    assertThat(
+        dropStreamCommandStatus1
+            .get()
+            .getMessage(),
+        containsString("The following queries read from this source: [CTAS_TABLE1_1, CSAS_USER1PV_0]."));
+    assertThat(
+        dropStreamCommandStatus1
+            .get()
+            .getMessage(),
+        containsString("The following queries write into this source: []."));
+    assertThat(
+        dropStreamCommandStatus1
+            .get()
+            .getMessage(),
+        containsString("You need to terminate them before dropping PAGEVIEW."));
 
 
     Command dropStreamCommand2 = new Command("drop stream user1pv;", new HashMap<>());
@@ -325,10 +337,21 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus2.get()
             .getMessage(),
         containsString(
-            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop USER1PV. \n"
-            + "The following queries read from this source: []. \n"
-            + "The following queries write into this source: [CSAS_USER1PV]. \n"
-            + "You need to terminate them before dropping USER1PV."));
+            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop USER1PV. \n"));
+    assertThat(
+        dropStreamCommandStatus2.get()
+            .getMessage(),
+        containsString(
+             "The following queries read from this source: []."));
+    assertThat(
+        dropStreamCommandStatus2.get()
+            .getMessage(),
+        containsString(
+            "The following queries write into this source: [CSAS_USER1PV_0]."));
+    assertThat(
+        dropStreamCommandStatus2.get()
+            .getMessage(),
+        containsString("You need to terminate them before dropping USER1PV."));
 
     Command dropTableCommand1 = new Command("drop table table1;", new HashMap<>());
     CommandId dropTableCommandId1 =
@@ -345,16 +368,27 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(
         dropTableCommandStatus1.get().getMessage(),
         containsString(
-            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop TABLE1. \n"
-            + "The following queries read from this source: []. \n"
-            + "The following queries write into this source: [CTAS_TABLE1]. \n"
-            + "You need to terminate them before dropping TABLE1."));
+            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop TABLE1."));
+
+    assertThat(
+        dropTableCommandStatus1.get().getMessage(),
+        containsString(
+            "The following queries read from this source: []."));
+
+    assertThat(
+        dropTableCommandStatus1.get().getMessage(),
+        containsString(
+            "The following queries write into this source: [CTAS_TABLE1_1]."));
+
+    assertThat(
+        dropTableCommandStatus1.get().getMessage(),
+        containsString("You need to terminate them before dropping TABLE1."));
 
 
   }
 
   private void terminateQueries() throws Exception {
-    Command terminateCommand1 = new Command("TERMINATE CSAS_USER1PV;", new HashMap<>());
+    Command terminateCommand1 = new Command("TERMINATE CSAS_USER1PV_0;", new HashMap<>());
     CommandId terminateCommandId1 =
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand1, terminateCommandId1);
@@ -362,7 +396,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         statementExecutor.getStatus(terminateCommandId1);
     assertThat(terminateCommandStatus1.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
-    Command terminateCommand2 = new Command("TERMINATE CTAS_TABLE1;", new HashMap<>());
+    Command terminateCommand2 = new Command("TERMINATE CTAS_TABLE1_1;", new HashMap<>());
     CommandId terminateCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand2, terminateCommandId2);

@@ -130,9 +130,10 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
-
-      tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-      tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      if (analysis.isDoCreateInto()) {
+        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+        tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      }
     }
     return logicalPlan;
   }
@@ -198,6 +199,7 @@ class QueryEngine {
         updateMetastore,
         ksqlEngine.getMetaStore(),
         ksqlEngine.getSchemaRegistryClient(),
+        ksqlEngine.getQueryIdGenerator(),
         new KafkaStreamsBuilderImpl(clientSupplier)
     );
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));

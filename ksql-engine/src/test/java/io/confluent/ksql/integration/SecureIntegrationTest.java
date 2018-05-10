@@ -200,17 +200,20 @@ public class SecureIntegrationTest {
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -226,10 +229,12 @@ public class SecureIntegrationTest {
     outputTopic = "ACLS_TEST_3";
 
     final String repartitionTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-repartition";
 
     final String changeLogTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-changelog";
 
     SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
     SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
@@ -256,7 +261,8 @@ public class SecureIntegrationTest {
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_3",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -284,17 +290,19 @@ public class SecureIntegrationTest {
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);

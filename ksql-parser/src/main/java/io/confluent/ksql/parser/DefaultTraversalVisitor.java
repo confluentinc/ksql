@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
@@ -414,6 +415,12 @@ public abstract class DefaultTraversalVisitor<R, C>
     process(node.getQuery(), context);
     node.getProperties().values().forEach(expression -> process(expression, context));
 
+    return null;
+  }
+
+  @Override
+  protected R visitInsertInto(InsertInto node, C context) {
+    process(node.getQuery(), context);
     return null;
   }
 }

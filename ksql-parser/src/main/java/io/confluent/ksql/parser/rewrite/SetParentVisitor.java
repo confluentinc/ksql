@@ -48,7 +48,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -349,15 +348,6 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
     node.setParent(parent);
     for (Expression row : node.getRows()) {
       process(row, node);
-    }
-    return null;
-  }
-
-  @Override
-  protected Node visitRow(Row node, Node parent) {
-    node.setParent(parent);
-    for (Expression expression : node.getItems()) {
-      process(expression, node);
     }
     return null;
   }

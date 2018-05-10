@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -329,14 +328,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitValues(Values node, C context) {
     for (Expression row : node.getRows()) {
       process(row, context);
-    }
-    return null;
-  }
-
-  @Override
-  protected R visitRow(Row node, C context) {
-    for (Expression expression : node.getItems()) {
-      process(expression, context);
     }
     return null;
   }

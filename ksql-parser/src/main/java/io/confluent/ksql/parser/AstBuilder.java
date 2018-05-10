@@ -107,7 +107,6 @@ import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -1051,16 +1050,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitParenthesizedExpression(SqlBaseParser.ParenthesizedExpressionContext context) {
     return visit(context.expression());
-  }
-
-  @Override
-  public Node visitRowConstructor(SqlBaseParser.RowConstructorContext context) {
-    return new Row(getLocation(context), visit(context.expression(), Expression.class));
-  }
-
-  @Override
-  public Node visitStructConstructor(SqlBaseParser.StructConstructorContext context) {
-    return new Struct(getLocation(context), visit(context.expression(), null));
   }
 
   @Override

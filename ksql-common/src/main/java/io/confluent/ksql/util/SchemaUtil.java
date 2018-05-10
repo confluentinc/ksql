@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;
@@ -179,15 +180,10 @@ public class SchemaUtil {
           + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.STRUCT) {
       StringBuilder stringBuilder = new StringBuilder("STRUCT <");
-      boolean addComma = false;
-      for (Field structField: field.schema().fields()) {
-        if (addComma) {
-          stringBuilder.append(", ");
-        } else {
-          addComma = true;
-        }
-        stringBuilder.append(getSchemaFieldType(structField));
-      }
+      stringBuilder.append(
+          field.schema().fields().stream()
+              .map(schemaField -> getSchemaFieldType(schemaField))
+              .collect(Collectors.joining(", ")));
       stringBuilder.append(">");
       return stringBuilder.toString();
     } else {

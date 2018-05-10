@@ -262,14 +262,8 @@ primaryExpression
     | STRING                                                                         #stringLiteral
     | BINARY_LITERAL                                                                 #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
-    | '(' expression (',' expression)+ ')'                                           #rowConstructor
-    | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
-    | '(' expression (',' expression)+ ')'
-    #structConstructor
-    | STRUCT '(' expression (',' expression)* ')'
-    #structConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' over?     #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' over?                    #functionCall
     | identifier '->' expression                                                     #lambda
     | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression

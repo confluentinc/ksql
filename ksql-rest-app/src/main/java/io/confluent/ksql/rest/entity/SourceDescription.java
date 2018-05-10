@@ -34,9 +34,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
@@ -105,10 +103,8 @@ public class SourceDescription {
         readQueries,
         writeQueries,
         dataSource.getSchema().fields().stream().map(
-            field -> {
-              return new FieldSchemaInfo(field.name(), SchemaUtil
-                  .describeSchema(field.schema()));
-            }).collect(Collectors.toList()),
+            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
+            ).collect(Collectors.toList()),
 
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
@@ -136,11 +132,6 @@ public class SourceDescription {
             ) : 0
         )
     );
-  }
-
-  private static KsqlStructuredDataOutputNode outputNodeFromMetadata(
-      PersistentQueryMetadata metadata) {
-    return (KsqlStructuredDataOutputNode) metadata.getOutputNode();
   }
 
   private static int getPartitions(KafkaTopicClient topicClient, String kafkaTopicName) {

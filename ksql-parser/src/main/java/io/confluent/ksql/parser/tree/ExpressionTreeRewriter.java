@@ -64,27 +64,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitRow(Row node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression result = rewriter.rewriteRow(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      for (Expression expression : node.getItems()) {
-        builder.add(rewrite(expression, context.get()));
-      }
-
-      if (!sameElements(node.getItems(), builder.build())) {
-        return new Row(builder.build());
-      }
-
-      return node;
-    }
-
-    @Override
     protected Expression visitStruct(Struct node, Context<C> context) {
       if (!context.isDefaultRewrite()) {
         Expression result = rewriter.rewriteStruct(node, context.get(), ExpressionTreeRewriter
@@ -98,11 +77,6 @@ public final class ExpressionTreeRewriter<C> {
       for (Pair<String, Type> structItem : node.getItems()) {
         builder.add(rewrite(structItem.getRight(), context.get()));
       }
-
-      if (!sameElements(node.getItems(), builder.build())) {
-        return new Row(builder.build());
-      }
-
       return node;
     }
 

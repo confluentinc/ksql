@@ -56,7 +56,6 @@ import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -96,13 +95,6 @@ public final class ExpressionFormatter {
     @Override
     protected String visitNode(Node node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected String visitRow(Row node, Boolean unmangleNames) {
-      return "ROW (" + Joiner.on(", ").join(node.getItems().stream()
-              .map((child) -> process(child, unmangleNames))
-              .collect(toList())) + ")";
     }
 
     @Override

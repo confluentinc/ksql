@@ -358,15 +358,15 @@ public class KsqlParserTest {
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     CreateStream createStream = (CreateStream)statement;
-    Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 7);
-    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(6).getType()
-        .getKsqlType() == Type.KsqlType.STRUCT);
+    assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
+    assertThat(createStream.getElements().size(), equalTo(7));
+    assertThat(createStream.getElements().get(0).getName().toString().toLowerCase(), equalTo("ordertime"));
+    assertThat(createStream.getElements().get(6).getType().getKsqlType(), equalTo(Type.KsqlType.STRUCT));
     Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getItems().size(), equalTo(5));
     assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
+    assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
+               equalTo("'orders_topic'"));
   }
 
   @Test

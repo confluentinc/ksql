@@ -34,14 +34,10 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
-import io.confluent.ksql.parser.tree.ExistsPredicate;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Extract;
 import io.confluent.ksql.parser.tree.FieldReference;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
-import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
@@ -57,9 +53,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -80,13 +73,6 @@ import static org.junit.Assert.assertThat;
 
 public class ExpressionFormatterTest {
 
-  @Test
-  public void shouldFormatRow() {
-    final String result =
-        ExpressionFormatter.formatExpression(new Row(Arrays.asList(new LongLiteral("1"),
-            new QualifiedNameReference(QualifiedName.of(Arrays.asList("a", "b"))))));
-    assertThat(result, equalTo("ROW (1, a.b)"));
-  }
 
   @Test
   public void shouldFormatExtract() {

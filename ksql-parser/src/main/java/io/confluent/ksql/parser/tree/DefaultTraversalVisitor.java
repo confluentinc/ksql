@@ -274,14 +274,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitRow(Row node, C context) {
-    for (Expression expression : node.getItems()) {
-      process(expression, context);
-    }
-    return null;
-  }
-
-  @Override
   protected R visitStruct(Struct node, C context) {
     for (Pair<String, Type> structItem : node.getItems()) {
       process(structItem.getRight(), context);

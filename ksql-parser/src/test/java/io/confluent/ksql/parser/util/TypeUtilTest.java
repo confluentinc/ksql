@@ -106,6 +106,9 @@ public class TypeUtilTest {
     assertThat(((Struct) type7).getItems().get(5).getRight().getKsqlType(), equalTo(Type.KsqlType
                                                                                         .STRUCT));
 
+    Type type8 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
+    assertThat(type8.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
+
   }
 
   @Test
@@ -134,19 +137,32 @@ public class TypeUtilTest {
     assertThat(schema7.type(), equalTo(Schema.Type.MAP));
     assertThat(schema7.valueSchema().type(), equalTo(Schema.Type.FLOAT64));
 
+    Struct internalStruct = new Struct(Arrays.asList(
+        new Pair<>("COL1", new PrimitiveType(Type.KsqlType.STRING)),
+        new Pair<>("COL2", new PrimitiveType(Type.KsqlType.BIGINT)),
+        new Pair<>("COL3", new PrimitiveType(Type.KsqlType.BOOLEAN))
+    ));
+
     Struct struct = new Struct(Arrays.asList(
         new Pair<>("COL1", new PrimitiveType(Type.KsqlType.STRING)),
         new Pair<>("COL2", new PrimitiveType(Type.KsqlType.BIGINT)),
         new Pair<>("COL3", new PrimitiveType(Type.KsqlType.BOOLEAN)),
         new Pair<>("COL4", new Array(new PrimitiveType(Type.KsqlType.STRING))),
-        new Pair<>("COL5", new Map(new PrimitiveType(Type.KsqlType.DOUBLE)))
+        new Pair<>("COL5", new Map(new PrimitiveType(Type.KsqlType.DOUBLE))),
+        new Pair<>("COL6", internalStruct)
     ));
 
     Schema schema8 = TypeUtil.getTypeSchema(struct);
     assertThat(schema8.type(), equalTo(Schema.Type.STRUCT));
-    assertThat(schema8.fields().size(), equalTo(5));
+    assertThat(schema8.fields().size(), equalTo(6));
     assertThat(schema8.field("COL1").schema().type(), equalTo(Schema.Type.STRING));
     assertThat(schema8.field("COL4").schema().type(), equalTo(Schema.Type.ARRAY));
     assertThat(schema8.field("COL5").schema().type(), equalTo(Schema.Type.MAP));
+    assertThat(schema8.field("COL6").schema().type(), equalTo(Schema.Type.STRUCT));
+    Schema netstedSchema = schema8.field("COL6").schema();
+    assertThat(netstedSchema.fields().size(), equalTo(3));
+    assertThat(netstedSchema.field("COL1").schema().type(), equalTo(Schema.Type.STRING));
+    assertThat(netstedSchema.field("COL2").schema().type(), equalTo(Schema.Type.INT64));
+    assertThat(netstedSchema.field("COL3").schema().type(), equalTo(Schema.Type.BOOLEAN));
   }
 }

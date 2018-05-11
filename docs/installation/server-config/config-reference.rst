@@ -178,7 +178,9 @@ to all interfaces or leave it empty to bind to the default interface. For exampl
 
     listeners=PLAINTEXT://myhost:9092
 
-Example Production Settings
+.. _ksql-production-settings:
+
+Recommended KSQL Production Settings
 ---------------------------
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:

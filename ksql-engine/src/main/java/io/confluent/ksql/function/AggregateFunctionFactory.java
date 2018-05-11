@@ -23,8 +23,9 @@ import java.util.List;
 
 public abstract class AggregateFunctionFactory {
 
-  final String functionName;
   final List<KsqlAggregateFunction> aggregateFunctionList;
+
+  protected final String functionName;
 
   public AggregateFunctionFactory(String functionName,
                                   List<KsqlAggregateFunction> aggregateFunctionList) {

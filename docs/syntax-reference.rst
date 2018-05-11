@@ -554,7 +554,7 @@ DROP STREAM
 
 .. code:: sql
 
-    DROP STREAM stream_name [WITH TOPIC];
+    DROP STREAM stream_name [DELETE TOPIC];
 
 **Description**
 
@@ -571,7 +571,7 @@ DROP TABLE
 
 .. code:: sql
 
-    DROP TABLE table_name [WITH TOPIC];
+    DROP TABLE table_name [DELETE TOPIC];
 
 **Description**
 

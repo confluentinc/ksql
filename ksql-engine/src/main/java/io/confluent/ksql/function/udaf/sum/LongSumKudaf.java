@@ -31,8 +31,8 @@ import io.confluent.ksql.parser.tree.Expression;
 public class LongSumKudaf
     extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
 
-  LongSumKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
+  LongSumKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
           Collections.singletonList(Schema.INT64_SCHEMA));
   }
 
@@ -55,6 +55,6 @@ public class LongSumKudaf
   public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
                                                        List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongSumKudaf(udafIndex);
+    return new LongSumKudaf(functionName, udafIndex);
   }
 }

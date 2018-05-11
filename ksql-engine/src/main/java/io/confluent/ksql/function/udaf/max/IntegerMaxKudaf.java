@@ -29,8 +29,8 @@ import io.confluent.ksql.parser.tree.Expression;
 
 public class IntegerMaxKudaf extends BaseAggregateFunction<Integer, Integer> {
 
-  public IntegerMaxKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> Integer.MIN_VALUE, Schema.INT32_SCHEMA,
+  IntegerMaxKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Integer.MIN_VALUE, Schema.INT32_SCHEMA,
           Collections.singletonList(Schema.INT32_SCHEMA)
     );
   }
@@ -45,15 +45,13 @@ public class IntegerMaxKudaf extends BaseAggregateFunction<Integer, Integer> {
 
   @Override
   public Merger<String, Integer> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      return Math.max(aggOne, aggTwo);
-    };
+    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
   }
 
   @Override
   public KsqlAggregateFunction<Integer, Integer> getInstance(Map<String, Integer> expressionNames,
                                                            List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new IntegerMaxKudaf(udafIndex);
+    return new IntegerMaxKudaf(functionName, udafIndex);
   }
 }

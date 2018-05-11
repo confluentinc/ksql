@@ -29,8 +29,8 @@ import io.confluent.ksql.parser.tree.Expression;
 
 public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
 
-  LongMinKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> Long.MAX_VALUE, Schema.INT64_SCHEMA,
+  LongMinKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.INT64_SCHEMA,
           Collections.singletonList(Schema.INT64_SCHEMA)
     );
   }
@@ -57,6 +57,6 @@ public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
   public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
                                                        List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongMinKudaf(udafIndex);
+    return new LongMinKudaf(functionName, udafIndex);
   }
 }

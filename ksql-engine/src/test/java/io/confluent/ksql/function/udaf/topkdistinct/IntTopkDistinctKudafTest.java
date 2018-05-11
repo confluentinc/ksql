@@ -33,7 +33,7 @@ public class IntTopkDistinctKudafTest {
 
   private Integer[] valueArray;
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-      new TopkDistinctKudaf<>(0, 3, Schema.INT32_SCHEMA, Integer.class);
+      TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
 
   @Before
   public void setup() {
@@ -113,7 +113,7 @@ public class IntTopkDistinctKudafTest {
   public void shouldBeThreadSafe() {
     // Given:
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        new TopkDistinctKudaf<>(0, 12, Schema.INT32_SCHEMA, Integer.class);
+        TopKDistinctTestUtils.getTopKDistinctKudaf(12, Schema.INT32_SCHEMA);
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
@@ -142,7 +142,7 @@ public class IntTopkDistinctKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        new TopkDistinctKudaf<>(0, topX, Schema.INT32_SCHEMA, Integer.class);
+        TopKDistinctTestUtils.getTopKDistinctKudaf(topX, Schema.INT32_SCHEMA);
     final Integer[] aggregate = IntStream.range(0, topX)
         .mapToObj(idx -> null)
         .toArray(Integer[]::new);
@@ -162,7 +162,7 @@ public class IntTopkDistinctKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        new TopkDistinctKudaf<>(0, topX, Schema.INT32_SCHEMA, Integer.class);
+        TopKDistinctTestUtils.getTopKDistinctKudaf(topX, Schema.INT32_SCHEMA);
 
     final Integer[] aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)

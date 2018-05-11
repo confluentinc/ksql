@@ -47,32 +47,36 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
     switch (argSchema.type()) {
       case INT32:
         return new TopkKudaf<>(
-                -1,
-                topKSize,
-                SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-                Collections.singletonList(Schema.INT32_SCHEMA),
-                Integer.class);
+            functionName,
+            -1,
+            topKSize,
+            SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
+            Collections.singletonList(Schema.INT32_SCHEMA),
+            Integer.class);
       case INT64:
         return new TopkKudaf<>(
-                -1,
-                topKSize,
-                SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-                Collections.singletonList(Schema.INT64_SCHEMA),
-                Long.class);
+            functionName,
+            -1,
+            topKSize,
+            SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
+            Collections.singletonList(Schema.INT64_SCHEMA),
+            Long.class);
       case FLOAT64:
         return new TopkKudaf<>(
-                -1,
-                topKSize,
-                SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-                Collections.singletonList(Schema.FLOAT64_SCHEMA),
-                Double.class);
+            functionName,
+            -1,
+            topKSize,
+            SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
+            Collections.singletonList(Schema.FLOAT64_SCHEMA),
+            Double.class);
       case STRING:
         return new TopkKudaf<>(
-                -1,
-                topKSize,
-                SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-                Collections.singletonList(Schema.STRING_SCHEMA),
-                String.class);
+            functionName,
+            -1,
+            topKSize,
+            SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
+            Collections.singletonList(Schema.STRING_SCHEMA),
+            String.class);
       default:
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
                                 + " argument type exists!");

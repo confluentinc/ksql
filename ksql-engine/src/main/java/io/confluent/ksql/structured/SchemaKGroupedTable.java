@@ -66,12 +66,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
-    if (aggValToFunctionMap.values()
-            .stream()
-            .map(e -> !(e instanceof TableAggregationFunction))
-            .reduce(false, (result, notUndoable) ->  result || notUndoable)) {
-      throw new KsqlException("Requested aggregation function cannot be applied to a table.");
+
+    List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
+        .stream()
+        .filter(function -> !(function instanceof TableAggregationFunction))
+        .map(function -> function.getFunctionName())
+        .collect(Collectors.toList());
+    if (!unsupportedFunctionNames.isEmpty()) {
+      throw new KsqlException(
+          String.format(
+            "The aggregation function(s) (%s) cannot be applied to a table.",
+            String.join(", ", unsupportedFunctionNames)));
     }
+
     final KudafAggregator aggregator = new KudafAggregator(
         aggValToFunctionMap, aggValToValColumnMap);
     final Map<Integer, TableAggregationFunction> aggValToUndoFunctionMap =

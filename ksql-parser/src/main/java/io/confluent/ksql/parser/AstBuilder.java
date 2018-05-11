@@ -282,7 +282,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
         context.EXISTS() != null,
-        context.WITH() != null
+        context.DELETE() != null
     );
   }
 
@@ -292,7 +292,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
         context.EXISTS() != null,
-        context.WITH() != null
+        context.DELETE() != null
     );
   }
 

@@ -73,7 +73,12 @@ public class DropSourceCommand implements DdlCommand {
 
     deleteTopicIfNeeded(dataSource, isValidatePhase);
 
-    return new DdlCommandResult(true, "Source " + sourceName + " was dropped");
+    return new DdlCommandResult(true, "Source " + sourceName + " was dropped. "
+                                      + (withTopic ? "Topic '"
+                                                    + dataSource.getKsqlTopic().getTopicName()
+                                                    + "' was marked for deletion. Actual deletion "
+                                                    + "and removal from brokers may take some time "
+                                                    + "to complete." : ""));
   }
 
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {

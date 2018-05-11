@@ -187,7 +187,7 @@ public class KsqlEngineTest {
 
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
     ksqlEngine.terminateQuery(new QueryId("CTAS_BAR_0"), true);
-    ksqlEngine.buildMultipleQueries("DROP TABLE bar WITH TOPIC;", Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar DELETE TOPIC;", Collections.emptyMap());
     assertThat(topicClient.isTopicExists("BAR"), equalTo(false));
     assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
   }
@@ -205,7 +205,7 @@ public class KsqlEngineTest {
     ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
 
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
-    ksqlEngine.terminateQuery(new QueryId("CTAS_BAR"), true);
+    ksqlEngine.terminateQuery(new QueryId("CTAS_BAR_0"), true);
     ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
     assertThat(topicClient.isTopicExists("BAR"), equalTo(true));
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));

@@ -187,27 +187,27 @@ When deploying KSQL to production, the following settings are recommended in you
 
     # Set the retries to Integer.MAX_VALUE to ensure that transient failures
     # will not result in data loss.
-    producer.retries=2147483647
+    ksql.streams.producer.retries=2147483647
 
     # Set the batch expiry to Long.MAX_VALUE to ensure that queries will not
     # terminate if the underlying Kafka cluster is unavailable for a period of
     # time.
-    kafka.streams.producer.confluent.batch.expiry.ms=9223372036854775807
+    ksql.streams.producer.confluent.batch.expiry.ms=9223372036854775807
 
     # Allows more frequent retries of requests when there are failures,
     # enabling quicker recovery.
-    kafka.streams.producer.request.timeout.ms=300000
+    ksql.streams.producer.request.timeout.ms=300000
 
     # Set the maximum allowable time for the producer to block to
     # Long.MAX_VALUE. This allows KSQL to pause processing if the underlying
     # Kafka cluster is unavailable.
-    kafka.streams.producer.max.block.ms=9223372036854775807
+    ksql.streams.producer.max.block.ms=9223372036854775807
 
     # Set the replication factor for internal topics, the command topic, and
     # output topics to be 3 for better fault tolerance and durability. Note:
     # the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.streams.replication.factor=3
-    kafka.streams.ksql.sink.replicas=3
+    ksql.sink.replicas=3
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.

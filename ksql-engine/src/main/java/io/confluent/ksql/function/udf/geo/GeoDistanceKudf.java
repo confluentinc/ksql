@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.function.udf.geo;
 
+import java.util.List;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
@@ -36,6 +38,11 @@ public class GeoDistanceKudf implements Kudf {
   private static final double EARTH_RADIUS_KM = 6371;
   private static final double EARTH_RADIUS_MILES = 3959;
 
+  private static final List<String> VALID_RADIUS_NAMES_MILES =
+      Lists.newArrayList("mi", "mile", "miles");
+  private static final List<String> VALID_RADIUS_NAMES_KMS =
+      Lists.newArrayList("km", "kilometer", "kilometers", "kilometre", "kilometres");
+
 
   @Override
   public Object evaluate(Object... args) {
@@ -48,7 +55,7 @@ public class GeoDistanceKudf implements Kudf {
     double lon1 = ((Number) args[1]).doubleValue();
     double lat2 = ((Number) args[2]).doubleValue();
     double lon2 = ((Number) args[3]).doubleValue();
-    checkParameterValuesAreLegal(lat1, lon1, lat2, lon2);
+    validateLatLonValues(lat1, lon1, lat2, lon2);
     double chosenRadius = selectEarthRadiusToUse(args);
 
     double deltaLat = Math.toRadians(lat2 - lat1);
@@ -63,7 +70,7 @@ public class GeoDistanceKudf implements Kudf {
     return distanceInRadians * chosenRadius;
   }
 
-  private void checkParameterValuesAreLegal(double lat1, double lon1, double lat2, double lon2) {
+  private void validateLatLonValues(double lat1, double lon1, double lat2, double lon2) {
     if (lat1 < 0 || lat2 < 0 || lat1 > 90 || lat2 > 90) {
       throw new KsqlFunctionException(
           "valid latitude values for GeoDistance function are in the range of 0 to 90"
@@ -80,9 +87,9 @@ public class GeoDistanceKudf implements Kudf {
     double chosenRadius = EARTH_RADIUS_KM;
     if (args.length == 5) {
       String outputUnit = args[4].toString().toLowerCase();
-      if (outputUnit.equals("mi") || outputUnit.startsWith("mile")) {
+      if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
-      } else if (outputUnit.equals("km") || outputUnit.startsWith("kilomet")) {
+      } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(

@@ -29,14 +29,14 @@ public class GeoDistanceKudfTest {
   public void shouldFailWithTooFewParams() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663), 0.5);
+    distanceUdf.evaluate(37.4439, -122.1663);
   }
 
   @Test
   public void shouldFailWithTooManyParams() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar"), 0.5);
+    distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar");
   }
   /**
    * Valid values for latitude range from 0->90 decimal degrees, and longitude is from -180->180
@@ -45,14 +45,14 @@ public class GeoDistanceKudfTest {
   public void shouldFailOutOfBoundsCoordinates() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("valid latitude values");
-    assertEquals(8634.6528, (double) distanceUdf.evaluate(90.1, -122.1663, 51.5257, -0.1122), 0.5);
+    distanceUdf.evaluate(90.1, -122.1663, 51.5257, -0.1122);
   }
 
   @Test
   public void shouldFailInvalidUnitOfMeasure() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("GeoDistance function fifth parameter must be");
-    assertEquals(8634.6528, (double) distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Widget"), 0.5);
+    distanceUdf.evaluate(37.4439, -122.1663, 51.5257, -0.1122, "Widget");
   }
 
 }

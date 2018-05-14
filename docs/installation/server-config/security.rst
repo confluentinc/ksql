@@ -170,7 +170,6 @@ Standard ACLs
     The authenticated KSQL user always requires:
 
     - ``DESCRIBE_CONFIGS`` permission on the ``CLUSTER`` resource type.
-    - ``DESCRIBE`` permission on the ``__consumer_offsets`` topic.
 
 Input topics
     An input topic is one that has been imported into KSQL using a ``CREATE STREAM`` or ``CREATE TABLE``

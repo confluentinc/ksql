@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import io.confluent.ksql.util.KsqlException;
@@ -71,11 +72,14 @@ public class PrimitiveType extends Type {
 
   @Override
   public int hashCode() {
-    return 0;
+    return Objects.hashCode(ksqlType);
   }
 
   @Override
   public boolean equals(Object obj) {
+    if (obj instanceof PrimitiveType) {
+      return ((PrimitiveType) obj).getKsqlType() == ksqlType;
+    }
     return false;
   }
 }

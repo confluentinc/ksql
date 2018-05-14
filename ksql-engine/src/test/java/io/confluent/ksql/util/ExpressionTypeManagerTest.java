@@ -19,7 +19,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
@@ -36,12 +36,12 @@ public class ExpressionTypeManagerTest {
     private static final KsqlParser KSQL_PARSER = new KsqlParser();
     private MetaStore metaStore;
     private Schema schema;
-    private FunctionRegistry functionRegistry;
+    private InternalFunctionRegistry functionRegistry;
 
     @Before
     public void init() {
-        metaStore = MetaStoreFixture.getNewMetaStore();
-        functionRegistry = new FunctionRegistry();
+        metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+        functionRegistry = new InternalFunctionRegistry();
         schema = SchemaBuilder.struct()
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)

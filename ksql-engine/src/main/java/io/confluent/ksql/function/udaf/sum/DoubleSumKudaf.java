@@ -16,17 +16,15 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
 public class DoubleSumKudaf
     extends BaseAggregateFunction<Double, Double>
@@ -54,10 +52,9 @@ public class DoubleSumKudaf
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleSumKudaf(functionName, udafIndex);
+  public KsqlAggregateFunction<Double, Double> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new DoubleSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 
 

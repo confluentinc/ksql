@@ -3,21 +3,19 @@ package io.confluent.ksql.codegen;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SqlToJavaVisitorTest {
@@ -27,12 +25,12 @@ public class SqlToJavaVisitorTest {
   private MetaStore metaStore;
   private Schema schema;
   private CodeGenRunner codeGenRunner;
-  private FunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
-    functionRegistry = new FunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    functionRegistry = new InternalFunctionRegistry();
     schema = SchemaBuilder.struct()
             .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
             .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)

@@ -99,32 +99,6 @@ public class PhysicalPlanBuilder {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
   }
 
-  public PhysicalPlanBuilder(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
-      final FunctionRegistry functionRegistry,
-      final Map<String, Object> overriddenStreamsProperties,
-      final boolean updateMetastore,
-      final MetaStore metaStore,
-      final SchemaRegistryClient schemaRegistryClient,
-      final QueryIdGenerator queryIdGenerator
-  ) {
-    this(
-        builder,
-        ksqlConfig,
-        kafkaTopicClient,
-        functionRegistry,
-        overriddenStreamsProperties,
-        updateMetastore,
-        metaStore,
-        schemaRegistryClient,
-        queryIdGenerator,
-        new KafkaStreamsBuilderImpl()
-    );
-  }
-
-
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) {
     final SchemaKStream resultStream = statementPlanPair
         .getRight()

@@ -28,6 +28,7 @@ import java.util.List;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
@@ -56,7 +57,7 @@ public class KsqlEngineTest {
 
   private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       new KsqlConfig(Collections.singletonMap("bootstrap.servers", "localhost:9092")),
       topicClient,

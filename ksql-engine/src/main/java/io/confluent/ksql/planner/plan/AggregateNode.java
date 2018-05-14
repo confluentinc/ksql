@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
@@ -50,6 +51,7 @@ import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -298,16 +300,10 @@ public class AggregateNode extends PlanNode {
       int udafIndexInAggSchema = initialUdafIndex;
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
       for (FunctionCall functionCall : getFunctionList()) {
-        KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
-            .getAggregateFunction(functionCall.getName().toString(),
-                                  internalSchema.getInternalExpressionList(
-                                      functionCall.getArguments()),
-                                  aggregateArgExpanded.getSchema()
-            );
-        KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getInstance(
-            internalSchema.getInternalNameToIndexMap(),
-            internalSchema.getInternalExpressionList(functionCall.getArguments())
-        );
+        KsqlAggregateFunction aggregateFunction = getAggregateFunction(
+            functionRegistry,
+            internalSchema,
+            functionCall, aggregateArgExpanded.getSchema());
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
         initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
@@ -327,6 +323,25 @@ public class AggregateNode extends PlanNode {
     }
   }
 
+  private KsqlAggregateFunction getAggregateFunction(FunctionRegistry functionRegistry,
+                                                     InternalSchema internalSchema,
+                                                     FunctionCall functionCall,
+                                                     Schema schema) {
+    ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, functionRegistry);
+    List<Expression> functionArgs = internalSchema.getInternalExpressionList(
+        functionCall.getArguments());
+    Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
+    KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+        .getAggregate(functionCall.getName().toString(),
+            expressionType
+        );
+
+    return aggregateFunctionInfo.getInstance(
+        new AggregateFunctionArguments(internalSchema.getInternalNameToIndexMap(),
+            functionArgs.stream().map(Expression::toString).collect(Collectors.toList())));
+  }
+
   private Schema buildAggregateSchema(
       final Schema schema,
       final FunctionRegistry functionRegistry,
@@ -339,14 +354,11 @@ public class AggregateNode extends PlanNode {
     }
     for (int aggFunctionVarSuffix = 0;
          aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
-      String udafName = getFunctionList().get(aggFunctionVarSuffix).getName()
-          .getSuffix();
-      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(
-          udafName,
-          internalSchema.getInternalExpressionList(
-              getFunctionList().get(aggFunctionVarSuffix).getArguments()),
-          schema
-      );
+      KsqlAggregateFunction aggregateFunction = getAggregateFunction(
+          functionRegistry,
+          internalSchema,
+          getFunctionList().get(aggFunctionVarSuffix),
+          schema);
       schemaBuilder.field(
           AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
           + aggFunctionVarSuffix,

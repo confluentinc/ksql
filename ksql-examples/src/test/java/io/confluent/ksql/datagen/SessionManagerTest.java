@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.datagen;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -27,17 +25,10 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class SessionManagerTest {
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
 
 
     @Test
-    public void sessionShouldForceTokenReUseWhenMaxedOut() throws InterruptedException {
+    public void sessionShouldForceTokenReUseWhenMaxedOut() {
 
         SessionManager sm = new SessionManager();
 

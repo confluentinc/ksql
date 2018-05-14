@@ -179,10 +179,10 @@ public class ExpressionTypeManager
     KsqlFunction ksqlFunction = functionRegistry.getFunction(node.getName().getSuffix());
     if (ksqlFunction != null) {
       expressionTypeContext.setSchema(ksqlFunction.getReturnType());
-    } else if (functionRegistry.isAnAggregateFunction(node.getName().getSuffix())) {
+    } else if (functionRegistry.isAggregate(node.getName().getSuffix())) {
       KsqlAggregateFunction ksqlAggregateFunction =
-          functionRegistry.getAggregateFunction(
-              node.getName().getSuffix(), node.getArguments(), schema);
+          functionRegistry.getAggregate(
+              node.getName().getSuffix(), getExpressionType(node.getArguments().get(0)));
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       throw new KsqlException("Unknown function: " + node.getName().toString());

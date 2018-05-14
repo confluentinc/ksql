@@ -49,7 +49,6 @@ public class SessionManager {
     if (b) {
       SessionObject sessionObject = activeSessions.get(sessionId);
       if (sessionObject.isExpired()) {
-        System.out.println("***Expired:" + sessionId);
         SessionObject removed = activeSessions.remove(sessionId);
         expiredSessions.put(sessionId, removed);
         return false;

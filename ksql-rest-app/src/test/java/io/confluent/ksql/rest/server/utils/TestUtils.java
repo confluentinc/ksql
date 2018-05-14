@@ -25,6 +25,7 @@ import java.util.List;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
@@ -76,7 +77,10 @@ public class TestUtils {
                                             final SchemaRegistryClient schemaRegistryClient) {
     class TestKsqlEngine extends KsqlEngine {
       private TestKsqlEngine() {
-        super(ksqlConfig, topicClient, schemaRegistryClient, new MetaStoreImpl());
+        super(ksqlConfig,
+            topicClient,
+            schemaRegistryClient,
+            new MetaStoreImpl(new InternalFunctionRegistry()));
       }
     };
 

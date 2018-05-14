@@ -38,25 +38,30 @@ import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.SubstringKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class FunctionRegistry {
+public class InternalFunctionRegistry implements FunctionRegistry {
 
   private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
   private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 
-  public FunctionRegistry() {
+  public InternalFunctionRegistry() {
     init();
+  }
+
+  private InternalFunctionRegistry(final Map<String, KsqlFunction> ksqlFunctionMap,
+                                   final Map<String, AggregateFunctionFactory>
+                                       aggregateFunctionMap) {
+    this.ksqlFunctionMap = ksqlFunctionMap;
+    this.aggregateFunctionMap = aggregateFunctionMap;
   }
 
   private void init() {
@@ -195,32 +200,46 @@ public class FunctionRegistry {
 
   }
 
+  @Override
   public KsqlFunction getFunction(String functionName) {
-    return ksqlFunctionMap.get(functionName);
+    return ksqlFunctionMap.get(functionName.toUpperCase());
   }
 
-  private void addFunction(KsqlFunction ksqlFunction) {
-    ksqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
+  @Override
+  public boolean addFunction(KsqlFunction ksqlFunction) {
+    final String key = ksqlFunction.getFunctionName().toUpperCase();
+    return ksqlFunctionMap.putIfAbsent(key, ksqlFunction) == null;
   }
 
-  public boolean isAnAggregateFunction(String functionName) {
-    return aggregateFunctionMap.containsKey(functionName);
+  @Override
+  public boolean isAggregate(String functionName) {
+    return aggregateFunctionMap.containsKey(functionName.toUpperCase());
   }
 
-  public KsqlAggregateFunction getAggregateFunction(String functionName,
-          List<Expression> functionArgs, Schema schema) {
-    AggregateFunctionFactory aggregateFunctionFactory = aggregateFunctionMap.get(functionName);
+  @Override
+  public KsqlAggregateFunction getAggregate(String functionName,
+                                            Schema expressionType) {
+    AggregateFunctionFactory aggregateFunctionFactory
+        = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
-    ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, this);
-    Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    return aggregateFunctionFactory.getProperAggregateFunction(Arrays.asList(expressionType));
+    return aggregateFunctionFactory.getProperAggregateFunction(
+        Collections.singletonList(expressionType));
   }
 
+  @Override
   public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
-    aggregateFunctionMap.put(aggregateFunctionFactory.functionName, aggregateFunctionFactory);
+    aggregateFunctionMap.put(
+        aggregateFunctionFactory.functionName.toUpperCase(),
+        aggregateFunctionFactory);
+  }
+
+  @Override
+  public FunctionRegistry copy() {
+    return new InternalFunctionRegistry(
+        new HashMap<>(ksqlFunctionMap),
+        new HashMap<>(aggregateFunctionMap));
   }
 
 

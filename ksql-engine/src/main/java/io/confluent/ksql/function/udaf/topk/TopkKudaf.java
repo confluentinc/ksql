@@ -23,11 +23,10 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
@@ -121,15 +120,15 @@ public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFun
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(final Map<String, Integer> expressionNames,
-                                                   final List<Expression> functionArguments) {
-    if (functionArguments.size() != 2) {
+  public KsqlAggregateFunction<T, T[]> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    if (aggregateFunctionArguments.argCount() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",
-                                            functionArguments.size()));
+          aggregateFunctionArguments.argCount()));
     }
 
-    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    final int topKSize = Integer.parseInt(functionArguments.get(1).toString());
+    final int udafIndex = aggregateFunctionArguments.udafIndex();
+    final int topKSize = Integer.parseInt(aggregateFunctionArguments.arg(1));
     return new TopkKudaf<>(functionName, udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

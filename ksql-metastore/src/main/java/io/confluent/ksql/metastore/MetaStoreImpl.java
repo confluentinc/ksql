@@ -16,11 +16,18 @@
 
 package io.confluent.ksql.metastore;
 
+import org.apache.kafka.connect.data.Schema;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.Pair;
@@ -30,18 +37,20 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   private final Map<String, KsqlTopic> topicMap;
   private final Map<String,
       Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap;
+  private final FunctionRegistry functionRegistry;
 
-  public MetaStoreImpl() {
-    this.topicMap = new HashMap<>();
-    this.dataSourceMap = new HashMap<>();
+  public MetaStoreImpl(final FunctionRegistry functionRegistry) {
+    this(new HashMap<>(), new HashMap<>(), functionRegistry);
   }
 
   private MetaStoreImpl(
       Map<String, KsqlTopic> topicMap,
-      Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap
+      Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap,
+      FunctionRegistry functionRegistry
   ) {
     this.topicMap = (topicMap != null) ? topicMap : new HashMap<>();
     this.dataSourceMap = (dataSourceMap != null) ? dataSourceMap : new HashMap<>();
+    this.functionRegistry = functionRegistry;
   }
 
   @Override
@@ -194,7 +203,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
 
   @Override
   public MetaStore clone() {
-    Map<String, KsqlTopic> cloneTopicMap = new HashMap<>();
+    Map<String, KsqlTopic> cloneTopicMap = new HashMap<>(topicMap);
     Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> cloneDataSourceMap =
         dataSourceMap
         .entrySet()
@@ -202,14 +211,38 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
         .collect(Collectors.toMap(
             Map.Entry::getKey,
             entry -> new Pair<>(entry.getValue().getLeft(), entry.getValue().getRight().clone())));
-    cloneTopicMap.putAll(topicMap);
     cloneDataSourceMap.putAll(dataSourceMap);
-    return new MetaStoreImpl(cloneTopicMap, cloneDataSourceMap);
+    return new MetaStoreImpl(cloneTopicMap, cloneDataSourceMap, functionRegistry.copy());
   }
 
   @Override
-  public Map<String,
-      Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> getDataSourceMap() {
-    return dataSourceMap;
+  public KsqlFunction getFunction(String functionName) {
+    return functionRegistry.getFunction(functionName);
+  }
+
+  @Override
+  public boolean addFunction(KsqlFunction ksqlFunction) {
+    return functionRegistry.addFunction(ksqlFunction);
+  }
+
+  @Override
+  public boolean isAggregate(String functionName) {
+    return functionRegistry.isAggregate(functionName);
+  }
+
+  @Override
+  public KsqlAggregateFunction getAggregate(String functionName,
+                                            Schema expressionType) {
+    return functionRegistry.getAggregate(functionName, expressionType);
+  }
+
+  @Override
+  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
+    functionRegistry.addAggregateFunctionFactory(aggregateFunctionFactory);
+  }
+
+  @Override
+  public FunctionRegistry copy() {
+    return clone();
   }
 }

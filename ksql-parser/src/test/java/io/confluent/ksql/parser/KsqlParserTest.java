@@ -17,6 +17,7 @@
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -65,7 +66,7 @@ public class KsqlParserTest {
   @Before
   public void init() {
 
-    metaStore = MetaStoreFixture.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
   }
 
   @Test

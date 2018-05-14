@@ -42,6 +42,7 @@ import java.util.stream.IntStream;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -80,7 +81,7 @@ public class JoinNodeTest {
   }
 
   private void buildJoinNode(String queryString) {
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore()).buildLogicalPlan(queryString);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry())).buildLogicalPlan(queryString);
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
   }
 
@@ -89,7 +90,7 @@ public class JoinNodeTest {
     return joinNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
@@ -138,7 +139,7 @@ public class JoinNodeTest {
     buildJoin();
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
-    FunctionRegistry functionRegistry = mock(FunctionRegistry.class);
+    InternalFunctionRegistry functionRegistry = mock(InternalFunctionRegistry.class);
 
     class RightTable extends PlanNode {
       final Schema schema;
@@ -225,7 +226,7 @@ public class JoinNodeTest {
   public void shouldHaveAllFieldsFromJoinedInputs() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
-    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     final StructuredDataSource source1
         = metaStore.getSource("TEST1");
     final StructuredDataSource source2 = metaStore.getSource("TEST2");

@@ -68,13 +68,18 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
         new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
     ConsumerGroupCommand.KafkaConsumerGroupService consumerGroupService =
         new ConsumerGroupCommand.KafkaConsumerGroupService(opts);
-    scala.collection.immutable.List<String> consumerGroups = consumerGroupService.listGroups();
-    scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
-    ArrayList<String> results = new ArrayList<>();
-    while (consumerGroupsIterator.hasNext()) {
-      results.add(consumerGroupsIterator.next());
+
+    try {
+      scala.collection.immutable.List<String> consumerGroups = consumerGroupService.listGroups();
+      scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
+      ArrayList<String> results = new ArrayList<>();
+      while (consumerGroupsIterator.hasNext()) {
+        results.add(consumerGroupsIterator.next());
+      }
+      return results;
+    } finally {
+      consumerGroupService.close();
     }
-    return results;
   }
 
   private String[] consumerGroupCommandOptions() {

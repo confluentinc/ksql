@@ -148,7 +148,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.versionCheckerAgent = versionCheckerAgent;
     this.serverInfo = serverInfo;
 
-    this.commandRunnerThread = new Thread(commandRunner);
+    this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
 
     final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
     this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;

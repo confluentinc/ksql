@@ -104,6 +104,7 @@ public class CliTest extends TestRunner {
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
+  private static KsqlRestApplication restServer;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -122,8 +123,8 @@ public class CliTest extends TestRunner {
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
 
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
-        EasyMock.mock(VersionCheckerAgent.class)
+    restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+                                                      EasyMock.mock(VersionCheckerAgent.class)
     );
 
     restServer.start();
@@ -179,6 +180,7 @@ public class CliTest extends TestRunner {
 
     localCli.close();
     terminal.close();
+    restServer.stop();
   }
 
   private static Map<String, Object> genDefaultConfigMap() {

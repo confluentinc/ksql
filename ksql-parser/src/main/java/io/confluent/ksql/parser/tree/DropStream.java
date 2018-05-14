@@ -25,28 +25,28 @@ public class DropStream
     extends AbstractStreamDropStatement implements DdlStatement {
 
   private final QualifiedName streamName;
-  private final boolean exists;
+  private final boolean ifExists;
 
-  public DropStream(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
+  public DropStream(QualifiedName tableName, boolean ifExists) {
+    this(Optional.empty(), tableName, ifExists);
   }
 
-  public DropStream(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
+  public DropStream(NodeLocation location, QualifiedName tableName, boolean ifExists) {
+    this(Optional.of(location), tableName, ifExists);
   }
 
-  private DropStream(Optional<NodeLocation> location, QualifiedName streamName, boolean exists) {
+  private DropStream(Optional<NodeLocation> location, QualifiedName streamName, boolean ifExists) {
     super(location);
     this.streamName = streamName;
-    this.exists = exists;
+    this.ifExists = ifExists;
   }
 
   public QualifiedName getName() {
     return streamName;
   }
 
-  public boolean isExists() {
-    return exists;
+  public boolean getIfExists() {
+    return ifExists;
   }
 
   @Override
@@ -56,7 +56,7 @@ public class DropStream
 
   @Override
   public int hashCode() {
-    return Objects.hash(streamName, exists);
+    return Objects.hash(streamName, ifExists);
   }
 
   @Override
@@ -69,14 +69,14 @@ public class DropStream
     }
     DropStream o = (DropStream) obj;
     return Objects.equals(streamName, o.streamName)
-           && (exists == o.exists);
+           && (ifExists == o.ifExists);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("tableName", streamName)
-        .add("exists", exists)
+        .add("ifExists", ifExists)
         .toString();
   }
 }

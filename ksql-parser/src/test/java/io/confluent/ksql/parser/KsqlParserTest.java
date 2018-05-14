@@ -601,21 +601,51 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testDrop() {
-    String simpleQuery = "DROP STREAM STREAM1; DROP TABLE TABLE1;";
+  public void shouldParseDropStream() {
+    String simpleQuery = "DROP STREAM STREAM1;";
     List<Statement> statements =  KSQL_PARSER.buildAst(simpleQuery, metaStore);
-    Statement statement0 =statements.get(0);
-    Statement statement1 =statements.get(1);
-    Assert.assertTrue(statement0 instanceof DropStream);
-    Assert.assertTrue(statement1 instanceof DropTable);
-    DropStream dropStream = (DropStream)  statement0;
-    DropTable dropTable = (DropTable) statement1;
-    Assert.assertTrue(dropStream.getName().toString().equalsIgnoreCase("STREAM1"));
-    Assert.assertTrue(dropTable.getName().toString().equalsIgnoreCase("TABLE1"));
+    Statement statement =statements.get(0);
+    assertThat(statement, instanceOf(DropStream.class));
+    DropStream dropStream = (DropStream)  statement;
+    assertThat(dropStream.getName().toString().toUpperCase(), equalTo("STREAM1"));
+    assertThat(dropStream.getIfExists(), is(false));
   }
 
   @Test
-  public void testInsertInto() throws Exception {
+  public void shouldParseDropTable() {
+    String simpleQuery = "DROP TABLE TABLE1;";
+    List<Statement> statements =  KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Statement statement =statements.get(0);
+    assertThat(statement, instanceOf(DropTable.class));
+    DropTable dropTable = (DropTable)  statement;
+    assertThat(dropTable.getName().toString().toUpperCase(), equalTo("TABLE1"));
+    assertThat(dropTable.getIfExists(), is(false));
+  }
+
+  @Test
+  public void shouldParseDropStreamIfExists() {
+    String simpleQuery = "DROP STREAM IF EXISTS STREAM1;";
+    List<Statement> statements =  KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Statement statement =statements.get(0);
+    assertThat(statement, instanceOf(DropStream.class));
+    DropStream dropStream = (DropStream)  statement;
+    assertThat(dropStream.getName().toString().toUpperCase(), equalTo("STREAM1"));
+    assertThat(dropStream.getIfExists(), is(true));
+  }
+
+  @Test
+  public void shouldParseDropTableIfExists() {
+    String simpleQuery = "DROP TABLE IF EXISTS TABLE1;";
+    List<Statement> statements =  KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Statement statement =statements.get(0);
+    assertThat(statement, instanceOf(DropTable.class));
+    DropTable dropTable = (DropTable)  statement;
+    assertThat(dropTable.getName().toString().toUpperCase(), equalTo("TABLE1"));
+    assertThat(dropTable.getIfExists(), is(true));
+  }
+
+  @Test
+  public void testInsertInto() {
     String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
                             + "100;";
     Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0);
@@ -636,6 +666,7 @@ public class KsqlParserTest {
 
   }
 
+  @Test
   public void shouldSetShowDescriptionsForShowStreamsDescriptions() {
     String statementString = "SHOW STREAMS EXTENDED;";
     Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);

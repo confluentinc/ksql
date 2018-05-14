@@ -24,28 +24,28 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 public class DropTable extends AbstractStreamDropStatement implements DdlStatement {
 
   private final QualifiedName tableName;
-  private final boolean exists;
+  private final boolean ifExists;
 
-  public DropTable(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
+  public DropTable(QualifiedName tableName, boolean ifExists) {
+    this(Optional.empty(), tableName, ifExists);
   }
 
-  public DropTable(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
+  public DropTable(NodeLocation location, QualifiedName tableName, boolean ifExists) {
+    this(Optional.of(location), tableName, ifExists);
   }
 
-  private DropTable(Optional<NodeLocation> location, QualifiedName tableName, boolean exists) {
+  private DropTable(Optional<NodeLocation> location, QualifiedName tableName, boolean ifExists) {
     super(location);
     this.tableName = tableName;
-    this.exists = exists;
+    this.ifExists = ifExists;
   }
 
   public QualifiedName getName() {
     return tableName;
   }
 
-  public boolean isExists() {
-    return exists;
+  public boolean getIfExists() {
+    return ifExists;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
 
   @Override
   public int hashCode() {
-    return Objects.hash(tableName, exists);
+    return Objects.hash(tableName, ifExists);
   }
 
   @Override
@@ -68,14 +68,14 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     }
     DropTable o = (DropTable) obj;
     return Objects.equals(tableName, o.tableName)
-           && (exists == o.exists);
+           && (ifExists == o.ifExists);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("tableName", tableName)
-        .add("exists", exists)
+        .add("ifExists", ifExists)
         .toString();
   }
 }

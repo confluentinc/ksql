@@ -17,6 +17,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Collections;
+import java.util.concurrent.Callable;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -83,42 +84,45 @@ public class DropSourceCommand implements DdlCommand {
 
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && withTopic) {
-      int retries = 0;
-      while (retries < NUM_RETRIES) {
-        try {
-          if (retries != 0) {
-            Thread.sleep(RETRY_BACKOFF_MS);
-          }
+
+      executeWithRetries(new Callable<Void>() {
+        @Override
+        public Void call() throws Exception {
           kafkaTopicClient.deleteTopics(
               Collections.singletonList(dataSource.getKsqlTopic().getKafkaTopicName()));
-          break;
-        } catch (Exception e) {
-          retries++;
-          if (retries >= NUM_RETRIES) {
-            throw new KsqlException("Could not delete the corresponding kafka topic: "
-                                    + dataSource.getKsqlTopic().getKafkaTopicName(), e);
-          }
+          return null;
         }
-      }
+      }, "Could not delete the corresponding kafka topic: "
+           + dataSource.getKsqlTopic().getKafkaTopicName());
 
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
-        retries = 0;
-        while (retries < NUM_RETRIES) {
-          try {
-            if (retries != 0) {
-              Thread.sleep(RETRY_BACKOFF_MS);
-            }
+        executeWithRetries(new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
             schemaRegistryClient
                 .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-            break;
-          } catch (Exception e) {
-            retries++;
-            if (retries >= NUM_RETRIES) {
-              throw new KsqlException("Could not clean up the schema registry for topic: "
-                                      + sourceName, e);
-            }
+            return null;
           }
+        }, "Could not clean up the schema registry for topic: " + sourceName);
+      }
+    }
+  }
+
+  private void executeWithRetries(Callable<Void> callable, String errorMessage) {
+    int retries = 0;
+    while (retries < NUM_RETRIES) {
+      try {
+        if (retries != 0) {
+          Thread.sleep(RETRY_BACKOFF_MS);
+        }
+        callable.call();
+        break;
+      } catch (Exception e) {
+        retries++;
+      } finally {
+        if (retries == NUM_RETRIES) {
+          throw new KsqlException(errorMessage);
         }
       }
     }

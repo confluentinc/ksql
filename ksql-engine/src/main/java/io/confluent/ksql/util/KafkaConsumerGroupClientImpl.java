@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,11 +90,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
     try {
       File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
-      String[] args = {
+      return new String[]{
           "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
           "--command-config", tmpConfigFile.getAbsolutePath()
       };
-      return args;
     } catch (IOException e) {
       log.error("Could not configure the list groups command.", e);
       throw new KsqlException("Could not list groups", e);

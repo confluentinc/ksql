@@ -41,11 +41,6 @@ public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, 
       }
 
       @Override
-      public GenericRow punctuate(long l) {
-        return null;
-      }
-
-      @Override
       public void close() {
       }
     };

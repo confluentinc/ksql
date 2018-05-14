@@ -1493,7 +1493,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   private static Type getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      return getPrimitiveType(baseTypeToString(type.baseType()));
+      return PrimitiveType.getPrimitiveType(baseTypeToString(type.baseType()));
     }
 
     if (type.ARRAY() != null) {
@@ -1589,22 +1589,4 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  private static PrimitiveType getPrimitiveType(String typeName) {
-    switch (typeName) {
-      case "BOOLEAN":
-        return new PrimitiveType(Type.KsqlType.BOOLEAN);
-      case "INT":
-      case "INTEGER":
-        return new PrimitiveType(Type.KsqlType.INTEGER);
-      case "BIGINT":
-        return new PrimitiveType(Type.KsqlType.BIGINT);
-      case "DOUBLE":
-        return new PrimitiveType(Type.KsqlType.DOUBLE);
-      case "VARCHAR":
-      case "STRING":
-        return new PrimitiveType(Type.KsqlType.STRING);
-      default:
-        throw new KsqlException("Invalid primitive column type: " + typeName);
-    }
-  }
 }

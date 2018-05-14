@@ -37,8 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class TypeUtilTest {
 
   @Test
-  public void shouldGetCorrectKsqlType() throws Exception {
-
+  public void shouldGetCorrectPrimitiveKsqlType() throws Exception {
     Type type0 = TypeUtil.getKsqlType(Schema.BOOLEAN_SCHEMA);
     assertThat(type0.getKsqlType(), equalTo(Type.KsqlType.BOOLEAN));
 
@@ -50,6 +49,34 @@ public class TypeUtilTest {
 
     Type type3 = TypeUtil.getKsqlType(Schema.STRING_SCHEMA);
     assertThat(type3.getKsqlType(), equalTo(Type.KsqlType.STRING));
+
+    Type type4 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
+    assertThat(type4.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
+  }
+
+  @Test
+  public void shouldGetCorrectArrayKsqlType() throws Exception {
+
+    Schema arraySchema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build();
+    Type type = TypeUtil.getKsqlType(arraySchema);
+    assertThat(type.getKsqlType(), equalTo(Type.KsqlType.ARRAY));
+    assertThat(type, instanceOf(Array.class));
+    assertThat(((Array) type).getItemType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
+  }
+
+  @Test
+  public void shouldGetCorrectMapKsqlType() throws Exception {
+
+    Schema mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).build();
+    Type type = TypeUtil.getKsqlType(mapSchema);
+    assertThat(type.getKsqlType(), equalTo(Type.KsqlType.MAP));
+    assertThat(type, instanceOf(Map.class));
+    assertThat(((Map) type).getValueType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
+  }
+
+
+  @Test
+  public void shouldGetCorrectStructKsqlType() throws Exception {
 
     Schema arraySchema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build();
     Type type4 = TypeUtil.getKsqlType(arraySchema);
@@ -106,13 +133,11 @@ public class TypeUtilTest {
     assertThat(((Struct) type7).getItems().get(5).getRight().getKsqlType(), equalTo(Type.KsqlType
                                                                                         .STRUCT));
 
-    Type type8 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
-    assertThat(type8.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
 
   }
 
   @Test
-  public void shouldGetCorrectSchema() throws Exception {
+  public void shouldGetCorrectPrimitiveSchema() throws Exception {
 
     Schema schema1 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
     assertThat(schema1, equalTo(Schema.INT64_SCHEMA));
@@ -129,13 +154,29 @@ public class TypeUtilTest {
     Schema schema5 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.STRING));
     assertThat(schema5, equalTo(Schema.STRING_SCHEMA));
 
-    Schema schema6 = TypeUtil.getTypeSchema(new Array(new PrimitiveType(Type.KsqlType.STRING)));
-    assertThat(schema6.type(), equalTo(Schema.Type.ARRAY));
-    assertThat(schema6.valueSchema().type(), equalTo(Schema.Type.STRING));
+    Schema schema6 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
+    assertThat(schema6, equalTo(Schema.INT64_SCHEMA));
 
-    Schema schema7 = TypeUtil.getTypeSchema(new Map(new PrimitiveType(Type.KsqlType.DOUBLE)));
-    assertThat(schema7.type(), equalTo(Schema.Type.MAP));
-    assertThat(schema7.valueSchema().type(), equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test
+  public void shouldGetCorrectArraySchema() throws Exception {
+
+    Schema schema = TypeUtil.getTypeSchema(new Array(new PrimitiveType(Type.KsqlType.STRING)));
+    assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
+    assertThat(schema.valueSchema().type(), equalTo(Schema.Type.STRING));
+  }
+
+  @Test
+  public void shouldGetCorrectMapSchema() throws Exception {
+
+    Schema schema = TypeUtil.getTypeSchema(new Map(new PrimitiveType(Type.KsqlType.DOUBLE)));
+    assertThat(schema.type(), equalTo(Schema.Type.MAP));
+    assertThat(schema.valueSchema().type(), equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test
+  public void shouldGetCorrectSchema() throws Exception {
 
     Struct internalStruct = new Struct(Arrays.asList(
         new Pair<>("COL1", new PrimitiveType(Type.KsqlType.STRING)),

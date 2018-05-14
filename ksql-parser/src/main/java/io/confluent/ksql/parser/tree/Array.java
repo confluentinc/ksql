@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
@@ -49,11 +50,11 @@ public class Array extends Type {
 
   @Override
   public int hashCode() {
-    return 0;
+    return Objects.hash(itemType);
   }
 
   @Override
   public boolean equals(Object obj) {
-    return false;
+    return this == obj;
   }
 }

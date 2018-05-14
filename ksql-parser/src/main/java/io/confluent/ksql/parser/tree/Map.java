@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
 public class Map extends Type {
 
-  final Type keyType = new PrimitiveType(KsqlType.STRING);
-  final Type valueType;
+  private final Type valueType;
 
   public Map(Type valueType) {
     this(Optional.empty(), valueType);
@@ -44,21 +44,17 @@ public class Map extends Type {
     return visitor.visitMap(this, context);
   }
 
-  public Type getKeyType() {
-    return keyType;
-  }
-
   public Type getValueType() {
     return valueType;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Objects.hash(valueType);
   }
 
   @Override
   public boolean equals(Object obj) {
-    return false;
+    return this == obj;
   }
 }

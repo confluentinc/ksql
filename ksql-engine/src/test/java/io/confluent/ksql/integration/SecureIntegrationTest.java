@@ -193,9 +193,6 @@ public class SecureIntegrationTest {
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
-
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
@@ -246,9 +243,6 @@ public class SecureIntegrationTest {
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
-
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
@@ -282,9 +276,6 @@ public class SecureIntegrationTest {
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));

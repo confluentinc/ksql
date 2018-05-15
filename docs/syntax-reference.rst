@@ -556,33 +556,35 @@ Example of explaining a running query:
 
 .. _drop-stream:
 
-DROP STREAM
------------
+DROP STREAM [IF EXISTS]
+-----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP STREAM stream_name;
+    DROP STREAM [IF EXISTS] stream_name;
 
 **Description**
 
-Drops an existing stream.
+* DROP STREAM: Drops an existing stream.
+* DROP STREAM IF EXISTS: Drops a stream. Does not fail if the stream does not exist.
 
 .. _drop-table:
 
-DROP TABLE
-----------
+DROP TABLE [IF EXISTS]
+----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP TABLE table_name;
+    DROP TABLE [IF EXISTS] table_name;
 
 **Description**
 
-Drops an existing table.
+* DROP TABLE: Drops an existing table.
+* DROP TABLE IF EXISTS: Drops a table. Does not fail if the table does not exist.
 
 PRINT
 -----

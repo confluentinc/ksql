@@ -623,7 +623,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitDropTable(DropTable node, Integer context) {
       builder.append("DROP TABLE ");
-      if (node.isExists()) {
+      if (node.getIfExists()) {
         builder.append("IF EXISTS ");
       }
       builder.append(node.getName());

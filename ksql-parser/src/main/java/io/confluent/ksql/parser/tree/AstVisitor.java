@@ -258,7 +258,19 @@ public abstract class AstVisitor<R, C> {
     return visitQueryBody(node, context);
   }
 
-  protected R visitRow(Row node, C context) {
+  protected R visitPrimitiveType(PrimitiveType node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitArray(Array node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitMap(Map node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitStruct(Struct node, C context) {
     return visitNode(node, context);
   }
 

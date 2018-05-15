@@ -35,8 +35,10 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.TypeUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+
 
 
 /**
@@ -140,7 +142,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          SchemaUtil.getTypeSchema(tableElement.getType())
+          TypeUtil.getTypeSchema(tableElement.getType())
       );
     }
 

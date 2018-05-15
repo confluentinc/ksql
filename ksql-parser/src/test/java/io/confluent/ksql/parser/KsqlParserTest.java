@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Struct;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
@@ -346,7 +348,29 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStream() {
+  public void testCreateStreamWithTopicWithStruct() throws Exception {
+    String
+        queryStr =
+        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
+        + "double, arraycol array<double>, mapcol map<varchar, double>, "
+        + "order_address STRUCT < number VARCHAR, street VARCHAR, zip INTEGER, city "
+        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
+    CreateStream createStream = (CreateStream)statement;
+    assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
+    assertThat(createStream.getElements().size(), equalTo(7));
+    assertThat(createStream.getElements().get(0).getName().toString().toLowerCase(), equalTo("ordertime"));
+    assertThat(createStream.getElements().get(6).getType().getKsqlType(), equalTo(Type.KsqlType.STRUCT));
+    Struct struct = (Struct) createStream.getElements().get(6).getType();
+    assertThat(struct.getItems().size(), equalTo(5));
+    assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
+    assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
+               equalTo("'orders_topic'"));
+  }
+
+  @Test
+  public void testCreateStream() throws Exception {
     String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "

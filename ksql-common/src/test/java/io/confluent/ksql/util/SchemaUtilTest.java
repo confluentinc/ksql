@@ -295,4 +295,44 @@ public class SchemaUtilTest {
     assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
         equalTo(schema.fields().get(0).name()));
   }
+
+  @Test
+  public void shouldCreateCorrectSchemaDescription() {
+    Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.INT64_SCHEMA)
+        .field("STREET", Schema.STRING_SCHEMA)
+        .field("CITY", Schema.STRING_SCHEMA)
+        .field("STATE", Schema.STRING_SCHEMA)
+        .field("ZIPCODE", Schema.INT64_SCHEMA)
+        .build();
+
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    Schema structSchema = schemaBuilder
+        .field("ordertime", Schema.INT64_SCHEMA)
+        .field("orderid", Schema.INT64_SCHEMA)
+        .field("itemid", Schema.STRING_SCHEMA)
+        .field("orderunits", Schema.FLOAT64_SCHEMA)
+        .field("arraycol",schemaBuilder.array(Schema.FLOAT64_SCHEMA))
+        .field("mapcol", schemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("address", addressSchema).build();
+
+    String schemaDescription = SchemaUtil.describeSchema(structSchema);
+
+    assertThat(schemaDescription, equalTo("STRUCT < \n"
+                                          + "\t ordertime BIGINT, \n"
+                                          + "\t orderid BIGINT, \n"
+                                          + "\t itemid VARCHAR(STRING), \n"
+                                          + "\t orderunits DOUBLE, \n"
+                                          + "\t arraycol ARRAY[DOUBLE], \n"
+                                          + "\t mapcol MAP[VARCHAR(STRING),DOUBLE], \n"
+                                          + "\t address STRUCT < \n"
+                                          + "\t NUMBER BIGINT, \n"
+                                          + "\t STREET VARCHAR(STRING), \n"
+                                          + "\t CITY VARCHAR(STRING), \n"
+                                          + "\t STATE VARCHAR(STRING), \n"
+                                          + "\t ZIPCODE BIGINT\n"
+                                          + " >\n"
+                                          + " >"));
+  }
+
 }

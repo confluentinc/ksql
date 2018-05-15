@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -58,14 +57,17 @@ import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
+import io.confluent.ksql.util.Pair;
 
 import java.util.Set;
 
@@ -331,9 +333,9 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitRow(Row node, C context) {
-    for (Expression expression : node.getItems()) {
-      process(expression, context);
+  protected R visitStruct(Struct node, C context) {
+    for (Pair<String, Type> structItem : node.getItems()) {
+      process(structItem.getRight(), context);
     }
     return null;
   }

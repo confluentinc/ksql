@@ -48,7 +48,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -57,14 +56,17 @@ import io.confluent.ksql.parser.tree.SetOperation;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
+import io.confluent.ksql.util.Pair;
 
 public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
 
@@ -351,10 +353,10 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitRow(Row node, Node parent) {
+  protected Node visitStruct(Struct node, Node parent) {
     node.setParent(parent);
-    for (Expression expression : node.getItems()) {
-      process(expression, node);
+    for (Pair<String, Type> structItem : node.getItems()) {
+      process(structItem.getRight(), node);
     }
     return null;
   }

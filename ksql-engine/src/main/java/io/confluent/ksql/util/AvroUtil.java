@@ -143,8 +143,8 @@ public class AvroUtil {
   ) {
     List<TableElement> elements = new ArrayList<>();
     for (Field field : schema.fields()) {
-      TableElement tableElement = new TableElement(field.name().toUpperCase(), SchemaUtil
-          .getSqlTypeName(field.schema()));
+      TableElement tableElement = new TableElement(field.name().toUpperCase(),
+                                                   TypeUtil.getKsqlType(field.schema()));
       elements.add(tableElement);
     }
     StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));

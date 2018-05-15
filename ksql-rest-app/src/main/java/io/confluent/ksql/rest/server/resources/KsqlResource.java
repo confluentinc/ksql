@@ -609,7 +609,7 @@ public class KsqlResource {
           DataSource.DataSourceType.KSTREAM,
           ksqlEngine.getTopicClient(),
           ksqlEngine.getSchemaRegistryClient(),
-          dropStream.isWithTopic()
+          dropStream.isDeleteTopic()
       );
       executeDdlCommand(dropSourceCommand);
       return null;
@@ -622,7 +622,7 @@ public class KsqlResource {
           DataSource.DataSourceType.KTABLE,
           ksqlEngine.getTopicClient(),
           ksqlEngine.getSchemaRegistryClient(),
-          dropTable.isWithTopic()
+          dropTable.isDeleteTopic()
       );
       executeDdlCommand(dropSourceCommand);
       return null;

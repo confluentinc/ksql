@@ -38,20 +38,20 @@ public class DropSourceCommand implements DdlCommand {
   private final DataSource.DataSourceType dataSourceType;
   private final KafkaTopicClient kafkaTopicClient;
   private final SchemaRegistryClient schemaRegistryClient;
-  private final boolean withTopic;
+  private final boolean deleteTopic;
 
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
       final DataSource.DataSourceType dataSourceType,
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient,
-      final boolean withTopic) {
+      final boolean deleteTopic) {
 
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
     this.kafkaTopicClient = kafkaTopicClient;
     this.schemaRegistryClient = schemaRegistryClient;
-    this.withTopic = withTopic;
+    this.deleteTopic = deleteTopic;
   }
 
   @Override
@@ -75,7 +75,7 @@ public class DropSourceCommand implements DdlCommand {
     deleteTopicIfNeeded(dataSource, isValidatePhase);
 
     return new DdlCommandResult(true, "Source " + sourceName + " was dropped. "
-                                      + (withTopic ? "Topic '"
+                                      + (deleteTopic ? "Topic '"
                                                     + dataSource.getKsqlTopic().getTopicName()
                                                     + "' was marked for deletion. Actual deletion "
                                                     + "and removal from brokers may take some time "
@@ -83,7 +83,7 @@ public class DropSourceCommand implements DdlCommand {
   }
 
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
-    if (!isValidatePhase && withTopic) {
+    if (!isValidatePhase && deleteTopic) {
 
       executeWithRetries(new Callable<Void>() {
         @Override

@@ -26,27 +26,27 @@ public class DropStream
 
   private final QualifiedName streamName;
   private final boolean exists;
-  private final boolean withTopic;
+  private final boolean deleteTopic;
 
-  public DropStream(QualifiedName tableName, boolean exists, boolean withTopic) {
-    this(Optional.empty(), tableName, exists, withTopic);
+  public DropStream(QualifiedName tableName, boolean exists, boolean deleteTopic) {
+    this(Optional.empty(), tableName, exists, deleteTopic);
   }
 
   public DropStream(NodeLocation location,
                     QualifiedName tableName,
                     boolean exists,
-                    boolean withTopic) {
-    this(Optional.of(location), tableName, exists, withTopic);
+                    boolean deleteTopic) {
+    this(Optional.of(location), tableName, exists, deleteTopic);
   }
 
   private DropStream(Optional<NodeLocation> location,
                      QualifiedName streamName,
                      boolean exists,
-                     boolean withTopic) {
+                     boolean deleteTopic) {
     super(location);
     this.streamName = streamName;
     this.exists = exists;
-    this.withTopic = withTopic;
+    this.deleteTopic = deleteTopic;
   }
 
   public QualifiedName getName() {
@@ -61,8 +61,8 @@ public class DropStream
     return streamName;
   }
 
-  public boolean isWithTopic() {
-    return withTopic;
+  public boolean isDeleteTopic() {
+    return deleteTopic;
   }
 
   @Override
@@ -86,7 +86,7 @@ public class DropStream
     DropStream o = (DropStream) obj;
     return Objects.equals(streamName, o.streamName)
            && (exists == o.exists)
-           && (withTopic == o.withTopic);
+           && (deleteTopic == o.deleteTopic);
   }
 
   @Override
@@ -94,7 +94,7 @@ public class DropStream
     return toStringHelper(this)
         .add("tableName", streamName)
         .add("exists", exists)
-        .add("withTopic", withTopic)
+        .add("deleteTopic", deleteTopic)
         .toString();
   }
 }

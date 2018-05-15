@@ -70,7 +70,7 @@ public class CommandFactories implements DdlCommandFactory {
             DataSource.DataSourceType.KSTREAM,
             topicClient,
             schemaRegistryClient,
-            ((DropStream) ddlStatement).isWithTopic()
+            ((DropStream) ddlStatement).isDeleteTopic()
         )
     );
     factories.put(
@@ -80,7 +80,7 @@ public class CommandFactories implements DdlCommandFactory {
             DataSource.DataSourceType.KTABLE,
             topicClient,
             schemaRegistryClient,
-            ((DropTable) ddlStatement).isWithTopic()
+            ((DropTable) ddlStatement).isDeleteTopic()
         )
     );
     factories.put(

@@ -174,7 +174,26 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpSchemaRegistry() throws Exception {
+  public void shouldCleanupSchemaAndTopicForStream() throws Exception {
+    ksqlEngine.buildMultipleQueries(
+        "create stream bar with (value_format = 'avro') as select * from test1;"
+        + "create stream foo as select * from test1;",
+        Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+    ksqlEngine.terminateQuery(new QueryId("CSAS_BAR_0"), true);
+    ksqlEngine.buildMultipleQueries("DROP STREAM bar DELETE TOPIC;", Collections.emptyMap());
+    assertThat(topicClient.isTopicExists("BAR"), equalTo(false));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
+  }
+
+  @Test
+  public void shouldCleanupSchemaAndTopicForTable() throws Exception {
     ksqlEngine.buildMultipleQueries(
             "create table bar with (value_format = 'avro') as select * from test2;"
             + "create table foo as select * from test2;",
@@ -193,7 +212,26 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotDeleteSchemaFromSchemaRegistry() throws Exception {
+  public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
+    ksqlEngine.buildMultipleQueries(
+        "create stream bar with (value_format = 'avro') as select * from test1;"
+        + "create stream foo as select * from test1;",
+        Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+    ksqlEngine.terminateQuery(new QueryId("CSAS_BAR_0"), true);
+    ksqlEngine.buildMultipleQueries("DROP STREAM bar;", Collections.emptyMap());
+    assertThat(topicClient.isTopicExists("BAR"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+  }
+
+  @Test
+  public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     ksqlEngine.buildMultipleQueries(
         "create table bar with (value_format = 'avro') as select * from test2;"
         + "create table foo as select * from test2;",

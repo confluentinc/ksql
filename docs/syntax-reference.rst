@@ -559,8 +559,10 @@ DROP STREAM
 **Description**
 
 Drops an existing stream.
-If WITH TOPIC clause is present, delete the corresponding topic in
-kafka and if the topic format is AVRO, delete the corresponding avro schema too.
+If DELETE TOPIC clause is present, the corresponding topic in
+kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
+schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
+some time to complete.
 
 .. _drop-table:
 
@@ -576,8 +578,10 @@ DROP TABLE
 **Description**
 
 Drops an existing table.
-If WITH TOPIC clause is present, delete the corresponding topic in
-kafka and if the topic format is AVRO, delete the corresponding avro schema too.
+If DELETE TOPIC clause is present, the corresponding topic in
+kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
+schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
+ some time to complete.
 
 PRINT
 -----

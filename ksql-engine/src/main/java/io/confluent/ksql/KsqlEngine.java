@@ -475,14 +475,14 @@ public class KsqlEngine implements Closeable {
                                     DataSource.DataSourceType.KSTREAM,
                                     topicClient,
                                     schemaRegistryClient,
-                                    dropStream.isWithTopic()),
+                                    dropStream.isDeleteTopic()),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
                                     dropStream,
                                     DataSource.DataSourceType.KSTREAM,
                                     topicClient,
                                     schemaRegistryClient,
-                                    dropStream.isWithTopic()),
+                                    dropStream.isDeleteTopic()),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
@@ -492,14 +492,14 @@ public class KsqlEngine implements Closeable {
                                     DataSource.DataSourceType.KTABLE,
                                     topicClient,
                                     schemaRegistryClient,
-                                    dropTable.isWithTopic()),
+                                    dropTable.isDeleteTopic()),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
                                     dropTable,
                                     DataSource.DataSourceType.KTABLE,
                                     topicClient,
                                     schemaRegistryClient,
-                                    dropTable.isWithTopic()),
+                                    dropTable.isDeleteTopic()),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {

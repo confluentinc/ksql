@@ -3,6 +3,7 @@ package io.confluent.ksql.structured;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
@@ -30,7 +31,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -104,7 +107,7 @@ public class SchemaKGroupedTableTest {
   }
 
   @Test
-  public void shouldFailUnsubtractableAggregateFunction() {
+  public void shouldFailUnsupportedAggregateFunction() {
     SchemaKGroupedTable kGroupedTable = buildGroupedKTable(
         "SELECT col0, col1, col2 FROM test1;", "COL1", "COL2");
     FunctionRegistry functionRegistry = new FunctionRegistry();
@@ -112,21 +115,25 @@ public class SchemaKGroupedTableTest {
         new DereferenceExpression(
             new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0"));
     try {
+      Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = new HashMap<>();
+      aggValToFunctionMap.put(
+          0, functionRegistry.getAggregateFunction("MAX", args, ksqlTable.getSchema()));
+      aggValToFunctionMap.put(
+          1, functionRegistry.getAggregateFunction("MIN", args, ksqlTable.getSchema()));
       kGroupedTable.aggregate(
           new KudafInitializer(1),
-          Collections.singletonMap(
-              0,
-              functionRegistry.getAggregateFunction("MAX", args, ksqlTable.getSchema())),
+          aggValToFunctionMap,
           Collections.singletonMap(0, 0),
           null,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
               ksqlTable.getSchema(), ksqlConfig, false, null)
       );
-      Assert.fail("Should fail to build topology for aggregation with window");
+      Assert.fail("Should fail to build topology for aggregation with unsupported function");
     } catch(KsqlException e) {
       Assert.assertThat(
           e.getMessage(),
-          equalTo("Requested aggregation function cannot be applied to a table."));
+          equalTo(
+              "The aggregation function(s) (MAX, MIN) cannot be applied to a table."));
     }
   }
 }

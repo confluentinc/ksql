@@ -17,6 +17,9 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Optional;
+import java.util.Objects;
+
+import io.confluent.ksql.util.KsqlException;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,6 +41,25 @@ public class PrimitiveType extends Type {
     this.ksqlType = ksqlType;
   }
 
+  public static PrimitiveType getPrimitiveType(String typeName) {
+    switch (typeName) {
+      case "BOOLEAN":
+        return new PrimitiveType(Type.KsqlType.BOOLEAN);
+      case "INT":
+      case "INTEGER":
+        return new PrimitiveType(Type.KsqlType.INTEGER);
+      case "BIGINT":
+        return new PrimitiveType(Type.KsqlType.BIGINT);
+      case "DOUBLE":
+        return new PrimitiveType(Type.KsqlType.DOUBLE);
+      case "VARCHAR":
+      case "STRING":
+        return new PrimitiveType(Type.KsqlType.STRING);
+      default:
+        throw new KsqlException("Invalid primitive column type: " + typeName);
+    }
+  }
+
   @Override
   public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
     return visitor.visitPrimitiveType(this, context);
@@ -50,11 +72,14 @@ public class PrimitiveType extends Type {
 
   @Override
   public int hashCode() {
-    return 0;
+    return Objects.hashCode(ksqlType);
   }
 
   @Override
   public boolean equals(Object obj) {
+    if (obj instanceof PrimitiveType) {
+      return ((PrimitiveType) obj).getKsqlType() == ksqlType;
+    }
     return false;
   }
 }

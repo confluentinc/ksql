@@ -40,11 +40,12 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   private final Schema outputSchema;
 
   @SuppressWarnings("unchecked")
-  TopkDistinctKudaf(final int argIndexInValue,
+  TopkDistinctKudaf(final String functionName,
+                    final int argIndexInValue,
                     final int tkVal,
                     final Schema outputSchema,
                     final Class<T> ttClass) {
-    super(argIndexInValue,
+    super(functionName, argIndexInValue,
         () -> new ArrayList<T>(),
           SchemaBuilder.array(outputSchema).build(),
           Collections.singletonList(outputSchema)
@@ -99,6 +100,6 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
 
     final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     final int tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkDistinctKudaf<>(udafIndex, tkValFromArg, outputSchema, ttClass);
+    return new TopkDistinctKudaf<>(functionName, udafIndex, tkValFromArg, outputSchema, ttClass);
   }
 }

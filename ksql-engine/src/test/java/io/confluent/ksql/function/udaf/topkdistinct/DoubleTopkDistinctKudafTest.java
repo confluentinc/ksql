@@ -30,7 +30,7 @@ public class DoubleTopkDistinctKudafTest {
 
   ArrayList<Double> valueArray;
   private final TopkDistinctKudaf<Double> doubleTopkDistinctKudaf
-          = new TopkDistinctKudaf<>(0, 3, Schema.FLOAT64_SCHEMA, Double.class);
+          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.FLOAT64_SCHEMA);
 
   @Before
   public void setup() {

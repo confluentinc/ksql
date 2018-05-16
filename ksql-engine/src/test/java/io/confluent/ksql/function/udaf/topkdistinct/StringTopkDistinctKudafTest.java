@@ -30,7 +30,7 @@ public class StringTopkDistinctKudafTest {
 
   ArrayList<String> valueArray;
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
-          = new TopkDistinctKudaf<>(0, 3, Schema.STRING_SCHEMA, String.class);
+          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
 
   @Before
   public void setup() {

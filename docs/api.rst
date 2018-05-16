@@ -1,12 +1,12 @@
-.. _ksql-http-api:
+.. _ksql-rest-api:
 
-KSQL HTTP API Reference
+KSQL REST API Reference
 =======================
 
 Content Types
 -------------
 
-The KSQL HTTP server uses content types for requests and responses to indicate the serialization format of the data and the API version. Currently, the only serialization format supported is JSON. The only version supported is v1. Your request should specify this serialization format and version in the ``Accept`` header as::
+The KSQL REST API uses content types for requests and responses to indicate the serialization format of the data and the API version. Currently, the only serialization format supported is JSON. The only version supported is v1. Your request should specify this serialization format and version in the ``Accept`` header as::
 
     Accept: application/vnd.ksql.v1+json
 

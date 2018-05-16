@@ -29,9 +29,9 @@ Download the Tutorial and Start KSQL
 
 #. Switch to the correct |cp| release branch:
 
-   .. code:: bash
-
-       $ git checkout master
+   .. codewithvars:: bash
+   
+       $ git checkout |release_post_branch|
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.

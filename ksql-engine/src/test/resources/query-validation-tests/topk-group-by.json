@@ -11,7 +11,7 @@
     {
       "name": "topk integer",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [

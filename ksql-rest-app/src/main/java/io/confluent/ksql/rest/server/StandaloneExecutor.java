@@ -97,7 +97,6 @@ public class StandaloneExecutor implements Executable {
     if (console == null) {
       return;
     }
-
     final PrintWriter writer =
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 

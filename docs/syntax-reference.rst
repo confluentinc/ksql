@@ -7,6 +7,7 @@ KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``
 - Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
+- You can escape ' characters inside string literals by using '', i.e., 'yyyy-MM-dd''T''HH:mm:ssX'
 
 .. contents:: Contents
     :local:
@@ -197,7 +198,9 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
@@ -278,7 +281,9 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
@@ -354,7 +359,9 @@ The WITH clause for the result supports the following properties:
 +---------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``.                                    |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
@@ -422,9 +429,11 @@ The WITH clause supports the following properties:
 |               |                                                                                                      |
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +---------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a          |
-|                  | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format            |
-|                  | that can be parsed with the java ``DateTimeFormatter``.                                           |
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
@@ -547,8 +556,8 @@ Example of explaining a running query:
 
 .. _drop-stream:
 
-DROP STREAM
------------
+DROP STREAM [IF EXISTS]
+-----------------------
 
 **Synopsis**
 
@@ -563,17 +572,18 @@ If DELETE TOPIC clause is present, the corresponding topic in
 kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
 schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
 some time to complete.
+If IF EXISTS is present, does not fail if the table does not exist.
 
 .. _drop-table:
 
-DROP TABLE
-----------
+DROP TABLE [IF EXISTS]
+----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP TABLE table_name [DELETE TOPIC];
+    DROP TABLE [IF EXISTS] table_name [DELETE TOPIC];
 
 **Description**
 
@@ -582,6 +592,7 @@ If DELETE TOPIC clause is present, the corresponding topic in
 kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
 schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
  some time to complete.
+If IF EXISTS is present, does not fail if the table does not exist.
 
 PRINT
 -----
@@ -866,14 +877,18 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given              |
 |                        |                                                            | format into the BIGINT value                      |
-|                        |                                                            | that represents the millisecond timestamp.        |
+|                        |                                                            | that represents the millisecond timestamp. Single |
+|                        |                                                            | quotes in the timestamp format can be escaped with|
+|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
 |                        |                                                            | indices                                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |
-|                        |                                                            | the given format.                                 |
+|                        |                                                            | the given format. Single quotes in the            |
+|                        |                                                            | timestamp format can be escaped with '', for      |
+|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'               |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |
 |                        |                                                            | a string                                          |

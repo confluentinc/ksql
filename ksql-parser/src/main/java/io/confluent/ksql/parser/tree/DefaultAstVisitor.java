@@ -266,7 +266,7 @@ public abstract class DefaultAstVisitor<R, C>
     return visitQueryBody(node, context);
   }
 
-  protected R visitRow(Row node, C context) {
+  protected R visitStruct(Struct node, C context) {
     return visitNode(node, context);
   }
 

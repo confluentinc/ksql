@@ -35,6 +35,7 @@ public class DropSourceCommand implements DdlCommand {
   private static final int RETRY_BACKOFF_MS = 500;
 
   private final String sourceName;
+  private final boolean ifExists;
   private final DataSource.DataSourceType dataSourceType;
   private final KafkaTopicClient kafkaTopicClient;
   private final SchemaRegistryClient schemaRegistryClient;
@@ -48,6 +49,7 @@ public class DropSourceCommand implements DdlCommand {
       final boolean deleteTopic) {
 
     this.sourceName = statement.getName().getSuffix();
+    this.ifExists = statement.getIfExists();
     this.dataSourceType = dataSourceType;
     this.kafkaTopicClient = kafkaTopicClient;
     this.schemaRegistryClient = schemaRegistryClient;
@@ -58,6 +60,9 @@ public class DropSourceCommand implements DdlCommand {
   public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
     StructuredDataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
+      if (ifExists) {
+        return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
+      }
       throw new KsqlException("Source " + sourceName + " does not exist.");
     }
     if (dataSource.getDataSourceType() != dataSourceType) {

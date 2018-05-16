@@ -35,11 +35,13 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
@@ -92,8 +94,8 @@ public class CommandFactoriesTest {
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
     final DdlCommand result = commandFactories.create(sqlExpression,
         new CreateTable(QualifiedName.of("foo"),
-                        Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                            ("COL2", "VARCHAR")), true,
+                        Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
+                            ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true,
                         tableProperties),
         Collections.emptyMap());
 
@@ -108,8 +110,8 @@ public class CommandFactoriesTest {
     try {
       final DdlCommand result = commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true,
+                          Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
+                              ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true,
                           tableProperties),
           Collections.emptyMap());
 
@@ -128,8 +130,8 @@ public class CommandFactoriesTest {
     try {
       commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true,
+                          Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
+                              ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true,
                           tableProperties),
           Collections.emptyMap());
 
@@ -144,8 +146,8 @@ public class CommandFactoriesTest {
     try {
       commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true, properties),
+                          Arrays.asList(new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)), new TableElement
+                              ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true, properties),
           Collections.emptyMap());
 
     } catch (KsqlException e) {

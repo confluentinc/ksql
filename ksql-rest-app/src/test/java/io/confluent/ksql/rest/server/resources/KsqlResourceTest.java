@@ -670,7 +670,7 @@ public class KsqlResourceTest {
             queryMetadata.getOutputNode().getSchema().fields()
                 .stream()
                 .map(f -> new FieldSchemaInfo(
-                    f.name(), SchemaUtil.getSchemaFieldName(f)))
+                    f.name(), SchemaUtil.describeSchema(f.schema())))
                 .collect(Collectors.toList())));
     assertThat(
         queryDescription.getOverriddenProperties(),

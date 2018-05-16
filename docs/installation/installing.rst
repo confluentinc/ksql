@@ -119,6 +119,7 @@ Tip
 
                             This option may occur a maximum of 1 times
 
+#. Have a look at :ref:`this page <restrict-ksql-interactive>` for instructions on running KSQL in non-interactive (aka headless) mode.
 
 .. _install_ksql-cli:
 

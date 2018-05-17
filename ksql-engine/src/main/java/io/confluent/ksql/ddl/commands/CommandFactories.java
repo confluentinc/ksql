@@ -66,13 +66,21 @@ public class CommandFactories implements DdlCommandFactory {
     factories.put(
         DropStream.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, schemaRegistryClient
+            (DropStream) ddlStatement,
+            DataSource.DataSourceType.KSTREAM,
+            topicClient,
+            schemaRegistryClient,
+            ((DropStream) ddlStatement).isDeleteTopic()
         )
     );
     factories.put(
         DropTable.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, schemaRegistryClient
+            (DropTable) ddlStatement,
+            DataSource.DataSourceType.KTABLE,
+            topicClient,
+            schemaRegistryClient,
+            ((DropTable) ddlStatement).isDeleteTopic()
         )
     );
     factories.put(

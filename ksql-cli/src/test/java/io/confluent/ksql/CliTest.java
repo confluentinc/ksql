@@ -246,7 +246,7 @@ public class CliTest extends TestRunner {
   private static void dropStream(String name) {
     test(
         String.format("drop stream %s", name),
-        build("Source " + name + " was dropped")
+        build("Source " + name + " was dropped. ")
     );
   }
 

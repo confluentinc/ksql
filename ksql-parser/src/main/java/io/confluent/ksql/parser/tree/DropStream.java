@@ -26,19 +26,27 @@ public class DropStream
 
   private final QualifiedName streamName;
   private final boolean ifExists;
+  private final boolean deleteTopic;
 
-  public DropStream(QualifiedName tableName, boolean ifExists) {
-    this(Optional.empty(), tableName, ifExists);
+  public DropStream(QualifiedName tableName, boolean ifExists, boolean deleteTopic) {
+    this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropStream(NodeLocation location, QualifiedName tableName, boolean ifExists) {
-    this(Optional.of(location), tableName, ifExists);
+  public DropStream(NodeLocation location,
+                    QualifiedName tableName,
+                    boolean ifExists,
+                    boolean deleteTopic) {
+    this(Optional.of(location), tableName, ifExists, deleteTopic);
   }
 
-  private DropStream(Optional<NodeLocation> location, QualifiedName streamName, boolean ifExists) {
+  private DropStream(Optional<NodeLocation> location,
+                     QualifiedName streamName,
+                     boolean ifExists,
+                     boolean deleteTopic) {
     super(location);
     this.streamName = streamName;
     this.ifExists = ifExists;
+    this.deleteTopic = deleteTopic;
   }
 
   public QualifiedName getName() {
@@ -47,6 +55,14 @@ public class DropStream
 
   public boolean getIfExists() {
     return ifExists;
+  }
+
+  public QualifiedName getStreamName() {
+    return streamName;
+  }
+
+  public boolean isDeleteTopic() {
+    return deleteTopic;
   }
 
   @Override
@@ -69,7 +85,8 @@ public class DropStream
     }
     DropStream o = (DropStream) obj;
     return Objects.equals(streamName, o.streamName)
-           && (ifExists == o.ifExists);
+           && (ifExists == o.ifExists)
+           && (deleteTopic == o.deleteTopic);
   }
 
   @Override
@@ -77,6 +94,7 @@ public class DropStream
     return toStringHelper(this)
         .add("tableName", streamName)
         .add("ifExists", ifExists)
+        .add("deleteTopic", deleteTopic)
         .toString();
   }
 }

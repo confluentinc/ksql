@@ -25,19 +25,27 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
 
   private final QualifiedName tableName;
   private final boolean ifExists;
+  private final boolean deleteTopic;
 
-  public DropTable(QualifiedName tableName, boolean ifExists) {
-    this(Optional.empty(), tableName, ifExists);
+  public DropTable(QualifiedName tableName, boolean ifExists, boolean deleteTopic) {
+    this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropTable(NodeLocation location, QualifiedName tableName, boolean ifExists) {
-    this(Optional.of(location), tableName, ifExists);
+  public DropTable(NodeLocation location,
+                   QualifiedName tableName,
+                   boolean ifExists,
+                   boolean deleteTopic) {
+    this(Optional.of(location), tableName, ifExists, deleteTopic);
   }
 
-  private DropTable(Optional<NodeLocation> location, QualifiedName tableName, boolean ifExists) {
+  private DropTable(Optional<NodeLocation> location,
+                    QualifiedName tableName,
+                    boolean ifExists,
+                    boolean deleteTopic) {
     super(location);
     this.tableName = tableName;
     this.ifExists = ifExists;
+    this.deleteTopic = deleteTopic;
   }
 
   public QualifiedName getName() {
@@ -46,6 +54,14 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
 
   public boolean getIfExists() {
     return ifExists;
+  }
+
+  public QualifiedName getTableName() {
+    return tableName;
+  }
+
+  public boolean isDeleteTopic() {
+    return deleteTopic;
   }
 
   @Override
@@ -68,7 +84,8 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     }
     DropTable o = (DropTable) obj;
     return Objects.equals(tableName, o.tableName)
-           && (ifExists == o.ifExists);
+           && (ifExists == o.ifExists)
+           && (deleteTopic == o.deleteTopic);
   }
 
   @Override
@@ -76,6 +93,7 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     return toStringHelper(this)
         .add("tableName", tableName)
         .add("ifExists", ifExists)
+        .add("deleteTopic", deleteTopic)
         .toString();
   }
 }

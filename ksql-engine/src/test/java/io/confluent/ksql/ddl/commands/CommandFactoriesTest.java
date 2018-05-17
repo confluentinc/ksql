@@ -159,7 +159,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForDropStream() {
     final DdlCommand result = commandFactories.create(sqlExpression,
-        new DropStream(QualifiedName.of("foo"), true),
+        new DropStream(QualifiedName.of("foo"), true, true),
         Collections.emptyMap());
     assertThat(result, instanceOf(DropSourceCommand.class));
   }
@@ -167,7 +167,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForDropTable() {
     final DdlCommand result = commandFactories.create(sqlExpression,
-        new DropTable(QualifiedName.of("foo"), true),
+        new DropTable(QualifiedName.of("foo"), true, true),
         Collections.emptyMap());
     assertThat(result, instanceOf(DropSourceCommand.class));
   }

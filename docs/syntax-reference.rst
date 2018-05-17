@@ -563,12 +563,16 @@ DROP STREAM [IF EXISTS]
 
 .. code:: sql
 
-    DROP STREAM [IF EXISTS] stream_name;
+    DROP STREAM stream_name [DELETE TOPIC];
 
 **Description**
 
-* DROP STREAM: Drops an existing stream.
-* DROP STREAM IF EXISTS: Drops a stream. Does not fail if the stream does not exist.
+Drops an existing stream.
+If DELETE TOPIC clause is present, the corresponding topic in
+kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
+schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
+some time to complete.
+If IF EXISTS is present, does not fail if the table does not exist.
 
 .. _drop-table:
 
@@ -579,12 +583,16 @@ DROP TABLE [IF EXISTS]
 
 .. code:: sql
 
-    DROP TABLE [IF EXISTS] table_name;
+    DROP TABLE [IF EXISTS] table_name [DELETE TOPIC];
 
 **Description**
 
-* DROP TABLE: Drops an existing table.
-* DROP TABLE IF EXISTS: Drops a table. Does not fail if the table does not exist.
+Drops an existing table.
+If DELETE TOPIC clause is present, the corresponding topic in
+kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
+schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
+ some time to complete.
+If IF EXISTS is present, does not fail if the table does not exist.
 
 PRINT
 -----

@@ -63,8 +63,8 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
     | EXPLAIN ANALYZE?
             ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog

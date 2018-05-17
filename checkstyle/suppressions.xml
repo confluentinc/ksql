@@ -22,7 +22,8 @@
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder).java"
               checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder).java"
+    <suppress
+            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand).java"
               checks="CyclomaticComplexityCheck"/>
 
     <!-- EXAMPLES! -->

@@ -284,7 +284,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new DropTable(
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 
@@ -293,7 +294,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new DropStream(
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 

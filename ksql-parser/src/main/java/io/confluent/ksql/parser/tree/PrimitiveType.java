@@ -16,8 +16,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Objects;
 
 import io.confluent.ksql.util.KsqlException;
 

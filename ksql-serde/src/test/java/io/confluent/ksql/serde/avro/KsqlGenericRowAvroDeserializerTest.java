@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -110,7 +111,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     assertThat("Column number does not match.", genericRow.getColumns().size(), equalTo(6));
     assertThat("Invalid column value.", genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat("Invalid column value.", genericRow.getColumns().get(1), equalTo(1L));
-    assertThat("Invalid column value.", ((Double[])genericRow.getColumns().get(4))[0], equalTo
+    assertThat("Invalid column value.", ((ArrayList)genericRow.getColumns().get(4)).get(0), equalTo
         (100.0));
     assertThat("Invalid column value.", ((Map<String, Double>)genericRow.getColumns().get(5))
                    .get("key1"),
@@ -142,7 +143,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         ( "item_1"));
     assertThat("Incorrect deserializarion", row.getColumns().get(3), equalTo
         ( 10.0));
-    assertThat("Incorrect deserializarion", ((Double[])row.getColumns().get(4)).length, equalTo
+    assertThat("Incorrect deserializarion", ((ArrayList)row.getColumns().get(4)).size(), equalTo
         (1));
     assertThat("Incorrect deserializarion", ((Map)row.getColumns().get(5)).size(), equalTo
         (1));

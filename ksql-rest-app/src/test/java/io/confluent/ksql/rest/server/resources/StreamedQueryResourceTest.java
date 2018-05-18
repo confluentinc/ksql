@@ -16,12 +16,14 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.util.JsonUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.GenericRow;
@@ -34,7 +36,10 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Test;
@@ -45,8 +50,11 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
@@ -233,7 +241,7 @@ public class StreamedQueryResourceTest {
         synchronized (writtenRows) {
           expectedRow = writtenRows.poll();
         }
-        GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
+        GenericRow testRow = new JsonUtil().buildGenericRowFromJson(responseLine);
         assertEquals(expectedRow, testRow);
       }
     }

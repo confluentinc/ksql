@@ -399,7 +399,8 @@ public class CliTest extends TestRunner {
     for (int i = 1; i <= limit; i++) {
       GenericRow srcRow = streamData.get(Integer.toString(i));
       List<Object> columns = srcRow.getColumns();
-      GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
+      GenericRow resultRow = new GenericRow(Arrays.asList("\"" + columns.get(1) + "\"",
+                                                          "\"" + columns.get(2) + "\""));
       expectedResult.addRow(resultRow);
     }
     selectWithLimit(

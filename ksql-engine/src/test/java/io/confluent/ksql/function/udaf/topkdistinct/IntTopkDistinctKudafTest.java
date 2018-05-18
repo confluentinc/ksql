@@ -22,7 +22,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -31,81 +34,83 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkDistinctKudafTest {
 
-  private Integer[] valueArray;
+  private ArrayList<Integer> valueArray;
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
       TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = new Integer[]{10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
-                               60, 80};
+    valueArray = new ArrayList<Integer>(Arrays.asList(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
+                                                      60, 80));
   }
 
   @Test
   public void shouldAggregateTopK() {
-    Integer[] currentVal = new Integer[]{null, null, null};
+    ArrayList<Integer> currentVal = new ArrayList<Integer>();
     for (Integer d : valueArray) {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, 60, 50}));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(Arrays.asList(80, 60, 50))));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    Integer[] currentVal = new Integer[]{null, null, null};
+    ArrayList<Integer> currentVal = new ArrayList<Integer>();
     currentVal = intTopkDistinctKudaf.aggregate(80, currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, null, null}));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(Arrays.asList(80))));
   }
 
   @Test
   public void shouldMergeTopK() {
-    Integer[] array1 = new Integer[]{50, 45, 25};
-    Integer[] array2 = new Integer[]{60, 50, 48};
+    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45, 25));
+    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60, 50, 48));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
-                   new Integer[]{60, 50, 48}));
+                   new ArrayList<Integer>(Arrays.asList(60, 50, 48))));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    Integer[] array1 = new Integer[]{50, 45, null};
-    Integer[] array2 = new Integer[]{60, null, null};
+    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45));
+    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
-                   new Integer[]{60, 50, 45}));
+                   new ArrayList<Integer>(Arrays.asList(60, 50, 45))));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    Integer[] array1 = new Integer[]{50, 45, null};
-    Integer[] array2 = new Integer[]{60, 50, null};
+    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45));
+    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60, 50));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
-                   new Integer[]{60, 50, 45}));
+                   new ArrayList<Integer>(Arrays.asList(60, 50, 45))));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    Integer[] array1 = new Integer[]{60, null, null};
-    Integer[] array2 = new Integer[]{60, null, null};
+    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(60));
+    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
-                   new Integer[]{60, null, null}));
+                   new ArrayList<Integer>(Arrays.asList(60))));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    Object[] aggregate = intTopkDistinctKudaf.aggregate(1, new Integer[3]);
-    assertThat(aggregate, equalTo(new Integer[]{1, null, null}));
-    Object[] agg2 = intTopkDistinctKudaf.aggregate(100, new Integer[]{1, null, null});
-    assertThat(agg2, equalTo(new Integer[]{100, 1, null}));
+    ArrayList<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<Integer>());
+    assertThat(aggregate, equalTo(new ArrayList<Integer>(Arrays.asList(1))));
+    ArrayList<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, new ArrayList<Integer>(Arrays
+                                                                                             .asList
+                                                                                                 (1)));
+    assertThat(agg2, equalTo(new ArrayList<Integer>(Arrays.asList(100, 1))));
   }
 
   @SuppressWarnings("unchecked")
@@ -118,11 +123,11 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
     // When:
-    final Object[] result = IntStream.range(0, 4)
+    final ArrayList<Integer> result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
-          Integer[] aggregate = new Integer[]
-              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+          ArrayList<Integer> aggregate = new ArrayList<Integer>(Arrays.asList(1, 1, 1, 1, 1, 1,
+                                                                              1, 1, 1, 1, 1, 1));
 
           for (int value : values) {
             aggregate = intTopkDistinctKudaf.aggregate(value + threadNum, aggregate);
@@ -130,10 +135,10 @@ public class IntTopkDistinctKudafTest {
           return aggregate;
         })
         .reduce((agg1, agg2) -> intTopkDistinctKudaf.getMerger().apply("blah", agg1, agg2))
-        .orElse(new Integer[0]);
+        .orElse(new ArrayList<Integer>());
 
     // Then:
-    assertThat(result, is(new Object[]{83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60}));
+    assertThat(result, is(Arrays.asList(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
   }
 
   @SuppressWarnings("unchecked")
@@ -142,14 +147,14 @@ public class IntTopkDistinctKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        TopKDistinctTestUtils.getTopKDistinctKudaf(topX, Schema.INT32_SCHEMA);
-    final Integer[] aggregate = IntStream.range(0, topX)
-        .mapToObj(idx -> null)
-        .toArray(Integer[]::new);
+        new TopkDistinctKudaf("TopkDistinctKudaf", 0, topX, Schema.INT32_SCHEMA, Integer.class);
+    final List<Integer> aggregate = IntStream.range(0, topX)
+        .mapToObj(Integer::valueOf)
+        .collect(Collectors.toList());
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.aggregate(i, aggregate);
+      intTopkDistinctKudaf.aggregate(i, new ArrayList<>(aggregate));
     }
 
     final long took = System.currentTimeMillis() - start;
@@ -164,16 +169,17 @@ public class IntTopkDistinctKudafTest {
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
         TopKDistinctTestUtils.getTopKDistinctKudaf(topX, Schema.INT32_SCHEMA);
 
-    final Integer[] aggregate1 = IntStream.range(0, topX)
+    final List<Integer> aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)
-        .toArray(Integer[]::new);
-    final Integer[] aggregate2 = IntStream.range(0, topX)
+        .collect(Collectors.toList());
+    final List<Integer> aggregate2 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v : v + 1)
-        .toArray(Integer[]::new);
+        .collect(Collectors.toList());
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.getMerger().apply("ignored", aggregate1, aggregate2);
+      intTopkDistinctKudaf.getMerger().apply("ignored", new ArrayList<>(aggregate1), new
+          ArrayList<>(aggregate2));
     }
 
     final long took = System.currentTimeMillis() - start;

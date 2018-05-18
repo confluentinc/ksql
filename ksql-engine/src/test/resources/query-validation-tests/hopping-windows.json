@@ -76,9 +76,9 @@
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 10000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[0.0,null],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
       ]
     },
     {
@@ -93,11 +93,11 @@
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 10000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[0.0,null],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,0.0],\"ID\":0}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100.0,null],\"ID\":0}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 10000, "window": {"start": 10000, "end": 40000}}
       ]
     }
   ]

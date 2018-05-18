@@ -273,7 +273,7 @@ public class SqlToJavaVisitor {
       switch (type) {
         case IS_DISTINCT_FROM:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
-              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
+                 + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
         default:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
       }
@@ -339,9 +339,10 @@ public class SqlToJavaVisitor {
           exprFormat += visitStringComparisonExpression(node.getType());
           break;
         case MAP:
-          throw new KsqlException("Cannot compare MAP values");
         case ARRAY:
-          throw new KsqlException("Cannot compare ARRAY values");
+        case STRUCT:
+          throw new KsqlException(
+              String.format("Cannot compare %s values", left.getRight().type()));
         case BOOLEAN:
           exprFormat += visitBooleanComparisonExpression(node.getType());
           break;
@@ -511,18 +512,21 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
       if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>(
-            process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-            + process(node.getIndex(), unmangleNames).getLeft() + ")]",
-            schema
+        return new Pair<>("(("
+                          + SchemaUtil.getJavaType(schemaField.get().schema().valueSchema())
+                              .getSimpleName()
+                          + ") ((java.util.List)"
+                          + process(node.getBase(), unmangleNames).getLeft() + ").get((int)("
+                          + process(node.getIndex(), unmangleNames).getLeft() + ")))",
+                          schemaField.get().schema().valueSchema()
         );
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
         return new Pair<>(
             "("
             + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-            + process(node.getBase(), unmangleNames).getLeft() + ".get"
-            + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
-            schema
+            + process(node.getBase(), unmangleNames).getLeft() + ".get("
+            + process(node.getIndex(), unmangleNames).getLeft() + "))",
+            schemaField.get().schema().valueSchema()
         );
       }
       throw new UnsupportedOperationException();

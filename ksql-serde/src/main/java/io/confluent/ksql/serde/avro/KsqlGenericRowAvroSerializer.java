@@ -29,7 +29,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +42,10 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
   public KsqlGenericRowAvroSerializer(
       org.apache.kafka.connect.data.Schema schema,
       SchemaRegistryClient schemaRegistryClient, KsqlConfig
-      ksqlConfig
+          ksqlConfig
   ) {
     String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
-    
+
     Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
     fields = avroSchema.getFields();
@@ -77,16 +76,7 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
       GenericRecord avroRecord = new GenericData.Record(avroSchema);
       for (int i = 0; i < genericRow.getColumns().size(); i++) {
         Schema schema = getNonNullSchema(fields.get(i).schema());
-        if (schema.getType() == Schema.Type.ARRAY) {
-          if (genericRow.getColumns().get(i) != null) {
-            avroRecord.put(
-                fields.get(i).name(),
-                Arrays.asList((Object[]) genericRow.getColumns().get(i))
-            );
-          }
-        } else {
-          avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
-        }
+        avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
       }
       return kafkaAvroSerializer.serialize(topic, avroRecord);
     } catch (Exception e) {

@@ -24,6 +24,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,7 +64,8 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0,
+                                 new ArrayList(Arrays.asList(100.0)),
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -96,7 +98,8 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, null, 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, null, 10.0,
+                                 new ArrayList(Arrays.asList(100.0)),
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);

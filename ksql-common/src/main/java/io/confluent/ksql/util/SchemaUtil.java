@@ -21,7 +21,9 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +40,7 @@ public class SchemaUtil {
 
   public static final String ARRAY = "ARRAY";
   public static final String MAP = "MAP";
+  public static final String STRUCT = "STRUCT";
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
@@ -56,10 +59,11 @@ public class SchemaUtil {
       case FLOAT64:
         return Double.class;
       case ARRAY:
-        Class elementClass = getJavaType(schema.valueSchema());
-        return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
+        return ArrayList.class;
       case MAP:
         return HashMap.class;
+      case STRUCT:
+        return Struct.class;
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
     }
@@ -177,7 +181,7 @@ public class SchemaUtil {
       return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
       return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
-          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
+             + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.STRUCT) {
       StringBuilder stringBuilder = new StringBuilder("STRUCT <");
       stringBuilder.append(
@@ -312,9 +316,26 @@ public class SchemaUtil {
                + ","
                + getSqlTypeName(schema.valueSchema())
                + ">";
+      case STRUCT:
+        return getStructString(schema);
       default:
         throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
     }
+  }
+
+  private static String getStructString(Schema schema) {
+    StringBuilder structString = new StringBuilder("STRUCT <");
+    boolean addComma = false;
+    for (Field field: schema.fields()) {
+      if (addComma) {
+        structString.append(", ");
+      } else {
+        addComma = true;
+      }
+      structString.append(field.name() + " " + getSqlTypeName(field.schema()));
+    }
+    structString.append(">");
+    return structString.toString();
   }
 
   public static String buildAvroSchema(final Schema schema, String name) {
@@ -430,9 +451,9 @@ public class SchemaUtil {
     }
     throw new KsqlException(
         "Couldn't find field with name="
-            + fieldName
-            + " in schema. fields="
-            + fields
+        + fieldName
+        + " in schema. fields="
+        + fields
     );
   }
 }

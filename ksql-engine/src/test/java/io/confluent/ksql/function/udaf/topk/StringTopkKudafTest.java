@@ -20,6 +20,8 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,70 +31,70 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkKudafTest {
-  private Object[] valueArray;
+  private ArrayList valueArray;
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valueArray = new String[]{"10", "ab", "cde", "efg", "aa", "32", "why", "How are you", "Test",
-                              "123", "432"};
+    valueArray = new ArrayList(Arrays.asList("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
+                                             "Test", "123", "432"));
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf =
-            topKFactory.getProperAggregateFunction(argumentType);
-    Object[] currentVal = new String[]{null, null, null};
+    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    ArrayList currentVal = new ArrayList();
     for (Object value : valueArray) {
       currentVal = topkKudaf.aggregate(value , currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"why", "efg", "cde"}));
+    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList("why", "efg", "cde")));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf =
-            topKFactory.getProperAggregateFunction(argumentType);
-    Object[] currentVal = new String[]{null, null, null};
+    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    ArrayList currentVal = new ArrayList();
     currentVal = topkKudaf.aggregate("why", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"why", null, null}));
+    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList("why")));
   }
 
   @Test
   public void shouldMergeTopK() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf =
-            topKFactory.getProperAggregateFunction(argumentType);
-    String[] array1 = new String[]{"paper", "Hello", "123"};
-    String[] array2 = new String[]{"Zzz", "Hi", "456"};
+    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("paper", "Hello", "123"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("Zzz", "Hi", "456"));
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-            equalTo(new String[]{"paper", "Zzz", "Hi"}));
+               equalTo(Arrays.asList("paper", "Zzz", "Hi")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf =
-            topKFactory.getProperAggregateFunction(argumentType);
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", null, null};
+    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-            equalTo(new String[]{"60", "50", "45"}));
+               equalTo(Arrays.asList("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf =
-            topKFactory.getProperAggregateFunction(argumentType);
-    String[] array1 = new String[]{"50", null, null};
-    String[] array2 = new String[]{"60", null, null};
+    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("50"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-            equalTo(new String[]{"60", "50", null}));
+               equalTo(Arrays.asList("60", "50")));
   }
 }

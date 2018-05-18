@@ -89,13 +89,13 @@ public class IntegrationTestHarness {
                                                  Map<String, GenericRow> recordsToPublish,
                                                  Serializer<GenericRow> serializer,
                                                  Long timestamp)
-          throws InterruptedException, TimeoutException, ExecutionException {
+      throws InterruptedException, TimeoutException, ExecutionException {
 
     createTopic(topicName);
 
     Properties producerConfig = properties();
     KafkaProducer<String, GenericRow> producer =
-            new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
+        new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
@@ -129,9 +129,9 @@ public class IntegrationTestHarness {
 
   void produceRecord(final String topicName, final String key, final String data) {
     try(final KafkaProducer<String, String> producer
-                = new KafkaProducer<>(properties(),
-                                      new StringSerializer(),
-                                      new StringSerializer())) {
+            = new KafkaProducer<>(properties(),
+                                  new StringSerializer(),
+                                  new StringSerializer())) {
       producer.send(new ProducerRecord<>(topicName, key, data));
     }
   }
@@ -153,7 +153,7 @@ public class IntegrationTestHarness {
                                             long resultsPollMaxTimeMs) {
 
     return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
-                 DataSource.DataSourceSerDe.JSON);
+                       DataSource.DataSourceSerDe.JSON);
 
   }
 
@@ -172,8 +172,8 @@ public class IntegrationTestHarness {
 
     try (KafkaConsumer<K, GenericRow> consumer
              = new KafkaConsumer<>(consumerConfig,
-                                 keyDeserializer,
-                                 getDeserializer(schema, dataSourceSerDe))) {
+                                   keyDeserializer,
+                                   getDeserializer(schema, dataSourceSerDe))) {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
@@ -203,13 +203,13 @@ public class IntegrationTestHarness {
 
     final List<ConsumerRecord> results = new ArrayList<>();
     try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(),
-        new StringDeserializer(),
-        new ByteArrayDeserializer())) {
+                                                                           new StringDeserializer(),
+                                                                           new ByteArrayDeserializer())) {
       consumer.subscribe(Collections.singleton(topic.toUpperCase()));
       long pollStart = System.currentTimeMillis();
       long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd &&
-          continueConsuming(results.size(), expectedNumMessages)) {
+             continueConsuming(results.size(), expectedNumMessages)) {
         for (ConsumerRecord<String, byte[]> record :
             consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
@@ -307,7 +307,7 @@ public class IntegrationTestHarness {
                                                    DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
-        return new KsqlJsonDeserializer(schema);
+        return new KsqlJsonDeserializer(schema, false);
       case AVRO:
         return new KsqlGenericRowAvroDeserializer(schema,
                                                   this.schemaRegistryClient,

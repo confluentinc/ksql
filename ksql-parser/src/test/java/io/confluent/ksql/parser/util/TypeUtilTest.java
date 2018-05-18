@@ -77,7 +77,6 @@ public class TypeUtilTest {
 
   @Test
   public void shouldGetCorrectStructKsqlType() throws Exception {
-
     Schema arraySchema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build();
     Type type4 = TypeUtil.getKsqlType(arraySchema);
     assertThat(type4.getKsqlType(), equalTo(Type.KsqlType.ARRAY));
@@ -132,11 +131,13 @@ public class TypeUtilTest {
                                                                                         .MAP));
     assertThat(((Struct) type7).getItems().get(5).getRight().getKsqlType(), equalTo(Type.KsqlType
                                                                                         .STRUCT));
-
+    Type type8 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
+    assertThat(type8.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
 
   }
 
   @Test
+
   public void shouldGetCorrectPrimitiveSchema() throws Exception {
 
     Schema schema1 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
@@ -153,7 +154,6 @@ public class TypeUtilTest {
 
     Schema schema5 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.STRING));
     assertThat(schema5, equalTo(Schema.STRING_SCHEMA));
-
     Schema schema6 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
     assertThat(schema6, equalTo(Schema.INT64_SCHEMA));
 

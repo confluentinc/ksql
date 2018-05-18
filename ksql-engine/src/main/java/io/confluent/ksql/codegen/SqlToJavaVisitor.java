@@ -295,7 +295,7 @@ public class SqlToJavaVisitor {
       switch (type) {
         case IS_DISTINCT_FROM:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
-              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
+                 + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
         default:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
       }
@@ -361,9 +361,10 @@ public class SqlToJavaVisitor {
           exprFormat += visitStringComparisonExpression(node.getType());
           break;
         case MAP:
-          throw new KsqlException("Cannot compare MAP values");
         case ARRAY:
-          throw new KsqlException("Cannot compare ARRAY values");
+        case STRUCT:
+          throw new KsqlException(
+              String.format("Cannot compare %s values", left.getRight().type()));
         case BOOLEAN:
           exprFormat += visitBooleanComparisonExpression(node.getType());
           break;
@@ -542,20 +543,23 @@ public class SqlToJavaVisitor {
       functionArguments.addArgumentType(schemaField.get().schema().valueSchema().type());
 
       if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        final Pair<String, Schema> pair = new Pair<>(
-            process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-                + process(node.getIndex(), unmangleNames).getLeft() + ")]",
-            schema
+        final Pair<String, Schema> pair = new Pair<>("(("
+                          + SchemaUtil.getJavaType(schemaField.get().schema().valueSchema())
+                              .getSimpleName()
+                          + ") ((java.util.List)"
+                          + process(node.getBase(), unmangleNames).getLeft() + ").get((int)("
+                          + process(node.getIndex(), unmangleNames).getLeft() + ")))",
+                          schemaField.get().schema().valueSchema()
         );
         functionArguments.removeLastParams(2);
         return pair;
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
         final Pair<String, Schema> stringSchemaPair = new Pair<>(
             "("
-                + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-                + process(node.getBase(), unmangleNames).getLeft() + ".get"
-                + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
-            schema
+            + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
+            + process(node.getBase(), unmangleNames).getLeft() + ".get("
+            + process(node.getIndex(), unmangleNames).getLeft() + "))",
+            schemaField.get().schema().valueSchema()
         );
         return stringSchemaPair;
       }

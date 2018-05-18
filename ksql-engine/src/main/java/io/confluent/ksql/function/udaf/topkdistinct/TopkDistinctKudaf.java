@@ -20,23 +20,26 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.ArrayUtil;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
-    extends BaseAggregateFunction<T, T[]> {
+    extends BaseAggregateFunction<T, List<T>> {
 
   private final int tkVal;
   private final Class<T> ttClass;
-  private final Comparator<T> comparator;
   private final Schema outputSchema;
+
 
   @SuppressWarnings("unchecked")
   TopkDistinctKudaf(final String functionName,
@@ -45,9 +48,8 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
                     final Schema outputSchema,
                     final Class<T> ttClass) {
     super(
-        functionName,
-        argIndexInValue,
-            () -> (T[]) Array.newInstance(ttClass, tkVal),
+        functionName, argIndexInValue,
+        (() -> new ArrayList<T>()),
         SchemaBuilder.array(outputSchema).build(),
         Collections.singletonList(outputSchema)
     );
@@ -55,80 +57,43 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     this.tkVal = tkVal;
     this.ttClass = ttClass;
     this.outputSchema = outputSchema;
-    this.comparator = (v1, v2) -> {
-      if (v1 == null && v2 == null) {
-        return 0;
-      }
-      if (v1 == null) {
-        return 1;
-      }
-      if (v2 == null) {
-        return -1;
-      }
-
-      return Comparator.<T>reverseOrder().compare(v1, v2);
-    };
   }
 
   @Override
-  public T[] aggregate(final T currentValue, final T[] aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
+  public List<T> aggregate(final T currentVal, final List<T> currentAggValList) {
+    if (currentVal == null) {
+      return currentAggValList;
     }
 
-    final T last = aggregateValue[aggregateValue.length - 1];
-    if (last != null && currentValue.compareTo(last) <= 0) {
-      return aggregateValue;
+    Set<T> set = new HashSet<>(currentAggValList);
+    set.add(currentVal);
+    ArrayList list = new ArrayList(set);
+    Collections.sort(list);
+    Collections.reverse(list);
+    if (list.size() > tkVal) {
+      list.remove(list.size() - 1);
     }
-
-    if (ArrayUtil.containsValue(currentValue, aggregateValue)) {
-      return aggregateValue;
-    }
-
-    final int nullIndex = ArrayUtil.getNullIndex(aggregateValue);
-    if (nullIndex != -1) {
-      aggregateValue[nullIndex] = currentValue;
-      Arrays.sort(aggregateValue, comparator);
-      return aggregateValue;
-    }
-
-    aggregateValue[aggregateValue.length - 1] = currentValue;
-    Arrays.sort(aggregateValue, comparator);
-    return aggregateValue;
+    return list;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public Merger<String, T[]> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      final T[] merged = (T[]) Array.newInstance(ttClass, tkVal);
-
-      int idx1 = 0;
-      int idx2 = 0;
-      for (int i = 0; i != tkVal; ++i) {
-        final T v1 = idx1 < aggOne.length ? aggOne[idx1] : null;
-        final T v2 = idx2 < aggTwo.length ? aggTwo[idx2] : null;
-
-        final int result = comparator.compare(v1, v2);
-        if (result < 0) {
-          merged[i] = v1;
-          idx1++;
-        } else if (result == 0) {
-          merged[i] = v1;
-          idx1++;
-          idx2++;
-        } else {
-          merged[i] = v2;
-          idx2++;
-        }
+  public Merger<String, List<T>> getMerger() {
+    return (aggKey, aggOneList, aggTwoList) -> {
+      Set<T> set = new HashSet<>(aggOneList);
+      set.addAll(aggTwoList);
+      List<T> list = new ArrayList<>(set);
+      Collections.sort(list);
+      Collections.reverse(list);
+      while (list.size() > tkVal) {
+        list.remove(list.size() - 1);
       }
-
-      return merged;
+      return list;
     };
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(
+  public KsqlAggregateFunction<T, List<T>> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     aggregateFunctionArguments.ensureArgCount(2, "TopkDistinct");
     final int udafIndex = aggregateFunctionArguments.udafIndex();

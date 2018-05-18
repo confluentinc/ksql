@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.GenericRow;
@@ -143,14 +142,12 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
   }
 
   private Object handleArray(Schema fieldSchema, GenericData.Array genericArray) {
-    Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-    Object[] arrayField =
-        (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
+    ArrayList ksqlArray = new ArrayList();
     for (int i = 0; i < genericArray.size(); i++) {
       Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
-      arrayField[i] = obj;
+      ksqlArray.add(obj);
     }
-    return arrayField;
+    return ksqlArray;
   }
 
   Map<String, String> getCaseInsensitiveFieldMap(GenericRecord genericRecord) {

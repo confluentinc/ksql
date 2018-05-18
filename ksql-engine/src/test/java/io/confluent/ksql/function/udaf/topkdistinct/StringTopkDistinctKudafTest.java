@@ -20,73 +20,77 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkDistinctKudafTest {
 
-  String[] valueArray;
+  ArrayList<String> valueArray;
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
-          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
+      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = new String[]{"10", "30", "45", "10", "50", "60", "20", "60", "80", "35", "25",
-                              "60", "80"};
+    valueArray = new ArrayList(Arrays.asList("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
+                                             "25","60", "80"));
 
   }
 
   @Test
   public void shouldAggregateTopK() {
-    String[] currentVal = new String[]{null, null, null};
+    ArrayList<String> currentVal = new ArrayList();
     for (String d: valueArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"80", "60", "50"}));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList(Arrays.asList("80", "60",
+                                                                                   "50"))));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    String[] currentVal = new String[]{null, null, null};
+    ArrayList<String> currentVal = new ArrayList();
     currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"80", null, null}));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList(Arrays.asList("80"))));
   }
 
   @Test
   public void shouldMergeTopK() {
-    String[] array1 = new String[]{"50", "45", "25"};
-    String[] array2 = new String[]{"60", "50", "48"};
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45", "25"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60", "50", "48"));
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "48"}));
+        new ArrayList(Arrays.asList("60", "50", "48"))));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", null, null};
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+        new ArrayList(Arrays.asList("60", "50", "45"))));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", "50", null};
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60", "50"));
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+        new ArrayList(Arrays.asList("60", "50", "45"))));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    String[] array1 = new String[]{"60", null, null};
-    String[] array2 = new String[]{"60", null, null};
+    ArrayList<String> array1 = new ArrayList(Arrays.asList("60"));
+    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", null, null}));
+        new ArrayList(Arrays.asList("60"))));
   }
 }

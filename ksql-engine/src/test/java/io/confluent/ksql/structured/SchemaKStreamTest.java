@@ -73,9 +73,10 @@ public class SchemaKStreamTest {
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
-        Consumed.with(Serdes.String(), ksqlStream.getKsqlTopic()
-            .getKsqlTopicSerDe().getGenericRowSerde(null, new KsqlConfig(Collections.emptyMap())
-                , false, new MockSchemaRegistryClient())));
+                             Consumed.with(Serdes.String(), ksqlStream.getKsqlTopic()
+                                 .getKsqlTopicSerDe().getGenericRowSerde(ksqlStream.getSchema(), new KsqlConfig(Collections
+                                                                                                                    .emptyMap())
+                                     , false, new MockSchemaRegistryClient())));
   }
 
 
@@ -112,8 +113,8 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
@@ -128,8 +129,8 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
@@ -144,8 +145,8 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
@@ -211,11 +212,11 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
-        .getSchema().fields()
-        .get(3), true);
+                                                                            .getSchema().fields()
+                                                                            .get(3), true);
     assertThat(rekeyedSchemaKStream.getKeyField().name().toUpperCase(), equalTo("TEST1.COL1"));
   }
 
@@ -224,8 +225,8 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     Expression keyExpression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
@@ -244,8 +245,8 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     Expression col0Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");

@@ -88,7 +88,7 @@ public class TopicConsumer {
                                             final int expectedNumMessages,
                                             final Deserializer<K> keyDeserializer) {
     return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema), keyDeserializer
+                       new KsqlJsonDeserializer(schema, false), keyDeserializer
     );
   }
 
@@ -104,7 +104,7 @@ public class TopicConsumer {
                                                       final Matcher<Integer> expectedNumMessages,
                                                       final Deserializer<K> keyDeserializer) {
     return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema), keyDeserializer);
+                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

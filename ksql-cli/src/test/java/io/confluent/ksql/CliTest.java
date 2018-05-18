@@ -122,7 +122,6 @@ public class CliTest extends TestRunner {
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-
     restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
                                                       EasyMock.mock(VersionCheckerAgent.class)
     );
@@ -154,7 +153,7 @@ public class CliTest extends TestRunner {
   private static void createKStream(TestDataProvider dataProvider) {
     test(
         String.format("CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
-            dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
+                      dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
         build("Stream created")
     );
   }
@@ -169,7 +168,7 @@ public class CliTest extends TestRunner {
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-  
+
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
@@ -260,7 +259,6 @@ public class CliTest extends TestRunner {
   public void testPrint() throws InterruptedException {
 
     Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-
     wait.start();
     Thread.sleep(1000);
     wait.interrupt();
@@ -301,7 +299,7 @@ public class CliTest extends TestRunner {
   @Test
   public void testDescribe() {
     test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
+         build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
   @Test
@@ -318,42 +316,42 @@ public class CliTest extends TestRunner {
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
         Double[]{100.0,
-        110.99,
-        90.0 })));
+                 110.99,
+                 90.0 })));
     expectedResults.put("2", new GenericRow(Arrays.asList("ITEM_2", 20.0, new
         Double[]{10.0,
-        10.99,
-        9.0 })));
+                 10.99,
+                 9.0 })));
 
     expectedResults.put("3", new GenericRow(Arrays.asList("ITEM_3", 30.0, new
         Double[]{10.0,
-        10.99,
-        91.0 })));
+                 10.99,
+                 91.0 })));
 
     expectedResults.put("4", new GenericRow(Arrays.asList("ITEM_4", 40.0, new
         Double[]{10.0,
-        140.99,
-        94.0 })));
+                 140.99,
+                 94.0 })));
 
     expectedResults.put("5", new GenericRow(Arrays.asList("ITEM_5", 50.0, new
         Double[]{160.0,
-        160.99,
-        98.0 })));
+                 160.99,
+                 98.0 })));
 
     expectedResults.put("6", new GenericRow(Arrays.asList("ITEM_6", 60.0, new
         Double[]{1000.0,
-        1100.99,
-        900.0 })));
+                 1100.99,
+                 900.0 })));
 
     expectedResults.put("7", new GenericRow(Arrays.asList("ITEM_7", 70.0, new
         Double[]{1100.0,
-        1110.99,
-        190.0 })));
+                 1110.99,
+                 190.0 })));
 
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 80.0, new
         Double[]{1100.0,
-        1110.99,
-        970.0 })));
+                 1110.99,
+                 970.0 })));
 
     Schema resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
@@ -376,18 +374,18 @@ public class CliTest extends TestRunner {
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0,
-        "2018-01-08",
-        new Double[]{1100.0,
-            1110.99,
-            970.0 },
-        mapField)));
+                                                          "ITEM_8", 80.0,
+                                                          "2018-01-08",
+                                                          new Double[]{1100.0,
+                                                                       1110.99,
+                                                                       970.0 },
+                                                          mapField)));
 
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'",
         orderDataProvider.schema(),
         expectedResults
-        );
+    );
   }
 
   @Test
@@ -398,7 +396,8 @@ public class CliTest extends TestRunner {
     for (int i = 1; i <= limit; i++) {
       GenericRow srcRow = streamData.get(Integer.toString(i));
       List<Object> columns = srcRow.getColumns();
-      GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
+      GenericRow resultRow = new GenericRow(Arrays.asList("\"" + columns.get(1) + "\"",
+                                                          "\"" + columns.get(2) + "\""));
       expectedResult.addRow(resultRow);
     }
     selectWithLimit(
@@ -480,7 +479,7 @@ public class CliTest extends TestRunner {
   public void shouldRegisterRemoteCommand() {
     new Cli(1L, 1L, new KsqlRestClient(LOCAL_REST_SERVER_ADDR, Collections.emptyMap()), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
-        instanceOf(Cli.RemoteServerSpecificCommand.class));
+               instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
 
   @Test

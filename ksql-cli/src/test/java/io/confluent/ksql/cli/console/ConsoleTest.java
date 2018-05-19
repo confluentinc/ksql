@@ -18,6 +18,8 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -113,7 +115,9 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<RunningQuery> queries = new ArrayList<>();
-    queries.add(new RunningQuery("select * from t1", Collections.singleton("Test"), "0"));
+    queries.add(
+        new RunningQuery(
+            "select * from t1", Collections.singleton("Test"), new EntityQueryId("0")));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(

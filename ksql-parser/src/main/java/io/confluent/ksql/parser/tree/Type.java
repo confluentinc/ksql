@@ -18,12 +18,32 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Optional;
 
-public abstract class AbstractStreamDropStatement extends Statement {
-  public AbstractStreamDropStatement(Optional<NodeLocation> location) {
-    super(location);
+import static java.util.Objects.requireNonNull;
+
+public abstract class Type extends Expression {
+
+
+  public enum KsqlType {
+    BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
   }
 
-  public abstract boolean getIfExists();
+  final KsqlType ksqlType;
 
-  public abstract QualifiedName getName();
+  public Type(KsqlType ksqlType) {
+    this(Optional.empty(), ksqlType);
+  }
+
+  public Type(NodeLocation location, KsqlType ksqlType) {
+    this(Optional.of(location), ksqlType);
+  }
+
+  protected Type(Optional<NodeLocation> location, KsqlType ksqlType) {
+    super(location);
+    requireNonNull(ksqlType, "ksqlType is null");
+    this.ksqlType = ksqlType;
+  }
+
+  public KsqlType getKsqlType() {
+    return ksqlType;
+  }
 }

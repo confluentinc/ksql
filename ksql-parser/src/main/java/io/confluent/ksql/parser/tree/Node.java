@@ -50,11 +50,7 @@ public abstract class Node {
   }
   
   public void setParent(Node parent) {
-    if (parent == null) {
-      this.parent = Optional.empty();
-    } else {
-      this.parent = Optional.of(parent);
-    }
+    this.parent = Optional.ofNullable(parent);
   }
 
   // Force subclasses to have a proper equals and hashcode implementation

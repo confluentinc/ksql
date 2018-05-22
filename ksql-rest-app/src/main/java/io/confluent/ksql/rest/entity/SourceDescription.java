@@ -103,9 +103,9 @@ public class SourceDescription {
         readQueries,
         writeQueries,
         dataSource.getSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(
-                field.name(), SchemaUtil.getSchemaFieldName(field))
+            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
             ).collect(Collectors.toList()),
+
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())

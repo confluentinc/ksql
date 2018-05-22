@@ -33,8 +33,11 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Array;
+import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
 import static org.easymock.EasyMock.anyObject;
@@ -70,19 +73,33 @@ public class AvroUtilTest {
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString())).andReturn(schemaMetadata);
     replay(schemaRegistryClient);
     AbstractStreamCreateStatement abstractStreamCreateStatement = getAbstractStreamCreateStatement
-        ("CREATE STREAM S1 WITH "
-                                                                   + "(kafka_topic='s1_topic', "
+        ("CREATE STREAM S1 WITH (kafka_topic='s1_topic', "
                                      + "value_format='avro' );");
     Pair<AbstractStreamCreateStatement, String> checkResult = avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
     AbstractStreamCreateStatement newAbstractStreamCreateStatement = checkResult.getLeft();
-    assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
-        new TableElement("ORDERTIME", "BIGINT"),
-        new TableElement("ORDERID", "BIGINT"),
-        new TableElement("ITEMID", "VARCHAR"),
-        new TableElement("ORDERUNITS", "DOUBLE"),
-        new TableElement("ARRAYCOL", "ARRAY<DOUBLE>"),
-        new TableElement("MAPCOL", "MAP<VARCHAR,DOUBLE>")
-        )));
+    List<TableElement> tableElements = newAbstractStreamCreateStatement.getElements();
+    assertThat(tableElements.size(), equalTo(6));
+    assertThat(tableElements.get(0).getName(), equalTo("ORDERTIME"));
+    assertThat(tableElements.get(0).getType().getKsqlType(), equalTo(Type.KsqlType.BIGINT));
+
+    assertThat(tableElements.get(1).getName(), equalTo("ORDERID"));
+    assertThat(tableElements.get(1).getType().getKsqlType(), equalTo(Type.KsqlType.BIGINT));
+
+    assertThat(tableElements.get(2).getName(), equalTo("ITEMID"));
+    assertThat(tableElements.get(2).getType().getKsqlType(), equalTo(Type.KsqlType.STRING));
+
+    assertThat(tableElements.get(3).getName(), equalTo("ORDERUNITS"));
+    assertThat(tableElements.get(3).getType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
+
+    assertThat(tableElements.get(4).getName(), equalTo("ARRAYCOL"));
+    assertThat(tableElements.get(4).getType().getKsqlType(), equalTo(Type.KsqlType.ARRAY));
+    assertThat(((Array) tableElements.get(4).getType()).getItemType().getKsqlType(),
+               equalTo(Type.KsqlType.DOUBLE));
+
+    assertThat(tableElements.get(5).getName(), equalTo("MAPCOL"));
+    assertThat(tableElements.get(5).getType().getKsqlType(), equalTo(Type.KsqlType.MAP));
+    assertThat(((Map) tableElements.get(5).getType()).getValueType().getKsqlType(),
+               equalTo(Type.KsqlType.DOUBLE));
   }
 
   @Test

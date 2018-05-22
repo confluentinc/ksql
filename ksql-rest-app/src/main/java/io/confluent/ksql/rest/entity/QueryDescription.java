@@ -68,7 +68,7 @@ public class QueryDescription {
         id,
         queryMetadata.getStatementString(),
         queryMetadata.getResultSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field))
+            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
         ).collect(Collectors.toList()),
         queryMetadata.getSourceNames(),
         sinks,

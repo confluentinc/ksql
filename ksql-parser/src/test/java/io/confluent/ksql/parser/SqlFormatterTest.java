@@ -16,9 +16,7 @@
 
 package io.confluent.ksql.parser;
 
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.junit.Assert;
 import org.junit.Test;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -37,9 +35,9 @@ public class SqlFormatterTest {
   public void testFormatSql() {
 
     ArrayList<TableElement> tableElements = new ArrayList<>();
-    tableElements.add(new TableElement("GROUP","STRING"));
-    tableElements.add(new TableElement("NOLIT","STRING"));
-    tableElements.add(new TableElement("Having","STRING"));
+    tableElements.add(new TableElement("GROUP", new PrimitiveType(Type.KsqlType.STRING)));
+    tableElements.add(new TableElement("NOLIT", new PrimitiveType(Type.KsqlType.STRING)));
+    tableElements.add(new TableElement("Having", new PrimitiveType(Type.KsqlType.STRING)));
 
     CreateStream createStream = new CreateStream(
         QualifiedName.of("TEST"),

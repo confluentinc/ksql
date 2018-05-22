@@ -54,7 +54,7 @@ KSQL_OPTS Environment Variable
 ------------------------------
 
 You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. For example, to
-change ui.enabled from true to false:
+change ``ui.enabled`` from true to false:
 
 .. code:: bash
 

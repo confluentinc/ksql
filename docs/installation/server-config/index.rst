@@ -53,8 +53,8 @@ For more information, see :ref:`ksql-param-reference`.
 KSQL_OPTS Environment Variable
 ------------------------------
 
-You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. For example, to
-change ``ui.enabled`` from true to false:
+You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. The properties are
+standard Java system properties. For example, to change ``ui.enabled`` from true to false:
 
 .. code:: bash
 

@@ -14,6 +14,14 @@ KSQL configuration parameters can be set for KSQL server and queries as well as 
 Kafka Clients (producer and consumer).
 
 ------------------------------
+Setting KSQL Server Parameters
+------------------------------
+
+You can specify KSQL server configuration parameters by using the server configuration file (``ksql-server.properties``)
+or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS`` take precedence over those specified in the
+KSQL configuration file. A recommended approach is to configure a common set of properties using the KSQL configuration
+file and override specific properties as needed, using the ``KSQL_OPTS`` environment variable.
+
 KSQL Server Configuration File
 ------------------------------
 
@@ -41,6 +49,16 @@ specified.
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 For more information, see :ref:`ksql-param-reference`.
+
+KSQL_OPTS Environment Variable
+------------------------------
+
+You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. For example, to
+change ``ui.enabled`` from true to false:
+
+.. code:: bash
+
+    $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. _configuring-ksql:
 

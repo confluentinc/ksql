@@ -71,7 +71,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
         .build();
 
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
+    this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
     Path historyFilePath = Paths.get(System.getProperty(
         "history-file",

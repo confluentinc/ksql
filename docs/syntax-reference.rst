@@ -786,7 +786,7 @@ SHOW PROPERTIES
 
 **Description**
 
-List the :ref:`configuration settings <configuring-ksql>` that are
+List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
 TERMINATE

@@ -29,7 +29,6 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -51,8 +48,6 @@ import io.confluent.ksql.exception.KafkaTopicException;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
-  private static final int NUM_RETRIES = 5;
-  private static final int RETRY_BACKOFF_MS = 500;
 
   private final AdminClient adminClient;
   private final boolean isDeleteTopicEnabled;
@@ -87,13 +82,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
-
     final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
     newTopic.configs(toStringConfigs(configs));
-
     try {
       log.info("Creating topic '{}'", topic);
-      executeWithRetries(() -> adminClient.createTopics(Collections.singleton(newTopic)).all());
+      ExecutorWithRetries.execute(() ->
+          adminClient.createTopics(Collections.singleton(newTopic)).all());
 
     } catch (final InterruptedException e) {
       throw new KafkaResponseGetFailedException(
@@ -120,7 +114,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     try {
-      return executeWithRetries(() -> adminClient.listTopics().names());
+      return ExecutorWithRetries.execute(() -> adminClient.listTopics().names());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
@@ -130,14 +124,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Set<String> listNonInternalTopicNames() {
     return listTopicNames().stream()
         .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-                             || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+            || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }
 
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
-      return executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
+      return ExecutorWithRetries.execute(() -> adminClient.describeTopics(topicNames).all());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
     }
@@ -151,27 +145,20 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
-
     try {
       final Map<String, String> existingConfig = topicConfig(topicName, false);
-
       final boolean changed = overrides.entrySet().stream()
           .anyMatch(e -> !Objects.equals(existingConfig.get(e.getKey()), e.getValue()));
       if (!changed) {
         return false;
       }
-
       existingConfig.putAll(toStringConfigs(overrides));
-
       final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
           .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
           .collect(Collectors.toSet());
-
       final Map<ConfigResource, Config> request =
           Collections.singletonMap(resource, new Config(entries));
-
-      executeWithRetries(() -> adminClient.alterConfigs(request).all());
-
+      ExecutorWithRetries.execute(() -> adminClient.alterConfigs(request).all());
       return true;
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -183,7 +170,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     final String policy = getTopicConfig(topicName)
         .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
-
     switch (policy) {
       case "compact":
         return TopicCleanupPolicy.COMPACT;
@@ -202,10 +188,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
     }
+
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
     List<String> failList = Lists.newArrayList();
-
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
@@ -238,7 +224,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (Exception e) {
       log.error("Exception while trying to clean up internal topics for application id: {}.",
-                applicationId, e
+          applicationId, e
       );
     }
   }
@@ -251,20 +237,17 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         log.warn("No available broker found to fetch config info.");
         throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
       }
-
       ConfigResource resource = new ConfigResource(
           ConfigResource.Type.BROKER,
           String.valueOf(nodes.iterator().next().id())
       );
-
-      Map<ConfigResource, Config> config = executeWithRetries(
+      Map<ConfigResource, Config> config = ExecutorWithRetries.execute(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all());
-
       return config.get(resource)
           .entries()
           .stream()
           .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-                                   && configEntry.value().equalsIgnoreCase("true"));
+              && configEntry.value().equalsIgnoreCase("true"));
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());
@@ -274,8 +257,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
-           && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
-               || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
+        && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
+        || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
   public void close() {
@@ -292,7 +275,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
           "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
-          + "v %d",
+              + "v %d",
           topic,
           topicDescription.partitions().size(),
           numPartitions,
@@ -303,7 +286,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     // Topic with the partitions and replicas exists, reuse it!
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it already "
-        + "exists",
+            + "exists",
         topic,
         numPartitions,
         replicationFactor
@@ -314,14 +297,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
                                           final boolean includeDefaults) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
     final List<ConfigResource> request = Collections.singletonList(resource);
-
     try {
-      final Config config = executeWithRetries(() -> adminClient.describeConfigs(request).all())
-          .get(resource);
-
+      final Config config = ExecutorWithRetries.execute(() ->
+          adminClient.describeConfigs(request).all()).get(resource);
       return config.entries().stream()
           .filter(e -> includeDefaults
-                       || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
+              || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -332,31 +313,5 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static Map<String, String> toStringConfigs(Map<String, ?> configs) {
     return configs.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
-  }
-
-  private static <T> T executeWithRetries(final Supplier<KafkaFuture<T>> supplier)
-      throws Exception {
-
-    int retries = 0;
-    Exception lastException = null;
-    while (retries < NUM_RETRIES) {
-      try {
-        if (retries != 0) {
-          Thread.sleep(RETRY_BACKOFF_MS);
-        }
-        return supplier.get().get();
-      } catch (ExecutionException e) {
-        if (e.getCause() instanceof RetriableException) {
-          retries++;
-          log.info("Retrying admin request due to retriable exception. Retry no: " + retries, e);
-          lastException = e;
-        } else if (e.getCause() instanceof Exception) {
-          throw (Exception) e.getCause();
-        } else {
-          throw e;
-        }
-      }
-    }
-    throw lastException;
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.planner.plan.OutputNode;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
@@ -27,10 +23,16 @@ import org.apache.kafka.streams.Topology;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.DataSource;
 
 public class QueuedQueryMetadata extends QueryMetadata {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
   public QueuedQueryMetadata(
       final String statementString,
@@ -46,6 +48,11 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.rowQueue = rowQueue;
+    kafkaStreams.setStateListener(new StateListener());
+  }
+
+  public boolean isRunning() {
+    return isRunning.get();
   }
 
   public BlockingQueue<KeyValue<String, GenericRow>> getRowQueue() {
@@ -66,5 +73,13 @@ public class QueuedQueryMetadata extends QueryMetadata {
   @Override
   public int hashCode() {
     return Objects.hash(rowQueue, super.hashCode());
+  }
+
+  private class StateListener implements KafkaStreams.StateListener {
+    @Override
+    public void onChange(final KafkaStreams.State newState, final KafkaStreams.State oldState) {
+      isRunning.set(newState == KafkaStreams.State.RUNNING
+                    || newState == KafkaStreams.State.REBALANCING);
+    }
   }
 }

@@ -22,23 +22,28 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
+import org.easymock.IAnswer;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
@@ -57,22 +62,36 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * @author andy
  * created 19/04/2018
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "ConstantConditions"})
 @RunWith(EasyMockRunner.class)
 public class QueryStreamWriterTest {
+  @ClassRule
+  public static final Timeout TIMEOUT = Timeout.builder()
+      .withTimeout(30, TimeUnit.SECONDS)
+      .withLookingForStuckThread(true)
+      .build();
 
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
-  private Capture<Thread.UncaughtExceptionHandler> ehCapture;
+  @Mock(MockType.NICE)
+  private QueuedQueryMetadata queryMetadata;
+  @Mock(MockType.NICE)
   private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
+  private Capture<Thread.UncaughtExceptionHandler> ehCapture;
+  private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
+  private Capture<OutputNode.LimitHandler> limitHandlerCapture;
+  private QueryStreamWriter writer;
+  private ByteArrayOutputStream out;
+  private OutputNode.LimitHandler limitHandler;
 
   @Before
-  public void setUp() throws Exception {
-    rowQueue = new LinkedBlockingQueue<>(100);
+  public void setUp() {
     ehCapture = newCapture();
+    drainCapture = newCapture();
+    limitHandlerCapture = newCapture();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
-    final QueuedQueryMetadata queryMetadata = niceMock(QueuedQueryMetadata.class);
+    final OutputNode outputNode = niceMock(OutputNode.class);
 
     kStreams.setUncaughtExceptionHandler(capture(ehCapture));
     expectLastCall();
@@ -83,20 +102,22 @@ public class QueryStreamWriterTest {
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
 
-    replay(queryMetadata, kStreams, ksqlEngine);
+    expect(queryMetadata.getOutputNode()).andReturn(outputNode).anyTimes();
+
+    outputNode.setLimitHandler(capture(limitHandlerCapture));
+    expectLastCall().once();
+
+    replay(kStreams, outputNode);
   }
 
   @Test
   public void shouldWriteAnyPendingRowsBeforeReportingException() throws Exception {
     // Given:
-    final QueryStreamWriter writer = new QueryStreamWriter(ksqlEngine,
-                                                           1000,
-                                                           "a KSQL statement",
-                                                           Collections.emptyMap());
+    expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
 
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    createWriter();
 
-    givenPendingRows("Row1", "Row2", "Row3");
     givenUncaughtException(new KsqlException("LIMIT reached for the partition."));
 
     // When:
@@ -110,21 +131,80 @@ public class QueryStreamWriterTest {
         containsString("Row3")));
   }
 
+  @Test
+  public void shouldExitAndDrainIfQueryStopsRunning() throws Exception {
+    // Given:
+    expect(queryMetadata.isRunning()).andReturn(true).andReturn(false);
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
+
+    createWriter();
+
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, hasItems(
+        containsString("Row1"),
+        containsString("Row2"),
+        containsString("Row3")));
+  }
+
+  @Test
+  public void shouldExitAndDrainIfLimitReached() throws Exception {
+    // Given:
+    expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
+
+    createWriter();
+
+    limitHandler.limitReached();
+
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, hasItems(
+        containsString("Row1"),
+        containsString("Row2"),
+        containsString("Row3")));
+  }
+
+  private void createWriter() throws Exception {
+    replay(queryMetadata, ksqlEngine, rowQueue);
+
+    writer = new QueryStreamWriter(
+        ksqlEngine,
+        1000,
+        "a KSQL statement",
+        Collections.emptyMap());
+
+    out = new ByteArrayOutputStream();
+    limitHandler = limitHandlerCapture.getValue();
+  }
+
+  private void givenUncaughtException(final KsqlException e) {
+    ehCapture.getValue().uncaughtException(new Thread(), e);
+  }
+
+  private IAnswer<Integer> rows(final Object... rows) {
+    return () -> {
+      final Collection<KeyValue<String, GenericRow>> output = drainCapture.getValue();
+
+      Arrays.stream(rows)
+          .map(ImmutableList::of)
+          .map(GenericRow::new)
+          .forEach(row -> output.add(new KeyValue<>("no used", row)));
+
+      return rows.length;
+    };
+  }
+
   private static List<String> getOutput(final ByteArrayOutputStream out) {
     final String[] lines = new String(out.toByteArray(), StandardCharsets.UTF_8).split("\n");
     return Arrays.stream(lines)
         .filter(line -> !line.isEmpty())
         .collect(Collectors.toList());
-  }
-
-  private void givenPendingRows(final Object... rows) {
-    Arrays.stream(rows)
-        .map(ImmutableList::of)
-        .map(GenericRow::new)
-        .forEach(row -> rowQueue.offer(new KeyValue<>("no used", row)));
-  }
-
-  private void givenUncaughtException(final KsqlException e) {
-    ehCapture.getValue().uncaughtException(new Thread(), e);
   }
 }

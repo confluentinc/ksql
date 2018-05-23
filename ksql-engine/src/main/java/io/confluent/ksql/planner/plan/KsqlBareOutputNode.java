@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlBareOutputNode extends OutputNode {
 
   @JsonCreator
@@ -42,8 +43,6 @@ public class KsqlBareOutputNode extends OutputNode {
                             @JsonProperty("timestampExtraction")
                               final TimestampExtractionPolicy extractionPolicy) {
     super(id, source, schema, limit, extractionPolicy);
-
-
   }
 
   public String getKafkaTopicName() {
@@ -69,6 +68,6 @@ public class KsqlBareOutputNode extends OutputNode {
         props, schemaRegistryClient);
 
     schemaKStream.setOutputNode(this);
-    return schemaKStream.toQueue(getLimit());
+    return schemaKStream.toQueue();
   }
 }

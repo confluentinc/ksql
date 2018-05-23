@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import io.confluent.ksql.util.CliUtils;
 
@@ -54,7 +53,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     }
   }
 
-  public JLineReader(Terminal terminal) {
+  public JLineReader(Terminal terminal, Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
@@ -73,11 +72,6 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
     this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
-    Path historyFilePath = Paths.get(System.getProperty(
-        "history-file",
-        System.getProperty("user.home")
-        + "/.ksql-history"
-    )).toAbsolutePath();
     if (CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
       LOGGER.info("Command history saved at: " + historyFilePath);

@@ -440,6 +440,27 @@ The WITH clause supports the following properties:
     :start-line: 2
     :end-line: 6
 
+.. _insert-into:
+
+INSERT INTO
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    INSERT INTO stream_name
+      SELECT select_espr [., ...]
+      FROM from_item
+      [ WHERE condition ]
+      [ PARTITION BY column_name ];
+
+**Description**
+
+Stream the result of the SELECT query into an existing stream and its underlying topic.
+The schema and partitioning column produced by the query must match the stream's schema
+and key, respectively.
+
 
 DESCRIBE
 --------
@@ -556,14 +577,14 @@ Example of explaining a running query:
 
 .. _drop-stream:
 
-DROP STREAM [IF EXISTS]
+DROP STREAM [IF EXISTS] [DELETE TOPIC];
 -----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP STREAM stream_name [DELETE TOPIC];
+    DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 
 **Description**
 
@@ -576,7 +597,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 
 .. _drop-table:
 
-DROP TABLE [IF EXISTS]
+DROP TABLE [IF EXISTS] [DELETE TOPIC];
 ----------------------
 
 **Synopsis**

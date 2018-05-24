@@ -201,24 +201,24 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   @Override
-  public KsqlFunction getFunction(String functionName) {
+  public KsqlFunction getFunction(final String functionName) {
     return ksqlFunctionMap.get(functionName.toUpperCase());
   }
 
   @Override
-  public boolean addFunction(KsqlFunction ksqlFunction) {
+  public boolean addFunction(final KsqlFunction ksqlFunction) {
     final String key = ksqlFunction.getFunctionName().toUpperCase();
     return ksqlFunctionMap.putIfAbsent(key, ksqlFunction) == null;
   }
 
   @Override
-  public boolean isAggregate(String functionName) {
+  public boolean isAggregate(final String functionName) {
     return aggregateFunctionMap.containsKey(functionName.toUpperCase());
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(String functionName,
-                                            Schema expressionType) {
+  public KsqlAggregateFunction getAggregate(final String functionName,
+                                            final Schema expressionType) {
     AggregateFunctionFactory aggregateFunctionFactory
         = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
@@ -229,7 +229,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   @Override
-  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
+  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     aggregateFunctionMap.put(
         aggregateFunctionFactory.functionName.toUpperCase(),
         aggregateFunctionFactory);

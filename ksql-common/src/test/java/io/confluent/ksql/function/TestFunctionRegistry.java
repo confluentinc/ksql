@@ -33,7 +33,7 @@ public class TestFunctionRegistry implements FunctionRegistry {
 
   @Override
   public boolean addFunction(KsqlFunction ksqlFunction) {
-    return udfs.putIfAbsent(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction) != null;
+    return udfs.putIfAbsent(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction) == null;
 
   }
 

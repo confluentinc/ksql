@@ -242,7 +242,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public FunctionRegistry copy() {
+  public MetaStore copy() {
     return clone();
   }
 }

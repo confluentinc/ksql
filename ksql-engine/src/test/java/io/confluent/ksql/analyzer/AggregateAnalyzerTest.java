@@ -35,12 +35,11 @@ public class AggregateAnalyzerTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
-  private InternalFunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    functionRegistry = new InternalFunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   }
 
   private Analysis analyze(final String queryStr) {

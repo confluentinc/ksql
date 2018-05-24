@@ -323,19 +323,17 @@ public class AggregateNode extends PlanNode {
     }
   }
 
-  private KsqlAggregateFunction getAggregateFunction(FunctionRegistry functionRegistry,
-                                                     InternalSchema internalSchema,
-                                                     FunctionCall functionCall,
-                                                     Schema schema) {
-    ExpressionTypeManager expressionTypeManager =
+  private KsqlAggregateFunction getAggregateFunction(final FunctionRegistry functionRegistry,
+                                                     final InternalSchema internalSchema,
+                                                     final FunctionCall functionCall,
+                                                     final Schema schema) {
+    final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
-    List<Expression> functionArgs = internalSchema.getInternalExpressionList(
+    final List<Expression> functionArgs = internalSchema.getInternalExpressionList(
         functionCall.getArguments());
-    Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
-        .getAggregate(functionCall.getName().toString(),
-            expressionType
-        );
+    final Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
+    final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+        .getAggregate(functionCall.getName().toString(), expressionType);
 
     return aggregateFunctionInfo.getInstance(
         new AggregateFunctionArguments(internalSchema.getInternalNameToIndexMap(),

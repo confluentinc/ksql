@@ -28,7 +28,6 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.ArrayUtil;
-import io.confluent.ksql.util.KsqlException;
 
 public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFunction<T, T[]> {
 
@@ -122,11 +121,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFun
   @Override
   public KsqlAggregateFunction<T, T[]> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
-    if (aggregateFunctionArguments.argCount() != 2) {
-      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",
-          aggregateFunctionArguments.argCount()));
-    }
-
+    aggregateFunctionArguments.ensureArgCount(2, "TopK");
     final int udafIndex = aggregateFunctionArguments.udafIndex();
     final int topKSize = Integer.parseInt(aggregateFunctionArguments.arg(1));
     return new TopkKudaf<>(functionName, udafIndex, topKSize, returnType, argumentTypes, clazz);

@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 public class ExecutorWithRetries {
@@ -30,7 +30,7 @@ public class ExecutorWithRetries {
   private static final int RETRY_BACKOFF_MS = 500;
   private static final Logger log = LoggerFactory.getLogger(ExecutorWithRetries.class);
 
-  public static <T> T execute(final Supplier<KafkaFuture<T>> supplier) throws Exception {
+  public static <T> T execute(final Supplier<? extends Future<T>> supplier) throws Exception {
     int retries = 0;
     Exception lastException = null;
     while (retries < NUM_RETRIES) {
@@ -42,7 +42,7 @@ public class ExecutorWithRetries {
       } catch (ExecutionException e) {
         if (e.getCause() instanceof RetriableException) {
           retries++;
-          log.info("Retrying admin request due to retriable exception. Retry no: " + retries, e);
+          log.info("Retrying request due to retriable exception. Retry no: " + retries, e);
           lastException = e;
         } else if (e.getCause() instanceof Exception) {
           throw (Exception) e.getCause();
@@ -54,4 +54,22 @@ public class ExecutorWithRetries {
     throw lastException;
   }
 
+  public static void execute(final Callable<Void> callable, final String errorMessage) {
+    int retries = 0;
+    while (retries < NUM_RETRIES) {
+      try {
+        if (retries != 0) {
+          Thread.sleep(RETRY_BACKOFF_MS);
+        }
+        callable.call();
+        break;
+      } catch (Exception e) {
+        retries++;
+      } finally {
+        if (retries == NUM_RETRIES) {
+          throw new KsqlException(errorMessage);
+        }
+      }
+    }
+  }
 }

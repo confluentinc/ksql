@@ -82,8 +82,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
+
     final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
     newTopic.configs(toStringConfigs(configs));
+
     try {
       log.info("Creating topic '{}'", topic);
       ExecutorWithRetries.execute(() ->
@@ -124,7 +126,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Set<String> listNonInternalTopicNames() {
     return listTopicNames().stream()
         .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-            || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+                             || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }
 
@@ -145,20 +147,27 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+
     try {
       final Map<String, String> existingConfig = topicConfig(topicName, false);
+
       final boolean changed = overrides.entrySet().stream()
           .anyMatch(e -> !Objects.equals(existingConfig.get(e.getKey()), e.getValue()));
       if (!changed) {
         return false;
       }
+
       existingConfig.putAll(toStringConfigs(overrides));
+
       final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
           .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
           .collect(Collectors.toSet());
+
       final Map<ConfigResource, Config> request =
           Collections.singletonMap(resource, new Config(entries));
+
       ExecutorWithRetries.execute(() -> adminClient.alterConfigs(request).all());
+
       return true;
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -170,6 +179,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     final String policy = getTopicConfig(topicName)
         .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
+
     switch (policy) {
       case "compact":
         return TopicCleanupPolicy.COMPACT;
@@ -188,10 +198,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
     }
-
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
     List<String> failList = Lists.newArrayList();
+
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
@@ -224,7 +234,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (Exception e) {
       log.error("Exception while trying to clean up internal topics for application id: {}.",
-          applicationId, e
+                applicationId, e
       );
     }
   }
@@ -237,17 +247,20 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         log.warn("No available broker found to fetch config info.");
         throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
       }
+
       ConfigResource resource = new ConfigResource(
           ConfigResource.Type.BROKER,
           String.valueOf(nodes.iterator().next().id())
       );
+
       Map<ConfigResource, Config> config = ExecutorWithRetries.execute(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all());
+
       return config.get(resource)
           .entries()
           .stream()
           .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-              && configEntry.value().equalsIgnoreCase("true"));
+                                   && configEntry.value().equalsIgnoreCase("true"));
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());
@@ -257,8 +270,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
-        && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
-        || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
+           && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
+               || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
   public void close() {
@@ -275,7 +288,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
           "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
-              + "v %d",
+          + "v %d",
           topic,
           topicDescription.partitions().size(),
           numPartitions,
@@ -286,7 +299,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     // Topic with the partitions and replicas exists, reuse it!
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it already "
-            + "exists",
+        + "exists",
         topic,
         numPartitions,
         replicationFactor
@@ -297,12 +310,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
                                           final boolean includeDefaults) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
     final List<ConfigResource> request = Collections.singletonList(resource);
+
     try {
       final Config config = ExecutorWithRetries.execute(() ->
           adminClient.describeConfigs(request).all()).get(resource);
+
       return config.entries().stream()
           .filter(e -> includeDefaults
-              || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
+                       || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(

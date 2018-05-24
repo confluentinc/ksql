@@ -60,11 +60,13 @@ Tip
     For development and testing purposes, you can also use Confluent CLI to start |cp|, including KSQL, on a single host.
     For more information, see :ref:`quickstart`.
 
-#.  Specify your KSQL server configuration parameters. The required parameters are ``bootstrap.servers``
-    and ``listeners``. You can specify in the ``<path-to-confluent>/etc/ksql/ksql-server.properties`` file or ``KSQL_OPTS``
-    environment variable. Properties set with ``KSQL_OPTS`` take precedence over those specified in the KSQL properties
-    file. A recommended approach is to configure a common set of properties using ``KSQL_OPTS`` and override specific
-    properties as needed, using the ``ksql-server.properties`` file.
+#.  Specify your KSQL server configuration parameters. You can also set any property for the Kafka Streams API, the Kafka
+    producer, or the Kafka consumer. The required parameters are ``bootstrap.servers`` and ``listeners``. You can specify
+    the parameters in the KSQL properties file or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS``
+    take precedence over those specified in the properties file.
+
+    A recommended approach is to configure a common set of properties using ``KSQL_OPTS`` and override specific
+    properties as needed, using the KSQL properties file.
 
     Here are the default settings:
 
@@ -74,8 +76,7 @@ Tip
         listeners=http://localhost:8088
         ui.enabled=true
 
-    You can also set any property for the Kafka Streams API, the Kafka producer, or the Kafka consumer.
-    For a description of common configurations and how to set them, see :ref:`configuring-ksql`.
+    For more information, see :ref:`ksql-server-config`.
 
 #.  Start a server node with this command:
 

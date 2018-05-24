@@ -91,7 +91,6 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
-    final OutputNode outputNode = niceMock(OutputNode.class);
 
     kStreams.setUncaughtExceptionHandler(capture(ehCapture));
     expectLastCall();
@@ -102,12 +101,10 @@ public class QueryStreamWriterTest {
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
 
-    expect(queryMetadata.getOutputNode()).andReturn(outputNode).anyTimes();
-
-    outputNode.setLimitHandler(capture(limitHandlerCapture));
+    queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
 
-    replay(kStreams, outputNode);
+    replay(kStreams);
   }
 
   @Test

@@ -75,11 +75,14 @@ public class QueuedQueryMetadata extends QueryMetadata {
     return Objects.hash(rowQueue, super.hashCode());
   }
 
+  public void setLimitHandler(final OutputNode.LimitHandler limitHandler) {
+    getOutputNode().setLimitHandler(limitHandler);
+  }
+
   private class StateListener implements KafkaStreams.StateListener {
     @Override
     public void onChange(final KafkaStreams.State newState, final KafkaStreams.State oldState) {
-      isRunning.set(newState == KafkaStreams.State.RUNNING
-                    || newState == KafkaStreams.State.REBALANCING);
+      isRunning.set(newState != KafkaStreams.State.NOT_RUNNING);
     }
   }
 }

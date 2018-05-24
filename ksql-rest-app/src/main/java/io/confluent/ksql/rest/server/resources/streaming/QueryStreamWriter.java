@@ -72,7 +72,7 @@ class QueryStreamWriter implements StreamingOutput {
 
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
-    this.queryMetadata.getOutputNode().setLimitHandler(new LimitHandler());
+    this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
     this.ksqlEngine = ksqlEngine;
     queryMetadata.getKafkaStreams().start();

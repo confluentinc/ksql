@@ -144,6 +144,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
     RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
     Map<ConfigResource, Config> configMap = null;
+
     try {
       configMap = retryHelper.executeWithRetries(
           () -> {

@@ -29,9 +29,17 @@ import static org.junit.Assert.assertThat;
 
 public class JsonExtractStringKudfTest {
   private final String JSON_DOC = "{"
-                                  + "\"thing1\":{\"thing2\":\"hello\"},"
-                                  + "\"array\":[101,102]"
-                                  + "}";
+      + "\"thing1\":{\"thing2\":\"hello\"},"
+      + "\"array\":[101,102]"
+      + "}";
+
+  private final String JSON_DOC_2 = "{"
+      + "\"key1\": \"value1\","
+      + "\"source\": {"
+      + "\"name\": \"cdc\","
+      + "\"version\": \"0.8.0-SNAPSHOT\""
+      + "}}";
+
 
   private JsonExtractStringKudf udf;
 
@@ -44,16 +52,24 @@ public class JsonExtractStringKudfTest {
   public void shouldExtractJsonField() {
     // When:
     final Object result = udf.evaluate(JSON_DOC, "$.thing1.thing2");
-
     // Then:
     assertThat(result, is("hello"));
+  }
+
+  @Test
+  public void shouldExtractJsonField2() {
+    // When:
+    final Object result = udf.evaluate(JSON_DOC_2, "$.source.name");
+    final Object result2 = udf.evaluate(JSON_DOC_2, "$.source.version");
+    // Then:
+    assertThat(result, is("cdc"));
+    assertThat(result2, is("0.8.0-SNAPSHOT"));
   }
 
   @Test
   public void shouldExtractJsonDoc() {
     // When:
     final Object result = udf.evaluate(JSON_DOC, "$.thing1");
-
     // Then:
     assertThat(result, is("{\"thing2\":\"hello\"}"));
   }
@@ -62,7 +78,6 @@ public class JsonExtractStringKudfTest {
   public void shouldExtractWholeJsonDoc() {
     // When:
     final Object result = udf.evaluate(JSON_DOC, "$");
-
     // Then:
     assertThat(result, is(JSON_DOC));
   }
@@ -71,7 +86,6 @@ public class JsonExtractStringKudfTest {
   public void shouldExtractJsonArrayField() {
     // When:
     final Object result = udf.evaluate(JSON_DOC, "$.array.1");
-
     // Then:
     assertThat(result, is("102"));
   }
@@ -80,7 +94,6 @@ public class JsonExtractStringKudfTest {
   public void shouldReturnNullIfNodeNotFound() {
     // When:
     final Object result = udf.evaluate(JSON_DOC, "$.will.not.find.me");
-
     // Then:
     assertThat(result, is(nullValue()));
   }
@@ -106,4 +119,5 @@ public class JsonExtractStringKudfTest {
         .parallel()
         .forEach(idx -> shouldExtractJsonField());
   }
+
 }

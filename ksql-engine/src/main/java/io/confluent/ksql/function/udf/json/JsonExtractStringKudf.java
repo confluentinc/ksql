@@ -70,10 +70,6 @@ public class JsonExtractStringKudf implements Kudf {
   }
 
   private void ensureInitialized(final Object[] args) {
-    if (tokens != null) {
-      return;
-    }
-
     final String path = args[1].toString();
     final JsonPathTokenizer tokenizer = new JsonPathTokenizer(path);
     tokens = ImmutableList.copyOf(tokenizer);

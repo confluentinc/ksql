@@ -5,7 +5,7 @@ FROM ${DOCKER_REGISTRY}confluentinc/cp-base
 EXPOSE 8088
 
 ENV COMPONENT=ksql-server
-ENV KSQL_CLASSPATH=/usr/share/java/${COMPONENT}/*:/usr/share/java/monitoring-interceptors/*
+ENV KSQL_CLASSPATH=/usr/share/java/${COMPONENT}/*
 
 ARG COMMIT_ID=unknown
 LABEL io.confluent.docker.git.id=$COMMIT_ID
@@ -15,12 +15,6 @@ LABEL io.confluent.docker=true
 
 ARG PROJECT_VERSION
 ARG ARTIFACT_ID
-
-RUN echo "===> Installing ControlCenter for monitoring interceptors ..."\
-    && apt-get -qq update \
-    && apt-get install -y confluent-control-center=${CONFLUENT_VERSION}${CONFLUENT_PLATFORM_LABEL}-${CONFLUENT_DEB_VERSION} \
-    && echo "===> Cleaning up ..."  \
-    && apt-get clean && rm -rf /tmp/* /var/lib/apt/lists/* 
 
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/${COMPONENT}/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/doc/* /usr/share/doc/${ARTIFACT_ID}/

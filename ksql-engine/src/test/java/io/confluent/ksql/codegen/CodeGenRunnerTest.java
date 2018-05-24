@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,20 @@
 
 package io.confluent.ksql.codegen;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
+
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -30,19 +40,16 @@ import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 
+@SuppressWarnings("SameParameterValue")
 public class CodeGenRunnerTest {
 
     private static final KsqlParser KSQL_PARSER = new KsqlParser();
@@ -206,11 +213,11 @@ public class CodeGenRunnerTest {
 
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
-        assertThat((Boolean)result0, is(true));
+        assertThat(result0, is(true));
 
         result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
-        Assert.assertThat((Boolean)result0, is(false));
+        Assert.assertThat(result0, is(false));
     }
 
     @Test
@@ -227,11 +234,11 @@ public class CodeGenRunnerTest {
 
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
-        Assert.assertThat((Boolean)result0, is(false));
+        Assert.assertThat(result0, is(false));
 
         result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
-        assertThat((Boolean)result0, is(true));
+        assertThat(result0, is(true));
     }
 
     @Test
@@ -396,18 +403,19 @@ public class CodeGenRunnerTest {
         assertThat(expressionEvaluatorMetadata0.getIndexes()[0], equalTo(3));
         assertThat(expressionEvaluatorMetadata0.getIndexes()[1], equalTo(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs().length, equalTo(2));
-        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{10.0, 5l});
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{10.0,
+                                                                                                     5L});
         assertThat(result0, instanceOf(Double.class));
-        assertThat(((Double)result0), equalTo(15.0));
+        assertThat(result0, equalTo(15.0));
 
         ExpressionMetadata expressionEvaluatorMetadata1 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(3));
         assertThat(expressionEvaluatorMetadata1.getIndexes().length, equalTo(1));
         assertThat(expressionEvaluatorMetadata1.getIndexes()[0], equalTo(0));
         assertThat(expressionEvaluatorMetadata1.getUdfs().length, equalTo(1));
-        Object result1 = expressionEvaluatorMetadata1.getExpressionEvaluator().evaluate(new Object[]{5l});
+        Object result1 = expressionEvaluatorMetadata1.getExpressionEvaluator().evaluate(new Object[]{5L});
         assertThat(result1, instanceOf(Long.class));
-        assertThat(((Long)result1), equalTo(125l));
+        assertThat(result1, equalTo(125L));
 
         ExpressionMetadata expressionEvaluatorMetadata2 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(4));
@@ -415,7 +423,7 @@ public class CodeGenRunnerTest {
         assertThat(expressionEvaluatorMetadata2.getUdfs().length, equalTo(0));
         Object result2 = expressionEvaluatorMetadata2.getExpressionEvaluator().evaluate(new Object[]{});
         assertThat(result2, instanceOf(Long.class));
-        assertThat(((Long)result2), equalTo(50L));
+        assertThat(result2, equalTo(50L));
     }
 
     private Object evaluateU1DF(ExpressionMetadata expressionEvaluator, Object arg) throws Exception {
@@ -442,12 +450,11 @@ public class CodeGenRunnerTest {
                                                                          .getSelectExpressions()
                                                                                               .get(0));
         Object argObj0 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
-        Object result0 = expressionEvaluator0.getExpressionEvaluator().evaluate(new
-                                                             Object[]{expressionEvaluator0.getUdfs()
-                                                                          [0], argObj0});
+        Object result0 = expressionEvaluator0.getExpressionEvaluator()
+            .evaluate(new Object[]{argObj0, expressionEvaluator0.getUdfs()[1]});
         assertThat(argObj0, instanceOf(Double.class));
         assertThat(result0, instanceOf(Double.class));
-        assertThat(((Double)result0), equalTo(1.0));
+        assertThat(result0, equalTo(1.0));
 
         ExpressionMetadata expressionEvaluator1 = codeGenRunner.buildCodeGenFromParseTree(analysis
                                                                                             .getSelectExpressions().get(1));
@@ -455,7 +462,7 @@ public class CodeGenRunnerTest {
         Object result1 = evaluateU1DF(expressionEvaluator1, argObj1);
         assertThat(argObj1, instanceOf(Double.class));
         assertThat(result1, instanceOf(Double.class));
-        assertThat(((Double)result1), equalTo(5.0));
+        assertThat(result1, equalTo(5.0));
 
 
         ExpressionMetadata expressionEvaluator2 = codeGenRunner.buildCodeGenFromParseTree(analysis
@@ -464,7 +471,7 @@ public class CodeGenRunnerTest {
         Object result2 = evaluateU1DF(expressionEvaluator2, argObj2);
         assertThat(argObj2, instanceOf(Long.class));
         assertThat(result2, instanceOf(Double.class));
-        assertThat(((Double)result2), equalTo(16.34));
+        assertThat(result2, equalTo(16.34));
 
         ExpressionMetadata expressionEvaluator3 = codeGenRunner.buildCodeGenFromParseTree(analysis
                                                                                             .getSelectExpressions().get(3));
@@ -479,7 +486,7 @@ public class CodeGenRunnerTest {
         Object result4 = evaluateU1DF(expressionEvaluator4, argObj4);
         assertThat(argObj4, instanceOf(Double.class));
         assertThat(result4, instanceOf(Long.class));
-        assertThat(((Long)result4), equalTo(15L));
+        assertThat(result4, equalTo(15L));
 
     }
 
@@ -512,8 +519,8 @@ public class CodeGenRunnerTest {
                                                                                             .getSelectExpressions().get(2));
         Object argObj2 = genericRowValueTypeEnforcer.enforceFieldType(2, " Hello ");
         Object result2 = expressionEvaluator2.getExpressionEvaluator().evaluate(new
-                                                             Object[]{expressionEvaluator2.getUdfs()
-                                                                          [0], argObj2});
+                                                             Object[]{argObj2, expressionEvaluator2.getUdfs()
+                                                                          [1]});
         assertThat(result2, instanceOf(String.class));
         assertThat(result2, equalTo("Hello"));
 
@@ -528,4 +535,20 @@ public class CodeGenRunnerTest {
 
     }
 
+    @Test
+    public void testNestedUdf() throws Exception {
+        final Analysis analysis = analyzeQuery(
+            "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) "
+            + "FROM codegen_test;");
+
+        ExpressionMetadata expressionEvaluator0 = codeGenRunner.buildCodeGenFromParseTree(
+            analysis.getSelectExpressions().get(0));
+
+        final Kudf[] udfs = expressionEvaluator0.getUdfs();
+
+        Object result0 = expressionEvaluator0.getExpressionEvaluator()
+                .evaluate(new Object[]{udfs[0], udfs[1], udfs[2], udfs[3], "Hello"});
+
+        assertThat(result0, equalTo("el-o"));
+    }
 }

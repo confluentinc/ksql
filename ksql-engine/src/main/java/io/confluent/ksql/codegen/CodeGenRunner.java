@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,9 +110,10 @@ public class CodeGenRunner {
 
   private static class Visitor extends AstVisitor<Object, Object> {
 
-    final Schema schema;
-    final Map<String, Class> parameterMap;
-    final FunctionRegistry functionRegistry;
+    private final Schema schema;
+    private final Map<String, Class> parameterMap;
+    private final FunctionRegistry functionRegistry;
+    private int functionCounter = 0;
 
     Visitor(Schema schema, FunctionRegistry functionRegistry) {
       this.schema = schema;
@@ -129,7 +130,7 @@ public class CodeGenRunner {
       String functionName = node.getName().getSuffix();
       KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
       parameterMap.put(
-          node.getName().getSuffix(),
+          node.getName().getSuffix() + "_" + functionCounter++,
           ksqlFunction.getKudfClass()
       );
       for (Expression argExpr : node.getArguments()) {
@@ -177,6 +178,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
+
       parameterMap.put(
           schemaField.get().name().replace(".", "_"),
           SchemaUtil.getJavaType(schemaField.get().schema())
@@ -221,5 +223,4 @@ public class CodeGenRunner {
       return null;
     }
   }
-
 }

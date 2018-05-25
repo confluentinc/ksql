@@ -1,5 +1,12 @@
 package io.confluent.ksql.codegen;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
@@ -8,16 +15,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SqlToJavaVisitorTest {
@@ -51,9 +51,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void processBasicJavaMath() throws Exception {
-
-
+  public void processBasicJavaMath() {
     String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -61,13 +59,10 @@ public class SqlToJavaVisitorTest {
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
-
   }
 
   @Test
-  public void shouldCreateCorrectCastJavaExpression() throws Exception {
-
-
+  public void shouldCreateCorrectCastJavaExpression() {
     String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
                          + "varchar) FROM "
                          + "test1 WHERE "
@@ -86,4 +81,18 @@ public class SqlToJavaVisitorTest {
     assertThat(javaExpression2, equalTo("String.valueOf(TEST1_COL3)"));
   }
 
+  @Test
+  public void shouldPostfixFunctionInstancesWithUniqueId() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) FROM test1;");
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression, is(
+        "((String) CONCAT_0.evaluate("
+        + "((String) SUBSTRING_1.evaluate(TEST1_COL1, Long.parseLong(\"1\"), Long.parseLong(\"3\"))), "
+        + "((String) CONCAT_2.evaluate(\"-\","
+        + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Long.parseLong(\"4\"), Long.parseLong(\"5\")))))))"));
+  }
 }

@@ -18,6 +18,9 @@ package io.confluent.ksql.util;
 
 import org.junit.Test;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -25,24 +28,24 @@ import static org.junit.Assert.assertThat;
 public class ExecutorWithRetriesTest {
 
   @Test
-  public void shouldNotFailOnExistingResource() {
+  public void shouldNotFailOnExistingResource() throws Exception{
     FakeKafkaTopicClient client = new FakeKafkaTopicClient();
     client.createTopic("foo", 1, (short) 1);
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.execute((Supplier<Future<Void>>)() -> {
       client.deleteTopics(Collections.singletonList("bar"));
-      return null;
-    }, "Deleting bar");
+      return CompletableFuture.completedFuture(null);
+    });
     assertThat(client.isTopicExists("foo"), equalTo(true));
   }
 
   @Test
-  public void shouldSuccedOnMissingResource() {
+  public void shouldSuccedOnMissingResource() throws Exception{
     FakeKafkaTopicClient client = new FakeKafkaTopicClient();
     client.createTopic("foo", 1, (short) 1);
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.execute((Supplier<Future<Void>>)() -> {
       client.deleteTopics(Collections.singletonList("foo"));
-      return null;
-    }, "Deleting foo");
+      return CompletableFuture.completedFuture(null);
+    });
     assertThat(client.isTopicExists("foo"), equalTo(false));
   }
 }

@@ -17,8 +17,9 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Collections;
-import java.util.concurrent.Callable;
-
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -28,7 +29,6 @@ import io.confluent.ksql.util.ExecutorWithRetries;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-
 
 public class DropSourceCommand implements DdlCommand {
 
@@ -87,30 +87,36 @@ public class DropSourceCommand implements DdlCommand {
 
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
-
-      ExecutorWithRetries.execute(new Callable<Void>() {
-        @Override
-        public Void call() {
+      try {
+        ExecutorWithRetries.execute((Supplier<Future<Void>>) () -> {
           kafkaTopicClient.deleteTopics(
-              Collections.singletonList(dataSource.getKsqlTopic().getKafkaTopicName()));
-          return null;
-        }
-      }, "Could not delete the corresponding kafka topic: "
-           + dataSource.getKsqlTopic().getKafkaTopicName());
-
+              Collections.singletonList(
+                  dataSource.getKsqlTopic().getKafkaTopicName()));
+          return CompletableFuture.completedFuture(null);
+        });
+      } catch (final RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
-        ExecutorWithRetries.execute(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            schemaRegistryClient
-                .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-            return null;
-          }
-        }, "Could not clean up the schema registry for topic: " + sourceName);
+        try {
+          ExecutorWithRetries.execute((Supplier<Future<Void>>) () -> {
+            try {
+              schemaRegistryClient
+                  .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+            } catch (final RuntimeException e) {
+              throw e;
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+            return CompletableFuture.completedFuture(null);
+          });
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
       }
     }
-
   }
-
 }

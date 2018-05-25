@@ -27,7 +27,7 @@ if [[ -n "${KSQL_JMX_OPTS-}" ]]
 then
   if [[ ! $KSQL_JMX_OPTS == *"com.sun.management.jmxremote.rmi.port"*  ]]
   then
-    echo "KSQL_OPTS should contain 'com.sun.management.jmxremote.rmi.port' property. It is required for accessing the JMX metrics externally."
+    echo "KSQL_OPTS should contain the 'com.sun.management.jmxremote.rmi.port' property. It is required for accessing the JMX metrics externally. Also remember to map the JMX port so that it is accessible from outside the container."
   fi
 fi
 

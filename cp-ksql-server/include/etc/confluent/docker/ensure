@@ -28,18 +28,10 @@ then
         "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
         -b "${KSQL_BOOTSTRAP_SERVERS}" \
         --config /etc/"${COMPONENT}"/"${COMPONENT}".properties
-else
-    if [[ -n "${KSQL_ZOOKEEPER_CONNECT-}" ]]
-    then
-        cub kafka-ready \
-            "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
-            "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
-            -z "$KSQL_ZOOKEEPER_CONNECT"
-    elif [[ -n "${KSQL_BOOTSTRAP_SERVERS-}" ]]
-    then
-        cub kafka-ready \
-            "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
-            "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
-            -b "${KSQL_BOOTSTRAP_SERVERS}"
-    fi
+elif [[ -n "${KSQL_BOOTSTRAP_SERVERS-}" ]]
+then
+    cub kafka-ready \
+        "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
+        "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
+        -b "${KSQL_BOOTSTRAP_SERVERS}"
 fi

@@ -115,7 +115,7 @@ public class QueryStreamWriterTest {
 
     createWriter();
 
-    givenUncaughtException(new KsqlException("LIMIT reached for the partition."));
+    givenUncaughtException(new KsqlException("Server went Boom"));
 
     // When:
     writer.write(out);

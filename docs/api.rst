@@ -194,7 +194,8 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
    :>json object row: A single row being returned. This will be null if an error is being returned.
    :>json array  row.columns: The values contained in the row.
    :>json ?      row.columns[i]: The value contained in a single column for the row. The value type depends on the type of the column.
-   :>json string errorMessage: If this field is non-null, an error has been encountered while running the statement. No additional rows are returned and the server will end the response. Note that when the limit is reached for a query that specified a limit in the LIMIT clause, the server returns a row with error message "LIMIT reached for the partition."
+   :>json string finalMessage: If this field is non-null, it contains a final message from the server. No additional rows will be returned and the server will end the response.
+   :>json string errorMessage: If this field is non-null, an error has been encountered while running the statement. No additional rows are returned and the server will end the response.
 
 
    **Example request**

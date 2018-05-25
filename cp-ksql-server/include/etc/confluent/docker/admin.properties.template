@@ -1,4 +1,0 @@
-{% set security_props = env_to_props('KSQL_', '') -%}
-{% for name, value in security_props.iteritems() -%}
-{{name}}={{value}}
-{% endfor -%}

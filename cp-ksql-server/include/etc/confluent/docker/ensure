@@ -19,12 +19,6 @@ set -o nounset \
     -o verbose \
     -o xtrace
 
-if [[ -n "${KSQL_ZOOKEEPER_CONNECT-}" ]]
-then
-    echo "===> Check if Zookeeper is healthy ..."
-    cub zk-ready "$KSQL_ZOOKEEPER_CONNECT" "${KSQL_CUB_ZK_TIMEOUT:-40}"
-fi
-
 echo "===> Check if Kafka is healthy ..."
 
 if [[ -n "${KSQL_SECURITY_PROTOCOL-}" ]] && [[ $KSQL_SECURITY_PROTOCOL != "PLAINTEXT" ]]
@@ -33,7 +27,7 @@ then
         "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
         "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
         -b "${KSQL_BOOTSTRAP_SERVERS}" \
-        --config /etc/"${COMPONENT}"/admin.properties
+        --config /etc/"${COMPONENT}"/"${COMPONENT}".properties
 else
     if [[ -n "${KSQL_ZOOKEEPER_CONNECT-}" ]]
     then

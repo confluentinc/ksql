@@ -21,9 +21,9 @@ fi
 
 # The JMX client needs to be able to connect to java.rmi.server.hostname.
 # The default for bridged n/w is the bridged IP so you will only be able to connect from another docker container.
-# For host n/w, this is the IP that the hostname on the host resolves to.
+# For host network, this is the IP that the hostname on the host resolves to.
 
-# If you have more that one n/w configured, hostname -i gives you all the IPs,
+# If you have more that one network configured, hostname -i gives you all the IPs,
 # the default is to pick the first IP (or network).
 export KSQL_JMX_HOSTNAME=${KSQL_JMX_HOSTNAME:-$(hostname -i | cut -d" " -f1)}
 

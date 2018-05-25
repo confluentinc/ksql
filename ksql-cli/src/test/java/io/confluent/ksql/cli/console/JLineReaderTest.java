@@ -2,7 +2,6 @@ package io.confluent.ksql.cli.console;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -16,7 +15,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class JLineReaderTest {
 
@@ -30,15 +30,15 @@ public class JLineReaderTest {
     final List<String> commands = new ArrayList<>();
     reader.getHistory().forEach(entry -> commands.add(entry.line()));
 
-    assertEquals(1, commands.size());
-    assertEquals(input.trim(), commands.get(0));
+    assertThat(commands, contains(input.trim()));
   }
 
   private JLineReader createReaderForInput(String input) throws IOException {
-    InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
-    OutputStream outputStream = new ByteArrayOutputStream(512);
-    Terminal terminal = new DumbTerminal(inputStream, outputStream);
-    Path historyFilePath = Files.createTempFile("ksql-history", "txt").toAbsolutePath();
+    final InputStream inputStream = new ByteArrayInputStream(
+        input.getBytes(StandardCharsets.UTF_8));
+    final OutputStream outputStream = new ByteArrayOutputStream(512);
+    final Terminal terminal = new DumbTerminal(inputStream, outputStream);
+    Path historyFilePath = Files.createTempFile("ksql-history", "txt");
     return new JLineReader(terminal, historyFilePath);
   }
 }

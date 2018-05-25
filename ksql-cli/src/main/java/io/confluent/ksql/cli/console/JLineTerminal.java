@@ -70,7 +70,7 @@ public class JLineTerminal extends Console {
 
   @Override
   protected JLineReader buildLineReader() {
-    Path historyFilePath = Paths.get(System.getProperty(
+    final Path historyFilePath = Paths.get(System.getProperty(
         "history-file",
         System.getProperty("user.home")
         + "/.ksql-history"

@@ -53,7 +53,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     }
   }
 
-  public JLineReader(Terminal terminal, Path historyFilePath) {
+  public JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);

@@ -44,9 +44,9 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   private MetaStoreImpl(
-      Map<String, KsqlTopic> topicMap,
-      Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap,
-      FunctionRegistry functionRegistry
+      final Map<String, KsqlTopic> topicMap,
+      final Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap,
+      final FunctionRegistry functionRegistry
   ) {
     this.topicMap = (topicMap != null) ? topicMap : new HashMap<>();
     this.dataSourceMap = (dataSourceMap != null) ? dataSourceMap : new HashMap<>();
@@ -146,15 +146,15 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public void updateForPersistentQuery(String queryId,
-                                       Set<String> sourceNames,
-                                       Set<String> sinkNames) {
+  public void updateForPersistentQuery(final String queryId,
+                                       final Set<String> sourceNames,
+                                       final Set<String> sinkNames) {
     addSourceNames(sourceNames, queryId);
     addSinkNames(sinkNames, queryId);
 
   }
 
-  private void addSourceNames(Set<String> sourceNames, String queryId) {
+  private void addSourceNames(final Set<String> sourceNames, final String queryId) {
     for (String sourceName: sourceNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
           dataSourceMap.get(sourceName).getRight();
@@ -162,7 +162,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
   }
 
-  private void addSinkNames(Set<String> sinkNames, String queryId) {
+  private void addSinkNames(final Set<String> sinkNames, final String queryId) {
     for (String sinkName: sinkNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
           dataSourceMap.get(sinkName).getRight();
@@ -171,7 +171,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public void removePersistentQuery(String queryId) {
+  public void removePersistentQuery(final String queryId) {
     for (Pair<StructuredDataSource, ReferentialIntegrityTableEntry>
         structuredDataSourceReferentialIntegrityTableEntryPair: dataSourceMap.values()) {
       structuredDataSourceReferentialIntegrityTableEntryPair.getRight()
@@ -179,7 +179,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
   }
 
-  private boolean isSafeToDrop(String sourceName) {
+  private boolean isSafeToDrop(final String sourceName) {
     if (!dataSourceMap.containsKey(sourceName)) {
       return true;
     }
@@ -190,13 +190,13 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public Set<String> getQueriesWithSource(String sourceName) {
+  public Set<String> getQueriesWithSource(final String sourceName) {
     return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
                                            .getSourceForQueries());
   }
 
   @Override
-  public Set<String> getQueriesWithSink(String sourceName) {
+  public Set<String> getQueriesWithSink(final String sourceName) {
     return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
                                            .getSinkForQueries());
   }
@@ -216,28 +216,28 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public KsqlFunction getFunction(String functionName) {
+  public KsqlFunction getFunction(final String functionName) {
     return functionRegistry.getFunction(functionName);
   }
 
   @Override
-  public boolean addFunction(KsqlFunction ksqlFunction) {
+  public boolean addFunction(final KsqlFunction ksqlFunction) {
     return functionRegistry.addFunction(ksqlFunction);
   }
 
   @Override
-  public boolean isAggregate(String functionName) {
+  public boolean isAggregate(final String functionName) {
     return functionRegistry.isAggregate(functionName);
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(String functionName,
-                                            Schema expressionType) {
-    return functionRegistry.getAggregate(functionName, expressionType);
+  public KsqlAggregateFunction getAggregate(final String functionName,
+                                            final Schema argumentType) {
+    return functionRegistry.getAggregate(functionName, argumentType);
   }
 
   @Override
-  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
+  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     functionRegistry.addAggregateFunctionFactory(aggregateFunctionFactory);
   }
 

@@ -26,7 +26,7 @@ public interface FunctionRegistry {
   boolean isAggregate(String functionName);
 
   KsqlAggregateFunction getAggregate(String functionName,
-                                     Schema expressionType);
+                                     Schema argumentType);
 
   void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory);
 

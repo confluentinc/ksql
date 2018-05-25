@@ -218,14 +218,14 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   @Override
   public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema expressionType) {
+                                            final Schema argumentType) {
     AggregateFunctionFactory aggregateFunctionFactory
         = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     return aggregateFunctionFactory.getProperAggregateFunction(
-        Collections.singletonList(expressionType));
+        Collections.singletonList(argumentType));
   }
 
   @Override

@@ -450,7 +450,7 @@ INSERT INTO
 .. code:: sql
 
     INSERT INTO stream_name
-      SELECT select_espr [., ...]
+      SELECT select_expr [., ...]
       FROM from_item
       [ WHERE condition ]
       [ PARTITION BY column_name ];
@@ -459,7 +459,8 @@ INSERT INTO
 
 Stream the result of the SELECT query into an existing stream and its underlying topic.
 The schema and partitioning column produced by the query must match the stream's schema
-and key, respectively.
+and key, respectively. If the schema and partitioning column are incompatible with the
+stream, then the statement will return an error.
 
 
 DESCRIBE

@@ -21,17 +21,25 @@ set -o nounset \
 
 echo "===> Check if Kafka is healthy ..."
 
+BOOTSTRAP_SERVER_CONFIG=""
+if [[ -n "${KSQL_BOOTSTRAP_SERVERS-}" ]]
+then
+    BOOTSTRAP_SERVER_CONFIG=${KSQL_BOOTSTRAP_SERVERS}
+else
+    BOOTSTRAP_SERVER_CONFIG=${KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS}
+fi
+
 if [[ -n "${KSQL_SECURITY_PROTOCOL-}" ]] && [[ $KSQL_SECURITY_PROTOCOL != "PLAINTEXT" ]]
 then
     cub kafka-ready \
         "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
         "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
-        -b "${KSQL_BOOTSTRAP_SERVERS}" \
+        -b "${BOOTSTRAP_SERVER_CONFIG}" \
         --config /etc/"${COMPONENT}"/"${COMPONENT}".properties
-elif [[ -n "${KSQL_BOOTSTRAP_SERVERS-}" ]]
+elif [[ -n "${BOOTSTRAP_SERVER_CONFIG-}" ]]
 then
     cub kafka-ready \
         "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
         "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
-        -b "${KSQL_BOOTSTRAP_SERVERS}"
+        -b "${BOOTSTRAP_SERVER_CONFIG}"
 fi

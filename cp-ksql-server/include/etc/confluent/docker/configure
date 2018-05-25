@@ -19,7 +19,7 @@ set -o nounset \
     -o verbose \
     -o xtrace
 
-dub ensure KSQL_BOOTSTRAP_SERVERS
+dub ensure-atleast-one KSQL_BOOTSTRAP_SERVERS KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS
 
 dub path /etc/"${COMPONENT}"/ writable
 

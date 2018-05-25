@@ -458,10 +458,16 @@ INSERT INTO
 **Description**
 
 Stream the result of the SELECT query into an existing stream and its underlying topic.
+
 The schema and partitioning column produced by the query must match the stream's schema
 and key, respectively. If the schema and partitioning column are incompatible with the
 stream, then the statement will return an error.
 
+stream_name and from_item must both refer to a Stream. Tables are not supported.
+
+Records written into the stream are not timestamp-ordered with respect to other queries.
+Therefore, the topic partitions of the output stream may contain out-of-order records even
+if the source stream for the query is ordered by timestamp.
 
 DESCRIBE
 --------

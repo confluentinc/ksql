@@ -104,6 +104,7 @@ public class CliTest extends TestRunner {
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
+  private static KsqlRestApplication restServer;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -122,8 +123,8 @@ public class CliTest extends TestRunner {
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
 
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
-        EasyMock.mock(VersionCheckerAgent.class)
+    restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+                                                      EasyMock.mock(VersionCheckerAgent.class)
     );
 
     restServer.start();
@@ -160,8 +161,8 @@ public class CliTest extends TestRunner {
 
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
-    testResult.addRows(Arrays.asList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
-                                                   "1", "0", "0")));
+    testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
+                                                "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
@@ -179,6 +180,7 @@ public class CliTest extends TestRunner {
 
     localCli.close();
     terminal.close();
+    restServer.stop();
   }
 
   private static Map<String, Object> genDefaultConfigMap() {
@@ -211,13 +213,12 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,  "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler");
     startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
     startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
 
-  private static void testCreateStreamAsSelect(String selectQuery, Schema resultSchema, Map<String, GenericRow> expectedResults) throws Exception {
+  private static void testCreateStreamAsSelect(String selectQuery, Schema resultSchema, Map<String, GenericRow> expectedResults) {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
@@ -258,9 +259,7 @@ public class CliTest extends TestRunner {
   @Test
   public void testPrint() throws InterruptedException {
 
-    Thread wait = new Thread(() -> {
-        CliTest.this.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false);
-    });
+    Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
 
     wait.start();
     Thread.sleep(1000);
@@ -306,7 +305,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectStar() throws Exception {
+  public void testSelectStar() {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),
@@ -315,7 +314,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectProject() throws Exception {
+  public void testSelectProject() {
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
         Double[]{100.0,
@@ -370,7 +369,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectFilter() throws Exception {
+  public void testSelectFilter() {
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);

@@ -22,6 +22,8 @@ import org.jline.utils.InfoCmp;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 
@@ -68,7 +70,12 @@ public class JLineTerminal extends Console {
 
   @Override
   protected JLineReader buildLineReader() {
-    return new JLineReader(this.terminal);
+    final Path historyFilePath = Paths.get(System.getProperty(
+        "history-file",
+        System.getProperty("user.home")
+        + "/.ksql-history"
+    )).toAbsolutePath();
+    return new JLineReader(this.terminal, historyFilePath);
   }
 
   @Override

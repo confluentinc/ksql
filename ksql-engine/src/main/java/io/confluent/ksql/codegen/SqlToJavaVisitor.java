@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,9 +84,10 @@ public class SqlToJavaVisitor {
   }
 
 
-  public class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
+  private class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
 
-    FunctionRegistry functionRegistry;
+    private final FunctionRegistry functionRegistry;
+    private int functionCounter = 0;
 
     Formatter(FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
@@ -215,19 +216,20 @@ public class SqlToJavaVisitor {
       return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")", Schema.INT64_SCHEMA);
     }
 
-
     @Override
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder("(");
-      String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(name);
+      String functionName = node.getName().getSuffix();
+      KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
-      builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
+      String instanceName = functionName + "_" + functionCounter++;
+      builder.append("(").append(javaReturnType).append(") ")
+          .append(instanceName).append(".evaluate(");
       boolean addComma = false;
       for (Expression argExpr : node.getArguments()) {
         Pair<String, Schema> processedArg = process(argExpr, unmangleNames);
         if (addComma) {
-          builder.append(" , ");
+          builder.append(", ");
         } else {
           addComma = true;
         }
@@ -545,11 +547,6 @@ public class SqlToJavaVisitor {
     private String formatIdentifier(String s) {
       // TODO: handle escaping properly
       return s;
-    }
-
-    private String joinExpressions(List<Expression> expressions, boolean unmangleNames) {
-      return Joiner.on(", ").join(expressions.stream()
-                                      .map((e) -> process(e, unmangleNames)).iterator());
     }
 
     private String getCastToBooleanString(Schema schema, String exprStr) {

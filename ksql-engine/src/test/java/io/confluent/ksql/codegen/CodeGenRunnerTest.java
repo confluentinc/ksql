@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -81,12 +81,12 @@ public class CodeGenRunnerTest {
 
     private MetaStore metaStore;
     private CodeGenRunner codeGenRunner;
+    private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
     @Before
     public void init() {
-        metaStore = MetaStoreFixture.getNewMetaStore();
-        final FunctionRegistry functionRegistry = new FunctionRegistry();
+        metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         final Schema schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.INT64_SCHEMA)
             .field("CODEGEN_TEST.COL1", SchemaBuilder.STRING_SCHEMA)

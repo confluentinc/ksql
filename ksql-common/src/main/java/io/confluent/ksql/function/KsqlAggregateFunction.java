@@ -20,16 +20,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
-import io.confluent.ksql.parser.tree.Expression;
 
 public interface KsqlAggregateFunction<V, A> {
 
-  KsqlAggregateFunction<V, A> getInstance(
-      final Map<String, Integer> expressionNames,
-      final List<Expression> functionArguments);
+  KsqlAggregateFunction<V, A> getInstance(AggregateFunctionArguments aggregateFunctionArguments);
 
   String getFunctionName();
 

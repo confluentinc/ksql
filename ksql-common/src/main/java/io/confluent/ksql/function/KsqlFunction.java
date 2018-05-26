@@ -19,6 +19,7 @@ package io.confluent.ksql.function;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
+import java.util.Objects;
 
 public class KsqlFunction {
 
@@ -27,8 +28,14 @@ public class KsqlFunction {
   private final String functionName;
   private final Class kudfClass;
 
-  KsqlFunction(Schema returnType, List<Schema> arguments, String functionName,
-               Class kudfClass) {
+  KsqlFunction(final Schema returnType,
+               final List<Schema> arguments,
+               final String functionName,
+               final Class kudfClass) {
+    Objects.requireNonNull(returnType, "returnType can't be null");
+    Objects.requireNonNull(arguments, "arguments can't be null");
+    Objects.requireNonNull(functionName, "functionName can't be null");
+    Objects.requireNonNull(kudfClass, "kudfClass can't be null");
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;
@@ -50,5 +57,25 @@ public class KsqlFunction {
 
   public Class getKudfClass() {
     return kudfClass;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    KsqlFunction that = (KsqlFunction) o;
+    return Objects.equals(returnType, that.returnType)
+        && Objects.equals(arguments, that.arguments)
+        && Objects.equals(functionName, that.functionName)
+        && Objects.equals(kudfClass, that.kudfClass);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(returnType, arguments, functionName, kudfClass);
   }
 }

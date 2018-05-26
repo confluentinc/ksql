@@ -19,7 +19,7 @@ package io.confluent.ksql.structured;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -66,16 +66,16 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KTable kTable;
   private KsqlTable ksqlTable;
-  private FunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry;
 
 
   @Before
   public void init() {
-    functionRegistry = new FunctionRegistry();
+    functionRegistry = new InternalFunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder

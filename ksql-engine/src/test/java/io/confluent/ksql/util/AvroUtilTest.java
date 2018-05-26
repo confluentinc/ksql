@@ -29,6 +29,7 @@ import java.util.List;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
@@ -170,7 +171,7 @@ public class AvroUtilTest {
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(String statementString) {
     List<Statement> statementList = new KsqlParser().buildAst
-        (statementString, new MetaStoreImpl());
+        (statementString, new MetaStoreImpl(new InternalFunctionRegistry()));
     if (statementList.get(0) instanceof AbstractStreamCreateStatement) {
       return (AbstractStreamCreateStatement) statementList.get(0);
     }

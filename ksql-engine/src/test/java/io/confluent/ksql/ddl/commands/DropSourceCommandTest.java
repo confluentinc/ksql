@@ -1,6 +1,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -16,7 +17,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class DropSourceCommandTest {
-  MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {

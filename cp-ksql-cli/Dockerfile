@@ -30,5 +30,5 @@ RUN bash /etc/confluent/docker/configure
 ENV KSQL_LOG4J_OPTS=-Dlog4j.configuration=file:/etc/${COMPONENT}/log4j.properties
 
 ENTRYPOINT ["ksql"]
-CMD ["http://localhost:8088", "--config-file", "/etc/ksql-cli/ksql-cli.properties"]
+CMD ["http://localhost:8088"]
 

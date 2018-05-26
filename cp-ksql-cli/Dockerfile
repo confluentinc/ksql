@@ -5,7 +5,7 @@ FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base:${DOCKER_UPSTREAM_TAG}
 
 EXPOSE 8088
 
-ENV COMPONENT=ksql-
+ENV COMPONENT=ksql-cli
 ENV KSQL_CLASSPATH=/usr/share/java/${COMPONENT}/*
 
 ARG COMMIT_ID=unknown
@@ -24,10 +24,11 @@ ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/
 
 COPY include/etc/confluent/docker /etc/confluent/docker
 
-RUN mkdir -p /etc/${COMPONENT} /etc/${COMPONENT}/secrets
+RUN mkdir -p /etc/${COMPONENT} /etc/${COMPONENT}/secrets /var/log/${COMPONENT}
 
 RUN bash /etc/confluent/docker/configure
+ENV KSQL_LOG4J_OPTS=-Dlog4j.configuration=file:/etc/${COMPONENT}/log4j.properties
 
 ENTRYPOINT ["ksql"]
-CMD ["http://localhost:8088", "--config-file", "/etc/${COMPONENT}/${COMPONENT}.properties"]
+CMD ["http://localhost:8088", "--config-file", "/etc/ksql-cli/ksql-cli.properties"]
 

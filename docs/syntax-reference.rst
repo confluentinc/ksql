@@ -440,6 +440,34 @@ The WITH clause supports the following properties:
     :start-line: 2
     :end-line: 6
 
+.. _insert-into:
+
+INSERT INTO
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    INSERT INTO stream_name
+      SELECT select_expr [., ...]
+      FROM from_stream
+      [ WHERE condition ]
+      [ PARTITION BY column_name ];
+
+**Description**
+
+Stream the result of the SELECT query into an existing stream and its underlying topic.
+
+The schema and partitioning column produced by the query must match the stream's schema
+and key, respectively. If the schema and partitioning column are incompatible with the
+stream, then the statement will return an error.
+
+stream_name and from_item must both refer to a Stream. Tables are not supported.
+
+Records written into the stream are not timestamp-ordered with respect to other queries.
+Therefore, the topic partitions of the output stream may contain out-of-order records even
+if the source stream for the query is ordered by timestamp.
 
 DESCRIBE
 --------
@@ -556,14 +584,14 @@ Example of explaining a running query:
 
 .. _drop-stream:
 
-DROP STREAM [IF EXISTS]
+DROP STREAM [IF EXISTS] [DELETE TOPIC];
 -----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP STREAM stream_name [DELETE TOPIC];
+    DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 
 **Description**
 
@@ -576,7 +604,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 
 .. _drop-table:
 
-DROP TABLE [IF EXISTS]
+DROP TABLE [IF EXISTS] [DELETE TOPIC];
 ----------------------
 
 **Synopsis**

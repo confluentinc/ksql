@@ -281,7 +281,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
           try {
             GenericRow genericRow = JsonUtil.buildGenericRowFromJson(responseLine);
             if (genericRow != null) {
-              bufferedRow = new StreamedRow(genericRow);
+              bufferedRow = StreamedRow.row(genericRow);
             } else {
               return false;
             }

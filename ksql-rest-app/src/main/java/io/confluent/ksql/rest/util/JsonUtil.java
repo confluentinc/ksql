@@ -37,6 +37,9 @@ public class JsonUtil {
     if (jsonNode.has("row") && jsonNode.has("errorMessage")) {
       if (jsonNode.get("errorMessage").toString().equalsIgnoreCase("null")) {
         JsonNode columnsArray = jsonNode.get("row").get("columns");
+        if (columnsArray == null) {
+          return null;
+        }
         for (JsonNode field: columnsArray) {
           columns.add(field.asText());
         }

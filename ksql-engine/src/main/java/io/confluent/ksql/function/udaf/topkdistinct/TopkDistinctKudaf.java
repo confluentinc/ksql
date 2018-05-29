@@ -25,14 +25,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>> {

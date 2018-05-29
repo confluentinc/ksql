@@ -33,3 +33,6 @@ fi
 
 dub template "/etc/confluent/docker/${COMPONENT}.properties.template" "/etc/${COMPONENT}/${COMPONENT}.properties"
 dub template "/etc/confluent/docker/log4j.properties.template" "/etc/${COMPONENT}/log4j.properties"
+
+# Ensure that KSQL picks up the correct log4j properties file
+export KSQL_LOG4J_OPTS=/etc/${COMPONENT}/log4j.properties

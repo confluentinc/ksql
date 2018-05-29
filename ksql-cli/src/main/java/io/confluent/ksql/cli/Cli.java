@@ -428,13 +428,7 @@ public class Cli implements Closeable, AutoCloseable {
               try {
                 StreamedRow row = queryStream.next();
                 terminal.printStreamedRow(row);
-                if (row.getErrorMessage() != null) {
-                  // got an error in the stream, which means we have reached the end.
-                  // the stream interface that queryStream uses isn't smart enough to figure
-                  // out when the socket is closed, so just break here since we know there will
-                  // be nothing more to read.
-                  LOGGER.debug("Going to stop reading results for row {} since there was an error"
-                               + " in the response stream: {}", row, row.getErrorMessage());
+                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
                   break;
                 }
               } catch (IOException exception) {

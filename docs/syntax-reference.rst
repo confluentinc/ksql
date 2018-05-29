@@ -630,7 +630,8 @@ SELECT
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
-      [ HAVING having_expression ];
+      [ HAVING having_expression ]
+      [ LIMIT count ];
 
 **Description**
 
@@ -655,6 +656,16 @@ Example:
     SELECT * FROM pageviews
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
+
+A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
+
+Example:
+
+.. code:: sql
+
+    SELECT * FROM pageviews LIMIT 5;
+
+If no limit is supplied the query will run until terminated, streaming back all results to the console.
 
 **Tip:** If you want to select older data, you can configure KSQL to query the stream from the beginning.  You must
 run this configuration before running the query:

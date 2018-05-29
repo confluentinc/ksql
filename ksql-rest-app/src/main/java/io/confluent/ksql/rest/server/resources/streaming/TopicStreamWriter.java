@@ -44,7 +44,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -207,7 +206,7 @@ public class TopicStreamWriter implements StreamingOutput {
   }
 
   @Override
-  public void write(OutputStream out) throws IOException, WebApplicationException {
+  public void write(OutputStream out) {
     try {
       Format format = Format.UNDEFINED;
       while (true) {
@@ -234,11 +233,19 @@ public class TopicStreamWriter implements StreamingOutput {
       // Connection terminated, we can stop writing
     } catch (Exception exception) {
       log.error("Exception encountered while writing to output stream", exception);
+      outputException(out, exception);
+    } finally {
+      topicConsumer.close();
+    }
+  }
+
+  private void outputException(final OutputStream out, final Exception exception) {
+    try {
       out.write(exception.getMessage().getBytes(StandardCharsets.UTF_8));
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
-    } finally {
-      topicConsumer.close();
+    } catch (final IOException e) {
+      log.debug("Client disconnected while attempting to write an error message");
     }
   }
 }

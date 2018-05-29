@@ -24,14 +24,12 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.Versions;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +53,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
@@ -166,7 +165,7 @@ public class WSQueryEndpoint {
 
         for (KeyValue<String, GenericRow> row : rows) {
           try {
-            String buffer = mapper.writeValueAsString(new StreamedRow(row.value));
+            String buffer = mapper.writeValueAsString(StreamedRow.row(row.value));
             session.getAsyncRemote().sendText(
                 buffer, result -> {
                   if (!result.isOK()) {

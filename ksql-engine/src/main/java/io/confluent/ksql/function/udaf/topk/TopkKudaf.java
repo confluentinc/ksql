@@ -26,8 +26,6 @@ import java.util.List;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KsqlException;
 
 public class TopkKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>> {
@@ -88,7 +86,11 @@ public class TopkKudaf<T extends Comparable<? super T>>
       List<T> mergedList = new ArrayList<>(aggOneList);
       mergedList.addAll(aggTwoList);
       mergedList.sort(Comparator.reverseOrder());
-      return mergedList.subList(0, topKSize);
+      if (mergedList.size() < topKSize) {
+        return mergedList;
+      } else {
+        return mergedList.subList(0, topKSize);
+      }
     };
   }
 

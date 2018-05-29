@@ -26,6 +26,6 @@ public class UrlExtractFragmentKudf extends UrlParser implements Kudf {
       throw new KsqlFunctionException("url_extract_fragment udf requires one input argument.");
     }
     URI uri = parseUrl(args[0].toString());
-    return uri == null ? null : uri.getHost();
+    return uri == null ? null : uri.getFragment();
   }
 }

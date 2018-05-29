@@ -25,6 +25,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,68 +39,68 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkKudafTest {
 
-  private ArrayList<Integer> valueArray;
-  private KsqlAggregateFunction<Integer, ArrayList<Integer>> topkKudaf;
+  private List<Integer> valueArray;
+  private KsqlAggregateFunction<Integer, List<Integer>> topkKudaf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setup() {
-    valueArray = new ArrayList(Arrays.asList(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25));
+    valueArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
     topkKudaf = new TopKAggregateFunctionFactory(3)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
   }
 
   @Test
   public void shouldAggregateTopK() {
-    ArrayList<Integer> currentVal = new ArrayList();
+    List<Integer> currentVal = new ArrayList();
     for (Integer value : valueArray) {
       currentVal = topkKudaf.aggregate(value, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList(80, 60, 60)));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(80, 60, 60)));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    ArrayList<Integer> currentVal = new ArrayList();
+    List<Integer> currentVal = new ArrayList();
     currentVal = topkKudaf.aggregate(10, currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList(10)));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(10)));
   }
 
   @Test
   public void shouldMergeTopK() {
-    ArrayList<Integer> array1 = new ArrayList(Arrays.asList(50, 45, 25));
-    ArrayList<Integer> array2 = new ArrayList(Arrays.asList(60, 55, 48));
+    List<Integer> array1 = ImmutableList.of(50, 45, 25);
+    List<Integer> array2 = ImmutableList.of(60, 55, 48);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList(60, 55, 50)));
+               equalTo(ImmutableList.of(60, 55, 50)));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    ArrayList<Integer> array1 = new ArrayList(Arrays.asList(50, 45));
-    ArrayList<Integer> array2 = new ArrayList(Arrays.asList(60));
+    List<Integer> array1 =ImmutableList.of(50, 45);
+    List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList(60, 50, 45)));
+               equalTo(ImmutableList.of(60, 50, 45)));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    ArrayList<Integer> array1 = new ArrayList(Arrays.asList(50));
-    ArrayList<Integer> array2 = new ArrayList(Arrays.asList(60));
+    List<Integer> array1 = ImmutableList.of(50);
+    List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList(60, 50)));
+               equalTo(ImmutableList.of(60, 50)));
   }
 
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    ArrayList aggregate = topkKudaf.aggregate(1, new ArrayList());
-    assertThat(aggregate, equalTo(Arrays.asList(1)));
-    ArrayList agg2 = topkKudaf.aggregate(100, new ArrayList(Arrays.asList(1)));
-    assertThat(agg2, equalTo(Arrays.asList(100, 1)));
+    List aggregate = topkKudaf.aggregate(1, new ArrayList());
+    assertThat(aggregate, equalTo(ImmutableList.of(1)));
+    List agg2 = topkKudaf.aggregate(100, new ArrayList(Arrays.asList(1)));
+    assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
   @SuppressWarnings("unchecked")
@@ -113,9 +114,10 @@ public class IntTopkKudafTest {
         .mapToObj(Integer::valueOf)
         .collect(Collectors.toList());
 
+    initialAggregate.sort(Comparator.reverseOrder());
     // When:
-    final ArrayList<Integer> result = topkKudaf.aggregate(10, new ArrayList<>(initialAggregate));
-    final ArrayList<Integer> combined = topkKudaf.getMerger().apply("key", result, new ArrayList<>(initialAggregate));
+    final List<Integer> result = topkKudaf.aggregate(10, new ArrayList<>(initialAggregate));
+    final List<Integer> combined = topkKudaf.getMerger().apply("key", result, new ArrayList<>(initialAggregate));
 
     // Then:
     assertThat(combined.get(0), is(299));
@@ -133,11 +135,11 @@ public class IntTopkKudafTest {
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
     // When:
-    final ArrayList result = IntStream.range(0, 4)
+    final List result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
-          ArrayList<Integer> aggregate = new ArrayList(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                                     0, 0, 0));
+          List<Integer> aggregate = new ArrayList<>(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                  0, 0, 0));
           for (int value : values) {
             aggregate = topkKudaf.aggregate(value + threadNum, aggregate);
           }
@@ -147,7 +149,7 @@ public class IntTopkKudafTest {
         .orElse(new ArrayList<>());
 
     // Then:
-    assertThat(result, is(Arrays.asList(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
+    assertThat(result, is(ImmutableList.of(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
   }
 
   @SuppressWarnings("unchecked")

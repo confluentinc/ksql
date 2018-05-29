@@ -131,9 +131,6 @@ public class TypeUtilTest {
                                                                                         .MAP));
     assertThat(((Struct) type7).getItems().get(5).getRight().getKsqlType(), equalTo(Type.KsqlType
                                                                                         .STRUCT));
-    Type type8 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
-    assertThat(type8.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
-
   }
 
   @Test

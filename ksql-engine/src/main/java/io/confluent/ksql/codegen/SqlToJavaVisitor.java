@@ -23,6 +23,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -338,17 +339,17 @@ public class SqlToJavaVisitor {
         case STRING:
           exprFormat += visitStringComparisonExpression(node.getType());
           break;
-        case MAP:
-        case ARRAY:
-        case STRUCT:
-          throw new KsqlException(
-              String.format("Cannot compare %s values", left.getRight().type()));
         case BOOLEAN:
           exprFormat += visitBooleanComparisonExpression(node.getType());
           break;
-        default:
+        case FLOAT64:
+        case INT32:
+        case INT64:
           exprFormat += visitScalarComparisonExpression(node.getType());
           break;
+        default:
+          throw new KsqlException(
+              String.format("Cannot compare %s values", left.getRight().type()));
       }
       String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
       return new Pair<>(expr, Schema.BOOLEAN_SCHEMA);
@@ -511,21 +512,25 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
-      if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>("(("
-                          + SchemaUtil.getJavaType(schemaField.get().schema().valueSchema())
-                              .getSimpleName()
-                          + ") ((java.util.List)"
-                          + process(node.getBase(), unmangleNames).getLeft() + ").get((int)("
-                          + process(node.getIndex(), unmangleNames).getLeft() + ")))",
-                          schemaField.get().schema().valueSchema()
-        );
-      } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
+      final Schema internalSchema = schemaField.get().schema();
+      if (internalSchema.type() == Schema.Type.ARRAY) {
         return new Pair<>(
-            "("
-            + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-            + process(node.getBase(), unmangleNames).getLeft() + ".get("
-            + process(node.getIndex(), unmangleNames).getLeft() + "))",
+            String.format("((%s) ((%s)%s).get((int)(%s)))",
+                          SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                          List.class.getCanonicalName(),
+                          process(node.getBase(), unmangleNames).getLeft(),
+                          process(node.getIndex(), unmangleNames).getLeft()
+            ),
+            schemaField.get().schema().valueSchema()
+        );
+
+      } else if (internalSchema.type() == Schema.Type.MAP) {
+        return new Pair<>(
+            String.format("(%s ((%s)%s).get(%s))",
+                          SchemaUtil.getJavaCastString(internalSchema.valueSchema()),
+                          Map.class.getCanonicalName(),
+                          process(node.getBase(), unmangleNames).getLeft(),
+                          process(node.getIndex(), unmangleNames).getLeft()),
             schemaField.get().schema().valueSchema()
         );
       }

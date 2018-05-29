@@ -116,15 +116,15 @@ public class PhysicalPlanBuilderTest {
     configMap.put("auto.offset.reset", "earliest");
     ksqlConfig = new KsqlConfig(configMap);
     return new PhysicalPlanBuilder(streamsBuilder,
-        ksqlConfig,
-        new FakeKafkaTopicClient(),
-        functionRegistry,
-        overrideProperties,
-        false,
-        metaStore,
-                                                  new MockSchemaRegistryClient(),
-                                                  new QueryIdGenerator(),
-        testKafkaStreamsBuilder
+                                   ksqlConfig,
+                                   new FakeKafkaTopicClient(),
+                                   functionRegistry,
+                                   overrideProperties,
+                                   false,
+                                   metaStore,
+                                   new MockSchemaRegistryClient(),
+                                   new QueryIdGenerator(),
+                                   testKafkaStreamsBuilder
     );
 
   }
@@ -149,16 +149,16 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldCreateExecutionPlan() throws Exception {
     String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
-        + "WHERE col0 > 100 GROUP BY col0;";
+                         + "WHERE col0 > 100 GROUP BY col0;";
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
     String[] lines = planText.split("\n");
-    Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , KSQL_COL_1 : FLOAT64 "
-        + ", KSQL_COL_2 : INT64].");
-    Assert.assertEquals("\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : INT64 , KSQL_INTERNAL_COL_1 : FLOAT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].", lines[1]);
-    Assert.assertEquals("\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : INT64 , KSQL_INTERNAL_COL_1 : FLOAT64 , KSQL_INTERNAL_COL_2 : FLOAT64 , KSQL_INTERNAL_COL_3 : FLOAT64].", lines[2]);
-    Assert.assertEquals("\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].", lines[3]);
-    Assert.assertEquals("\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : INT64 , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].", lines[4]);
+    Assert.assertEquals(" > [ SINK ] Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE"
+                        + ", KSQL_COL_2 : BIGINT].", lines[0]);
+    Assert.assertEquals("\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, KSQL_AGG_VARIABLE_1 : BIGINT].", lines[1]);
+    Assert.assertEquals("\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_INTERNAL_COL_2 : DOUBLE, KSQL_INTERNAL_COL_3 : DOUBLE].", lines[2]);
+    Assert.assertEquals("\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].", lines[3]);
+    Assert.assertEquals("\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].", lines[4]);
   }
 
   @Test
@@ -179,14 +179,14 @@ public class PhysicalPlanBuilderTest {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
                                                                             csasQuery + "\n " +
                                                                             insertIntoQuery, new
-        HashMap<>());
+                                                                                HashMap<>());
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
-    Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
-    Assert.assertEquals(lines[1], "\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
-    Assert.assertEquals(lines[2], "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : STRING , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : FLOAT64].");
+    Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+    Assert.assertEquals(lines[1], "\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+    Assert.assertEquals(lines[2], "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE].");
     assertThat(queryMetadataList.get(1).getOutputNode(), instanceOf(KsqlStructuredDataOutputNode.class));
     KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
         queryMetadataList.get(1).getOutputNode();
@@ -234,7 +234,8 @@ public class PhysicalPlanBuilderTest {
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(),
-                 equalTo("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
+                 equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
+                         + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
       return;
     }
     Assert.fail();
@@ -243,9 +244,9 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldCreatePlanForInsertIntoTableFromTable() throws Exception {
     String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
-                          + "DOUBLE) "
-                          + "WITH ( "
-                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
+                         + "DOUBLE) "
+                         + "WITH ( "
+                         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
@@ -261,19 +262,19 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(2));
-    assertThat(lines[0], equalTo(" > [ PROJECT ] Schema: [ROWTIME : INT64 , ROWKEY : STRING , COL0 : "
-                          + "INT64 , COL1 : STRING , COL2 : FLOAT64 , COL3 : FLOAT64]."));
-    assertThat(lines[1], equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : INT64 , T1.ROWKEY : STRING , "
-                          + "T1.COL0 : INT64 , T1.COL1 : STRING , T1.COL2 : FLOAT64 , T1.COL3 : "
-                                 + "FLOAT64]."));
+    assertThat(lines[0], equalTo(" > [ PROJECT ] Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
+                                 + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE]."));
+    assertThat(lines[1], equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
+                                 + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
+                                 + "DOUBLE]."));
   }
 
   @Test
   public void shouldFailInsertIfTheResultTypesDontMatch() throws Exception {
     String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
-                          + "DOUBLE) "
-                          + "WITH ( "
-                          + "KAFKA_TOPIC = 't1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
+                         + "DOUBLE) "
+                         + "WITH ( "
+                         + "KAFKA_TOPIC = 't1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     String createStream = "CREATE STREAM S1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
                           + "DOUBLE) "
                           + "WITH ( "
@@ -295,7 +296,7 @@ public class PhysicalPlanBuilderTest {
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible data sink and query result. "
-                                                    + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
+                                                     + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
       return;
     }
     Assert.fail();
@@ -320,11 +321,11 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
-    assertThat(lines[0], equalTo(" > [ REKEY ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64]."));
-    assertThat(lines[1], equalTo("\t\t > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 "
-                                  + ": FLOAT64]."));
-    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING"
-                                   + " , COL2 : FLOAT64]."));
+    assertThat(lines[0], equalTo(" > [ REKEY ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
+    assertThat(lines[1], equalTo("\t\t > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 "
+                                 + ": DOUBLE]."));
+    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR"
+                                 + ", COL2 : DOUBLE]."));
   }
 
   @Test
@@ -345,7 +346,7 @@ public class PhysicalPlanBuilderTest {
                                                                                   HashMap<>());
     } catch (Exception ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible key fields for sink and "
-                                                    + "results. Sink key field is COL0 (type: "
+                                                     + "results. Sink key field is COL0 (type: "
                                                      + "Schema{INT64}) while result key field is null (type: null)"));
       return;
     }
@@ -409,11 +410,11 @@ public class PhysicalPlanBuilderTest {
     List<String> consumerInterceptors = new LinkedList<>();
     consumerInterceptors.add(DummyConsumerInterceptor.class.getName());
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        consumerInterceptors);
+                           consumerInterceptors);
     List<String> producerInterceptors = new LinkedList<>();
     producerInterceptors.add(DummyProducerInterceptor.class.getName());
     overrideProperties.put(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        producerInterceptors);
+                           producerInterceptors);
     physicalPlanBuilder = buildPhysicalPlanBuilder(overrideProperties);
 
     buildPhysicalPlan(simpleSelectFilter);
@@ -444,9 +445,9 @@ public class PhysicalPlanBuilderTest {
     // Initialize override properties with class name strings for producer/consumer interceptors
     Map<String, Object> overrideProperties = new HashMap<>();
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        DummyConsumerInterceptor.class.getName());
+                           DummyConsumerInterceptor.class.getName());
     overrideProperties.put(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        DummyProducerInterceptor.class.getName());
+                           DummyProducerInterceptor.class.getName());
     physicalPlanBuilder = buildPhysicalPlanBuilder(overrideProperties);
 
     buildPhysicalPlan(simpleSelectFilter);
@@ -486,9 +487,9 @@ public class PhysicalPlanBuilderTest {
     // Initialize override properties with class name strings for producer/consumer interceptors
     Map<String, Object> overrideProperties = new HashMap<>();
     String consumerInterceptorStr = DummyConsumerInterceptor.class.getName()
-        + " , " + DummyConsumerInterceptor2.class.getName();
+                                    + " , " + DummyConsumerInterceptor2.class.getName();
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        consumerInterceptorStr);
+                           consumerInterceptorStr);
     physicalPlanBuilder = buildPhysicalPlanBuilder(overrideProperties);
 
     buildPhysicalPlan(simpleSelectFilter);

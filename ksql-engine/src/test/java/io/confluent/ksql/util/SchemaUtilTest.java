@@ -30,6 +30,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class SchemaUtilTest {
@@ -109,14 +111,14 @@ public class SchemaUtilTest {
   public void shouldGetTheCorrectJavaTypeForArray() {
     Schema schema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA);
     Class javaClass = SchemaUtil.getJavaType(schema);
-    assertThat(javaClass, equalTo(ArrayList.class));
+    assertThat(javaClass, equalTo(List.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForMap() {
     Schema schema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA);
     Class javaClass = SchemaUtil.getJavaType(schema);
-    assertThat(javaClass, equalTo(HashMap.class));
+    assertThat(javaClass, equalTo(Map.class));
   }
 
   @Test
@@ -260,9 +262,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetTheSchemaDefString() {
     String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
-    assertThat("Invalid schema def.", schemaDef.equals("[ORDERTIME : INT64 , ORDERID : INT64 , "
-                                                       + "ITEMID : STRING , ORDERUNITS : "
-                                                       + "FLOAT64 , ARRAYCOL : ARRAY , MAPCOL : MAP]"));
+    assertThat("Invalid schema def.", schemaDef.equals("[ORDERTIME : BIGINT, ORDERID : BIGINT, ITEMID : VARCHAR, ORDERUNITS : DOUBLE, ARRAYCOL : ARRAY<DOUBLE>, MAPCOL : MAP<VARCHAR,DOUBLE>]"));
   }
 
   @Test
@@ -319,21 +319,15 @@ public class SchemaUtilTest {
 
     String schemaDescription = SchemaUtil.describeSchema(structSchema);
 
-    assertThat(schemaDescription, equalTo("STRUCT < \n"
-                                          + "\t ordertime BIGINT, \n"
-                                          + "\t orderid BIGINT, \n"
-                                          + "\t itemid VARCHAR(STRING), \n"
-                                          + "\t orderunits DOUBLE, \n"
-                                          + "\t arraycol ARRAY[DOUBLE], \n"
-                                          + "\t mapcol MAP[VARCHAR(STRING),DOUBLE], \n"
-                                          + "\t address STRUCT < \n"
-                                          + "\t NUMBER BIGINT, \n"
-                                          + "\t STREET VARCHAR(STRING), \n"
-                                          + "\t CITY VARCHAR(STRING), \n"
-                                          + "\t STATE VARCHAR(STRING), \n"
-                                          + "\t ZIPCODE BIGINT\n"
-                                          + " >\n"
-                                          + " >"));
+    assertThat(schemaDescription, equalTo("STRUCT <"
+                                          + "ordertime BIGINT, "
+                                          + "orderid BIGINT, "
+                                          + "itemid VARCHAR, "
+                                          + "orderunits DOUBLE, "
+                                          + "arraycol ARRAY<DOUBLE>, "
+                                          + "mapcol MAP<VARCHAR,DOUBLE>, "
+                                          + "address STRUCT <NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>"
+                                          + ">"));
   }
 
 }

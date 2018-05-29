@@ -22,6 +22,7 @@ import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,6 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   private final Class<T> ttClass;
   private final Schema outputSchema;
 
-
   @SuppressWarnings("unchecked")
   TopkDistinctKudaf(final String functionName,
                     final int argIndexInValue,
@@ -49,7 +49,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
                     final Class<T> ttClass) {
     super(
         functionName, argIndexInValue,
-        (() -> new ArrayList<T>()),
+        ArrayList::new,
         SchemaBuilder.array(outputSchema).build(),
         Collections.singletonList(outputSchema)
     );
@@ -67,9 +67,8 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
 
     Set<T> set = new HashSet<>(currentAggValList);
     set.add(currentVal);
-    ArrayList list = new ArrayList(set);
-    Collections.sort(list);
-    Collections.reverse(list);
+    List list = new ArrayList(set);
+    list.sort(Comparator.reverseOrder());
     if (list.size() > tkVal) {
       list.remove(list.size() - 1);
     }
@@ -83,12 +82,8 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
       Set<T> set = new HashSet<>(aggOneList);
       set.addAll(aggTwoList);
       List<T> list = new ArrayList<>(set);
-      Collections.sort(list);
-      Collections.reverse(list);
-      while (list.size() > tkVal) {
-        list.remove(list.size() - 1);
-      }
-      return list;
+      list.sort(Comparator.reverseOrder());
+      return list.subList(0, Math.min(list.size(), tkVal));
     };
   }
 

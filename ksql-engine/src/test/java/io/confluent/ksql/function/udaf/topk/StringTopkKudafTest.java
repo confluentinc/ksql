@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,70 +33,70 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkKudafTest {
-  private ArrayList valueArray;
+  private List valueArray;
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valueArray = new ArrayList(Arrays.asList("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
-                                             "Test", "123", "432"));
+    valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
+                                  "Test", "123", "432");
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+    KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    ArrayList currentVal = new ArrayList();
+    List currentVal = new ArrayList();
     for (Object value : valueArray) {
       currentVal = topkKudaf.aggregate(value , currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList("why", "efg", "cde")));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("why", "efg", "cde")));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+    KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    ArrayList currentVal = new ArrayList();
+    List currentVal = new ArrayList();
     currentVal = topkKudaf.aggregate("why", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(Arrays.asList("why")));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("why")));
   }
 
   @Test
   public void shouldMergeTopK() {
-    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+    KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("paper", "Hello", "123"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("Zzz", "Hi", "456"));
+    List<String> array1 = ImmutableList.of("paper", "Hello", "123");
+    List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList("paper", "Zzz", "Hi")));
+               equalTo(ImmutableList.of("paper", "Zzz", "Hi")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+    KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
+    List<String> array1 = ImmutableList.of("50", "45");
+    List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList("60", "50", "45")));
+               equalTo(ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    KsqlAggregateFunction<Object, ArrayList> topkKudaf =
+    KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("50"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
+    List<String> array1 = ImmutableList.of("50");
+    List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList("60", "50")));
+               equalTo(ImmutableList.of("60", "50")));
   }
 }

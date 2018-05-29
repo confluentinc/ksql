@@ -29,8 +29,10 @@ import io.confluent.ksql.GenericRow;
 
 public class JsonUtil {
 
-  public GenericRow buildGenericRowFromJson(String jsonString) throws IOException {
-    JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
+  private static ObjectMapper objectMapper = new ObjectMapper();
+
+  public static GenericRow buildGenericRowFromJson(String jsonString) throws IOException {
+    JsonNode jsonNode = objectMapper.readTree(jsonString);
     List columns = new ArrayList();
     if (jsonNode.has("row") && jsonNode.has("errorMessage")) {
       if (jsonNode.get("errorMessage").toString().equalsIgnoreCase("null")) {

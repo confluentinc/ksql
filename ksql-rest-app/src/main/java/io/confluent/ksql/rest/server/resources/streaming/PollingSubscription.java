@@ -72,7 +72,9 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
         }
         T item = poll();
         if (item == null) {
-          future = exec.schedule(() -> request(1), BACKOFF_DELAY_MS, TimeUnit.MILLISECONDS);
+          if (!draining) {
+            future = exec.schedule(() -> request(1), BACKOFF_DELAY_MS, TimeUnit.MILLISECONDS);
+          }
         } else {
           subscriber.onNext(item);
         }

@@ -27,27 +27,28 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import io.confluent.ksql.util.KsqlException;
 
 public class UdfClassLoader extends URLClassLoader {
   private static final Logger logger = LoggerFactory.getLogger(URLClassLoader.class);
-  private final Blacklister blacklister;
+  private final Predicate<String> blacklist;
   private final Path path;
 
   private UdfClassLoader(final Path path,
                          final URL[] urls,
                          final ClassLoader parent,
-                         final Blacklister blacklister) {
+                         final Predicate<String> blacklist) {
     super(urls, parent);
-    this.blacklister = Objects.requireNonNull(blacklister, "blacklister can't be null");
+    this.blacklist = Objects.requireNonNull(blacklist, "blacklist can't be null");
     this.path = Objects.requireNonNull(path, "path can't be null");
   }
 
   @Override
   protected Class<?> loadClass(final String name, final boolean resolve)
       throws ClassNotFoundException {
-    if (blacklister.blacklisted(name)) {
+    if (blacklist.test(name)) {
       throw new ClassNotFoundException("The requested class is not permitted to be used from a "
           + "udf. Class " + name);
     }
@@ -78,15 +79,15 @@ public class UdfClassLoader extends URLClassLoader {
 
   static UdfClassLoader newClassLoader(final Path path,
                                        final ClassLoader parentClassLoader,
-                                       final Blacklister blacklister) {
+                                       final Predicate<String> blacklist) {
     logger.debug("creating UdfClassLoader for {}", path);
     return AccessController.doPrivileged(
         (PrivilegedAction<UdfClassLoader>) () ->
-            new UdfClassLoader(path, toUrl(path), parentClassLoader, blacklister));
+            new UdfClassLoader(path, toUrl(path), parentClassLoader, blacklist));
 
   }
 
-  private static URL[] toUrl(Path path) {
+  private static URL[] toUrl(final Path path) {
     try {
       return new URL[]{path.toUri().toURL()};
     } catch (MalformedURLException e) {

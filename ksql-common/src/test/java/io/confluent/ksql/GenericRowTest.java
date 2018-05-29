@@ -16,22 +16,20 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class GenericRowTest {
 
-  Schema addressSchema = SchemaBuilder.struct()
+  private final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER",Schema.INT64_SCHEMA)
       .field("STREET", Schema.STRING_SCHEMA)
       .field("CITY", Schema.STRING_SCHEMA)
@@ -39,41 +37,29 @@ public class GenericRowTest {
       .field("ZIPCODE", Schema.INT64_SCHEMA)
       .build();
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldPrintRowCorrectly() {
-    List columns = new ArrayList();
-    columns.add("StringColumn");
-    columns.add(1);
-    columns.add(100000l);
-    columns.add(true);
-    columns.add(1.23);
-
-    Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
-
-
-    columns.add(Arrays.asList(prices));
-
-    Map<String, Double> map = new HashMap<>();
-    map.put("key1", 100.0);
-    map.put("key2", 200.0);
-    map.put("key3", 300.0);
-    columns.add(map);
-
-
-    Struct address = new Struct(addressSchema);
-    address.put("NUMBER", 101l);
+    final Struct address = new Struct(addressSchema);
+    address.put("NUMBER", 101L);
     address.put("STREET", "University Ave.");
     address.put("CITY", "Palo Alto");
     address.put("STATE", "CA");
-    address.put("ZIPCODE", 94301l);
+    address.put("ZIPCODE", 94301L);
 
-    columns.add(address);
+    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+        "StringColumn", 1, 100000L, true, 1.23,
+        ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0),
+        ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0),
+        address));
 
-    GenericRow genericRow = new GenericRow(columns);
+    final String rowString = genericRow.toString();
 
-    String rowString = genericRow.toString();
-
-    Assert.assertThat(rowString, CoreMatchers.equalTo("[ 'StringColumn' | 1 | 100000 | true | 1.23 | [10.0, 20.0, 30.0, 40.0, 50.0] | {key1=100.0, key2=200.0, key3=300.0} | Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
+    assertThat(rowString, equalTo(
+        "[ 'StringColumn' | 1 | 100000 | true | 1.23 |"
+        + " [10.0, 20.0, 30.0, 40.0, 50.0] |"
+        + " {key1=100.0, key2=200.0, key3=300.0} |"
+        + " Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
 
   }
 

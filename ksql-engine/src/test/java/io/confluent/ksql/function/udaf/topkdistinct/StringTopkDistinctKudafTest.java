@@ -16,81 +16,83 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkDistinctKudafTest {
 
-  ArrayList<String> valueArray;
+  List<String> valueArray;
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = new ArrayList(Arrays.asList("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
-                                             "25","60", "80"));
+    valueArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
+                                  "25", "60", "80");
 
   }
 
   @Test
   public void shouldAggregateTopK() {
-    ArrayList<String> currentVal = new ArrayList();
+    List<String> currentVal = new ArrayList();
     for (String d: valueArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new ArrayList(Arrays.asList("80", "60",
-                                                                                   "50"))));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("80", "60", "50")));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    ArrayList<String> currentVal = new ArrayList();
+    List<String> currentVal = new ArrayList();
     currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new ArrayList(Arrays.asList("80"))));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("80")));
   }
 
   @Test
   public void shouldMergeTopK() {
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45", "25"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60", "50", "48"));
+    List<String> array1 = ImmutableList.of("50", "45", "25");
+    List<String> array2 = ImmutableList.of("60", "50", "48");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new ArrayList(Arrays.asList("60", "50", "48"))));
+        ImmutableList.of("60", "50", "48")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
+    List<String> array1 = ImmutableList.of("50", "45");
+    List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new ArrayList(Arrays.asList("60", "50", "45"))));
+        ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("50", "45"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60", "50"));
+    List<String> array1 = ImmutableList.of("50", "45");
+    List<String> array2 = ImmutableList.of("60", "50");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new ArrayList(Arrays.asList("60", "50", "45"))));
+        ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    ArrayList<String> array1 = new ArrayList(Arrays.asList("60"));
-    ArrayList<String> array2 = new ArrayList(Arrays.asList("60"));
+    List<String> array1 = ImmutableList.of("60");
+    List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new ArrayList(Arrays.asList("60"))));
+        ImmutableList.of("60")));
   }
 }

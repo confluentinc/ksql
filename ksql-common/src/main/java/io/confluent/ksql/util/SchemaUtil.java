@@ -23,8 +23,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -75,9 +73,9 @@ public class SchemaUtil {
       case FLOAT64:
         return Double.class;
       case ARRAY:
-        return ArrayList.class;
+        return List.class;
       case MAP:
-        return HashMap.class;
+        return Map.class;
       case STRUCT:
         return Struct.class;
       default:
@@ -220,19 +218,9 @@ public class SchemaUtil {
       return "MAP[" + describeSchema(schema.keySchema()) + ","
              + describeSchema(schema.valueSchema()) + "]";
     } else if (schema.type() == Schema.Type.STRUCT) {
-      StringBuilder stringBuilder = new StringBuilder("STRUCT < ");
-      boolean addComma = false;
-      for (Field structField: schema.fields()) {
-        if (addComma) {
-          stringBuilder.append(", ");
-        } else {
-          addComma = true;
-        }
-        stringBuilder
-            .append("\n\t " + structField.name() + " " + describeSchema(structField.schema()));
-      }
-      stringBuilder.append("\n >");
-      return stringBuilder.toString();
+      return schema.fields().stream()
+          .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
+          .collect(Collectors.joining(", ", "STRUCT <", ">"));
     } else {
       return TYPE_MAP.get(schema.type().name());
     }
@@ -295,20 +283,9 @@ public class SchemaUtil {
   }
 
   public static String getSchemaDefinitionString(Schema schema) {
-    StringBuilder stringBuilder = new StringBuilder("[");
-    boolean addComma = false;
-    for (Field field : schema.fields()) {
-      if (addComma) {
-        stringBuilder.append(" , ");
-      } else {
-        addComma = true;
-      }
-      stringBuilder.append(field.name())
-          .append(" : ")
-          .append(field.schema().type());
-    }
-    stringBuilder.append("]");
-    return stringBuilder.toString();
+    return schema.fields().stream()
+        .map(field -> field.name() + " : " + getSqlTypeName(field.schema()))
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   public static String getSqlTypeName(Schema schema) {
@@ -339,19 +316,11 @@ public class SchemaUtil {
     }
   }
 
-  private static String getStructString(Schema schema) {
-    StringBuilder structString = new StringBuilder("STRUCT <");
-    boolean addComma = false;
-    for (Field field: schema.fields()) {
-      if (addComma) {
-        structString.append(", ");
-      } else {
-        addComma = true;
-      }
-      structString.append(field.name() + " " + getSqlTypeName(field.schema()));
-    }
-    structString.append(">");
-    return structString.toString();
+  private static String getStructString(final Schema schema) {
+
+    return schema.fields().stream()
+        .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
+        .collect(Collectors.joining(", ", "STRUCT <", ">"));
   }
 
   public static String buildAvroSchema(final Schema schema, String name) {
@@ -440,21 +409,6 @@ public class SchemaUtil {
       }
     }
     return true;
-  }
-
-  public static String schemaString(Schema schema) {
-    StringBuilder stringBuilder = new StringBuilder("[ ");
-    boolean addComma = false;
-    for (Field field : schema.fields()) {
-      if (addComma) {
-        stringBuilder.append(", ");
-      } else {
-        addComma = true;
-      }
-      stringBuilder.append(String.format("(%s : %s)", field.name(), field.schema()));
-    }
-    stringBuilder.append("]");
-    return stringBuilder.toString();
   }
 
   public static int getIndexInSchema(final String fieldName, final Schema schema) {

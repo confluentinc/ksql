@@ -36,12 +36,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 
 public class KsqlJsonSerializerTest {
 
-  Schema orderSchema;
+  private Schema orderSchema;
 
-  Schema addressSchema;
+  private Schema addressSchema;
 
-  Schema itemSchema;
-  Schema categorySchema;
+  private Schema itemSchema;
+  private Schema categorySchema;
 
 
   @Before
@@ -123,10 +123,10 @@ public class KsqlJsonSerializerTest {
     columns.add(Long.valueOf(currentTime));
 
     //orderid
-    columns.add(10l);
+    columns.add(10L);
     //itemid
     Struct category = new Struct(categorySchema);
-    category.put("ID", Math.random() > 0.5 ? 1l: 2l);
+    category.put("ID", Math.random() > 0.5 ? 1L: 2L);
     category.put("NAME", Math.random() > 0.5 ? "Produce": "Food");
 
     Struct item = new Struct(itemSchema);
@@ -153,11 +153,11 @@ public class KsqlJsonSerializerTest {
 
 
     Struct address = new Struct(addressSchema);
-    address.put("NUMBER", 101l);
+    address.put("NUMBER", 101L);
     address.put("STREET", "University Ave.");
     address.put("CITY", "Palo Alto");
     address.put("STATE", "CA");
-    address.put("ZIPCODE", 94301l);
+    address.put("ZIPCODE", 94301L);
 
     columns.add(address);
 

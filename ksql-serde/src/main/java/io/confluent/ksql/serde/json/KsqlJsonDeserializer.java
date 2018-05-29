@@ -46,6 +46,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   private ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
+  private final JsonConverter jsonConverter;
 
   /**
    * Default constructor needed by Kafka
@@ -56,7 +57,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     } else {
       this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
     }
-
+    jsonConverter = new JsonConverter();
+    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
   }
 
   @Override
@@ -83,8 +85,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
 
-    JsonConverter jsonConverter = new JsonConverter();
-    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
     Map valueMap = (Map) schemaAndValue.value();
 
@@ -137,7 +137,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         Map<String, String> caseInsensitiveFieldNameMap =
             getCaseInsensitiveFieldNameMap(fieldSchema.fields());
         fieldSchema.fields()
-            .stream()
             .forEach(
                 field -> columnStruct.put(field.name(),
                                           enforceFieldType(
@@ -153,7 +152,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Map<String, String> getCaseInsensitiveFieldNameMap(List<Field> fields) {
     Map<String, String> fieldNameMap = new HashMap<>();
-    fields.stream().forEach(field -> fieldNameMap.put(field.name().toUpperCase(), field.name()));
+    fields.forEach(field -> fieldNameMap.put(field.name().toUpperCase(), field.name()));
     return fieldNameMap;
   }
 

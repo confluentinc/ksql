@@ -193,7 +193,7 @@ public class PhysicalPlanBuilder {
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
         builder.build(),
@@ -225,7 +225,7 @@ public class PhysicalPlanBuilder {
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
-                  + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+              + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed()
           );
     } else {
@@ -300,8 +300,8 @@ public class PhysicalPlanBuilder {
         throw new KsqlException(String.format("Incompatible schema between results and sink. "
                                               + "Result schema is %s, but the sink schema is %s"
                                               + ".",
-                                              SchemaUtil.schemaString(resultSchema),
-                                              SchemaUtil.schemaString(
+                                              SchemaUtil.getSchemaDefinitionString(resultSchema),
+                                              SchemaUtil.getSchemaDefinitionString(
                                                   SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
                                                       structuredDataSource.getSchema()))));
       }

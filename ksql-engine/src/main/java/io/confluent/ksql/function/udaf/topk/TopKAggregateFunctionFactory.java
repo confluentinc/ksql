@@ -46,7 +46,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
     Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:
-        return new TopkKudaf<>(
+        return new TopkKudaf(
             functionName,
             -1,
             topKSize,
@@ -54,7 +54,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
             Collections.singletonList(Schema.INT32_SCHEMA),
             Integer.class);
       case INT64:
-        return new TopkKudaf<>(
+        return new TopkKudaf(
             functionName,
             -1,
             topKSize,
@@ -62,7 +62,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
             Collections.singletonList(Schema.INT64_SCHEMA),
             Long.class);
       case FLOAT64:
-        return new TopkKudaf<>(
+        return new TopkKudaf(
             functionName,
             -1,
             topKSize,
@@ -70,7 +70,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
             Collections.singletonList(Schema.FLOAT64_SCHEMA),
             Double.class);
       case STRING:
-        return new TopkKudaf<>(
+        return new TopkKudaf(
             functionName,
             -1,
             topKSize,

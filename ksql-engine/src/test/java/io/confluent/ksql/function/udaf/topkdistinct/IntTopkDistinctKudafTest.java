@@ -34,83 +34,79 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkDistinctKudafTest {
 
-  private ArrayList<Integer> valueArray;
+  private List<Integer> valueArray;
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
       TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = new ArrayList<Integer>(Arrays.asList(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
-                                                      60, 80));
+    valueArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
+                                  60, 80);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    ArrayList<Integer> currentVal = new ArrayList<Integer>();
+    List<Integer> currentVal = new ArrayList<Integer>();
     for (Integer d : valueArray) {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(Arrays.asList(80, 60, 50))));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(ImmutableList.of(80,
+                                                                                               60, 50))));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    ArrayList<Integer> currentVal = new ArrayList<Integer>();
+    List<Integer> currentVal = new ArrayList<Integer>();
     currentVal = intTopkDistinctKudaf.aggregate(80, currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(Arrays.asList(80))));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(80)));
   }
 
   @Test
   public void shouldMergeTopK() {
-    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45, 25));
-    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60, 50, 48));
+    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45, 25));
+    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60, 50, 48));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
-               equalTo(
-                   new ArrayList<Integer>(Arrays.asList(60, 50, 48))));
+               equalTo(ImmutableList.of(60, 50, 48)));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45));
-    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60));
+    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45));
+    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
-               equalTo(
-                   new ArrayList<Integer>(Arrays.asList(60, 50, 45))));
+               equalTo(ImmutableList.of(60, 50, 45)));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(50, 45));
-    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60, 50));
+    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45));
+    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60, 50));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
-               equalTo(
-                   new ArrayList<Integer>(Arrays.asList(60, 50, 45))));
+               equalTo(ImmutableList.of(60, 50, 45)));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    ArrayList<Integer> array1 = new ArrayList<Integer>(Arrays.asList(60));
-    ArrayList<Integer> array2 = new ArrayList<Integer>(Arrays.asList(60));
+    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(60));
+    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60));
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
-                   new ArrayList<Integer>(Arrays.asList(60))));
+                   new ArrayList<Integer>(ImmutableList.of(60))));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    ArrayList<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<Integer>());
+    List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<Integer>());
     assertThat(aggregate, equalTo(new ArrayList<Integer>(Arrays.asList(1))));
-    ArrayList<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, new ArrayList<Integer>(Arrays
-                                                                                             .asList
-                                                                                                 (1)));
-    assertThat(agg2, equalTo(new ArrayList<Integer>(Arrays.asList(100, 1))));
+    List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, ImmutableList.of(1));
+    assertThat(agg2, equalTo(new ArrayList<Integer>(ImmutableList.of(100, 1))));
   }
 
   @SuppressWarnings("unchecked")
@@ -123,11 +119,10 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
     // When:
-    final ArrayList<Integer> result = IntStream.range(0, 4)
+    final List<Integer> result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
-          ArrayList<Integer> aggregate = new ArrayList<Integer>(Arrays.asList(1, 1, 1, 1, 1, 1,
-                                                                              1, 1, 1, 1, 1, 1));
+          List<Integer> aggregate = ImmutableList.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
           for (int value : values) {
             aggregate = intTopkDistinctKudaf.aggregate(value + threadNum, aggregate);
@@ -138,7 +133,7 @@ public class IntTopkDistinctKudafTest {
         .orElse(new ArrayList<Integer>());
 
     // Then:
-    assertThat(result, is(Arrays.asList(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
+    assertThat(result, is(ImmutableList.of(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
   }
 
   @SuppressWarnings("unchecked")

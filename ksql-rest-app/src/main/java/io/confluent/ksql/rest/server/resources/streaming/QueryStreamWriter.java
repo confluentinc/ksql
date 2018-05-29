@@ -54,7 +54,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final KsqlEngine ksqlEngine;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
-  private KsqlJsonSerializer jsonSerializer;
+  private final KsqlJsonSerializer jsonSerializer;
 
   QueryStreamWriter(
       KsqlEngine ksqlEngine,

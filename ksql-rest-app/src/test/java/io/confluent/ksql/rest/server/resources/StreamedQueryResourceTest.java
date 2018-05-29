@@ -239,7 +239,7 @@ public class StreamedQueryResourceTest {
         synchronized (writtenRows) {
           expectedRow = writtenRows.poll();
         }
-        GenericRow testRow = new JsonUtil().buildGenericRowFromJson(responseLine);
+        GenericRow testRow = JsonUtil.buildGenericRowFromJson(responseLine);
         assertEquals(expectedRow, testRow);
       }
     }

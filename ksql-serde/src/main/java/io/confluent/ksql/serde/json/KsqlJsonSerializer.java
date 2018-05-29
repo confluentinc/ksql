@@ -36,12 +36,15 @@ import java.util.Map;
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
 
   private final Schema schema;
+  private final JsonConverter jsonConverter;
 
   /**
    * Default constructor needed by Kafka
    */
   public KsqlJsonSerializer(Schema schema) {
     this.schema = makeOptional(schema);
+    jsonConverter = new JsonConverter();
+    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
   }
 
   @SuppressWarnings("unchecked")
@@ -67,8 +70,6 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
 
       }
 
-      JsonConverter jsonConverter = new JsonConverter();
-      jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
       byte[] serialized = jsonConverter.fromConnectData(topic, schema, struct);
       return serialized;
     } catch (Exception e) {
@@ -96,7 +97,6 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       case STRUCT:
         SchemaBuilder schemaBuilder = new SchemaBuilder(Schema.Type.STRUCT);
         schema.fields()
-            .stream()
             .forEach(field -> schemaBuilder.field(field.name(), makeOptional(field.schema())));
         return schemaBuilder.optional().build();
       default:
@@ -106,6 +106,9 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
 
   /**
    * Temporary work around until schema comparison is fixed.
+   * Currently, when we put a value in a struct the schema object should match too
+   * however, although the schemas are the same but the objects do not match.
+   * This is to overcome this problem.
    *
    */
   private Struct updateStructSchema(Struct struct, Schema schema) {

@@ -451,7 +451,7 @@ INSERT INTO
 
     INSERT INTO stream_name
       SELECT select_expr [., ...]
-      FROM from_item
+      FROM from_stream
       [ WHERE condition ]
       [ PARTITION BY column_name ];
 

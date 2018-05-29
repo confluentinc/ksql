@@ -141,8 +141,6 @@ public class KsqlJsonSerializerTest {
 
     Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
 
-
-//      columns.add(prices);
     columns.add(Arrays.asList(prices));
 
     Map<String, Double> map = new HashMap<>();

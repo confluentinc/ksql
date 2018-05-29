@@ -23,39 +23,28 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.concurrent.TimeUnit;
 
-public class PollingSubscription<T> implements Flow.Subscription {
+public abstract class PollingSubscription<T> implements Flow.Subscription {
 
   private static final int BACKOFF_DELAY_MS = 100;
 
-  public interface Pollable<T> {
-
-    Schema getSchema();
-
-    T poll();
-
-    boolean hasError();
-
-    Throwable getError();
-
-    void close();
-  }
-
   private final Flow.Subscriber<T> subscriber;
   private final ListeningScheduledExecutorService exec;
-  private final Pollable<T> pollable;
+  private final Schema schema;
 
   private boolean needsSchema = true;
+  private volatile boolean done = false;
+  private Throwable exception = null;
   private boolean draining = false;
   private volatile ListenableFuture future;
 
   public PollingSubscription(
       ListeningScheduledExecutorService exec,
       Flow.Subscriber<T> subscriber,
-      Pollable<T> pollable
+      Schema schema
   ) {
     this.exec = exec;
     this.subscriber = subscriber;
-    this.pollable = pollable;
+    this.schema = schema;
   }
 
   @Override
@@ -63,36 +52,53 @@ public class PollingSubscription<T> implements Flow.Subscription {
     if (future != null) {
       future.cancel(false);
     }
-    exec.submit(pollable::close);
+    exec.submit(this::close);
   }
 
   @Override
   public void request(long n) {
     if (needsSchema) {
-      final Schema schema = pollable.getSchema();
       if (schema != null) {
         subscriber.onSchema(schema);
       }
       needsSchema = false;
     }
-    // check draining status since request can be reentrant
+    // check status since request can be reentrant
     if (!draining) {
       future = exec.submit(() -> {
 
-        if (pollable.hasError()) {
+        if (done) {
           draining = true;
         }
-        T item = pollable.poll();
+        T item = poll();
         if (item == null) {
           future = exec.schedule(() -> request(1), BACKOFF_DELAY_MS, TimeUnit.MILLISECONDS);
         } else {
           subscriber.onNext(item);
         }
         if (draining) {
-          pollable.close();
-          subscriber.onError(pollable.getError());
+          close();
+          if (exception != null) {
+            subscriber.onError(exception);
+          } else {
+            subscriber.onComplete();
+          }
         }
       });
     }
   }
+
+
+  protected void setError(Throwable e) {
+    exception = e;
+    done = true;
+  }
+
+  protected void setDone() {
+    done = true;
+  }
+
+  abstract T poll();
+
+  abstract void close();
 }

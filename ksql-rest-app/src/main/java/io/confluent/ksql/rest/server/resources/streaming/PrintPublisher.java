@@ -24,7 +24,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.resources.streaming.PollingSubscription.Pollable;
+import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 
 public class PrintPublisher implements Flow.Publisher<Collection<String>> {
@@ -46,9 +45,6 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
   private final String topicName;
   private final boolean fromBeginning;
   private final Map<String, Object> consumerProperties;
-
-  private boolean closed = false;
-  private KafkaConsumer<String, Bytes> topicConsumer;
 
   public PrintPublisher(
       ListeningScheduledExecutorService exec,
@@ -66,7 +62,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 
   @Override
   public void subscribe(Flow.Subscriber<Collection<String>> subscriber) {
-    this.topicConsumer = new KafkaConsumer<>(
+    KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
         consumerProperties,
         new StringDeserializer(),
         new BytesDeserializer()
@@ -82,55 +78,53 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     if (fromBeginning) {
       topicConsumer.seekToBeginning(topicPartitions);
     }
-    subscriber.onSubscribe(new PollingSubscription<>(
-        exec,
-        subscriber,
-        new Pollable<Collection<String>>() {
-          Throwable error;
-          RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
 
-          @Override
-          public Schema getSchema() {
-            return null;
-          }
-
-          @Override
-          public Collection<String> poll() {
-            try {
-              ConsumerRecords<String, Bytes> records = topicConsumer.poll(0);
-              if (records.isEmpty()) {
-                return null;
-              }
-              return formatter.format(records);
-            } catch (Exception e) {
-              error = e;
-              return null;
-            }
-          }
-
-          @Override
-          public boolean hasError() {
-            return error != null;
-          }
-
-          @Override
-          public Throwable getError() {
-            return error;
-          }
-
-          @Override
-          public void close() {
-            PrintPublisher.this.close();
-          }
-        }
-    ));
+    subscriber.onSubscribe(
+        new PrintSubscription(
+            subscriber,
+            topicConsumer,
+            new RecordFormatter(schemaRegistryClient, topicName)
+        )
+    );
   }
 
-  public synchronized void close() {
-    if (!closed) {
-      log.info("Closing consumer for topic {}", topicName);
-      closed = true;
-      topicConsumer.close();
+  class PrintSubscription extends PollingSubscription<Collection<String>> {
+
+    private final KafkaConsumer<String, Bytes> topicConsumer;
+    private final RecordFormatter formatter;
+    private boolean closed = false;
+
+    PrintSubscription(
+        Subscriber<Collection<String>> subscriber,
+        KafkaConsumer<String, Bytes> topicConsumer,
+        RecordFormatter formatter
+    ) {
+      super(exec, subscriber, null);
+      this.topicConsumer = topicConsumer;
+      this.formatter = formatter;
+    }
+
+    @Override
+    public Collection<String> poll() {
+      try {
+        ConsumerRecords<String, Bytes> records = topicConsumer.poll(0);
+        if (records.isEmpty()) {
+          return null;
+        }
+        return formatter.format(records);
+      } catch (Exception e) {
+        setError(e);
+        return null;
+      }
+    }
+
+    @Override
+    public synchronized void close() {
+      if (!closed) {
+        log.info("Closing consumer for topic {}", topicName);
+        closed = true;
+        topicConsumer.close();
+      }
     }
   }
 }

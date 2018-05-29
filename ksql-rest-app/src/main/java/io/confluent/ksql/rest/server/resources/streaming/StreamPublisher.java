@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +26,12 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.streaming.PollingSubscription.Pollable;
+import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
 public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
@@ -42,10 +42,6 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
   private final String queryString;
   private final Map<String, Object> clientLocalProperties;
   private final ListeningScheduledExecutorService exec;
-
-  private boolean closed = false;
-  private QueuedQueryMetadata queryMetadata;
-  private volatile Throwable error;
 
   public StreamPublisher(
       KsqlEngine ksqlEngine,
@@ -61,63 +57,57 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
 
   @Override
   public synchronized void subscribe(Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    if (queryMetadata != null) {
-      throw new IllegalStateException("already subscribed");
-    }
-
-    queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
+    QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
         queryString,
         clientLocalProperties
     ).get(0);
 
-    queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(
-        (thread, e) -> error = e
-    );
+    StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
+
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
     queryMetadata.getKafkaStreams().start();
 
-    subscriber.onSubscribe(
-        new PollingSubscription<>(exec, subscriber, new Pollable<Collection<StreamedRow>>() {
-          @Override
-          public Schema getSchema() {
-            return queryMetadata.getResultSchema();
-          }
-
-          @Override
-          public Collection<StreamedRow> poll() {
-            List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
-            queryMetadata.getRowQueue().drainTo(rows);
-            if (rows.isEmpty()) {
-              return null;
-            } else {
-              return Lists.transform(rows, row -> new StreamedRow(row.value));
-            }
-          }
-
-          @Override
-          public boolean hasError() {
-            return error != null;
-          }
-
-          @Override
-          public Throwable getError() {
-            return error;
-          }
-
-          @Override
-          public void close() {
-            StreamPublisher.this.close();
-          }
-        })
-    );
+    subscriber.onSubscribe(subscription);
   }
 
-  private synchronized void close() {
-    if (!closed) {
-      closed = true;
-      log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-      queryMetadata.close();
-      ksqlEngine.removeTemporaryQuery(queryMetadata);
+  class StreamSubscription extends PollingSubscription<Collection<StreamedRow>> {
+
+    private final QueuedQueryMetadata queryMetadata;
+    private boolean closed = false;
+
+    StreamSubscription(
+        Subscriber<Collection<StreamedRow>> subscriber,
+        QueuedQueryMetadata queryMetadata
+    ) {
+      super(exec, subscriber, queryMetadata.getResultSchema());
+      this.queryMetadata = queryMetadata;
+
+      queryMetadata.setLimitHandler(this::setDone);
+      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(
+          (thread, e) -> setError(e)
+      );
+    }
+
+    @Override
+    public Collection<StreamedRow> poll() {
+      List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
+      queryMetadata.getRowQueue().drainTo(rows);
+      if (rows.isEmpty()) {
+        return null;
+      } else {
+        return rows.stream().map(row -> StreamedRow.row(row.value))
+            .collect(Collectors.toCollection(Lists::newLinkedList));
+      }
+    }
+
+    @Override
+    public synchronized void close() {
+      if (!closed) {
+        closed = true;
+        log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
+        queryMetadata.close();
+        ksqlEngine.removeTemporaryQuery(queryMetadata);
+      }
     }
   }
 }

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.generic.GenericData;
@@ -63,7 +64,7 @@ import io.confluent.ksql.util.QueryMetadata;
 @Ignore
 public class EndToEndEngineTest {
 
-  private final MetaStore metaStore = new MetaStoreImpl();
+  private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
   private final Map<String, Object> config = new HashMap<String, Object>() {{
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     put("application.id", "KSQL-TEST");

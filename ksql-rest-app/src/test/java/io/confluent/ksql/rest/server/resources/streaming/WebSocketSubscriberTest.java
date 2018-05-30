@@ -43,24 +43,32 @@ import static org.junit.Assert.assertEquals;
 
 public class WebSocketSubscriberTest {
 
-  @Test
-  public void testSanity() throws Exception {
-    Session session = EasyMock.mock(Session.class);
-    Async async = EasyMock.mock(Async.class);
+  private static final ObjectMapper mapper = new ObjectMapper();
 
-    WebSocketSubscriber<Map<String, Object>> subscriber = new WebSocketSubscriber<>(session, new ObjectMapper());
+  static {
+    new SchemaMapper().registerToObjectMapper(mapper);
+  }
 
-    Subscription subscription = EasyMock.mock(Subscription.class);
+  private final Subscription subscription = EasyMock.mock(Subscription.class);
+  private final Session session = EasyMock.mock(Session.class);
+  private final Async async = EasyMock.mock(Async.class);
+  private final Basic basic = EasyMock.mock(Basic.class);
+  private final WebSocketSubscriber<Map<String, Object>> subscriber =
+      new WebSocketSubscriber<>(session, mapper);
 
+  private void replayOnSubscribe() {
     subscription.request(1);
     EasyMock.expectLastCall().once();
+
     EasyMock.replay(subscription);
-
     subscriber.onSubscribe(subscription);
-
     EasyMock.verify(subscription);
+    EasyMock.reset(subscription);
+  }
 
-    EasyMock.reset(subscription, session, async);
+  @Test
+  public void testSanity() throws Exception {
+    replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
     Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
@@ -84,19 +92,8 @@ public class WebSocketSubscriberTest {
   }
 
   @Test
-  public void testStopSendingAfterClose() throws Exception {
-    Session session = EasyMock.mock(Session.class);
-    Async async = EasyMock.mock(Async.class);
-
-    WebSocketSubscriber<Map<String, Object>> subscriber = new WebSocketSubscriber<>(session, new ObjectMapper());
-    Subscription subscription = EasyMock.mock(Subscription.class);
-
-    subscription.request(1);
-    EasyMock.expectLastCall().once();
-    EasyMock.replay(subscription);
-    subscriber.onSubscribe(subscription);
-    EasyMock.verify(subscription);
-    EasyMock.reset(subscription, session, async);
+  public void testStopSendingAfterClose() {
+    replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
     Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
@@ -116,21 +113,7 @@ public class WebSocketSubscriberTest {
 
   @Test
   public void testOnSchema() throws Exception {
-    Session session = EasyMock.mock(Session.class);
-    Basic basic = EasyMock.mock(Basic.class);
-    ObjectMapper mapper = new ObjectMapper();
-    new SchemaMapper().registerToObjectMapper(mapper);
-
-    WebSocketSubscriber<Map<String, Object>> subscriber = new WebSocketSubscriber<>(session, mapper);
-    Subscription subscription = EasyMock.mock(Subscription.class);
-
-    subscription.request(1);
-    EasyMock.expectLastCall().once();
-
-    EasyMock.replay(subscription);
-    subscriber.onSubscribe(subscription);
-    EasyMock.verify(subscription);
-    EasyMock.reset(subscription);
+    replayOnSubscribe();
 
     session.getBasicRemote();
     EasyMock.expectLastCall().andReturn(basic).once();
@@ -156,20 +139,7 @@ public class WebSocketSubscriberTest {
 
   @Test
   public void testOnError() throws Exception {
-    Session session = EasyMock.mock(Session.class);
-    ObjectMapper mapper = new ObjectMapper();
-    new SchemaMapper().registerToObjectMapper(mapper);
-
-    WebSocketSubscriber<Map<String, Object>> subscriber = new WebSocketSubscriber<>(session, mapper);
-    Subscription subscription = EasyMock.mock(Subscription.class);
-
-    subscription.request(1);
-    EasyMock.expectLastCall().once();
-
-    EasyMock.replay(subscription);
-    subscriber.onSubscribe(subscription);
-    EasyMock.verify(subscription);
-    EasyMock.reset(subscription);
+    replayOnSubscribe();
 
     Capture<CloseReason> reason = EasyMock.newCapture();
     EasyMock.expect(session.getId()).andReturn("abc123").once();

@@ -27,6 +27,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +108,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     @Override
     public Collection<String> poll() {
       try {
-        ConsumerRecords<String, Bytes> records = topicConsumer.poll(0);
+        ConsumerRecords<String, Bytes> records = topicConsumer.poll(Duration.ZERO);
         if (records.isEmpty()) {
           return null;
         }

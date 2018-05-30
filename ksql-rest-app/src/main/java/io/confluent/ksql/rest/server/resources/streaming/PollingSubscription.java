@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
@@ -57,6 +58,8 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
 
   @Override
   public void request(long n) {
+    Preconditions.checkArgument(n == 1, "number of requested items must be 1");
+
     if (needsSchema) {
       if (schema != null) {
         subscriber.onSchema(schema);

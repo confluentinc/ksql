@@ -276,4 +276,16 @@ public class PollingSubscriptionTest {
     assertNull(testSubscriber.error);
     assertEquals(ImmutableList.of(), testSubscriber.elements);
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testExpectsNEqualsOne() {
+    TestSubscriber testSubscriber = new TestSubscriber() {
+      @Override
+      public void onSubscribe(Subscription subscription) {
+        subscription.request(2);
+      }
+    };
+    TestPublisher testPublisher = new TestPublisher();
+    testPublisher.subscribe(testSubscriber);
+  }
 }

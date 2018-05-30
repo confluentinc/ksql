@@ -54,6 +54,8 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   @Override
   public void onNext(Collection<T> rows) {
     for (T row : rows) {
+      // check if session is closed inside the loop to avoid
+      // logging too many async callback errors after close
       if (!closed) {
         try {
           String buffer = mapper.writeValueAsString(row);
@@ -73,7 +75,9 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
         }
       }
     }
-    subscription.request(1);
+    if (!closed) {
+      subscription.request(1);
+    }
   }
 
   @Override

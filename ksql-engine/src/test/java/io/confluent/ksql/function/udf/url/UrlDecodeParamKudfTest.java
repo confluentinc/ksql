@@ -18,20 +18,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import org.junit.Before;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-public class UrlDecodeKudfTest {
+public class UrlDecodeParamKudfTest {
 
-  private static final String inputEncodedValue = "%3Ffoo+%24bar";
-  private static final String inputSpecialChars = "foo.-*_bar";
-
-  private UrlDecodeKudf decodeUdf;
+  private UrlDecodeParamKudf decodeUdf;
 
   @Before
   public void setUp() {
-    decodeUdf = new UrlDecodeKudf();
+    decodeUdf = new UrlDecodeParamKudf();
   }
 
   @Rule
@@ -39,18 +36,17 @@ public class UrlDecodeKudfTest {
 
   @Test
   public void shouldDecodeEncodedValue() {
-    assertEquals("?foo $bar", decodeUdf.evaluate(inputEncodedValue));
+    assertThat(decodeUdf.evaluate("%3Ffoo+%24bar"), equalTo("?foo $bar"));
   }
 
   @Test
   public void shouldReturnSpecialCharsIntact() {
-    //the characters of ". - * _" should all pass through as-is
-    assertEquals(inputSpecialChars, decodeUdf.evaluate(inputSpecialChars));
+    assertThat(".-*_ should all pass through without being encoded", decodeUdf.evaluate("foo.-*_bar"), equalTo("foo.-*_bar"));
   }
 
   @Test
   public void shouldReturnEmptyStringForEmptyInput() {
-    assertEquals("", decodeUdf.evaluate(""));
+    assertThat(decodeUdf.evaluate(""), equalTo(""));
   }
 
   @Test

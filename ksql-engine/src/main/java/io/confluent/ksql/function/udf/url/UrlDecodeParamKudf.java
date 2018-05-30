@@ -16,7 +16,6 @@ package io.confluent.ksql.function.udf.url;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
@@ -24,17 +23,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 
 
-public class UrlDecodeKudf implements Kudf {
+public class UrlDecodeParamKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 1) {
       throw new KsqlFunctionException("url_decode udf requires one input argument.");
     }
     try {
       return URLDecoder.decode(args[0].toString(), UTF_8.name());
-    } catch (UnsupportedEncodingException e) {
-      throw new AssertionError(e);
+    } catch (final UnsupportedEncodingException e) {
+      throw new KsqlFunctionException("url_decode udf encountered an encoding exception", e);
     }
   }
 }

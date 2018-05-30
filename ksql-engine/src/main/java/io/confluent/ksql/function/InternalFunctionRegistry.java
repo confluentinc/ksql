@@ -36,8 +36,8 @@ import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.SubstringKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
-import io.confluent.ksql.function.udf.url.UrlDecodeKudf;
-import io.confluent.ksql.function.udf.url.UrlEncodeKudf;
+import io.confluent.ksql.function.udf.url.UrlDecodeParamKudf;
+import io.confluent.ksql.function.udf.url.UrlEncodeParamKudf;
 import io.confluent.ksql.function.udf.url.UrlExtractFragmentKudf;
 import io.confluent.ksql.function.udf.url.UrlExtractHostKudf;
 import io.confluent.ksql.function.udf.url.UrlExtractParameterKudf;
@@ -195,13 +195,13 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   private void initUrlFunctions() {
-    KsqlFunction urlEncode = new KsqlFunction(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.STRING_SCHEMA), "url_encode", UrlEncodeKudf.class);
-    addFunction(urlEncode);
+    KsqlFunction urlEncodeParam = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_encode_param", UrlEncodeParamKudf.class);
+    addFunction(urlEncodeParam);
 
-    KsqlFunction urlDecode = new KsqlFunction(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.STRING_SCHEMA), "url_decode", UrlDecodeKudf.class);
-    addFunction(urlDecode);
+    KsqlFunction urlDecodeParam = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_decode_param", UrlDecodeParamKudf.class);
+    addFunction(urlDecodeParam);
 
     KsqlFunction urlProtocol = new KsqlFunction(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.STRING_SCHEMA), "url_extract_protocol", UrlExtractProtocolKudf.class);

@@ -18,15 +18,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import org.junit.Before;
 
 public class UrlExtractParameterKudfTest {
-
-  private static final String inputUrl =
-      "https://docs.confluent.io/current/ksql/docs/syntax-reference.html?foo%20bar=baz&blank#scalar-functions";
-  private static final String bogusUrl = "http://257.1/bogus/[url";
 
   private UrlExtractParameterKudf extractUdf;
 
@@ -41,22 +38,22 @@ public class UrlExtractParameterKudfTest {
 
   @Test
   public void shouldExtractParamValueIfPresent() {
-    assertEquals("baz", extractUdf.evaluate(inputUrl, "foo bar"));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html?foo%20bar=baz&blank#scalar-functions", "foo bar"), equalTo("baz"));
   }
 
   @Test
   public void shouldReturnNullIfParamHasNoValue() {
-    assertNull(extractUdf.evaluate(inputUrl, "blank"));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html?foo%20bar=baz&blank#scalar-functions", "blank"), nullValue());
   }
 
   @Test
   public void shouldReturnNullIfParamNotPresent() {
-    assertNull(extractUdf.evaluate(inputUrl, "absent"));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html?foo%20bar=baz&blank#scalar-functions", "absent"), nullValue());
   }
 
   @Test
   public void shouldReturnNullForInvalidUrl() {
-    assertNull(extractUdf.evaluate(bogusUrl, "foo bar"));
+    assertThat(extractUdf.evaluate("http://257.1/bogus/[url", "foo bar"), nullValue());
   }
 
   @Test

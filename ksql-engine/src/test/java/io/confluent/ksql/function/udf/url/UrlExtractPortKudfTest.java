@@ -18,42 +18,37 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import org.junit.Before;
 
 public class UrlExtractPortKudfTest {
 
-  private static final String inputUrl =
-      "https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions";
-  private static final String bogusUrl = "http://257.1/bogus/[url";
-  private static final String inputUrlWithPort =
-      "https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions";
-
   private UrlExtractPortKudf extractUdf;
 
   @Before
-  public void setUp(){
+  public void setUp() {
     extractUdf = new UrlExtractPortKudf();
   }
-  
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
 
   @Test
   public void shouldExtractPortIfPresent() {
-    assertEquals(8080, extractUdf.evaluate(inputUrlWithPort));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo(8080));
   }
 
   @Test
   public void shouldReturnNullIfNoPort() {
-    assertNull(extractUdf.evaluate(inputUrl));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), nullValue());
   }
 
   @Test
   public void shouldReturnNullForInvalidUrl() {
-    assertNull(extractUdf.evaluate(bogusUrl));
+    assertThat(extractUdf.evaluate("http://257.1/bogus/[url"), nullValue());
   }
 
   @Test

@@ -19,14 +19,14 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
-public class UrlEncodeKudf implements Kudf {
+public class UrlEncodeParamKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 1) {
       throw new KsqlFunctionException("url_encode udf requires one input argument.");
     }
-    Escaper escaper = UrlEscapers.urlFormParameterEscaper();
+    final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
     return escaper.escape(args[0].toString());
   }
 }

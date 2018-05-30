@@ -18,17 +18,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import org.junit.Before;
 
 public class UrlExtractFragmentKudfTest {
-
-  private static final String inputUrl =
-      "https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions";
-  private static final String bogusUrl = "http://257.1/bogus/[url";
-  private static final String inputUrlNoFragment =
-      "https://docs.confluent.io/current/ksql/docs/syntax-reference.html";
 
   private UrlExtractFragmentKudf extractUdf;
 
@@ -43,17 +38,17 @@ public class UrlExtractFragmentKudfTest {
 
   @Test
   public void shouldExtractFragmentIfPresent() {
-    assertEquals("scalar-functions", extractUdf.evaluate(inputUrl));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("scalar-functions"));
   }
 
   @Test
   public void shouldReturnNullIfNoFragment() {
-    assertNull(extractUdf.evaluate(inputUrlNoFragment));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html"), nullValue());
   }
 
   @Test
   public void shouldReturnNullForInvalidUrl() {
-    assertNull(extractUdf.evaluate(bogusUrl));
+    assertThat(extractUdf.evaluate("http://257.1/bogus/[url"), nullValue());
   }
 
   @Test

@@ -23,7 +23,6 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -517,7 +516,7 @@ public class SqlToJavaVisitor {
         return new Pair<>(
             String.format("((%s) ((%s)%s).get((int)(%s)))",
                           SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
-                          List.class.getCanonicalName(),
+                          SchemaUtil.getJavaType(internalSchema).getCanonicalName(),
                           process(node.getBase(), unmangleNames).getLeft(),
                           process(node.getIndex(), unmangleNames).getLeft()
             ),
@@ -528,7 +527,7 @@ public class SqlToJavaVisitor {
         return new Pair<>(
             String.format("(%s ((%s)%s).get(%s))",
                           SchemaUtil.getJavaCastString(internalSchema.valueSchema()),
-                          Map.class.getCanonicalName(),
+                          SchemaUtil.getJavaType(internalSchema).getCanonicalName(),
                           process(node.getBase(), unmangleNames).getLeft(),
                           process(node.getIndex(), unmangleNames).getLeft()),
             schemaField.get().schema().valueSchema()

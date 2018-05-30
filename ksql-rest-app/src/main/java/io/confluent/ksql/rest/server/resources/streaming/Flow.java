@@ -19,7 +19,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * Flow constructs loosely borrowed from Java 9
+ * Flow constructs borrowed from Java 9
  * https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/Flow.Subscription.html
  */
 public class Flow {
@@ -32,6 +32,13 @@ public class Flow {
 
     void onComplete();
 
+    /**
+     * this method is an addition to the Java 9 API
+     *
+     * <p>onSchema may be called right before the first onNext call
+     * to describe the message format, in case the stream has a schema
+     * @param schema schema for upcoming messages
+     */
     void onSchema(Schema schema);
 
     void onSubscribe(Subscription subscription);

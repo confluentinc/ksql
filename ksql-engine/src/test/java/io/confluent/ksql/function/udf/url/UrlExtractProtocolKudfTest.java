@@ -18,17 +18,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import org.junit.Before;
 
 public class UrlExtractProtocolKudfTest {
-
-  private static final String inputUrl =
-      "https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions";
-  private static final String bogusUrl = "http://257.1/bogus/[url";
-  private static final String inputUrlNoProtocol =
-      "///current/ksql/docs/syntax-reference.html#scalar-functions";
 
   private UrlExtractProtocolKudf extractUdf;
 
@@ -43,17 +38,17 @@ public class UrlExtractProtocolKudfTest {
 
   @Test
   public void shouldExtractProtocolIfPresent() {
-    assertEquals("https", extractUdf.evaluate(inputUrl));
+    assertThat(extractUdf.evaluate("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("https"));
   }
 
   @Test
   public void shouldReturnNullIfNoProtocol() {
-    assertNull(extractUdf.evaluate(inputUrlNoProtocol));
+    assertThat(extractUdf.evaluate("///current/ksql/docs/syntax-reference.html#scalar-functions"), nullValue());
   }
 
   @Test
   public void shouldReturnNullForInvalidUrl() {
-    assertNull(extractUdf.evaluate(bogusUrl));
+    assertThat(extractUdf.evaluate("http://257.1/bogus/[url"), nullValue());
   }
 
   @Test

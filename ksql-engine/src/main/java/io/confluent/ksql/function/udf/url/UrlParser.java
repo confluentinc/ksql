@@ -17,12 +17,12 @@ package io.confluent.ksql.function.udf.url;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public abstract class UrlParser {
+class UrlParser {
 
-  URI parseUrl(String url) {
+  static URI parseUrl(final String url) {
     try {
       return new URI(url);
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       return null;
     }
   }

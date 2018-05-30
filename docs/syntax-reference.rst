@@ -895,11 +895,13 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| URL_DECODE             |  ``URL_DECODE(col1)``                                      | Unescapes the URL-encoded value in col1. This is  |
-|                        |                                                            | the inverse of the URL_ENCODE function.           |
+| URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                | Unescapes the URL-param-encoded value in col1.    |
+|                        |                                                            | This is the inverse of the URL_ENCODE function.   |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| URL_ENCODE             |  ``URL_ENCODE(col1)``                                      | Escapes the value of col1 such that it can safely |
-|                        |                                                            | be used in URL query parameters.                  |
+| URL_ENCODE_PARAM       |  ``URL_ENCODE_PARAM(col1)``                                | Escapes the value of col1 such that it can safely |
+|                        |                                                            | be used in URL query parameters. Note that this   |
+|                        |                                                            | is not the same as encoding a value for use in    |
+|                        |                                                            | the path portion of a URL.                        |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_FRAGMENT   |  ``URL_EXTRACT_FRAGMENT(url)``                             | Extract the fragment portion of the specified     |
 |                        |                                                            | value. Returns NULL if no fragment is present or  |
@@ -913,7 +915,9 @@ Scalar functions
 |                        |                                                            | the query-string of the url value. Returns NULL   |
 |                        |                                                            | if the parameter is not present, has no value     |
 |                        |                                                            | specified for it in the query-string, or the      |
-|                        |                                                            | input URL is not a valid URI.     |
+|                        |                                                            | input URL is not a valid URI.                     |
+|                        |                                                            | To get all the parameter names and values from a  |
+|                        |                                                            | URL as a single string, see URL_EXTRACT_QUERY.    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_PATH       |  ``URL_EXTRACT_PATH(url)``                                 | Extracts the path from the specified url value.   |
 |                        |                                                            | Returns NULL if the supplied value is not a valid |

@@ -18,14 +18,14 @@ import java.net.URI;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
-public class UrlExtractPortKudf extends UrlParser implements Kudf {
+public class UrlExtractPortKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 1) {
       throw new KsqlFunctionException("url_extract_port udf requires one input argument.");
     }
-    URI uri = parseUrl(args[0].toString());
+    final URI uri = UrlParser.parseUrl(args[0].toString());
     if ((uri == null) || (uri.getPort() < 0)) {
       return null;
     }

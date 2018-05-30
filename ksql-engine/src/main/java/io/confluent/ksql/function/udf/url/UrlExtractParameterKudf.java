@@ -20,30 +20,30 @@ import com.google.common.base.Splitter;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
-public class UrlExtractParameterKudf extends UrlParser implements Kudf {
+public class UrlExtractParameterKudf implements Kudf {
 
   private static final Splitter PARAM_SPLITTER = Splitter.on('&');
   private static final Splitter KV_SPLITTER = Splitter.on('=').limit(2);
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("url_extract_parameter udf requires two input arguments.");
     }
 
-    URI uri = parseUrl(args[0].toString());
+    final URI uri = UrlParser.parseUrl(args[0].toString());
     if (uri == null) {
       return null;
     }
 
-    String query = uri.getQuery();
+    final String query = uri.getQuery();
     if (query == null) {
       return null;
     }
 
-    String paramToFind = args[1].toString();
-    for (String thisParam : PARAM_SPLITTER.split(query)) {
-      Iterator<String> arg = KV_SPLITTER.split(thisParam).iterator();
+    final String paramToFind = args[1].toString();
+    for (final String thisParam : PARAM_SPLITTER.split(query)) {
+      final Iterator<String> arg = KV_SPLITTER.split(thisParam).iterator();
       if (arg.next().equalsIgnoreCase(paramToFind)) {
         if (arg.hasNext()) {
           return arg.next();

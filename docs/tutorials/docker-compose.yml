@@ -98,7 +98,7 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                        /usr/bin/ksql-datagen
+                       /usr/bin/ksql-datagen
                        quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
                        /usr/bin/ksql-datagen
                        quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=1000'"

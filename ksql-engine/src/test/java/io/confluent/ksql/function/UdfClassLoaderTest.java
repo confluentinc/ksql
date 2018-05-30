@@ -28,8 +28,12 @@ import static org.hamcrest.Matchers.not;
 
 public class UdfClassLoaderTest {
 
+  /*
+    The jar contains the class org.damian.ksql.udf.ToString. It also contains the
+    contents the classes from slf4j-log4j12-1.7.25.jar
+   */
   private final Path udfJar = new File("src/test/resources/udf-example.jar").toPath();
-  private final UdfClassLoader udfClassLoader =UdfClassLoader.newClassLoader(udfJar,
+  private final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
       getClass().getClassLoader(), resourceName -> false);
 
   @Test
@@ -53,8 +57,8 @@ public class UdfClassLoaderTest {
 
   @Test
   public void shouldLoadNonConfluentClassesFromChildFirst() throws ClassNotFoundException {
-    assertThat(udfClassLoader.loadClass("org.apache.kafka.connect.json.JsonConverter", true),
-        not(org.apache.kafka.connect.json.JsonConverter.class));
+    assertThat(udfClassLoader.loadClass("org.slf4j.impl.Log4jLoggerAdapter", true),
+        not(org.slf4j.impl.Log4jLoggerAdapter.class));
   }
 
 }

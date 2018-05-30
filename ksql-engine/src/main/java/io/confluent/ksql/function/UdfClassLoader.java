@@ -74,7 +74,8 @@ public class UdfClassLoader extends URLClassLoader {
   }
 
   private boolean shouldLoadFromChild(final String name) {
-    return !name.startsWith("io.confluent");
+    return !name.startsWith("io.confluent")
+        && !name.startsWith("org.apache.kafka");
   }
 
   static UdfClassLoader newClassLoader(final Path path,

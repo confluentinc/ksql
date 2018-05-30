@@ -18,6 +18,9 @@ package io.confluent.ksql.serde.util;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class SerdeUtils {
 
@@ -85,4 +88,40 @@ public class SerdeUtils {
     throw new IllegalArgumentException("This Object doesn't represent a double");
   }
 
+  public static Schema toOptionalSchema(Schema schema) {
+    SchemaBuilder optionalBuilder = SchemaBuilder.struct();
+    for (Field field : schema.fields()) {
+      if (field.schema().type().isPrimitive()) {
+        optionalBuilder.field(
+            field.name(),
+            SchemaBuilder.type(field.schema().type()).optional().build()
+        );
+      }
+      if (field.schema().type().equals(Schema.Type.ARRAY)) {
+        optionalBuilder.field(
+            field.name(),
+            SchemaBuilder.array(
+                field.schema().valueSchema()
+            ).optional().build()
+        );
+      }
+      if (field.schema().type().equals(Schema.Type.MAP)) {
+        optionalBuilder.field(
+            field.name(),
+            SchemaBuilder.map(
+                field.schema().keySchema(),
+                field.schema().valueSchema()
+            ).optional().build()
+        );
+      }
+      if (field.schema().type().equals(Schema.Type.STRUCT)) {
+        SchemaBuilder innerSchema = SchemaBuilder.struct();
+        for (Field innerField : field.schema().fields()) {
+          innerSchema.field(innerField.name(), innerField.schema());
+        }
+        optionalBuilder.field(field.name(), innerSchema.optional().build());
+      }
+    }
+    return optionalBuilder.build();
+  }
 }

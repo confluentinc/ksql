@@ -67,7 +67,6 @@ public class TypeUtil {
     return itemList;
   }
 
-
   public static Schema getTypeSchema(final Type ksqlType) {
     switch (ksqlType.getKsqlType()) {
       case BOOLEAN:
@@ -95,12 +94,14 @@ public class TypeUtil {
     }
   }
 
-  private static Schema buildStructSchema(Struct struct) {
-    SchemaBuilder strcutSchemaBuilder = SchemaBuilder.struct();
+  private static SchemaBuilder buildStructSchema(final Struct struct) {
+    final SchemaBuilder structSchemaBuilder = SchemaBuilder.struct();
     for (Pair<String, Type> field: struct.getItems()) {
-      strcutSchemaBuilder.field(field.getLeft(), getTypeSchema(field.getRight()));
+      structSchemaBuilder.field(
+          field.getLeft(),
+          getTypeSchemaBuilder(field.getRight()).optional().build());
     }
-    return strcutSchemaBuilder.optional().build();
+    return structSchemaBuilder.optional().build();
   }
 
 

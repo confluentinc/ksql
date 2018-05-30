@@ -202,7 +202,7 @@ public class QueryTranslationTest {
     }
   }
 
-  private TopologyTestDriver buildStreamsTopology(final Query query) throws Exception {
+  private TopologyTestDriver buildStreamsTopology(final Query query) {
     final List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(query.statements(),
         Collections.emptyMap());
     return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),

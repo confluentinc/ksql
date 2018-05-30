@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
@@ -35,20 +36,21 @@ import static org.easymock.EasyMock.anyString;
 public class StandaloneExecutorTest {
 
   private final KsqlEngine engine = EasyMock.niceMock(KsqlEngine.class);
+  private final UdfLoader udfLoader = EasyMock.niceMock(UdfLoader.class);
   private final String query = "select * from bar;";
   private StandaloneExecutor executor;
 
   @Before
   public void before() throws IOException {
     final String queriesFile = TestUtils.tempFile().getPath();
-    executor = new StandaloneExecutor(engine, queriesFile);
+    executor = new StandaloneExecutor(engine, queriesFile, udfLoader);
     try(final FileOutputStream out = new FileOutputStream(queriesFile)) {
       out.write(query.getBytes(StandardCharsets.UTF_8));
     }
   }
 
   @Test
-  public void shouldCreateQueries() throws Exception {
+  public void shouldCreateQueries() {
     EasyMock.expect(engine.createQueries(query + "\n")).andReturn(Collections.emptyList());
     EasyMock.replay(engine);
 
@@ -58,7 +60,7 @@ public class StandaloneExecutorTest {
   }
 
   @Test
-  public void shouldExecutePersistentQueries() throws Exception {
+  public void shouldExecutePersistentQueries() {
     final PersistentQueryMetadata query = EasyMock.niceMock(PersistentQueryMetadata.class);
     EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
     query.start();
@@ -71,7 +73,7 @@ public class StandaloneExecutorTest {
   }
 
   @Test
-  public void shouldNotExecuteNonPersistentQueries() throws Exception {
+  public void shouldNotExecuteNonPersistentQueries() {
     final QueryMetadata query = EasyMock.createMock(QueryMetadata.class);
     EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
     EasyMock.expect(query.getStatementString()).andReturn("");

@@ -11,10 +11,14 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfCompiler;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UdfLoaderTest;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
+import kafka.utils.TestUtils;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -30,8 +34,15 @@ public class SqlToJavaVisitorTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+    // load udfs that are not hardcoded
+    new UdfLoader(metaStore,
+        TestUtils.tempDir(),
+        UdfLoaderTest.class.getClassLoader(),
+        value -> false,
+        new UdfCompiler(), true).load();
+
     schema = SchemaBuilder.struct()
             .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
             .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)

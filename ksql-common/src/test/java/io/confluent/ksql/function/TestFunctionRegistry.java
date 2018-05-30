@@ -43,7 +43,6 @@ public class TestFunctionRegistry implements FunctionRegistry {
       udf.addFunction(ksqlFunction);
       return udf;
     });
-
     return true;
   }
 

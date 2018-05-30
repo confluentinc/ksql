@@ -16,23 +16,22 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
 
-public class SubstringKudf implements Kudf {
+@UdfDescription(name = "substring",
+    author = "Confluent",
+    description = "returns a substring of the passed in value")
+public class Substring {
 
-  @Override
-  public Object evaluate(Object... args) {
-    if ((args.length < 2) || (args.length > 3)) {
-      throw new KsqlFunctionException("Substring udf should have two or three input argument.");
-    }
-    String string = args[0].toString();
-    int start = (Integer) args[1];
-    if (args.length == 2) {
-      return string.substring(start);
-    } else {
-      int end = (Integer) args[2];
-      return string.substring(start, end);
-    }
+  @Udf
+  public String substring(final String value, final int start) {
+    return value.substring(start);
   }
+
+  @Udf
+  public String substring(final String value, final int start, final int end) {
+    return value.substring(start, end);
+  }
+
 }

@@ -41,7 +41,6 @@ public class UdfIntTest {
 
   private OrderDataProvider orderDataProvider;
   private ItemDataProvider itemDataProvider;
-  String format = DataSource.DataSourceSerDe.JSON.name();
 
   @Before
   public void before() throws Exception {

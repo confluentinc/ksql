@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.util.KsqlException;
 
 public class TestFunctionRegistry implements FunctionRegistry {
   private final Map<String, UdfFactory> udfs = new HashMap<>();
@@ -36,18 +35,15 @@ public class TestFunctionRegistry implements FunctionRegistry {
   @Override
   public boolean addFunction(final KsqlFunction ksqlFunction) {
     final String key = ksqlFunction.getFunctionName().toUpperCase();
-    try {
-      udfs.compute(key, (s, udf) -> {
-        if (udf == null) {
-          udf = new UdfFactory(key, ksqlFunction.getKudfClass(), ksqlFunction.getReturnType());
-        }
-        udf.addFunction(ksqlFunction);
-        return udf;
-      });
-    } catch (KsqlException e) {
-      // warn(function blah)
-      return false;
-    }
+
+    udfs.compute(key, (s, udf) -> {
+      if (udf == null) {
+        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
+      }
+      udf.addFunction(ksqlFunction);
+      return udf;
+    });
+
     return true;
   }
 

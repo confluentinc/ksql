@@ -354,7 +354,7 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
 
         // Then:
-        assertThat(columns, contains(20.0, 25.0, 125L, 50L));
+        assertThat(columns, contains(20.0, 25.0, 125L, 50));
     }
 
     @Test

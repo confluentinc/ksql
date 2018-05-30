@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.codegen.FunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -28,6 +29,7 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
@@ -46,6 +48,7 @@ public class ExpressionTypeManager
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
+  private final FunctionArguments functionArguments = new FunctionArguments();
 
   public ExpressionTypeManager(Schema schema, final FunctionRegistry functionRegistry) {
     this.schema = schema;
@@ -74,11 +77,15 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
                                              final ExpressionTypeContext expressionTypeContext) {
+    final int argCount = functionArguments.numCurrentFunctionArguments();
     process(node.getLeft(), expressionTypeContext);
     Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     Schema rightType = expressionTypeContext.getSchema();
     expressionTypeContext.setSchema(resolveArithmaticType(leftType, rightType));
+    if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
+      functionArguments.mergeArguments(argCount);
+    }
     return null;
   }
 
@@ -86,15 +93,15 @@ public class ExpressionTypeManager
                                  final ExpressionTypeContext expressionTypeContext) {
 
     Schema castType = SchemaUtil.getTypeSchema(node.getType());
-    expressionTypeContext.setSchema(castType);
-
+    updateContextAndFunctionArgs(castType, expressionTypeContext);
     return null;
   }
 
   @Override
   protected Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+
+    updateContextAndFunctionArgs(Schema.BOOLEAN_SCHEMA, expressionTypeContext);
     return null;
   }
 
@@ -105,7 +112,8 @@ public class ExpressionTypeManager
     if (!schemaField.isPresent()) {
       throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
     }
-    expressionTypeContext.setSchema(schemaField.get().schema());
+    final Schema schema = schemaField.get().schema();
+    updateContextAndFunctionArgs(schema, expressionTypeContext);
     return null;
   }
 
@@ -116,49 +124,58 @@ public class ExpressionTypeManager
     if (!schemaField.isPresent()) {
       throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
     }
-    expressionTypeContext.setSchema(schemaField.get().schema());
+    final Schema schema = schemaField.get().schema();
+    updateContextAndFunctionArgs(schema, expressionTypeContext);
     return null;
   }
 
   protected Expression visitStringLiteral(final StringLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.STRING_SCHEMA);
+    updateContextAndFunctionArgs(Schema.STRING_SCHEMA, expressionTypeContext);
     return null;
   }
 
   protected Expression visitBooleanLiteral(final BooleanLiteral node,
                                            final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    updateContextAndFunctionArgs(Schema.BOOLEAN_SCHEMA, expressionTypeContext);
     return null;
   }
 
   protected Expression visitLongLiteral(final LongLiteral node,
                                         final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.INT64_SCHEMA);
+    updateContextAndFunctionArgs(Schema.INT64_SCHEMA, expressionTypeContext);
+    return null;
+  }
+
+  @Override
+  protected Expression visitIntegerLiteral(final IntegerLiteral node,
+                                           final ExpressionTypeContext context) {
+    updateContextAndFunctionArgs(Schema.INT32_SCHEMA, context);
     return null;
   }
 
   protected Expression visitDoubleLiteral(final DoubleLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.FLOAT64_SCHEMA);
+    updateContextAndFunctionArgs(Schema.FLOAT64_SCHEMA, expressionTypeContext);
     return null;
   }
 
   protected Expression visitLikePredicate(LikePredicate node,
                                           ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    updateContextAndFunctionArgs(Schema.BOOLEAN_SCHEMA, expressionTypeContext);
     return null;
   }
 
   protected Expression visitIsNotNullPredicate(IsNotNullPredicate node,
                                                ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    updateContextAndFunctionArgs(Schema.BOOLEAN_SCHEMA, expressionTypeContext);
     return null;
   }
 
   protected Expression visitIsNullPredicate(IsNullPredicate node,
                                             ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    updateContextAndFunctionArgs(Schema.BOOLEAN_SCHEMA, expressionTypeContext);
     return null;
   }
 
@@ -169,7 +186,8 @@ public class ExpressionTypeManager
     if (!schemaField.isPresent()) {
       throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
     }
-    expressionTypeContext.setSchema(schemaField.get().schema().valueSchema());
+    final Schema schema = schemaField.get().schema().valueSchema();
+    updateContextAndFunctionArgs(schema, expressionTypeContext);
     return null;
   }
 
@@ -178,7 +196,13 @@ public class ExpressionTypeManager
 
     final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
     if (udfFactory != null) {
-      expressionTypeContext.setSchema(udfFactory.getReturnType());
+      functionArguments.beginFunction();
+      for (final Expression expression : node.getArguments()) {
+        process(expression, expressionTypeContext);
+      }
+      final Schema returnType = udfFactory.getFunction(functionArguments.endFunction())
+          .getReturnType();
+      updateContextAndFunctionArgs(returnType, expressionTypeContext);
     } else if (functionRegistry.isAggregate(node.getName().getSuffix())) {
       KsqlAggregateFunction ksqlAggregateFunction =
           functionRegistry.getAggregate(
@@ -208,5 +232,12 @@ public class ExpressionTypeManager
       return Schema.INT32_SCHEMA;
     }
     throw new PlanException("Unsupported types.");
+  }
+
+  private Object updateContextAndFunctionArgs(final Schema schema,
+                                              final ExpressionTypeContext context) {
+    functionArguments.addArgumentType(schema.type());
+    context.setSchema(schema);
+    return null;
   }
 }

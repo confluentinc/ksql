@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -1292,7 +1293,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new LongLiteral(getLocation(context), context.getText());
+    return new IntegerLiteral(getLocation(context), context.getText());
   }
 
   @Override

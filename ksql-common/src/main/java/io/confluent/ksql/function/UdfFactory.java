@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 package io.confluent.ksql.function;
 
@@ -29,28 +29,27 @@ import io.confluent.ksql.util.KsqlException;
 public class UdfFactory {
   private final String name;
   private final Class<Kudf> udfClass;
-  private final Schema returnType;
   private final Map<List<Schema.Type>, KsqlFunction> functions = new HashMap<>();
 
-  UdfFactory(final String name, final Class<Kudf> udfClass, final Schema returnType) {
+  UdfFactory(final String name, final Class<Kudf> udfClass) {
     this.name = name;
     this.udfClass = udfClass;
-    this.returnType = returnType;
   }
 
   public UdfFactory copy() {
-    final UdfFactory udf = new UdfFactory(name, udfClass, returnType);
+    final UdfFactory udf = new UdfFactory(name, udfClass);
     udf.functions.putAll(functions);
     return udf;
   }
 
-  void addFunction(KsqlFunction ksqlFunction) {
+  void addFunction(final KsqlFunction ksqlFunction) {
     final List<Schema.Type> paramTypes = ksqlFunction.getArguments()
         .stream()
         .map(Schema::type).collect(Collectors.toList());
     if (!isCompatible(ksqlFunction, paramTypes)) {
       throw new KsqlException("Can't add function as one exists "
-          + "with same name on a different class");
+          + "with the same parameters of exists on a different class "
+          + functions);
     }
 
     functions.put(paramTypes, ksqlFunction);
@@ -58,13 +57,8 @@ public class UdfFactory {
 
   private boolean isCompatible(final KsqlFunction ksqlFunction,
                                final List<Schema.Type> paramTypes) {
-    return ksqlFunction.getReturnType().type() == returnType.type()
-        && udfClass == ksqlFunction.getKudfClass()
+    return udfClass == ksqlFunction.getKudfClass()
         && !functions.containsKey(paramTypes);
-  }
-
-  public Schema getReturnType() {
-    return returnType;
   }
 
   @Override
@@ -72,7 +66,6 @@ public class UdfFactory {
     return "UdfFactory{"
         + "name='" + name + '\''
         + ", udfClass=" + udfClass
-        + ", returnType=" + returnType.type()
         + ", functions=" + functions
         + '}';
   }

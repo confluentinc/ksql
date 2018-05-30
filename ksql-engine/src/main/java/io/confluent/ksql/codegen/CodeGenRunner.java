@@ -21,13 +21,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
@@ -41,6 +38,7 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
@@ -119,7 +117,7 @@ public class CodeGenRunner {
     private final Map<String, KsqlFunction> parameterMap;
     private final FunctionRegistry functionRegistry;
 
-    private final Stack<List<Schema.Type>> functionArgs = new Stack<>();
+    private final FunctionArguments functionArguments = new FunctionArguments();
     private int functionCounter = 0;
 
     Visitor(Schema schema, FunctionRegistry functionRegistry) {
@@ -135,38 +133,28 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       final int functionNumber = functionCounter++;
-      functionArgs.push(new ArrayList<>());
+      functionArguments.beginFunction();
       final String functionName = node.getName().getSuffix();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlFunction function = holder.getFunction(functionArgs.pop());
+      final KsqlFunction function = holder.getFunction(functionArguments.endFunction());
       parameterMap.put(
           node.getName().getSuffix() + "_" + functionNumber,
           function);
-      if (inFunctionCall()) {
-        functionArgs.peek().add(function.getReturnType().type());
-      }
+      functionArguments.addArgumentType(function.getReturnType().type());
       return null;
     }
 
-    private boolean inFunctionCall() {
-      return !functionArgs.isEmpty();
-    }
 
     protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
-      final List<Schema.Type> functionArgTypes = inFunctionCall()
-          ? functionArgs.peek()
-          : Collections.emptyList();
-      final int index = functionArgTypes.size();
+      final int index = functionArguments.numCurrentFunctionArguments();
       process(node.getLeft(), null);
       process(node.getRight(), null);
-      if (inFunctionCall() && functionArgTypes.size() > index + 1) {
-        final Schema.Type first = functionArgTypes.remove(index);
-        final Schema.Type second = functionArgTypes.remove(index);
-        functionArgTypes.add(first.ordinal() < second.ordinal() ? second : first);
+      if (functionArguments.numCurrentFunctionArguments() > index + 1) {
+        functionArguments.mergeArguments(index);
       }
       return null;
     }
@@ -229,9 +217,7 @@ public class CodeGenRunner {
 
     private void updateFunctionArgTypesAndParams(final Field schemaField) {
       final Schema schema = schemaField.schema();
-      if (inFunctionCall()) {
-        functionArgs.peek().add(schema.type());
-      }
+      functionArguments.addArgumentType(schema.type());
       parameterMap.put(
           schemaField.name().replace(".", "_"),
           new KsqlFunction(schema,
@@ -251,9 +237,7 @@ public class CodeGenRunner {
     }
 
     private Object maybeUpdateFunctionArgs(final Schema.Type type) {
-      if (inFunctionCall()) {
-        functionArgs.peek().add(type);
-      }
+      functionArguments.addArgumentType(type);
       return null;
     }
 
@@ -272,5 +256,9 @@ public class CodeGenRunner {
       return maybeUpdateFunctionArgs(Schema.Type.INT64);
     }
 
+    @Override
+    protected Object visitIntegerLiteral(final IntegerLiteral node, final Object context) {
+      return maybeUpdateFunctionArgs(Schema.Type.INT32);
+    }
   }
 }

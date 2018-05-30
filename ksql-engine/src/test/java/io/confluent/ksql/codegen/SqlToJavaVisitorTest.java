@@ -89,8 +89,8 @@ public class SqlToJavaVisitorTest {
 
     assertThat(javaExpression, is(
         "((String) CONCAT_0.evaluate("
-        + "((String) SUBSTRING_1.evaluate(TEST1_COL1, Long.parseLong(\"1\"), Long.parseLong(\"3\"))), "
+        + "((String) SUBSTRING_1.evaluate(TEST1_COL1, Integer.parseInt(\"1\"), Integer.parseInt(\"3\"))), "
         + "((String) CONCAT_2.evaluate(\"-\","
-        + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Long.parseLong(\"4\"), Long.parseLong(\"5\")))))))"));
+        + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Integer.parseInt(\"4\"), Integer.parseInt(\"5\")))))))"));
   }
 }

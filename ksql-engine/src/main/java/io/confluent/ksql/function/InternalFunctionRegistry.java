@@ -83,16 +83,16 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     KsqlFunction substring = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
                                                                                   .STRING_SCHEMA,
                                                                               Schema
-                                                                                  .INT64_SCHEMA,
+                                                                                  .INT32_SCHEMA,
                                                                               Schema
-                                                                                  .INT64_SCHEMA),
+                                                                                  .INT32_SCHEMA),
                                             "SUBSTRING", SubstringKudf
                                                 .class);
     addFunction(substring);
     addFunction(new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
             .STRING_SCHEMA,
         Schema
-            .INT64_SCHEMA),
+            .INT32_SCHEMA),
         "SUBSTRING", SubstringKudf
         .class));
 
@@ -216,21 +216,18 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     return ksqlFunctionMap.get(functionName.toUpperCase());
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public boolean addFunction(final KsqlFunction ksqlFunction) {
     final String key = ksqlFunction.getFunctionName().toUpperCase();
-    try {
-      ksqlFunctionMap.compute(key, (s, udf) -> {
-        if (udf == null) {
-          udf = new UdfFactory(key, ksqlFunction.getKudfClass(), ksqlFunction.getReturnType());
-        }
-        udf.addFunction(ksqlFunction);
-        return udf;
-      });
-    } catch (KsqlException e) {
-      logger.warn("Failed to add function {}", ksqlFunction.getFunctionName(), e);
-      return false;
-    }
+    ksqlFunctionMap.compute(key, (s, udf) -> {
+      if (udf == null) {
+        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
+      }
+      udf.addFunction(ksqlFunction);
+      return udf;
+    });
+
     return true;
   }
 

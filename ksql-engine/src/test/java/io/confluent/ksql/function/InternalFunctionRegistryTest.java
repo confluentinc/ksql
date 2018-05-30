@@ -24,12 +24,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import io.confluent.ksql.util.KsqlException;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class InternalFunctionRegistryTest {
 
@@ -44,7 +47,6 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addFunction(
         func);
     final UdfFactory factory = functionRegistry.getUdfFactory("func");
-    assertThat(factory.getReturnType(), equalTo(Schema.STRING_SCHEMA));
     assertThat(factory.getFunction(Collections.emptyList()), equalTo(this.func));
   }
 
@@ -55,9 +57,13 @@ public class InternalFunctionRegistryTest {
         "func",
         String.class);
     functionRegistry.addFunction(func);
-    assertFalse(functionRegistry.addFunction(func2));
-    assertThat(functionRegistry.getUdfFactory("func").getFunction(Collections.emptyList()),
-        not(equalTo(func2)));
+    try {
+      functionRegistry.addFunction(func2);
+      fail("shouldn't be able to add function with same name on a different class");
+    } catch (final KsqlException e) {
+      // pass
+    }
+
   }
 
   @Test
@@ -135,14 +141,15 @@ public class InternalFunctionRegistryTest {
   }
 
   @Test
-  public void shouldNotAddFunctionWithSameNameButDifferentReturnTypes() {
+  public void shouldAddFunctionWithSameNameButDifferentReturnTypes() {
     functionRegistry.addFunction(func);
-    assertFalse(functionRegistry.addFunction(
-        new KsqlFunction(Schema.INT64_SCHEMA, Collections.emptyList(), "func", Object.class)));
+    assertTrue(functionRegistry.addFunction(
+        new KsqlFunction(Schema.INT64_SCHEMA,
+            Collections.singletonList(Schema.INT64_SCHEMA), "func", Object.class)));
   }
 
   @Test
-  public void shouldAddFunctionWithSameNameClassReturnTypeButDifferentArguments() {
+  public void shouldAddFunctionWithSameNameClassButDifferentArguments() {
     final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.singletonList(Schema.INT64_SCHEMA), "func", Object.class);
 

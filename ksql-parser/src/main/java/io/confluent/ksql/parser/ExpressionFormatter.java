@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -158,6 +159,11 @@ public final class ExpressionFormatter {
     @Override
     protected String visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
       return Long.toString(node.getValue());
+    }
+
+    @Override
+    protected String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
+      return Integer.toString(node.getValue());
     }
 
     @Override

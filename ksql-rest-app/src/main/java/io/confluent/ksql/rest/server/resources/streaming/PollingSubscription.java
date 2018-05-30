@@ -66,7 +66,10 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
       }
       needsSchema = false;
     }
-    // check status since request can be reentrant
+    // check status since request() can be reentrant through subscriber.onNext()
+    // this is to prevent another thread from calling onNext again
+    // while the first one is draining and closing the subscription after having called onNext
+    // with the last element polled from the queue after being marked done.
     if (!draining) {
       future = exec.submit(() -> {
 

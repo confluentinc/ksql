@@ -65,7 +65,7 @@ public class UdfFactory {
 
   @Override
   public String toString() {
-    return "UdfHolder{"
+    return "UdfFactory{"
         + "name='" + name + '\''
         + ", udfClass=" + udfClass
         + ", returnType=" + returnType.type()

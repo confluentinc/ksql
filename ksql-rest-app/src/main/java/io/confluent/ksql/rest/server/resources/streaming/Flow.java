@@ -18,6 +18,10 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * Flow constructs loosely borrowed from Java 9
+ * https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/Flow.Subscription.html
+ */
 public class Flow {
 
   public interface Subscriber<T> {

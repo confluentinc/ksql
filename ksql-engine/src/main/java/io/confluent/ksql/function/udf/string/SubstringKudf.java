@@ -26,13 +26,29 @@ public class SubstringKudf implements Kudf {
     if ((args.length < 2) || (args.length > 3)) {
       throw new KsqlFunctionException("Substring udf should have two or three input argument.");
     }
-    String string = args[0].toString();
-    long start = (Long) args[1];
-    if (args.length == 2) {
-      return string.substring((int) start);
+    
+    if(args[0]!=null && args[1]!=null) {
+    	
+    	String string = args[0].toString();
+	    int start = Integer.parseInt(args[1].toString());
+	    if (args.length == 2) {
+	    	if(start < 0 || start > string.length()) {
+	    		throw new KsqlFunctionException("Substring udf start position smaller zero or greater length of string.");
+	    	}
+	    	return string.substring(start);
+	    } else {
+	      if(args[2]!=null) {
+	      	int end = Integer.parseInt(args[1].toString());
+	      	if(end < 0 || end > string.length()) {
+	    		throw new KsqlFunctionException("Substring udf end position smaller zero or greater length of string.");
+	      	}
+	      	return string.substring(start, end);
+	      } else {
+	      	return null;
+	      }
+	    }
     } else {
-      long end = (Long) args[2];
-      return string.substring((int) start, (int) end);
+    	return null;
     }
   }
 }

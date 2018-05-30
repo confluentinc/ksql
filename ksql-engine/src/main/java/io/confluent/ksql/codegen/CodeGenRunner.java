@@ -21,26 +21,34 @@ import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
+import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -56,7 +64,7 @@ public class CodeGenRunner {
     this.schema = schema;
   }
 
-  public Map<String, Class> getParameterInfo(final Expression expression) {
+  public Map<String, KsqlFunction> getParameterInfo(final Expression expression) {
     Visitor visitor = new Visitor(schema, functionRegistry);
     visitor.process(expression, null);
     return visitor.parameterMap;
@@ -65,7 +73,7 @@ public class CodeGenRunner {
   public ExpressionMetadata buildCodeGenFromParseTree(
       final Expression expression
   ) throws Exception {
-    Map<String, Class> parameterMap = getParameterInfo(expression);
+    Map<String, KsqlFunction> parameterMap = getParameterInfo(expression);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
@@ -73,12 +81,12 @@ public class CodeGenRunner {
     Kudf[] kudfObjects = new Kudf[parameterMap.size()];
 
     int index = 0;
-    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+    for (Map.Entry<String, KsqlFunction> entry : parameterMap.entrySet()) {
       parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue();
+      parameterTypes[index] = entry.getValue().getKudfClass();
       columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       if (columnIndexes[index] < 0) {
-        kudfObjects[index] = (Kudf) entry.getValue().newInstance();
+        kudfObjects[index] = entry.getValue().newInstance();
       } else {
         kudfObjects[index] = null;
       }
@@ -90,10 +98,8 @@ public class CodeGenRunner {
     IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
-    // The expression will have two "int" parameters: "a" and "b".
     ee.setParameters(parameterNames, parameterTypes);
 
-    // And the expression (i.e. "result") type is also "int".
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         schema,
         functionRegistry
@@ -102,7 +108,6 @@ public class CodeGenRunner {
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
-    // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(javaCode);
 
     return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
@@ -111,8 +116,10 @@ public class CodeGenRunner {
   private static class Visitor extends AstVisitor<Object, Object> {
 
     private final Schema schema;
-    private final Map<String, Class> parameterMap;
+    private final Map<String, KsqlFunction> parameterMap;
     private final FunctionRegistry functionRegistry;
+
+    private final Stack<List<Schema.Type>> functionArgs = new Stack<>();
     private int functionCounter = 0;
 
     Visitor(Schema schema, FunctionRegistry functionRegistry) {
@@ -127,21 +134,40 @@ public class CodeGenRunner {
     }
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
-      String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
-      parameterMap.put(
-          node.getName().getSuffix() + "_" + functionCounter++,
-          ksqlFunction.getKudfClass()
-      );
+      final int functionNumber = functionCounter++;
+      functionArgs.push(new ArrayList<>());
+      final String functionName = node.getName().getSuffix();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
+      }
+
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
+      final KsqlFunction function = holder.function(functionArgs.pop());
+      parameterMap.put(
+          node.getName().getSuffix() + "_" + functionNumber,
+          function);
+      if (inFunctionCall()) {
+        functionArgs.peek().add(function.getReturnType().type());
       }
       return null;
     }
 
+    private boolean inFunctionCall() {
+      return !functionArgs.isEmpty();
+    }
+
     protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
+      final List<Schema.Type> functionArgTypes = inFunctionCall()
+          ? functionArgs.peek()
+          : Collections.emptyList();
+      final int index = functionArgTypes.size();
       process(node.getLeft(), null);
       process(node.getRight(), null);
+      if (inFunctionCall() && functionArgTypes.size() > index + 1) {
+        final Schema.Type first = functionArgTypes.remove(index);
+        final Schema.Type second = functionArgTypes.remove(index);
+        functionArgTypes.add(first.ordinal() < second.ordinal() ? second : first);
+      }
       return null;
     }
 
@@ -178,17 +204,12 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
+      updateFunctionArgTypesAndParams(schemaField.get());
       return null;
     }
 
     @Override
     protected Object visitCast(Cast node, Object context) {
-
       process(node.getExpression(), context);
       return null;
     }
@@ -201,12 +222,21 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
+      updateFunctionArgTypesAndParams(schemaField.get());
       process(node.getIndex(), context);
       return null;
+    }
+
+    private void updateFunctionArgTypesAndParams(final Field schemaField) {
+      final Schema schema = schemaField.schema();
+      if (inFunctionCall()) {
+        functionArgs.peek().add(schema.type());
+      }
+      parameterMap.put(
+          schemaField.name().replace(".", "_"),
+          new KsqlFunction(schema,
+              Collections.emptyList(), schemaField.name(), SchemaUtil.getJavaType(schema))
+      );
     }
 
     @Override
@@ -216,11 +246,31 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
+      updateFunctionArgTypesAndParams(schemaField.get());
       return null;
     }
+
+    private Object maybeUpdateFunctionArgs(final Schema.Type type) {
+      if (inFunctionCall()) {
+        functionArgs.peek().add(type);
+      }
+      return null;
+    }
+
+    @Override
+    protected Object visitStringLiteral(final StringLiteral node, final Object context) {
+      return maybeUpdateFunctionArgs(Schema.Type.STRING);
+    }
+
+    @Override
+    protected Object visitDoubleLiteral(final DoubleLiteral node, final Object context) {
+      return maybeUpdateFunctionArgs(Schema.Type.FLOAT64);
+    }
+
+    @Override
+    protected Object visitLongLiteral(final LongLiteral node, final Object context) {
+      return maybeUpdateFunctionArgs(Schema.Type.INT64);
+    }
+
   }
 }

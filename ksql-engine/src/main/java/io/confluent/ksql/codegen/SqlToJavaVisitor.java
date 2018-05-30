@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Optional;
 
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -220,8 +220,8 @@ public class SqlToJavaVisitor {
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder("(");
       String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
-      String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
+      UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      String javaReturnType = SchemaUtil.getJavaType(udfFactory.getReturnType()).getSimpleName();
       String instanceName = functionName + "_" + functionCounter++;
       builder.append("(").append(javaReturnType).append(") ")
           .append(instanceName).append(".evaluate(");
@@ -237,7 +237,7 @@ public class SqlToJavaVisitor {
       }
       builder.append(")");
       builder.append(")");
-      return new Pair<>(builder.toString(), ksqlFunction.getReturnType());
+      return new Pair<>(builder.toString(), udfFactory.getReturnType());
     }
 
     @Override

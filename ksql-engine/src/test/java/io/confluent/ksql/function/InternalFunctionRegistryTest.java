@@ -43,17 +43,21 @@ public class InternalFunctionRegistryTest {
   public void shouldAddFunction() {
     functionRegistry.addFunction(
         func);
-    assertThat(functionRegistry.getFunction("func"), equalTo(func));
+    final UdfFactory factory = functionRegistry.getUdfFactory("func");
+    assertThat(factory.getReturnType(), equalTo(Schema.STRING_SCHEMA));
+    assertThat(factory.function(Collections.emptyList()), equalTo(this.func));
   }
 
   @Test
-  public void shouldNotAddFunctionWithSameNameAsExistingFunction() {
-    final KsqlFunction func = new KsqlFunction(Schema.STRING_SCHEMA,
+  public void shouldNotAddFunctionWithSameNameAsExistingFunctionAndOnDifferentClass() {
+    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.emptyList(),
-        "lcase",
-        Object.class);
-    assertFalse(functionRegistry.addFunction(func));
-    assertThat(functionRegistry.getFunction("lcase"), not(equalTo(func)));
+        "func",
+        String.class);
+    functionRegistry.addFunction(func);
+    assertFalse(functionRegistry.addFunction(func2));
+    assertThat(functionRegistry.getUdfFactory("func").function(Collections.emptyList()),
+        not(equalTo(func2)));
   }
 
   @Test
@@ -64,11 +68,12 @@ public class InternalFunctionRegistryTest {
         Collections.emptyList(),
         "func2",
         Object.class);
+
     copy.addFunction(func2);
 
-    assertThat(copy.getFunction("func"), equalTo(func));
-    assertThat(copy.getFunction("func2"), equalTo(func2));
-    assertThat(functionRegistry.getFunction("func2"), nullValue());
+    assertThat(copy.getUdfFactory("func").function(Collections.emptyList()), equalTo(func));
+    assertThat(copy.getUdfFactory("func2").function(Collections.emptyList()), equalTo(func2));
+    assertThat(functionRegistry.getUdfFactory("func2"), nullValue());
   }
 
   @Test
@@ -127,5 +132,26 @@ public class InternalFunctionRegistryTest {
           }
         });
     assertThat(functionRegistry.getAggregate("my_aggregate", Schema.INT32_SCHEMA), not(nullValue()));
+  }
+
+  @Test
+  public void shouldNotAddFunctionWithSameNameButDifferentReturnTypes() {
+    functionRegistry.addFunction(func);
+    assertFalse(functionRegistry.addFunction(
+        new KsqlFunction(Schema.INT64_SCHEMA, Collections.emptyList(), "func", Object.class)));
+  }
+
+  @Test
+  public void shouldAddFunctionWithSameNameClassReturnTypeButDifferentArguments() {
+    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
+        Collections.singletonList(Schema.INT64_SCHEMA), "func", Object.class);
+
+    functionRegistry.addFunction(func);
+    assertTrue(functionRegistry.addFunction(
+        func2));
+    assertThat(functionRegistry.getUdfFactory("func")
+        .function(Collections.singletonList(Schema.INT64_SCHEMA.type())), equalTo(func2));
+    assertThat(functionRegistry.getUdfFactory("func")
+        .function(Collections.emptyList()), equalTo(func));
   }
 }

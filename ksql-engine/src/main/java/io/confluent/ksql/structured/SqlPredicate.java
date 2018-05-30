@@ -30,6 +30,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -62,16 +63,16 @@ public class SqlPredicate {
     this.functionRegistry = functionRegistry;
 
     CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(filterExpression);
+    Map<String, KsqlFunction> parameterMap = codeGenRunner.getParameterInfo(filterExpression);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
     columnIndexes = new int[parameterMap.size()];
 
     int index = 0;
-    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+    for (Map.Entry<String, KsqlFunction> entry : parameterMap.entrySet()) {
       parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue();
+      parameterTypes[index] = entry.getValue().getKudfClass();
       columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       index++;
     }
@@ -79,10 +80,8 @@ public class SqlPredicate {
     try {
       ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
-      // The expression will have two "int" parameters: "a" and "b".
       ee.setParameters(parameterNames, parameterTypes);
 
-      // And the expression (i.e. "result") type is also "int".
       ee.setExpressionType(boolean.class);
 
       String expressionStr = new SqlToJavaVisitor(
@@ -90,7 +89,6 @@ public class SqlPredicate {
           functionRegistry
       ).process(filterExpression);
 
-      // And now we "cook" (scan, parse, compile and load) the fabulous expression.
       ee.cook(expressionStr);
     } catch (Exception e) {
       throw new KsqlException(

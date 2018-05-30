@@ -20,6 +20,11 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlException;
 
 public class KsqlFunction {
 
@@ -27,11 +32,29 @@ public class KsqlFunction {
   private final List<Schema> arguments;
   private final String functionName;
   private final Class kudfClass;
+  private final Supplier<Kudf> udfSupplier;
+
+  public KsqlFunction(final Schema returnType,
+                      final List<Schema> arguments,
+                      final String functionName,
+                      final Class kudfClass) {
+    this(returnType, arguments, functionName, kudfClass, () -> {
+      try {
+        return (Kudf) kudfClass.newInstance();
+      } catch (Exception e) {
+        throw new KsqlException("Failed to create instance of kudfClass "
+             + kudfClass
+             + " for function "  + functionName);
+      }
+    });
+
+  }
 
   KsqlFunction(final Schema returnType,
                final List<Schema> arguments,
                final String functionName,
-               final Class kudfClass) {
+               final Class kudfClass,
+               final Supplier<Kudf> udfSupplier) {
     Objects.requireNonNull(returnType, "returnType can't be null");
     Objects.requireNonNull(arguments, "arguments can't be null");
     Objects.requireNonNull(functionName, "functionName can't be null");
@@ -40,6 +63,7 @@ public class KsqlFunction {
     this.arguments = arguments;
     this.functionName = functionName;
     this.kudfClass = kudfClass;
+    this.udfSupplier = udfSupplier;
   }
 
   public Schema getReturnType() {
@@ -77,5 +101,19 @@ public class KsqlFunction {
   @Override
   public int hashCode() {
     return Objects.hash(returnType, arguments, functionName, kudfClass);
+  }
+
+  @Override
+  public String toString() {
+    return "KsqlFunction{"
+        + "returnType=" + returnType
+        + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
+        + ", functionName='" + functionName + '\''
+        + ", kudfClass=" + kudfClass
+        + '}';
+  }
+
+  public Kudf newInstance() {
+    return udfSupplier.get();
   }
 }

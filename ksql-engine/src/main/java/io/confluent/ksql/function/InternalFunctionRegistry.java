@@ -89,6 +89,12 @@ public class InternalFunctionRegistry implements FunctionRegistry {
                                             "SUBSTRING", SubstringKudf
                                                 .class);
     addFunction(substring);
+    addFunction(new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
+            .STRING_SCHEMA,
+        Schema
+            .INT64_SCHEMA),
+        "SUBSTRING", SubstringKudf
+        .class));
 
     KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
                                                                            Schema.STRING_SCHEMA),

@@ -142,7 +142,7 @@ public class CodeGenRunner {
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlFunction function = holder.function(functionArgs.pop());
+      final KsqlFunction function = holder.getFunction(functionArgs.pop());
       parameterMap.put(
           node.getName().getSuffix() + "_" + functionNumber,
           function);

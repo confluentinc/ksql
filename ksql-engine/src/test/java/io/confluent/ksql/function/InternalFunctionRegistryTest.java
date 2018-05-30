@@ -45,7 +45,7 @@ public class InternalFunctionRegistryTest {
         func);
     final UdfFactory factory = functionRegistry.getUdfFactory("func");
     assertThat(factory.getReturnType(), equalTo(Schema.STRING_SCHEMA));
-    assertThat(factory.function(Collections.emptyList()), equalTo(this.func));
+    assertThat(factory.getFunction(Collections.emptyList()), equalTo(this.func));
   }
 
   @Test
@@ -56,7 +56,7 @@ public class InternalFunctionRegistryTest {
         String.class);
     functionRegistry.addFunction(func);
     assertFalse(functionRegistry.addFunction(func2));
-    assertThat(functionRegistry.getUdfFactory("func").function(Collections.emptyList()),
+    assertThat(functionRegistry.getUdfFactory("func").getFunction(Collections.emptyList()),
         not(equalTo(func2)));
   }
 
@@ -71,8 +71,8 @@ public class InternalFunctionRegistryTest {
 
     copy.addFunction(func2);
 
-    assertThat(copy.getUdfFactory("func").function(Collections.emptyList()), equalTo(func));
-    assertThat(copy.getUdfFactory("func2").function(Collections.emptyList()), equalTo(func2));
+    assertThat(copy.getUdfFactory("func").getFunction(Collections.emptyList()), equalTo(func));
+    assertThat(copy.getUdfFactory("func2").getFunction(Collections.emptyList()), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func2"), nullValue());
   }
 
@@ -150,8 +150,8 @@ public class InternalFunctionRegistryTest {
     assertTrue(functionRegistry.addFunction(
         func2));
     assertThat(functionRegistry.getUdfFactory("func")
-        .function(Collections.singletonList(Schema.INT64_SCHEMA.type())), equalTo(func2));
+        .getFunction(Collections.singletonList(Schema.INT64_SCHEMA.type())), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
-        .function(Collections.emptyList()), equalTo(func));
+        .getFunction(Collections.emptyList()), equalTo(func));
   }
 }

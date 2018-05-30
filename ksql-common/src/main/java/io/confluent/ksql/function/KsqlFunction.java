@@ -44,7 +44,7 @@ public class KsqlFunction {
       } catch (Exception e) {
         throw new KsqlException("Failed to create instance of kudfClass "
              + kudfClass
-             + " for function "  + functionName);
+             + " for function "  + functionName, e);
       }
     });
 

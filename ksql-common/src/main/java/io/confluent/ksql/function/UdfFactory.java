@@ -23,15 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
 
 public class UdfFactory {
   private final String name;
-  private final Class udfClass;
+  private final Class<Kudf> udfClass;
   private final Schema returnType;
   private final Map<List<Schema.Type>, KsqlFunction> functions = new HashMap<>();
 
-  UdfFactory(final String name, final Class udfClass, final Schema returnType) {
+  UdfFactory(final String name, final Class<Kudf> udfClass, final Schema returnType) {
     this.name = name;
     this.udfClass = udfClass;
     this.returnType = returnType;
@@ -44,19 +45,22 @@ public class UdfFactory {
   }
 
   void addFunction(KsqlFunction ksqlFunction) {
-    if (!isCompatible(ksqlFunction)) {
+    final List<Schema.Type> paramTypes = ksqlFunction.getArguments()
+        .stream()
+        .map(Schema::type).collect(Collectors.toList());
+    if (!isCompatible(ksqlFunction, paramTypes)) {
       throw new KsqlException("Can't add function as one exists "
           + "with same name on a different class");
     }
-    functions.put(ksqlFunction.getArguments()
-        .stream()
-        .map(Schema::type).collect(Collectors.toList()), ksqlFunction);
+
+    functions.put(paramTypes, ksqlFunction);
   }
 
-  private boolean isCompatible(final KsqlFunction ksqlFunction) {
+  private boolean isCompatible(final KsqlFunction ksqlFunction,
+                               final List<Schema.Type> paramTypes) {
     return ksqlFunction.getReturnType().type() == returnType.type()
-        && udfClass == ksqlFunction.getKudfClass();
-
+        && udfClass == ksqlFunction.getKudfClass()
+        && !functions.containsKey(paramTypes);
   }
 
   public Schema getReturnType() {
@@ -73,7 +77,7 @@ public class UdfFactory {
         + '}';
   }
 
-  public KsqlFunction function(final List<Schema.Type> types) {
-    return functions.get(types);
+  public KsqlFunction getFunction(final List<Schema.Type> paramTypes) {
+    return functions.get(paramTypes);
   }
 }

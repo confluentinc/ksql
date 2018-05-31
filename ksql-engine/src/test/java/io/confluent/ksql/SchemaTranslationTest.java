@@ -3,8 +3,9 @@ package io.confluent.ksql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.serde.DataSource;
+import com.google.common.collect.ImmutableList;
 import org.apache.avro.Schema;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -12,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,21 +22,39 @@ import java.util.stream.IntStream;
 
 import io.confluent.avro.random.generator.Generator;
 
+import static io.confluent.ksql.EndToEndEngineTest.avroToValueSpec;
+import static io.confluent.ksql.EndToEndEngineTest.findTests;
+import static io.confluent.ksql.EndToEndEngineTest.AvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.Query;
+import static io.confluent.ksql.EndToEndEngineTest.Record;
+import static io.confluent.ksql.EndToEndEngineTest.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.Topic;
+
+
 @RunWith(Parameterized.class)
-public class SchemaTranslationTest extends EndToEndEngineTest {
+public class SchemaTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String SCHEMA_VALIDATION_TEST_DIR = "schema-validation-tests";
   private static final String TOPIC_NAME = "TEST_INPUT";
   private static final String OUTPUT_TOPIC_NAME = "TEST_OUTPUT";
 
-  public SchemaTranslationTest(String name, Query query) {
-    super(name, query);
+  private final String name;
+  private final Query query;
+
+  public SchemaTranslationTest(final String name, final Query query) {
+    this.name = name;
+    this.query = query;
+  }
+
+  @Test
+  public void shouldBuildAndExecuteQueries() {
+    EndToEndEngineTest.shouldBuildAndExecuteQuery(this.query);
   }
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
     final List<String> testFiles = findTests(SCHEMA_VALIDATION_TEST_DIR);
-    List<Object[]> testParams = new LinkedList<>();
+    final List<Object[]> testParams = new LinkedList<>();
     for (String filename : testFiles) {
       final JsonNode tests;
       try {
@@ -46,7 +64,7 @@ public class SchemaTranslationTest extends EndToEndEngineTest {
       } catch (IOException e) {
         throw new RuntimeException("Unable to load test at path " + filename);
       }
-      List<Query> query = loadTests(tests);
+      final List<Query> query = loadTests(tests);
       testParams.addAll(
           query
               .stream()
@@ -57,8 +75,8 @@ public class SchemaTranslationTest extends EndToEndEngineTest {
     return testParams;
   }
 
-  private static List<Query> loadTests(JsonNode node) {
-    List<Query> tests = new ArrayList<>();
+  private static List<Query> loadTests(final JsonNode node) {
+    final List<Query> tests = new ArrayList<>();
     node.get("tests").forEach(
         testNode -> tests.add(loadTest(testNode))
     );
@@ -67,33 +85,31 @@ public class SchemaTranslationTest extends EndToEndEngineTest {
 
   @SuppressWarnings("unchecked")
   private static List<Record> generateInputRecords(
-      final String topicName, final org.apache.avro.Schema avroSchema) {
+      final Topic topic, final org.apache.avro.Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
     return IntStream.range(0, 3).mapToObj(
         i -> new Record(
-            topicName,
+            topic,
             "test-key",
             generator.generate(),
             0,
-            null,
-            new AvroSerdeSupplier()
+            null
         )
     ).collect(Collectors.toList());
   }
 
   @SuppressWarnings("unchecked")
   private static List<Record> getOutputRecords(
-      final String topicName, final List<Record> inputRecords,
+      final Topic topic, final List<Record> inputRecords,
       final org.apache.avro.Schema avroSchema) {
     return inputRecords.stream()
         .map(
             r -> new Record(
-                topicName,
+                topic,
                 "test-key",
                 avroToValueSpec(r.value(), avroSchema, true),
                 0,
-                null,
-                new ValueSpecAvroSerdeSupplier()
+                null
             ))
         .collect(Collectors.toList());
 
@@ -109,60 +125,67 @@ public class SchemaTranslationTest extends EndToEndEngineTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static List<Record> loadRecords(final String topicName, final JsonNode node) {
+  private static List<Record> loadRecords(final Topic topic, final JsonNode node) {
     final List<Record> records = new LinkedList<>();
     node.forEach(
         child -> records.add(
             new Record(
-                topicName,
+                topic,
                 "test-key",
                 loadRecordSpec(child),
                 0,
-                null,
-                new ValueSpecAvroSerdeSupplier()
+                null
             )
         )
     );
     return records;
   }
 
-  private static Query loadTest(JsonNode node) {
-    JsonNode schemaNode = node.get("schema");
-    String schemaString;
+  private static Query loadTest(final JsonNode node) {
+    final JsonNode schemaNode = node.get("schema");
+    final String schemaString;
     try {
       schemaString = new ObjectMapper().writeValueAsString(schemaNode);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
 
-    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    org.apache.avro.Schema avroSchema = parser.parse(schemaString);
+    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    final org.apache.avro.Schema avroSchema = parser.parse(schemaString);
 
-    List<Record> inputRecords;
-    List<Record> outputRecords;
+    final Topic srcTopic;
+    final Topic outputTopic
+        = new Topic(OUTPUT_TOPIC_NAME, null, new ValueSpecAvroSerdeSupplier());
+    final List<Record> inputRecords;
+    final List<Record> outputRecords;
     if (node.has("input_records")) {
-      inputRecords = loadRecords(TOPIC_NAME, node.get("input_records"));
-      outputRecords = loadRecords(TOPIC_NAME, node.get("output_records"));
+      srcTopic = new Topic(TOPIC_NAME, avroSchema, new ValueSpecAvroSerdeSupplier());
+      inputRecords = loadRecords(srcTopic, node.get("input_records"));
+      outputRecords = loadRecords(outputTopic, node.get("output_records"));
     } else {
-      inputRecords = generateInputRecords(TOPIC_NAME, avroSchema);
-      outputRecords = getOutputRecords(OUTPUT_TOPIC_NAME, inputRecords, avroSchema);
+      srcTopic = new Topic(TOPIC_NAME, avroSchema, new AvroSerdeSupplier());
+      inputRecords = generateInputRecords(srcTopic, avroSchema);
+      outputRecords = getOutputRecords(outputTopic, inputRecords, avroSchema);
     }
 
-    String ddlStatement =
+    final String ddlStatement =
         String.format(
             "CREATE STREAM %s WITH (KAFKA_TOPIC='%s', VALUE_FORMAT='AVRO');",
             TOPIC_NAME, TOPIC_NAME);
-    String csasStatement = "CREATE STREAM TEST_OUTPUT AS SELECT ";
-    csasStatement += avroSchema.getFields()
+    final String csasStatement = avroSchema.getFields()
         .stream()
         .map(Schema.Field::name)
-        .collect(Collectors.joining(", "));
-    csasStatement += " FROM " + TOPIC_NAME + ";";
+        .collect(
+            Collectors.joining(
+                ", ",
+                "CREATE STREAM TEST_OUTPUT AS SELECT ",
+                " FROM " + TOPIC_NAME + ";")
+        );
 
     return new Query(
         "",
         node.get("name").asText(),
-        Collections.singletonList(new Topic(TOPIC_NAME, DataSource.AVRO_SERDE_NAME, avroSchema)),
+        ImmutableList.of(srcTopic, outputTopic),
         inputRecords,
         outputRecords,
         Arrays.asList(ddlStatement, csasStatement));

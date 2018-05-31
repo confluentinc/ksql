@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.serde.DataSource;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -15,17 +16,36 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.confluent.ksql.EndToEndEngineTest.findTests;
+import static io.confluent.ksql.EndToEndEngineTest.Query;
+import static io.confluent.ksql.EndToEndEngineTest.Record;
+import static io.confluent.ksql.EndToEndEngineTest.SerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.StringSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTest.Topic;
+import static io.confluent.ksql.EndToEndEngineTest.Window;
+
 @RunWith(Parameterized.class)
-public class QueryTranslationTest extends EndToEndEngineTest {
+public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
+
+  private final String name;
+  private final Query query;
 
   /**
    * @param name  - unused. Is just so the tests get named.
    * @param query - query to run.
    */
   public QueryTranslationTest(final String name, final Query query) {
-    super(name, query);
+    this.name = name;
+    this.query = query;
+  }
+
+  @Test
+  public void shouldBuildAndExecuteQueries() {
+    EndToEndEngineTest.shouldBuildAndExecuteQuery(this.query);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -51,8 +71,8 @@ public class QueryTranslationTest extends EndToEndEngineTest {
           final List<Topic> topics = new LinkedList<>();
           topics.addAll(
               Arrays.asList(
-                  new Topic("test_topic", DataSource.DELIMITED_SERDE_NAME, null),
-                  new Topic("test_table", DataSource.DELIMITED_SERDE_NAME, null)));
+                  new Topic("test_topic", null, new StringSerdeSupplier()),
+                  new Topic("test_table", null, new StringSerdeSupplier())));
           if (query.has("topics")) {
             query.findValue("topics").forEach(
                 topic -> topics.add(createTopicFromNode(topic))
@@ -75,32 +95,48 @@ public class QueryTranslationTest extends EndToEndEngineTest {
     }).collect(Collectors.toCollection(ArrayList::new));
   }
 
+  private static SerdeSupplier getSerdeSupplier(final String format) {
+    switch(format) {
+      case DataSource.AVRO_SERDE_NAME:
+        return new ValueSpecAvroSerdeSupplier();
+      case DataSource.JSON_SERDE_NAME:
+        return new ValueSpecJsonSerdeSupplier();
+      case DataSource.DELIMITED_SERDE_NAME:
+      default:
+        return new StringSerdeSupplier();
+    }
+  }
+
   private static Topic createTopicFromNode(final JsonNode node) {
-    org.apache.avro.Schema schema = null;
+    final org.apache.avro.Schema schema;
     if (node.has("schema")) {
       try {
-        String schemaString = objectMapper.writeValueAsString(node);
-        org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+        final String schemaString = objectMapper.writeValueAsString(node);
+        final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
         schema = parser.parse(schemaString);
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
+    } else {
+      schema = null;
     }
-    return new Topic(node.get("name").asText(), node.get("format").asText(), schema);
+
+    final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());
+
+    return new Topic(node.get("name").asText(), schema, serdeSupplier);
   }
 
   private static Record createRecordFromNode(final List<Topic> topics, final JsonNode node) {
-    String topicName = node.findValue("topic").asText();
-    Topic topic = topics.stream()
+    final String topicName = node.findValue("topic").asText();
+    final Topic topic = topics.stream()
         .filter(t -> t.getName().equals(topicName))
         .findFirst()
-        .orElse(new Topic(topicName, DataSource.DELIMITED_SERDE_NAME, null));
+        .orElse(new Topic(topicName, null, new StringSerdeSupplier()));
 
-    Object topicValue;
-    SerdeSupplier serdeSupplier = new StringSerdeSupplier();
+    final Object topicValue;
     if (node.findValue("value").asText().equals("null")) {
       topicValue = null;
-    } else if (topic.getFormat().equals(DataSource.DELIMITED_SERDE_NAME)) {
+    } else if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
       topicValue = node.findValue("value").asText();
     } else {
       try {
@@ -109,23 +145,18 @@ public class QueryTranslationTest extends EndToEndEngineTest {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      serdeSupplier = new ValueSpecAvroSerdeSupplier();
-      if (topic.getFormat() == DataSource.JSON_SERDE_NAME) {
-        serdeSupplier = new ValueSpecJsonSerdeSupplier();
-      }
     }
 
     return new Record(
-        topicName,
+        topic,
         node.findValue("key").asText(),
         topicValue,
         node.findValue("timestamp").asLong(),
-        createWindowIfExists(node),
-        serdeSupplier
+        createWindowIfExists(node)
     );
   }
 
-  private static Window createWindowIfExists(JsonNode node) {
+  private static Window createWindowIfExists(final JsonNode node) {
     final JsonNode windowNode = node.findValue("window");
     if (windowNode == null) {
       return null;

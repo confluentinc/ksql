@@ -61,88 +61,41 @@ import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 
-@Ignore
-public class EndToEndEngineTest {
-
-  private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-  private final Map<String, Object> config = new HashMap<String, Object>() {{
-    put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    put("application.id", "KSQL-TEST");
-    put("commit.interval.ms", 0);
-    put("cache.max.bytes.buffering", 0);
-    put("auto.offset.reset", "earliest");
-    put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
-  }};
-  private final Properties streamsProperties = new Properties();
-  private SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-
-  private Query query;
-
-  private KsqlEngine ksqlEngine;
-
-  @Before
-  public void before() {
-    streamsProperties.putAll(config);
-    ksqlEngine = new KsqlEngine(
-        new KsqlConfig(config),
-        new FakeKafkaTopicClient(),
-        schemaRegistryClient,
-        metaStore);
-  }
-
-  @After
-  public void cleanUp() {
-    ksqlEngine.close();
-  }
-
-  protected static class Window {
-    private final long start;
-    private final long end;
-
-    public Window(long start, long end) {
-      this.start = start;
-      this.end = end;
-    }
-
-    public long size() {
-      return end - start;
-    }
-  }
-
+class EndToEndEngineTest {
   protected interface SerdeSupplier<T> {
     Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient);
     Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient);
   }
 
-  protected static class StringSerdeSupplier implements SerdeSupplier<String> {
+  static class StringSerdeSupplier implements SerdeSupplier<String> {
     @Override
-    public Serializer<String> getSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public Serializer<String> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return Serdes.String().serializer();
     }
 
     @Override
-    public Deserializer<String> getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public Deserializer<String> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return Serdes.String().deserializer();
     }
   }
 
-  protected static class AvroSerdeSupplier implements SerdeSupplier {
+  static class AvroSerdeSupplier implements SerdeSupplier {
     @Override
-    public Serializer getSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return new KafkaAvroSerializer(schemaRegistryClient);
     }
 
     @Override
-    public Deserializer getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return new KafkaAvroDeserializer(schemaRegistryClient);
     }
   }
 
-  protected static class ValueSpecAvroDeserializer implements Deserializer<Object> {
+  static class ValueSpecAvroDeserializer implements Deserializer<Object> {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroDeserializer avroDeserializer;
 
-    public ValueSpecAvroDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     }
@@ -152,11 +105,11 @@ public class EndToEndEngineTest {
     }
 
     @Override
-    public void configure(Map<String, ?> properties, boolean b) {
+    public void configure(final Map<String, ?> properties, final boolean b) {
     }
 
     @Override
-    public Object deserialize(String topicName, byte[] data) {
+    public Object deserialize(final String topicName, final byte[] data) {
       Object avroObject = avroDeserializer.deserialize(topicName, data);
       String schemaString;
       try {
@@ -172,7 +125,7 @@ public class EndToEndEngineTest {
     }
   }
 
-  protected static class ValueSpecAvroSerializer implements Serializer<Object> {
+  static class ValueSpecAvroSerializer implements Serializer<Object> {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
 
@@ -186,48 +139,48 @@ public class EndToEndEngineTest {
     }
 
     @Override
-    public void configure(Map<String, ?> properties, boolean b) {
+    public void configure(final Map<String, ?> properties, final boolean b) {
     }
 
     @Override
-    public byte[] serialize(String topicName, Object spec) {
-      String schemaString;
+    public byte[] serialize(final String topicName, final Object spec) {
+      final String schemaString;
       try {
         schemaString = schemaRegistryClient.getLatestSchemaMetadata(topicName + "-value").getSchema();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
       new org.apache.avro.Schema.Parser().parse(schemaString);
-      Object avroObject = valueSpecToAvro(
+      final Object avroObject = valueSpecToAvro(
           spec,
           new org.apache.avro.Schema.Parser().parse(schemaString));
       return avroSerializer.serialize(topicName, avroObject);
     }
   }
 
-  protected static class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
+  static class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     @Override
-    public Serializer<Object> getSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return new ValueSpecAvroSerializer(schemaRegistryClient);
     }
 
     @Override
-    public Deserializer<Object> getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return new ValueSpecAvroDeserializer(schemaRegistryClient);
     }
   }
 
-  protected static class ValueSpecJsonDeserializer implements Deserializer<Object> {
+  static class ValueSpecJsonDeserializer implements Deserializer<Object> {
     @Override
     public void close() {
     }
 
     @Override
-    public void configure(Map<String, ?> properties, boolean b) {
+    public void configure(final Map<String, ?> properties, final boolean b) {
     }
 
     @Override
-    public Object deserialize(String topicName, byte[] data) {
+    public Object deserialize(final String topicName, final byte[] data) {
       try {
         return new ObjectMapper().readValue(data, Map.class);
       } catch (Exception e) {
@@ -236,17 +189,17 @@ public class EndToEndEngineTest {
     }
   }
 
-  protected static class ValueSpecJsonSerializer implements Serializer<Object> {
+  static class ValueSpecJsonSerializer implements Serializer<Object> {
     @Override
     public void close() {
     }
 
     @Override
-    public void configure(Map<String, ?> properties, boolean b) {
+    public void configure(final Map<String, ?> properties, final boolean b) {
     }
 
     @Override
-    public byte[] serialize(String topicName, Object spec) {
+    public byte[] serialize(final String topicName, final Object spec) {
       try {
         return new ObjectMapper().writeValueAsBytes(spec);
       } catch (Exception e) {
@@ -255,62 +208,74 @@ public class EndToEndEngineTest {
     }
   }
 
-  protected static class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
+  static class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
     @Override
-    public Serializer<Object> getSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return new ValueSpecJsonSerializer();
     }
 
     @Override
-    public Deserializer<Object> getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return new ValueSpecJsonDeserializer();
     }
   }
 
-  protected static class Topic {
+  static class Topic {
     private final String name;
-    private final String format;
     private final org.apache.avro.Schema schema;
+    private final SerdeSupplier serdeSupplier;
 
-    Topic(final String name, final String format, final org.apache.avro.Schema schema) {
+    Topic(final String name, final org.apache.avro.Schema schema,
+          final SerdeSupplier serdeSupplier) {
       this.name = name;
-      this.format = format;
       this.schema = schema;
+      this.serdeSupplier = serdeSupplier;
     }
 
     public String getName() {
       return name;
     }
 
-    public String getFormat() {
-      return format;
-    }
-
     public org.apache.avro.Schema getSchema() {
       return schema;
     }
+
+    public SerdeSupplier getSerdeSupplier() {
+      return serdeSupplier;
+    }
   }
 
-  protected static class Record {
-    private final String topic;
+  static class Window {
+    private final long start;
+    private final long end;
+
+    public Window(final long start, final long end) {
+      this.start = start;
+      this.end = end;
+    }
+
+    public long size() {
+      return end - start;
+    }
+  }
+
+  static class Record {
+    private final Topic topic;
     private final String key;
     private final Object value;
     private final long timestamp;
     private final Window window;
-    private final SerdeSupplier serdeSupplier;
 
-    Record(final String topic,
-                  final String key,
-                  final Object value,
-                  final long timestamp,
-                  final Window window,
-                  final SerdeSupplier serdeSupplier) {
+    Record(final Topic topic,
+           final String key,
+           final Object value,
+           final long timestamp,
+           final Window window) {
       this.topic = topic;
       this.key = key;
       this.value = value;
       this.timestamp = timestamp;
       this.window = window;
-      this.serdeSupplier = serdeSupplier;
     }
 
     @SuppressWarnings("unchecked")
@@ -342,7 +307,7 @@ public class EndToEndEngineTest {
     }
   }
 
-  protected static class Query {
+  static class Query {
     private final String testPath;
     private final String name;
     private final Collection<Topic> topics;
@@ -380,8 +345,8 @@ public class EndToEndEngineTest {
           r -> testDriver.pipeInput(
               new ConsumerRecordFactory<>(
                   Serdes.String().serializer(),
-                  r.serdeSupplier.getSerializer(schemaRegistryClient)
-              ).create(r.topic, r.key, r.value, r.timestamp)
+                  r.topic.getSerdeSupplier().getSerializer(schemaRegistryClient)
+              ).create(r.topic.name, r.key, r.value, r.timestamp)
           )
       );
     }
@@ -393,8 +358,9 @@ public class EndToEndEngineTest {
         outputRecords.forEach(
             r -> OutputVerifier.compareKeyValueTimestamp(
                 testDriver.readOutput(
-                    r.topic, r.keyDeserializer(),
-                    r.serdeSupplier.getDeserializer(schemaRegistryClient)),
+                    r.topic.name, r.keyDeserializer(),
+                    r.topic.getSerdeSupplier().getDeserializer(schemaRegistryClient)
+                ),
                 r.key(),
                 r.value,
                 r.timestamp)
@@ -411,7 +377,7 @@ public class EndToEndEngineTest {
     void initializeTopics(final KsqlEngine ksqlEngine) {
       for (Topic topic : topics) {
         ksqlEngine.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
-        if (topic.getFormat().equals(DataSource.AVRO_SERDE_NAME) && topic.getSchema() != null) {
+        if (topic.getSchema() != null) {
           try {
             ksqlEngine.getSchemaRegistryClient().register(
                 topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
@@ -423,7 +389,8 @@ public class EndToEndEngineTest {
     }
   }
 
-  private TopologyTestDriver buildStreamsTopology(final Query query) {
+  private static TopologyTestDriver buildStreamsTopology(final Query query, final KsqlEngine ksqlEngine,
+                                                         final Properties streamsProperties) {
     final List<QueryMetadata> queries = new ArrayList<>();
     query.statements().forEach(
         q -> queries.addAll(ksqlEngine.buildMultipleQueries(q, Collections.emptyMap()))
@@ -433,23 +400,7 @@ public class EndToEndEngineTest {
         0);
   }
 
-  /**
-   * @param name  - unused. Is just so the tests get named.
-   * @param query - query to run.
-   */
-  EndToEndEngineTest(final String name, final Query query) {
-    this.query = query;
-  }
-
-  @Test
-  public void shouldBuildAndExecuteQuery() {
-    query.initializeTopics(ksqlEngine);
-    final TopologyTestDriver testDriver = buildStreamsTopology(query);
-    query.processInput(testDriver, schemaRegistryClient);
-    query.verifyOutput(testDriver, schemaRegistryClient);
-  }
-
-  static List<String> findTests(String dir) throws IOException {
+  static List<String> findTests(final String dir) throws IOException {
     final List<String> tests = new ArrayList<>();
     try (final BufferedReader reader =
              new BufferedReader(
@@ -466,8 +417,36 @@ public class EndToEndEngineTest {
     return tests;
   }
 
+  static void shouldBuildAndExecuteQuery(Query query) {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final Map<String, Object> config = new HashMap<String, Object>() {{
+      put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+      put("application.id", "KSQL-TEST");
+      put("commit.interval.ms", 0);
+      put("cache.max.bytes.buffering", 0);
+      put("auto.offset.reset", "earliest");
+      put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
+    }};
+    final Properties streamsProperties = new Properties();
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
+    streamsProperties.putAll(config);
+
+    try (final KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(config),
+        new FakeKafkaTopicClient(),
+        schemaRegistryClient,
+        metaStore
+    )) {
+      query.initializeTopics(ksqlEngine);
+      final TopologyTestDriver testDriver = buildStreamsTopology(query, ksqlEngine, streamsProperties);
+      query.processInput(testDriver, schemaRegistryClient);
+      query.verifyOutput(testDriver, schemaRegistryClient);
+    }
+  }
+
   @SuppressWarnings("unchecked")
-  static Object valueSpecToAvro(Object spec, org.apache.avro.Schema schema) {
+  static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
     if (spec == null) {
       return null;
     }
@@ -491,7 +470,7 @@ public class EndToEndEngineTest {
             )
         );
       case RECORD:
-        GenericRecord record = new GenericData.Record(schema);
+        final GenericRecord record = new GenericData.Record(schema);
         for (org.apache.avro.Schema.Field field : schema.getFields()) {
           record.put(field.name(), ((Map<String, ?>)spec).get(field.name()));
         }
@@ -545,7 +524,7 @@ public class EndToEndEngineTest {
                 )
             );
       case UNION:
-        int pos = GenericData.get().resolveUnion(schema, avro);
+        final int pos = GenericData.get().resolveUnion(schema, avro);
         return avroToValueSpec(avro, schema.getTypes().get(pos), toUpper);
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());

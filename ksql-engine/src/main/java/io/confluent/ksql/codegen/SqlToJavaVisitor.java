@@ -512,11 +512,13 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
       final Schema internalSchema = schemaField.get().schema();
+      final String internalSchemaJavaType =
+          SchemaUtil.getJavaType(internalSchema).getCanonicalName();
       if (internalSchema.type() == Schema.Type.ARRAY) {
         return new Pair<>(
             String.format("((%s) ((%s)%s).get((int)(%s)))",
                           SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
-                          SchemaUtil.getJavaType(internalSchema).getCanonicalName(),
+                          internalSchemaJavaType,
                           process(node.getBase(), unmangleNames).getLeft(),
                           process(node.getIndex(), unmangleNames).getLeft()
             ),
@@ -527,7 +529,7 @@ public class SqlToJavaVisitor {
         return new Pair<>(
             String.format("(%s ((%s)%s).get(%s))",
                           SchemaUtil.getJavaCastString(internalSchema.valueSchema()),
-                          SchemaUtil.getJavaType(internalSchema).getCanonicalName(),
+                          internalSchemaJavaType,
                           process(node.getBase(), unmangleNames).getLeft(),
                           process(node.getIndex(), unmangleNames).getLeft()),
             schemaField.get().schema().valueSchema()

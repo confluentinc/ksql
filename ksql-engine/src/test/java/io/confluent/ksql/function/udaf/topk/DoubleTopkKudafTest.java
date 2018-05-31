@@ -32,13 +32,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class DoubleTopkKudafTest {
-  private List valueArray;
+  private List valuesArray;
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
+    valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
                                   25.0);
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.FLOAT64_SCHEMA);
@@ -49,7 +49,7 @@ public class DoubleTopkKudafTest {
     KsqlAggregateFunction<Object, List> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List window = new ArrayList();
-    for (Object value : valueArray) {
+    for (Object value : valuesArray) {
       window = topkKudaf.aggregate(value , window);
     }
 

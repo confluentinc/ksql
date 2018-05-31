@@ -42,10 +42,12 @@ public class TopkKudaf<T extends Comparable<? super T>>
             final Schema returnType,
             final List<Schema> argumentTypes,
             final Class<T> clazz) {
-    super(functionName,
-          argIndexInValue, ArrayList::new,
-          returnType,
-          argumentTypes
+    super(
+        functionName,
+        argIndexInValue,
+        ArrayList::new,
+        returnType,
+        argumentTypes
     );
     this.topKSize = topKSize;
     this.returnType = returnType;

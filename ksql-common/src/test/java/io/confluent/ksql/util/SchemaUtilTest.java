@@ -349,7 +349,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetTheSchemaDefString() {
     String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
-    assertThat("Invalid schema def.", schemaDef.equals("[ORDERTIME : BIGINT, "
+    assertThat("Invalid schema def.", schemaDef, equalTo("[ORDERTIME : BIGINT, "
                                                        + "ORDERID : BIGINT, "
                                                        + "ITEMID : VARCHAR, "
                                                        + "ORDERUNITS : DOUBLE, "

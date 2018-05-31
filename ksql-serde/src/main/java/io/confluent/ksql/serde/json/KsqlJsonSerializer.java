@@ -109,23 +109,22 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
    * Currently, when we put a value in a struct the schema object should match too
    * however, although the schemas are the same but the objects do not match.
    * This is to overcome this problem.
-   *
    */
   private Struct updateStructSchema(Struct struct, Schema schema) {
     if (!compareSchemas(schema, struct.schema())) {
       throw new KsqlException("Incompatible schemas: " + schema + ", " + struct.schema());
     }
     Struct updatedStruct = new Struct(schema);
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       if (field.schema().type() == Schema.Type.STRUCT) {
         Struct structField = updateStructSchema((Struct) struct.get(field.name()), field.schema());
         updatedStruct.put(field.name(), structField);
       } else if (field.schema().type() == Schema.Type.ARRAY) {
         updatedStruct.put(field.name(),
-                          updateArraySchema((List) struct.get(field.name()), field.schema()));
+            updateArraySchema((List) struct.get(field.name()), field.schema()));
       } else if (field.schema().type() == Schema.Type.MAP) {
         updatedStruct.put(field.name(),
-                          updateMapSchema((Map) struct.get(field.name()), field.schema()));
+            updateMapSchema((Map) struct.get(field.name()), field.schema()));
       } else {
         updatedStruct.put(field.name(), struct.get(field.name()));
       }
@@ -158,29 +157,29 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       map.entrySet()
           .stream()
           .forEach(entry ->
-                       updatedMap.put(((Map.Entry) entry).getKey(),
-                                      updateStructSchema((Struct)((Map.Entry) entry).getValue(),
-                                                         mapSchema.valueSchema())));
+              updatedMap.put(((Map.Entry) entry).getKey(),
+                  updateStructSchema((Struct) ((Map.Entry) entry).getValue(),
+                      mapSchema.valueSchema())));
     } else if (mapSchema.valueSchema().type() == Schema.Type.ARRAY) {
       map.entrySet()
           .stream()
           .forEach(entry ->
-                       updatedMap.put(((Map.Entry) entry).getKey(),
-                                      updateArraySchema((List) ((Map.Entry) entry).getValue(),
-                                                        mapSchema.valueSchema())));
+              updatedMap.put(((Map.Entry) entry).getKey(),
+                  updateArraySchema((List) ((Map.Entry) entry).getValue(),
+                      mapSchema.valueSchema())));
     } else if (mapSchema.valueSchema().type() == Schema.Type.MAP) {
       map.entrySet()
           .stream()
           .forEach(entry ->
-                       updatedMap.put(((Map.Entry) entry).getKey(),
-                                      updateMapSchema((Map) ((Map.Entry) entry).getValue(),
-                                                      mapSchema.valueSchema())));
+              updatedMap.put(((Map.Entry) entry).getKey(),
+                  updateMapSchema((Map) ((Map.Entry) entry).getValue(),
+                      mapSchema.valueSchema())));
     } else {
       map.entrySet()
           .stream()
           .forEach(entry ->
-                       updatedMap.put(((Map.Entry) entry).getKey(),
-                                      ((Map.Entry) entry).getValue()));
+              updatedMap.put(((Map.Entry) entry).getKey(),
+                  ((Map.Entry) entry).getValue()));
     }
     return updatedMap;
   }
@@ -196,7 +195,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       for (int i = 0; i < schema1.fields().size(); i++) {
         if (!schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())
             || !compareSchemas(schema1.fields().get(i).schema(),
-                               schema2.fields().get(i).schema())) {
+            schema2.fields().get(i).schema())) {
           return false;
         }
       }
@@ -204,7 +203,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       return compareSchemas(schema1.valueSchema(), schema2.valueSchema());
     } else if (schema1.type() == Schema.Type.MAP) {
       return compareSchemas(schema1.valueSchema(), schema2.valueSchema())
-             && compareSchemas(schema1.keySchema(), schema2.keySchema());
+          && compareSchemas(schema1.keySchema(), schema2.keySchema());
     }
     return true;
   }

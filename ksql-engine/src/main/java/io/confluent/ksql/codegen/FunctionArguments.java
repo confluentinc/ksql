@@ -69,4 +69,16 @@ public class FunctionArguments {
     return !args.isEmpty();
   }
 
+  /**
+   * Remove the last n params from the current functions arguments.
+   * Needed to handle array indexing and possibly maps.
+   */
+  void removeLastParams(int count) {
+    if (hasArgs()) {
+      final List<Schema.Type> peek = args.peek();
+      for (int i = 0; i < count; i++) {
+        peek.remove(peek.size() - 1);
+      }
+    }
+  }
 }

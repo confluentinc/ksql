@@ -539,21 +539,25 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
-      functionArguments.addArgumentType(schema.type());
+      functionArguments.addArgumentType(schemaField.get().schema().valueSchema().type());
+
       if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>(
+        final Pair<String, Schema> pair = new Pair<>(
             process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-            + process(node.getIndex(), unmangleNames).getLeft() + ")]",
+                + process(node.getIndex(), unmangleNames).getLeft() + ")]",
             schema
         );
+        functionArguments.removeLastParams(2);
+        return pair;
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        return new Pair<>(
+        final Pair<String, Schema> stringSchemaPair = new Pair<>(
             "("
-            + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-            + process(node.getBase(), unmangleNames).getLeft() + ".get"
-            + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
+                + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
+                + process(node.getBase(), unmangleNames).getLeft() + ".get"
+                + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
             schema
         );
+        return stringSchemaPair;
       }
       throw new UnsupportedOperationException();
     }

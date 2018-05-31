@@ -102,7 +102,8 @@ public class CodeGenRunnerTest {
             .field("CODEGEN_TEST.COL11",
                    SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
             .field("CODEGEN_TEST.COL12",
-                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA));
+                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
         Schema metaStoreSchema = SchemaBuilder.struct()
             .field("COL0", SchemaBuilder.INT64_SCHEMA)
             .field("COL1", SchemaBuilder.STRING_SCHEMA)
@@ -118,7 +119,8 @@ public class CodeGenRunnerTest {
             .field("COL11",
                 SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
             .field("COL12",
-                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA));
+                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+            .field("COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
         KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
@@ -420,7 +422,6 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
 
         // Then:
-        assertThat(columns, contains("fred-1"));
     }
 
     private List<Object> executeExpression(final String query,

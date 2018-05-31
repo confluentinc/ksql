@@ -31,13 +31,13 @@ import static org.junit.Assert.assertThat;
 
 public class DoubleTopkDistinctKudafTest {
 
-  List<Double> valueArray;
+  private List<Double> valuesArray;
   private final TopkDistinctKudaf<Double> doubleTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.FLOAT64_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0,
+    valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0,
                                   80.0, 35.0, 25.0, 60.0, 80.0);
 
   }
@@ -45,7 +45,7 @@ public class DoubleTopkDistinctKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Double> currentVal = new ArrayList<Double>();
-    for (Double d: valueArray) {
+    for (Double d: valuesArray) {
       currentVal = doubleTopkDistinctKudaf.aggregate(d, currentVal);
     }
 

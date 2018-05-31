@@ -39,13 +39,13 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkKudafTest {
 
-  private List<Integer> valueArray;
+  private List<Integer> valuesArray;
   private KsqlAggregateFunction<Integer, List<Integer>> topkKudaf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
+    valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
     topkKudaf = new TopKAggregateFunctionFactory(3)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
   }
@@ -53,7 +53,7 @@ public class IntTopkKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Integer> currentVal = new ArrayList();
-    for (Integer value : valueArray) {
+    for (Integer value : valuesArray) {
       currentVal = topkKudaf.aggregate(value, currentVal);
     }
 
@@ -79,7 +79,7 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Integer> array1 =ImmutableList.of(50, 45);
+    List<Integer> array1 = ImmutableList.of(50, 45);
     List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),

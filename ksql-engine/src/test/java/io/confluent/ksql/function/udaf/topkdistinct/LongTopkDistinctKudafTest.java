@@ -31,13 +31,13 @@ import static org.junit.Assert.assertThat;
 
 public class LongTopkDistinctKudafTest {
 
-  List<Long> valueArray;
+  private List<Long> valuesArray;
   private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT64_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
+    valuesArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
                                   60L, 80L);
 
   }
@@ -45,7 +45,7 @@ public class LongTopkDistinctKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Long> currentVal = new ArrayList();
-    for (Long d: valueArray) {
+    for (Long d: valuesArray) {
       currentVal = longTopkDistinctKudaf.aggregate(d, currentVal);
     }
 

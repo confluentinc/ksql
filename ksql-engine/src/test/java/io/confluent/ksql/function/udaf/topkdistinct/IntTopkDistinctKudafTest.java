@@ -34,20 +34,20 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkDistinctKudafTest {
 
-  private List<Integer> valueArray;
+  private List<Integer> valuesArray;
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
       TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
+    valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
                                   60, 80);
   }
 
   @Test
   public void shouldAggregateTopK() {
     List<Integer> currentVal = new ArrayList<Integer>();
-    for (Integer d : valueArray) {
+    for (Integer d : valuesArray) {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 

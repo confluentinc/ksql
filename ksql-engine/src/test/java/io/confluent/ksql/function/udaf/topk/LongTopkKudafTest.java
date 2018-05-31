@@ -32,13 +32,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class LongTopkKudafTest {
-  List valueArray;
-  TopKAggregateFunctionFactory topKFactory;
-  List<Schema> argumentType;
+  private List valuesArray;
+  private TopKAggregateFunctionFactory topKFactory;
+  private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
+    valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
                                   25L);
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.INT64_SCHEMA);
@@ -49,7 +49,7 @@ public class LongTopkKudafTest {
     KsqlAggregateFunction<Object, List> longTopkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List window = new ArrayList();
-    for (Object value : valueArray) {
+    for (Object value : valuesArray) {
       window = longTopkKudaf.aggregate(value, window);
     }
     assertThat("Invalid results.", window, equalTo(ImmutableList.of(80L, 60L, 60L)));

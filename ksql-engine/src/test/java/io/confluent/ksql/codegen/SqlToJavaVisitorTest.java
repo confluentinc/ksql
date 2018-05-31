@@ -62,7 +62,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void processBasicJavaMath() {
+  public void shouldProcessBasicJavaMath() {
     String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -72,7 +72,8 @@ public class SqlToJavaVisitorTest {
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
   }
 
-  public void processArrayExpressionCorrectly() throws Exception {
+  @Test
+  public void shouldProcessArrayExpressionCorrectly() throws Exception {
 
     String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
@@ -85,7 +86,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void processMapExpressionCorrectly() throws Exception {
+  public void shouldProcessMapExpressionCorrectly() throws Exception {
 
 
     String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";

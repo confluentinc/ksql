@@ -234,10 +234,9 @@ public class ExpressionTypeManager
     throw new PlanException("Unsupported types.");
   }
 
-  private Object updateContextAndFunctionArgs(final Schema schema,
+  private void updateContextAndFunctionArgs(final Schema schema,
                                               final ExpressionTypeContext context) {
     functionArguments.addArgumentType(schema.type());
     context.setSchema(schema);
-    return null;
   }
 }

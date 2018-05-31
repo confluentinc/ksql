@@ -120,6 +120,7 @@ public class SqlToJavaVisitor {
         final BooleanLiteral node,
         final Boolean unmangleNames
     ) {
+      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>(String.valueOf(node.getValue()), Schema.BOOLEAN_SCHEMA);
     }
 

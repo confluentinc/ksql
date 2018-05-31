@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -91,7 +92,6 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
@@ -705,16 +705,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           getLocation(context),
           topicName,
           fromBeginning,
-          null
+          Optional.empty()
       );
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
       SqlBaseParser.IntegerLiteralContext integerLiteralContext =
           (SqlBaseParser.IntegerLiteralContext) context.number();
+      final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          (LongLiteral) visitIntegerLiteral(integerLiteralContext)
+          Optional.of(literal.getValue())
       );
     } else {
       throw new KsqlException("Interval value should be integer in 'PRINT' command!");
@@ -1292,7 +1293,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new LongLiteral(getLocation(context), context.getText());
+    return new IntegerLiteral(getLocation(context), context.getText());
   }
 
   @Override

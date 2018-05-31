@@ -335,4 +335,36 @@ public class SchemaUtilTest {
                                           + " >"));
   }
 
+  @Test
+  public void shouldResolveIntAndLongSchemaToLong() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.INT64, Schema.Type.INT32).type(),
+        equalTo(Schema.Type.INT64));
+  }
+
+  @Test
+  public void shouldResolveIntAndIntSchemaToInt() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.INT32, Schema.Type.INT32).type(),
+        equalTo(Schema.Type.INT32));
+  }
+
+  @Test
+  public void shouldResolveFloat64AndAnyNumberTypeToFloat() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.INT32, Schema.Type.FLOAT64).type(),
+        equalTo(Schema.Type.FLOAT64));
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.FLOAT64, Schema.Type.INT64).type(),
+        equalTo(Schema.Type.FLOAT64));
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.FLOAT32, Schema.Type.FLOAT64).type(),
+        equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowExceptionWhenResolvingStringWithAnythingElse() {
+    SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.FLOAT64);
+  }
+
 }

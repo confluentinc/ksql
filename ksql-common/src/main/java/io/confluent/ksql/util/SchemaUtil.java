@@ -25,6 +25,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,6 +43,21 @@ public class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
+
+  private static Map<Pair<Schema.Type, Schema.Type>, Schema> numericTypePairMapping =
+      ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.INT32_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.FLOAT64_SCHEMA)
+      .build();
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -434,5 +450,15 @@ public class SchemaUtil {
             + " in schema. fields="
             + fields
     );
+  }
+
+  public static Schema resolveArithmeticType(final Schema.Type left,
+                                             final Schema.Type right) {
+
+    final Schema schema = numericTypePairMapping.get(new Pair<>(left, right));
+    if (schema == null) {
+      throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
+    }
+    return schema;
   }
 }

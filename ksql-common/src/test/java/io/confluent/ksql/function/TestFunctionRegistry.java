@@ -22,35 +22,45 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class TestFunctionRegistry implements FunctionRegistry {
-  private final Map<String, KsqlFunction> udfs = new HashMap<>();
+  private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
 
   @Override
-  public KsqlFunction getFunction(String functionName) {
+  public UdfFactory getUdfFactory(final String functionName) {
     return udfs.get(functionName);
   }
 
   @Override
-  public boolean addFunction(KsqlFunction ksqlFunction) {
-    return udfs.putIfAbsent(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction) == null;
+  public boolean addFunction(final KsqlFunction ksqlFunction) {
+    final String key = ksqlFunction.getFunctionName().toUpperCase();
 
+    udfs.compute(key, (s, udf) -> {
+      if (udf == null) {
+        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
+      }
+      udf.addFunction(ksqlFunction);
+      return udf;
+    });
+
+    return true;
   }
 
   @Override
-  public boolean isAggregate(String functionName) {
+  public boolean isAggregate(final String functionName) {
     return udafs.containsKey(functionName.toUpperCase());
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(String functionName,
-                                            Schema expressionType) {
+  public KsqlAggregateFunction getAggregate(final String functionName,
+                                            final Schema expressionType) {
     return udafs.get(functionName.toUpperCase()).getProperAggregateFunction(
         Collections.singletonList(expressionType));
   }
 
   @Override
-  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
+  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     udafs.put(aggregateFunctionFactory.functionName.toUpperCase(), aggregateFunctionFactory);
   }
 

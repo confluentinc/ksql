@@ -41,8 +41,6 @@ import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +49,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
-  private static final Logger logger = LoggerFactory.getLogger(InternalFunctionRegistry.class);
   private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
   private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 

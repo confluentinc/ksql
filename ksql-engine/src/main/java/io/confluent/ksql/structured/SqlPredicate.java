@@ -24,13 +24,12 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -62,18 +61,18 @@ public class SqlPredicate {
     this.isWindowedKey = isWindowedKey;
     this.functionRegistry = functionRegistry;
 
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    Map<String, KsqlFunction> parameterMap = codeGenRunner.getParameterInfo(filterExpression);
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    final Set<CodeGenRunner.ParameterType> parameters
+        = codeGenRunner.getParameterInfo(filterExpression);
 
-    String[] parameterNames = new String[parameterMap.size()];
-    Class[] parameterTypes = new Class[parameterMap.size()];
-    columnIndexes = new int[parameterMap.size()];
-
+    final String[] parameterNames = new String[parameters.size()];
+    final Class[] parameterTypes = new Class[parameters.size()];
+    columnIndexes = new int[parameters.size()];
     int index = 0;
-    for (Map.Entry<String, KsqlFunction> entry : parameterMap.entrySet()) {
-      parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue().getKudfClass();
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
+    for (final CodeGenRunner.ParameterType param : parameters) {
+      parameterNames[index] = param.getName();
+      parameterTypes[index] = param.getType();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, param.getName());
       index++;
     }
 

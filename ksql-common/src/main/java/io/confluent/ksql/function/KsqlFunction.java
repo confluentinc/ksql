@@ -31,16 +31,16 @@ public class KsqlFunction {
   private final Schema returnType;
   private final List<Schema> arguments;
   private final String functionName;
-  private final Class kudfClass;
+  private final Class<? extends Kudf> kudfClass;
   private final Supplier<Kudf> udfSupplier;
 
   public KsqlFunction(final Schema returnType,
                       final List<Schema> arguments,
                       final String functionName,
-                      final Class kudfClass) {
+                      final Class<? extends Kudf> kudfClass) {
     this(returnType, arguments, functionName, kudfClass, () -> {
       try {
-        return (Kudf) kudfClass.newInstance();
+        return kudfClass.newInstance();
       } catch (Exception e) {
         throw new KsqlException("Failed to create instance of kudfClass "
              + kudfClass
@@ -53,7 +53,7 @@ public class KsqlFunction {
   KsqlFunction(final Schema returnType,
                final List<Schema> arguments,
                final String functionName,
-               final Class kudfClass,
+               final Class<? extends Kudf> kudfClass,
                final Supplier<Kudf> udfSupplier) {
     Objects.requireNonNull(returnType, "returnType can't be null");
     Objects.requireNonNull(arguments, "arguments can't be null");
@@ -79,7 +79,7 @@ public class KsqlFunction {
   }
 
 
-  public Class getKudfClass() {
+  public Class<? extends Kudf> getKudfClass() {
     return kudfClass;
   }
 

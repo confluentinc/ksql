@@ -21,10 +21,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
@@ -62,32 +62,29 @@ public class CodeGenRunner {
     this.schema = schema;
   }
 
-  public Map<String, KsqlFunction> getParameterInfo(final Expression expression) {
+  public Set<ParameterType> getParameterInfo(final Expression expression) {
     Visitor visitor = new Visitor(schema, functionRegistry);
     visitor.process(expression, null);
-    return visitor.parameterMap;
+    return visitor.parameters;
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
       final Expression expression
   ) throws Exception {
-    Map<String, KsqlFunction> parameterMap = getParameterInfo(expression);
 
-    String[] parameterNames = new String[parameterMap.size()];
-    Class[] parameterTypes = new Class[parameterMap.size()];
-    int[] columnIndexes = new int[parameterMap.size()];
-    Kudf[] kudfObjects = new Kudf[parameterMap.size()];
+    final Set<ParameterType> parameters = getParameterInfo(expression);
+
+    final String[] parameterNames = new String[parameters.size()];
+    final Class[] parameterTypes = new Class[parameters.size()];
+    final int[] columnIndexes = new int[parameters.size()];
+    final Kudf[] kudfObjects = new Kudf[parameters.size()];
 
     int index = 0;
-    for (Map.Entry<String, KsqlFunction> entry : parameterMap.entrySet()) {
-      parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue().getKudfClass();
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
-      if (columnIndexes[index] < 0) {
-        kudfObjects[index] = entry.getValue().newInstance();
-      } else {
-        kudfObjects[index] = null;
-      }
+    for (final ParameterType param : parameters) {
+      parameterNames[index] = param.name;
+      parameterTypes[index] = param.type;
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, param.name);
+      kudfObjects[index] = param.getKudf();
       index++;
     }
 
@@ -114,7 +111,7 @@ public class CodeGenRunner {
   private static class Visitor extends AstVisitor<Object, Object> {
 
     private final Schema schema;
-    private final Map<String, KsqlFunction> parameterMap;
+    private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
 
     private final FunctionArguments functionArguments = new FunctionArguments();
@@ -122,7 +119,7 @@ public class CodeGenRunner {
 
     Visitor(Schema schema, FunctionRegistry functionRegistry) {
       this.schema = schema;
-      this.parameterMap = new HashMap<>();
+      this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
     }
 
@@ -141,9 +138,8 @@ public class CodeGenRunner {
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(functionArguments.endFunction());
-      parameterMap.put(
-          node.getName().getSuffix() + "_" + functionNumber,
-          function);
+      parameters.add(new ParameterType(function,
+          node.getName().getSuffix() + "_" + functionNumber));
       functionArguments.addArgumentType(function.getReturnType().type());
       return null;
     }
@@ -218,11 +214,8 @@ public class CodeGenRunner {
     private void updateFunctionArgTypesAndParams(final Field schemaField) {
       final Schema schema = schemaField.schema();
       functionArguments.addArgumentType(schema.type());
-      parameterMap.put(
-          schemaField.name().replace(".", "_"),
-          new KsqlFunction(schema,
-              Collections.emptyList(), schemaField.name(), SchemaUtil.getJavaType(schema))
-      );
+      parameters.add(new ParameterType(SchemaUtil.getJavaType(schema),
+          schemaField.name().replace(".", "_")));
     }
 
     @Override
@@ -259,6 +252,60 @@ public class CodeGenRunner {
     @Override
     protected Object visitIntegerLiteral(final IntegerLiteral node, final Object context) {
       return updateFunctionArgs(Schema.Type.INT32);
+    }
+  }
+
+  public static class ParameterType {
+    private final Class type;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private final Optional<KsqlFunction> function;
+    private final String name;
+
+    ParameterType(final Class type, final String name) {
+      this(null, Objects.requireNonNull(type, "type can't be null"), name);
+    }
+
+    ParameterType(final KsqlFunction function, final String name) {
+      this(Objects.requireNonNull(function, "function can't be null"),
+          function.getKudfClass(),
+          name);
+    }
+
+    private ParameterType(final KsqlFunction function, final Class type, final String name) {
+      this.function = Optional.ofNullable(function);
+      this.type = type;
+      this.name = Objects.requireNonNull(name);
+    }
+
+    public Class getType() {
+      return type;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Kudf getKudf() {
+      return function.map(KsqlFunction::newInstance).orElse(null);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final ParameterType that = (ParameterType) o;
+      return Objects.equals(type, that.type)
+          && Objects.equals(function, that.function)
+          && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(type, function, name);
     }
   }
 }

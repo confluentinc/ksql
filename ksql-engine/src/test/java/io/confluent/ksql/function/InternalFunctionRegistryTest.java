@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -36,11 +37,25 @@ import static org.junit.Assert.fail;
 
 public class InternalFunctionRegistryTest {
 
+  private static class Func1 implements Kudf {
+    @Override
+    public Object evaluate(final Object... args) {
+      return null;
+    }
+  }
+
+  private static class Func2 implements Kudf {
+    @Override
+    public Object evaluate(final Object... args) {
+      return null;
+    }
+  }
+
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlFunction func = new KsqlFunction(Schema.STRING_SCHEMA,
       Collections.emptyList(),
       "func",
-      Object.class);
+      Func1.class);
 
   @Test
   public void shouldAddFunction() {
@@ -55,7 +70,7 @@ public class InternalFunctionRegistryTest {
     final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.emptyList(),
         "func",
-        String.class);
+        Func2.class);
     functionRegistry.addFunction(func);
     try {
       functionRegistry.addFunction(func2);
@@ -73,7 +88,7 @@ public class InternalFunctionRegistryTest {
     final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.emptyList(),
         "func2",
-        Object.class);
+       Func2.class);
 
     copy.addFunction(func2);
 
@@ -145,13 +160,13 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addFunction(func);
     assertTrue(functionRegistry.addFunction(
         new KsqlFunction(Schema.INT64_SCHEMA,
-            Collections.singletonList(Schema.INT64_SCHEMA), "func", Object.class)));
+            Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class)));
   }
 
   @Test
   public void shouldAddFunctionWithSameNameClassButDifferentArguments() {
     final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.INT64_SCHEMA), "func", Object.class);
+        Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class);
 
     functionRegistry.addFunction(func);
     assertTrue(functionRegistry.addFunction(

@@ -67,6 +67,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   private void init() {
     addStringFunctions();
     addMathFunctions();
+    addDateTimeFunctions();
     addGeoFunctions();
     addJsonFunctions();
     addUdafFunctions();

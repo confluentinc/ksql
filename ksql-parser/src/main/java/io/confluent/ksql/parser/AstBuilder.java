@@ -92,7 +92,6 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
@@ -706,16 +705,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           getLocation(context),
           topicName,
           fromBeginning,
-          null
+          Optional.empty()
       );
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
       SqlBaseParser.IntegerLiteralContext integerLiteralContext =
           (SqlBaseParser.IntegerLiteralContext) context.number();
+      final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          (LongLiteral) visitIntegerLiteral(integerLiteralContext)
+          Optional.of(literal.getValue())
       );
     } else {
       throw new KsqlException("Interval value should be integer in 'PRINT' command!");

@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import io.confluent.ksql.util.SchemaUtil;
+
 /**
  * This class is for collecting the argument types to function calls during parsing
  * via the visitor. We need the argument types to determine the correct function.
@@ -49,13 +51,14 @@ public class FunctionArguments {
    * Merges the two arguments into one type starting from the index at from.
    * Used when visiting an expression such as stuff(1 + 2) - this will result in
    * 2 Schema.Type.Int params, but the function only excepts a single int param.
+   *
    * @param from index to merge from.
    */
-  public void mergeTwoArguments(final int from) {
+  public void mergeArithmeticArguments(final int from) {
     final List<Schema.Type> functionArgs = args.peek();
     final Schema.Type first = functionArgs.remove(from);
     final Schema.Type second = functionArgs.remove(from);
-    functionArgs.add(first.ordinal() < second.ordinal() ? second : first);
+    functionArgs.add(SchemaUtil.resolveArithmeticType(first, second).type());
   }
 
   public int numCurrentFunctionArguments() {
@@ -65,4 +68,5 @@ public class FunctionArguments {
   private boolean hasArgs() {
     return !args.isEmpty();
   }
+
 }

@@ -154,7 +154,7 @@ public class CodeGenRunner {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       if (functionArguments.numCurrentFunctionArguments() > index + 1) {
-        functionArguments.mergeTwoArguments(index);
+        functionArguments.mergeArithmeticArguments(index);
       }
       return null;
     }

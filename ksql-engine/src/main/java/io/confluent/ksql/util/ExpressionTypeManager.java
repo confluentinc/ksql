@@ -37,7 +37,6 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.planner.PlanException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -82,9 +81,9 @@ public class ExpressionTypeManager
     Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     Schema rightType = expressionTypeContext.getSchema();
-    expressionTypeContext.setSchema(resolveArithmaticType(leftType, rightType));
+    expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
     if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
-      functionArguments.mergeTwoArguments(argCount);
+      functionArguments.mergeArithmeticArguments(argCount);
     }
     return null;
   }
@@ -214,24 +213,9 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private Schema resolveArithmaticType(final Schema leftSchema,
-                                            final Schema rightSchema) {
-    Schema.Type leftType = leftSchema.type();
-    Schema.Type rightType = rightSchema.type();
-
-    if (leftType == rightType) {
-      return leftSchema;
-    } else if (((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING))
-        || ((leftType == Schema.Type.BOOLEAN) || (rightType == Schema.Type.BOOLEAN))) {
-      throw new PlanException("Incompatible types.");
-    } else if ((leftType == Schema.Type.FLOAT64) || (rightType == Schema.Type.FLOAT64)) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if ((leftType == Schema.Type.INT64) || (rightType == Schema.Type.INT64)) {
-      return Schema.INT64_SCHEMA;
-    } else if ((leftType == Schema.Type.INT32) || (rightType == Schema.Type.INT32)) {
-      return Schema.INT32_SCHEMA;
-    }
-    throw new PlanException("Unsupported types.");
+  private Schema resolveArithmeticType(final Schema leftSchema,
+                                       final Schema rightSchema) {
+    return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
   }
 
   private void updateContextAndFunctionArgs(final Schema schema,

@@ -19,15 +19,6 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.rest.entity.QueryDescription;
-import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
-import io.confluent.ksql.rest.entity.QueryDescriptionList;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
-import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
@@ -53,15 +44,24 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -152,20 +152,26 @@ public abstract class Console implements Closeable {
   public void printStreamedRow(StreamedRow row) throws IOException {
     if (row.getErrorMessage() != null) {
       printErrorMessage(row.getErrorMessage());
-    } else {
-      switch (outputFormat) {
-        case JSON:
-          printAsJson(row.getRow().getColumns());
-          break;
-        case TABULAR:
-          printAsTable(row.getRow());
-          break;
-        default:
-          throw new RuntimeException(String.format(
-              "Unexpected output format: '%s'",
-              outputFormat.name()
-          ));
-      }
+      return;
+    }
+
+    if (row.getFinalMessage() != null) {
+      writer().println(row.getFinalMessage());
+      return;
+    }
+
+    switch (outputFormat) {
+      case JSON:
+        printAsJson(row.getRow().getColumns());
+        break;
+      case TABULAR:
+        printAsTable(row.getRow());
+        break;
+      default:
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'",
+            outputFormat.name()
+        ));
     }
   }
 

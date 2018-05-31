@@ -19,7 +19,8 @@ package io.confluent.ksql.function;
 import org.apache.kafka.connect.data.Schema;
 
 public interface FunctionRegistry {
-  KsqlFunction getFunction(String functionName);
+
+  UdfFactory getUdfFactory(String functionName);
 
   boolean addFunction(KsqlFunction ksqlFunction);
 

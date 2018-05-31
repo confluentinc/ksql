@@ -18,7 +18,6 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.ksql.rest.entity.RunningQuery;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -48,6 +47,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -60,6 +60,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
@@ -85,14 +86,23 @@ public class ConsoleTest {
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new GenericRow(ImmutableList.of("col_1", "col_2")));
+    StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
     terminal.printStreamedRow(row);
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new FakeException());
-    terminal.printStreamedRow(row);
+    final FakeException exception = new FakeException();
+
+    terminal.printStreamedRow(StreamedRow.error(exception));
+
+    assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
+  }
+
+  @Test
+  public void testPrintFinalMessageStreamedRow() throws IOException {
+    terminal.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
   @Test

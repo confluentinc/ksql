@@ -55,16 +55,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
-
-  private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
+  private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
   private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 
   public InternalFunctionRegistry() {
     init();
   }
 
-  private InternalFunctionRegistry(final Map<String, KsqlFunction> ksqlFunctionMap,
-      final Map<String, AggregateFunctionFactory> aggregateFunctionMap) {
+  private InternalFunctionRegistry(final Map<String, UdfFactory> ksqlFunctionMap,
+                                   final Map<String, AggregateFunctionFactory>
+                                       aggregateFunctionMap) {
     this.ksqlFunctionMap = ksqlFunctionMap;
     this.aggregateFunctionMap = aggregateFunctionMap;
   }
@@ -93,7 +93,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
     addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
     addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-
   }
 
   private void initDateTimeFunctions() {
@@ -140,6 +139,8 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     KsqlFunction abs = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
         "ABS", AbsKudf.class);
     addFunction(abs);
+    addFunction(new KsqlFunction(Schema.FLOAT64_SCHEMA, 
+        Collections.singletonList(Schema.INT64_SCHEMA), "ABS", AbsKudf.class));
 
     KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA,
         Arrays.asList(Schema.FLOAT64_SCHEMA), "CEIL", CeilKudf.class);
@@ -171,6 +172,8 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA), "SUBSTRING",
         SubstringKudf.class);
     addFunction(substring);
+    addFunction(new KsqlFunction(Schema.STRING_SCHEMA, 
+       Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA), "SUBSTRING", SubstringKudf.class));
 
     KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA), "CONCAT", ConcatKudf.class);
@@ -228,15 +231,23 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addFunction(urlFragment);
   }
 
-  @Override
-  public KsqlFunction getFunction(final String functionName) {
+  public UdfFactory getUdfFactory(final String functionName) {
     return ksqlFunctionMap.get(functionName.toUpperCase());
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public boolean addFunction(final KsqlFunction ksqlFunction) {
     final String key = ksqlFunction.getFunctionName().toUpperCase();
-    return ksqlFunctionMap.putIfAbsent(key, ksqlFunction) == null;
+    ksqlFunctionMap.compute(key, (s, udf) -> {
+      if (udf == null) {
+        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
+      }
+      udf.addFunction(ksqlFunction);
+      return udf;
+    });
+
+    return true;
   }
 
   @Override

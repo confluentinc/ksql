@@ -24,36 +24,61 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlException;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class InternalFunctionRegistryTest {
+
+  private static class Func1 implements Kudf {
+    @Override
+    public Object evaluate(final Object... args) {
+      return null;
+    }
+  }
+
+  private static class Func2 implements Kudf {
+    @Override
+    public Object evaluate(final Object... args) {
+      return null;
+    }
+  }
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlFunction func = new KsqlFunction(Schema.STRING_SCHEMA,
       Collections.emptyList(),
       "func",
-      Object.class);
+      Func1.class);
 
   @Test
   public void shouldAddFunction() {
     functionRegistry.addFunction(
         func);
-    assertThat(functionRegistry.getFunction("func"), equalTo(func));
+    final UdfFactory factory = functionRegistry.getUdfFactory("func");
+    assertThat(factory.getFunction(Collections.emptyList()), equalTo(this.func));
   }
 
   @Test
-  public void shouldNotAddFunctionWithSameNameAsExistingFunction() {
-    final KsqlFunction func = new KsqlFunction(Schema.STRING_SCHEMA,
+  public void shouldNotAddFunctionWithSameNameAsExistingFunctionAndOnDifferentClass() {
+    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.emptyList(),
-        "lcase",
-        Object.class);
-    assertFalse(functionRegistry.addFunction(func));
-    assertThat(functionRegistry.getFunction("lcase"), not(equalTo(func)));
+        "func",
+        Func2.class);
+    functionRegistry.addFunction(func);
+    try {
+      functionRegistry.addFunction(func2);
+      fail("shouldn't be able to add function with same name on a different class");
+    } catch (final KsqlException e) {
+      // pass
+    }
+
   }
 
   @Test
@@ -63,12 +88,13 @@ public class InternalFunctionRegistryTest {
     final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
         Collections.emptyList(),
         "func2",
-        Object.class);
+       Func2.class);
+
     copy.addFunction(func2);
 
-    assertThat(copy.getFunction("func"), equalTo(func));
-    assertThat(copy.getFunction("func2"), equalTo(func2));
-    assertThat(functionRegistry.getFunction("func2"), nullValue());
+    assertThat(copy.getUdfFactory("func").getFunction(Collections.emptyList()), equalTo(func));
+    assertThat(copy.getUdfFactory("func2").getFunction(Collections.emptyList()), equalTo(func2));
+    assertThat(functionRegistry.getUdfFactory("func2"), nullValue());
   }
 
   @Test
@@ -127,5 +153,27 @@ public class InternalFunctionRegistryTest {
           }
         });
     assertThat(functionRegistry.getAggregate("my_aggregate", Schema.INT32_SCHEMA), not(nullValue()));
+  }
+
+  @Test
+  public void shouldAddFunctionWithSameNameButDifferentReturnTypes() {
+    functionRegistry.addFunction(func);
+    assertTrue(functionRegistry.addFunction(
+        new KsqlFunction(Schema.INT64_SCHEMA,
+            Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class)));
+  }
+
+  @Test
+  public void shouldAddFunctionWithSameNameClassButDifferentArguments() {
+    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
+        Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class);
+
+    functionRegistry.addFunction(func);
+    assertTrue(functionRegistry.addFunction(
+        func2));
+    assertThat(functionRegistry.getUdfFactory("func")
+        .getFunction(Collections.singletonList(Schema.INT64_SCHEMA.type())), equalTo(func2));
+    assertThat(functionRegistry.getUdfFactory("func")
+        .getFunction(Collections.emptyList()), equalTo(func));
   }
 }

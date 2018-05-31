@@ -117,7 +117,6 @@ class EndToEndEngineTest {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      new org.apache.avro.Schema.Parser().parse(schemaString);
       return avroToValueSpec(
           avroObject,
           new org.apache.avro.Schema.Parser().parse(schemaString),
@@ -150,7 +149,6 @@ class EndToEndEngineTest {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      new org.apache.avro.Schema.Parser().parse(schemaString);
       final Object avroObject = valueSpecToAvro(
           spec,
           new org.apache.avro.Schema.Parser().parse(schemaString));

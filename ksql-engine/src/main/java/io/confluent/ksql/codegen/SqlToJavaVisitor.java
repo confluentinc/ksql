@@ -476,7 +476,7 @@ public class SqlToJavaVisitor {
       Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
       if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
-        functionArguments.mergeArguments(argCount);
+        functionArguments.mergeTwoArguments(argCount);
       }
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",

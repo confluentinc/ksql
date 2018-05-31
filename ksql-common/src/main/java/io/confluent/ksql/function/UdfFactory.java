@@ -28,10 +28,10 @@ import io.confluent.ksql.util.KsqlException;
 
 public class UdfFactory {
   private final String name;
-  private final Class<Kudf> udfClass;
+  private final Class<? extends Kudf> udfClass;
   private final Map<List<Schema.Type>, KsqlFunction> functions = new HashMap<>();
 
-  UdfFactory(final String name, final Class<Kudf> udfClass) {
+  UdfFactory(final String name, final Class<? extends Kudf> udfClass) {
     this.name = name;
     this.udfClass = udfClass;
   }
@@ -46,19 +46,22 @@ public class UdfFactory {
     final List<Schema.Type> paramTypes = ksqlFunction.getArguments()
         .stream()
         .map(Schema::type).collect(Collectors.toList());
-    if (!isCompatible(ksqlFunction, paramTypes)) {
-      throw new KsqlException("Can't add function as one exists "
-          + "with the same parameters of exists on a different class "
-          + functions);
-    }
 
+    checkCompatible(ksqlFunction, paramTypes);
     functions.put(paramTypes, ksqlFunction);
   }
 
-  private boolean isCompatible(final KsqlFunction ksqlFunction,
+  private void checkCompatible(final KsqlFunction ksqlFunction,
                                final List<Schema.Type> paramTypes) {
-    return udfClass == ksqlFunction.getKudfClass()
-        && !functions.containsKey(paramTypes);
+    if (udfClass != ksqlFunction.getKudfClass()) {
+      throw new KsqlException("Can't add function " + ksqlFunction
+          + " as a function with the same name exists on a different class " + udfClass);
+    }
+    if (functions.containsKey(paramTypes)) {
+      throw new KsqlException("Can't add function " + ksqlFunction
+          + " as a function with the same name and argument types already exists "
+          + functions.get(paramTypes));
+    }
   }
 
   @Override

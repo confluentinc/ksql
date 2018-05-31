@@ -84,7 +84,7 @@ public class ExpressionTypeManager
     Schema rightType = expressionTypeContext.getSchema();
     expressionTypeContext.setSchema(resolveArithmaticType(leftType, rightType));
     if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
-      functionArguments.mergeArguments(argCount);
+      functionArguments.mergeTwoArguments(argCount);
     }
     return null;
   }

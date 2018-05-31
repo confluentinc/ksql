@@ -154,7 +154,7 @@ public class CodeGenRunner {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       if (functionArguments.numCurrentFunctionArguments() > index + 1) {
-        functionArguments.mergeArguments(index);
+        functionArguments.mergeTwoArguments(index);
       }
       return null;
     }
@@ -236,29 +236,29 @@ public class CodeGenRunner {
       return null;
     }
 
-    private Object maybeUpdateFunctionArgs(final Schema.Type type) {
+    private Object updateFunctionArgs(final Schema.Type type) {
       functionArguments.addArgumentType(type);
       return null;
     }
 
     @Override
     protected Object visitStringLiteral(final StringLiteral node, final Object context) {
-      return maybeUpdateFunctionArgs(Schema.Type.STRING);
+      return updateFunctionArgs(Schema.Type.STRING);
     }
 
     @Override
     protected Object visitDoubleLiteral(final DoubleLiteral node, final Object context) {
-      return maybeUpdateFunctionArgs(Schema.Type.FLOAT64);
+      return updateFunctionArgs(Schema.Type.FLOAT64);
     }
 
     @Override
     protected Object visitLongLiteral(final LongLiteral node, final Object context) {
-      return maybeUpdateFunctionArgs(Schema.Type.INT64);
+      return updateFunctionArgs(Schema.Type.INT64);
     }
 
     @Override
     protected Object visitIntegerLiteral(final IntegerLiteral node, final Object context) {
-      return maybeUpdateFunctionArgs(Schema.Type.INT32);
+      return updateFunctionArgs(Schema.Type.INT32);
     }
   }
 }

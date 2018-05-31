@@ -22,6 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+/**
+ * This class is for collecting the argument types to function calls during parsing
+ * via the visitor. We need the argument types to determine the correct function.
+ * As function calls can be nested a stack is used to ensure we collect the correct
+ * arguments for each function
+ */
 public class FunctionArguments {
   private Stack<List<Schema.Type>> args = new Stack<>();
 
@@ -39,7 +45,13 @@ public class FunctionArguments {
     return args.pop();
   }
 
-  public void mergeArguments(final int from) {
+  /**
+   * Merges the two arguments into one type starting from the index at from.
+   * Used when visiting an expression such as stuff(1 + 2) - this will result in
+   * 2 Schema.Type.Int params, but the function only excepts a single int param.
+   * @param from index to merge from.
+   */
+  public void mergeTwoArguments(final int from) {
     final List<Schema.Type> functionArgs = args.peek();
     final Schema.Type first = functionArgs.remove(from);
     final Schema.Type second = functionArgs.remove(from);

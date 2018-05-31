@@ -208,12 +208,17 @@ public class CodeGenRunner {
       }
       updateFunctionArgTypesAndParams(schemaField.get());
       process(node.getIndex(), context);
+      functionArguments.removeLastParams(1);
       return null;
     }
 
     private void updateFunctionArgTypesAndParams(final Field schemaField) {
       final Schema schema = schemaField.schema();
-      functionArguments.addArgumentType(schema.type());
+      if (schema.type() != Schema.Type.ARRAY) {
+        functionArguments.addArgumentType(schema.type());
+      } else {
+        functionArguments.addArgumentType(schema.valueSchema().type());
+      }
       parameters.add(new ParameterType(SchemaUtil.getJavaType(schema),
           schemaField.name().replace(".", "_")));
     }

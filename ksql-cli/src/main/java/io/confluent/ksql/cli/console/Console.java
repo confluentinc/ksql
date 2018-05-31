@@ -19,6 +19,16 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
@@ -481,18 +491,47 @@ public abstract class Console implements Closeable {
     }
   }
 
-  private String formatFieldType(FieldSchemaInfo field, String keyField) {
-
-    if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
-      return String.format("%-16s %s", field.getType(), "(system)");
-    } else if (keyField != null && keyField.contains("." + field.getName())) {
-      return String.format("%-16s %s", field.getType(), "(key)");
-    } else {
-      return field.getType();
+  private String schemaToTypeString(SchemaInfo schema) {
+    // For now just dump the whole type out into 1 string.
+    // In the future we should consider a more readable format
+    switch (schema.getType()) {
+      case ARRAY:
+        return new StringBuilder()
+            .append(SchemaInfo.Type.ARRAY.name() + "<")
+            .append(schemaToTypeString(schema.getMemberSchema()))
+            .append(">")
+            .toString();
+      case MAP:
+        return new StringBuilder()
+            .append(SchemaInfo.Type.MAP.name())
+            .append("<" + SchemaInfo.Type.STRING + ", ")
+            .append(schemaToTypeString(schema.getMemberSchema()))
+            .append(">")
+            .toString();
+      case STRUCT:
+        return schema.getFields()
+            .stream()
+            .map(f -> f.getName() + " " + schemaToTypeString(f.getSchema()))
+            .collect(Collectors.joining(", ", SchemaInfo.Type.STRUCT.name() + "<", ">"));
+      case STRING:
+        return "VARCHAR(STRING)";
+      default:
+        return schema.getType().name();
     }
   }
 
-  private void printSchema(List<FieldSchemaInfo> fields, String keyField) {
+  private String formatFieldType(FieldInfo field, String keyField) {
+
+    if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
+      return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(system)");
+    } else if (keyField != null && keyField.contains("." + field.getName())) {
+      return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(key)");
+    } else {
+      return schemaToTypeString(field.getSchema());
+    }
+  }
+
+  private void printSchema(List<FieldInfo> fields, String keyField) {
     Table.Builder tableBuilder = new Table.Builder();
     if (!fields.isEmpty()) {
       tableBuilder.withColumnHeaders("Field", "Type");

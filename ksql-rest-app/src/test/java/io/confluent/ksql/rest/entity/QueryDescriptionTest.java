@@ -107,8 +107,8 @@ public class QueryDescriptionTest {
         queryDescription.getSchema(),
         equalTo(
             Arrays.asList(
-                new FieldSchemaInfo("field1", "INTEGER"),
-                new FieldSchemaInfo("field2", "VARCHAR(STRING)"))));
+                new FieldInfo("field1", new SchemaInfo("INTEGER", null, null)),
+                new FieldInfo("field2", new SchemaInfo("VARCHAR(STRING)", null, null)))));
   }
 
   @Test

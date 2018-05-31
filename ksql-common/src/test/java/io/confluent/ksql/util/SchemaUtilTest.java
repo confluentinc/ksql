@@ -404,40 +404,6 @@ public class SchemaUtilTest {
         equalTo(schema.fields().get(0).name()));
   }
 
-  @Test
-  public void shouldCreateCorrectSchemaDescription() {
-    Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .build();
-
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    Schema structSchema = schemaBuilder
-        .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("arraycol",schemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("mapcol", schemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("address", addressSchema).optional().build();
-
-    String schemaDescription = SchemaUtil.describeSchema(structSchema);
-
-    assertThat(schemaDescription, equalTo("STRUCT <"
-        + "ordertime BIGINT, "
-        + "orderid BIGINT, "
-        + "itemid VARCHAR, "
-        + "orderunits DOUBLE, "
-        + "arraycol ARRAY<DOUBLE>, "
-        + "mapcol MAP<VARCHAR,DOUBLE>, "
-        + "address STRUCT <NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>"
-        + ">"));
-  }
-
-  @Test
   public void shouldResolveIntAndLongSchemaToLong() {
     assertThat(
         SchemaUtil.resolveArithmeticType(Schema.Type.INT64, Schema.Type.INT32).type(),

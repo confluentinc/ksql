@@ -17,7 +17,6 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;

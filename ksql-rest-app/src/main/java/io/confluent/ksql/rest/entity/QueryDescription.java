@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
@@ -27,15 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.SchemaUtil;
 
 public class QueryDescription {
 
   private final EntityQueryId id;
   private final String statementText;
-  private final List<FieldSchemaInfo> schema;
+  private final List<FieldInfo> schema;
   private final Set<String> sources;
   private final Set<String> sinks;
   private final String topology;
@@ -46,7 +44,7 @@ public class QueryDescription {
   public QueryDescription(
       @JsonProperty("id") EntityQueryId id,
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("schema") List<FieldSchemaInfo> schema,
+      @JsonProperty("schema") List<FieldInfo> schema,
       @JsonProperty("sources") Set<String> sources,
       @JsonProperty("sinks") Set<String> sinks,
       @JsonProperty("topology") String topology,
@@ -67,9 +65,7 @@ public class QueryDescription {
     this(
         new EntityQueryId(id),
         queryMetadata.getStatementString(),
-        queryMetadata.getResultSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
-        ).collect(Collectors.toList()),
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getResultSchema()),
         queryMetadata.getSourceNames(),
         sinks,
         queryMetadata.getTopologyDescription(),
@@ -94,7 +90,7 @@ public class QueryDescription {
     return statementText;
   }
 
-  public List<FieldSchemaInfo> getSchema() {
+  public List<FieldInfo> getSchema() {
     return schema;
   }
 

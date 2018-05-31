@@ -16,8 +16,10 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.IntNode;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import io.confluent.ksql.GenericRow;
@@ -36,6 +38,16 @@ public class JsonUtilTest {
     assertThat(genericRow.getColumns().get(0), instanceOf(IntNode.class));
     IntNode intNode = (IntNode) genericRow.getColumns().get(0);
     assertThat(intNode.intValue(), equalTo(0));
+  }
+
+  @Test
+  public void shouldFailForIncorrectRow() {
+    try {
+      GenericRow genericRow = JsonUtil.buildGenericRowFromJson("{\"f1\"0}");
+      Assert.fail();
+    } catch (IOException e) {
+      assertThat(e, instanceOf(JsonParseException.class));
+    }
   }
 
 }

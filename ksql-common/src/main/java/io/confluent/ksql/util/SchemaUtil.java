@@ -100,18 +100,18 @@ public class SchemaUtil {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
-        return Schema.STRING_SCHEMA;
+        return Schema.OPTIONAL_STRING_SCHEMA;
       case "BOOLEAN":
       case "BOOL":
-        return Schema.BOOLEAN_SCHEMA;
+        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case "INTEGER":
       case "INT":
-        return Schema.INT32_SCHEMA;
+        return Schema.OPTIONAL_INT32_SCHEMA;
       case "BIGINT":
       case "LONG":
-        return Schema.INT64_SCHEMA;
+        return Schema.OPTIONAL_INT64_SCHEMA;
       case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
       default:
         return getKsqlComplexType(sqlType);
     }
@@ -126,7 +126,7 @@ public class SchemaUtil {
                   sqlType.length() - 1
               )
           )
-      );
+      ).optional().build();
     } else if (sqlType.startsWith(MAP)) {
       //TODO: For now only primitive data types for map are supported. Will have to add nested
       // types.
@@ -139,7 +139,8 @@ public class SchemaUtil {
       }
       String keyType = mapTypesStrs[0].trim();
       String valueType = mapTypesStrs[1].trim();
-      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType));
+      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType))
+          .optional().build();
     }
     throw new KsqlException("Unsupported type: " + sqlType);
   }
@@ -246,8 +247,8 @@ public class SchemaUtil {
 
   public static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
-    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
+    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
+    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
     for (Field field : schema.fields()) {
       if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
           && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {

@@ -513,9 +513,8 @@ public class KsqlResource {
   private void registerDdlCommandTasks() {
     ddlCommandTasks.put(
         Query.class,
-        (statement, statementText, properties) -> {
-          return ksqlEngine.getQueryExecutionPlan((Query)statement);
-        }
+        (statement, statementText, properties) ->
+          ksqlEngine.getQueryExecutionPlan((Query)statement)
     );
 
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {

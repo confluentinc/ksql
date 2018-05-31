@@ -49,9 +49,7 @@ public class JsonUtil {
       }
     } else {
       Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
-      while (fields.hasNext()) {
-        columns.add(fields.next().getValue());
-      }
+      fields.forEachRemaining(field -> columns.add(field.getValue()));
       return new GenericRow(columns);
     }
   }

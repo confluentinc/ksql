@@ -18,8 +18,10 @@ package io.confluent.ksql.datagen;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -31,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -134,8 +137,9 @@ public abstract class DataGenProducer {
           keyString,
           genericRow
       );
-      producer.send(producerRecord);
-      System.err.println(keyString + " --> (" + genericRow + ")");
+      producer.send(producerRecord,
+                    new ErrorLoggingCallback(kafkaTopicName, keyString, genericRow));
+
       try {
         Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
@@ -144,6 +148,32 @@ public abstract class DataGenProducer {
     }
     producer.flush();
     producer.close();
+  }
+
+  private static class ErrorLoggingCallback implements Callback {
+    private final String topic;
+    private final String key;
+    private final GenericRow value;
+
+    ErrorLoggingCallback(final String topic, final String key, final GenericRow value) {
+      this.topic = topic;
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public void onCompletion(final RecordMetadata metadata, final Exception e) {
+      final String keyString = Objects.toString(key);
+      final String valueString = Objects.toString(value);
+
+      if (e != null) {
+        System.err.println("Error when sending message to topic: '" + topic + "', with key: '"
+                           + keyString + "', and value: '" + valueString + "'");
+        e.printStackTrace();
+      } else {
+        System.err.println(keyString + " --> (" + valueString + ")");
+      }
+    }
   }
 
   private void handleSessionSiblingField(

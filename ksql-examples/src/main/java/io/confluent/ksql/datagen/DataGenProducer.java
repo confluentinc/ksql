@@ -24,8 +24,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -43,8 +41,6 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
 
 public abstract class DataGenProducer {
-
-  public static final Logger log = LoggerFactory.getLogger(DataGenProducer.class);
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;

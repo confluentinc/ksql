@@ -35,18 +35,14 @@ import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -132,26 +128,24 @@ public class CodeGenRunner {
       final int functionNumber = functionCounter++;
       functionArguments.beginFunction();
       final String functionName = node.getName().getSuffix();
+      ExpressionTypeManager expressionTypeManager =
+          new ExpressionTypeManager(schema, functionRegistry);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
+        functionArguments.addArgumentType(expressionTypeManager.getExpressionType(argExpr).type());
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(functionArguments.endFunction());
       parameters.add(new ParameterType(function,
           node.getName().getSuffix() + "_" + functionNumber));
-      functionArguments.addArgumentType(function.getReturnType().type());
       return null;
     }
 
 
     protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
-      final int index = functionArguments.numCurrentFunctionArguments();
       process(node.getLeft(), null);
       process(node.getRight(), null);
-      if (functionArguments.numCurrentFunctionArguments() > index + 1) {
-        functionArguments.mergeArithmeticArguments(index);
-      }
       return null;
     }
 
@@ -188,7 +182,9 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.get().schema()),
+          schemaField.get().name().replace(".", "_")));
       return null;
     }
 
@@ -206,21 +202,11 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.get().schema()),
+          schemaField.get().name().replace(".", "_")));
       process(node.getIndex(), context);
-      functionArguments.removeLastParams(1);
       return null;
-    }
-
-    private void updateFunctionArgTypesAndParams(final Field schemaField) {
-      final Schema schema = schemaField.schema();
-      if (schema.type() != Schema.Type.ARRAY) {
-        functionArguments.addArgumentType(schema.type());
-      } else {
-        functionArguments.addArgumentType(schema.valueSchema().type());
-      }
-      parameters.add(new ParameterType(SchemaUtil.getJavaType(schema),
-          schemaField.name().replace(".", "_")));
     }
 
     @Override
@@ -230,34 +216,12 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.get().schema()),
+          schemaField.get().name().replace(".", "_")));
       return null;
     }
 
-    private Object updateFunctionArgs(final Schema.Type type) {
-      functionArguments.addArgumentType(type);
-      return null;
-    }
-
-    @Override
-    protected Object visitStringLiteral(final StringLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.STRING);
-    }
-
-    @Override
-    protected Object visitDoubleLiteral(final DoubleLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.FLOAT64);
-    }
-
-    @Override
-    protected Object visitLongLiteral(final LongLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.INT64);
-    }
-
-    @Override
-    protected Object visitIntegerLiteral(final IntegerLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.INT32);
-    }
   }
 
   public static class ParameterType {

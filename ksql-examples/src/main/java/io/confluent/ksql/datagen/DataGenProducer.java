@@ -163,8 +163,8 @@ public abstract class DataGenProducer {
 
     @Override
     public void onCompletion(final RecordMetadata metadata, final Exception e) {
-      final String keyString = key == null ? "null" : key;
-      final String valueString = value == null ? "null" : Objects.toString(value);
+      final String keyString = Objects.toString(key);
+      final String valueString = Objects.toString(value);
 
       if (e != null) {
         System.err.println("Error when sending message to topic: '" + topic + "', with key: '"

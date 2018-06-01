@@ -44,7 +44,7 @@ public class SourceDescription {
   private final String name;
   private final List<RunningQuery> readQueries;
   private final List<RunningQuery> writeQueries;
-  private final List<FieldInfo> schema;
+  private final List<FieldInfo> fields;
   private final String type;
   private final String key;
   private final String timestamp;
@@ -61,7 +61,7 @@ public class SourceDescription {
       @JsonProperty("name") String name,
       @JsonProperty("readQueries") List<RunningQuery> readQueries,
       @JsonProperty("writeQueries") List<RunningQuery> writeQueries,
-      @JsonProperty("schema") List<FieldInfo> schema,
+      @JsonProperty("fields") List<FieldInfo> fields,
       @JsonProperty("type") String type,
       @JsonProperty("key") String key,
       @JsonProperty("timestamp") String timestamp,
@@ -76,7 +76,7 @@ public class SourceDescription {
     this.name = name;
     this.readQueries = Collections.unmodifiableList(readQueries);
     this.writeQueries = Collections.unmodifiableList(writeQueries);
-    this.schema = Collections.unmodifiableList(schema);
+    this.fields = Collections.unmodifiableList(fields);
     this.type = type;
     this.key = key;
     this.timestamp = timestamp;
@@ -156,8 +156,8 @@ public class SourceDescription {
     return name;
   }
 
-  public List<FieldInfo> getSchema() {
-    return schema;
+  public List<FieldInfo> getFields() {
+    return fields;
   }
 
   public boolean isExtended() {
@@ -237,7 +237,7 @@ public class SourceDescription {
     if (!Objects.equals(name, that.name)) {
       return false;
     }
-    if (!Objects.equals(schema, that.schema)) {
+    if (!Objects.equals(fields, that.fields)) {
       return false;
     }
     if (!Objects.equals(extended, that.extended)) {
@@ -254,6 +254,6 @@ public class SourceDescription {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, schema, type, key, timestamp);
+    return Objects.hash(name, fields, type, key, timestamp);
   }
 }

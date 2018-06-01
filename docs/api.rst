@@ -93,12 +93,12 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    :>json string  sourceDescription.name: The name of the stream or table.
    :>json array   sourceDescription.readQueries: The queries reading from the stream or table.
    :>json array   sourceDescription.writeQueries: The queries writing into the stream or table
-   :>json array   sourceDescription.schema: The schema of the stream or table as a list of column names and types.
-   :>json string  sourceDescription.schema[i].name: The name of the column.
-   :>json string  sourceDescription.schema[i].schema: The schema of the column.
-   :>json string  sourceDescription.schema[i].schema.type: The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, MAP, ARRAY, or STRUCT.
-   :>json string  sourceDescription.schema[i].schema.memberSchema: For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
-   :>json string  sourceDescription.schema[i].schema.fields: For STRUCT types, contains a list of the fields within the struct.
+   :>json array   sourceDescription.fields: The schema of the stream or table as a list of column names and types.
+   :>json string  sourceDescription.fields[i].name: The name of the column.
+   :>json string  sourceDescription.fields[i].schema: The schema of the column.
+   :>json string  sourceDescription.fields[i].schema.type: The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, MAP, ARRAY, or STRUCT.
+   :>json string  sourceDescription.fields[i].schema.memberSchema: For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
+   :>json string  sourceDescription.fields[i].schema.fields: For STRUCT types, contains a list of the fields within the struct.
    :>json string  sourceDescription.type: STREAM or TABLE
    :>json string  sourceDescription.key: The name of the key column.
    :>json string  sourceDescription.timestamp: The name of the timestamp column.
@@ -114,14 +114,14 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 
    :>json string statementText: The KSQL statement whose result is being returned.
    :>json string queryDescription.statementText: The KSQL statement for which the query being explained is running.
-   :>json array  queryDescription.schema: The schema of the query data.
-   :>json string queryDescription.schema[i].name: The name of the column.
-   :>json string queryDescription.schema[i].schema: The schema of the column.
-   :>json string queryDescription.schema[i].schema.type: The type the schema represents. One of IN
+   :>json array  queryDescription.fields: The schema of the query data.
+   :>json string queryDescription.fields[i].name: The name of the column.
+   :>json string queryDescription.fields[i].schema: The schema of the column.
+   :>json string queryDescription.fields[i].schema.type: The type the schema represents. One of IN
 TEGER, BIGINT, BOOLEAN, DOUBLE, STRING, MAP, ARRAY, or STRUCT.
-   :>json string queryDescription.schema[i].schema.memberSchema: For MAP and ARRAY types, contains
+   :>json string queryDescription.fields[i].schema.memberSchema: For MAP and ARRAY types, contains
  the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
-   :>json string queryDescription.schema[i].schema.fields: For STRUCT types, contains a list of th
+   :>json string queryDescription.fields[i].schema.fields: For STRUCT types, contains a list of th
 e fields within the struct.
    :>json array  queryDescription.sources: The streams and tables being read by the query.
    :>json string queryDescription.sources[i]: The name of a stream or table being read from by the query.

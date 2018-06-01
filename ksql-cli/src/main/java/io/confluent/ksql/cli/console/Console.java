@@ -615,7 +615,7 @@ public abstract class Console implements Closeable {
   private void printSourceDescription(SourceDescription source) {
     writer().println(String.format("%-20s : %s", "Name", source.getName()));
     if (!source.isExtended()) {
-      printSchema(source.getSchema(), source.getKey());
+      printSchema(source.getFields(), source.getKey());
       writer().println(
           "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
       return;
@@ -625,7 +625,7 @@ public abstract class Console implements Closeable {
     printTopicInfo(source);
     writer().println("");
 
-    printSchema(source.getSchema(), source.getKey());
+    printSchema(source.getFields(), source.getKey());
 
     printWriteQueries(source);
 
@@ -685,7 +685,7 @@ public abstract class Console implements Closeable {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }
     writer().println();
-    printSchema(query.getSchema(), "");
+    printSchema(query.getFields(), "");
     printQuerySources(query);
     printQuerySinks(query);
     printExecutionPlan(query);

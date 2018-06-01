@@ -33,7 +33,7 @@ public class QueryDescription {
 
   private final EntityQueryId id;
   private final String statementText;
-  private final List<FieldInfo> schema;
+  private final List<FieldInfo> fields;
   private final Set<String> sources;
   private final Set<String> sinks;
   private final String topology;
@@ -44,7 +44,7 @@ public class QueryDescription {
   public QueryDescription(
       @JsonProperty("id") EntityQueryId id,
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("schema") List<FieldInfo> schema,
+      @JsonProperty("fields") List<FieldInfo> fields,
       @JsonProperty("sources") Set<String> sources,
       @JsonProperty("sinks") Set<String> sinks,
       @JsonProperty("topology") String topology,
@@ -53,7 +53,7 @@ public class QueryDescription {
   ) {
     this.id = id;
     this.statementText = statementText;
-    this.schema = Collections.unmodifiableList(schema);
+    this.fields = Collections.unmodifiableList(fields);
     this.sources = Collections.unmodifiableSet(sources);
     this.sinks = Collections.unmodifiableSet(sinks);
     this.topology = topology;
@@ -90,8 +90,8 @@ public class QueryDescription {
     return statementText;
   }
 
-  public List<FieldInfo> getSchema() {
-    return schema;
+  public List<FieldInfo> getFields() {
+    return fields;
   }
 
   public String getTopology() {
@@ -125,7 +125,7 @@ public class QueryDescription {
     QueryDescription that = (QueryDescription) o;
     return Objects.equals(id, that.id)
         && Objects.equals(statementText, that.statementText)
-        && Objects.equals(schema, that.schema)
+        && Objects.equals(fields, that.fields)
         && Objects.equals(topology, that.topology)
         && Objects.equals(executionPlan, that.executionPlan)
         && Objects.equals(sources, that.sources)
@@ -136,6 +136,6 @@ public class QueryDescription {
   @Override
   public int hashCode() {
     return Objects.hash(
-        id, statementText, schema, topology, executionPlan, sources, sinks, overriddenProperties);
+        id, statementText, fields, topology, executionPlan, sources, sinks, overriddenProperties);
   }
 }

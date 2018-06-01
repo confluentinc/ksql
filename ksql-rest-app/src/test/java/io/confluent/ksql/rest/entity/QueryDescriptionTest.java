@@ -104,7 +104,7 @@ public class QueryDescriptionTest {
     assertThat(queryDescription.getStatementText(), equalTo("test statement"));
     assertThat(queryDescription.getTopology(), equalTo(topologyDescription.toString()));
     assertThat(
-        queryDescription.getSchema(),
+        queryDescription.getFields(),
         equalTo(
             Arrays.asList(
                 new FieldInfo("field1", new SchemaInfo("INTEGER", null, null)),

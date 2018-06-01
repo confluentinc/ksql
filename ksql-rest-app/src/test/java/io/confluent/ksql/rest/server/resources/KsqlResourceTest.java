@@ -704,7 +704,7 @@ public class KsqlResourceTest {
     QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(
-        queryDescription.getSchema(),
+        queryDescription.getFields(),
         equalTo(
             EntityUtil.buildSourceSchemaEntity(
                 queryMetadata.getOutputNode().getSchema())

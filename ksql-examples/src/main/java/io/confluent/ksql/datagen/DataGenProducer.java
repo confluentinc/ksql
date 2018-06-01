@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -163,7 +164,7 @@ public abstract class DataGenProducer {
     @Override
     public void onCompletion(final RecordMetadata metadata, final Exception e) {
       final String keyString = key == null ? "null" : key;
-      final String valueString = value == null ? "null" : value.toString();
+      final String valueString = value == null ? "null" : Objects.toString(value);
 
       if (e != null) {
         System.err.println("Error when sending message to topic: '" + topic + "', with key: '"

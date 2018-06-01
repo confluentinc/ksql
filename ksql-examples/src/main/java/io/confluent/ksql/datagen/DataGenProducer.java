@@ -18,10 +18,14 @@ package io.confluent.ksql.datagen;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -39,6 +43,8 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
 
 public abstract class DataGenProducer {
+
+  public static final Logger log = LoggerFactory.getLogger(DataGenProducer.class);
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
@@ -134,8 +140,9 @@ public abstract class DataGenProducer {
           keyString,
           genericRow
       );
-      producer.send(producerRecord);
-      System.err.println(keyString + " --> (" + genericRow + ")");
+      producer.send(producerRecord,
+                    new ErrorLoggingCallback(kafkaTopicName, keyString, genericRow));
+
       try {
         Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
@@ -144,6 +151,33 @@ public abstract class DataGenProducer {
     }
     producer.flush();
     producer.close();
+  }
+
+  private static class ErrorLoggingCallback implements Callback {
+    private final String topic;
+    private final String key;
+    private final GenericRow value;
+
+    ErrorLoggingCallback(String topic, String key, GenericRow value) {
+      this.topic = topic;
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public void onCompletion(RecordMetadata metadata, Exception e) {
+      String keyString = key == null ? "null" : key;
+      String valueString = value == null ? "null" : value.toString();
+
+      if (e != null) {
+        System.err.println("Error when sending message to topic " + topic + " with key '"
+                           + keyString + "' and value '" + valueString + "'. Error: "
+                           + e.getMessage());
+
+      } else {
+        System.err.println(keyString + " --> (" + valueString + ")");
+      }
+    }
   }
 
   private void handleSessionSiblingField(

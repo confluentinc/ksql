@@ -304,7 +304,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testDescribeStream() {
+  public void shouldPrintCorrectSchemaForDescribeStream() {
     List<List<String>> rows = new ArrayList<>();
     rows.add(Arrays.asList("ORDERTIME", "BIGINT"));
     rows.add(Arrays.asList("ORDERID", "VARCHAR(STRING)"));

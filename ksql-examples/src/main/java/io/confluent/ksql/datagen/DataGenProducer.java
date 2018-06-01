@@ -171,9 +171,8 @@ public abstract class DataGenProducer {
 
       if (e != null) {
         System.err.println("Error when sending message to topic " + topic + " with key '"
-                           + keyString + "' and value '" + valueString + "'. Error: "
-                           + e.getMessage());
-
+                           + keyString + "' and value '" + valueString);
+        e.printStackTrace();
       } else {
         System.err.println(keyString + " --> (" + valueString + ")");
       }

@@ -170,8 +170,8 @@ public abstract class DataGenProducer {
       String valueString = value == null ? "null" : value.toString();
 
       if (e != null) {
-        System.err.println("Error when sending message to topic " + topic + " with key '"
-                           + keyString + "' and value '" + valueString);
+        System.err.println("Error when sending message to topic: '" + topic + "', with key: '"
+                           + keyString + "', and value: '" + valueString + "'");
         e.printStackTrace();
       } else {
         System.err.println(keyString + " --> (" + valueString + ")");

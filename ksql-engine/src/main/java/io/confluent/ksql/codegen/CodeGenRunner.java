@@ -214,7 +214,7 @@ public class CodeGenRunner {
 
     private void updateFunctionArgTypesAndParams(final Field schemaField) {
       final Schema schema = schemaField.schema();
-      if (schema.type() != Schema.Type.ARRAY) {
+      if (schema.type() != Schema.Type.ARRAY && schema.type() != Schema.Type.MAP) {
         functionArguments.addArgumentType(schema.type());
       } else {
         functionArguments.addArgumentType(schema.valueSchema().type());

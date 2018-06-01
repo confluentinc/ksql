@@ -550,14 +550,15 @@ public class SqlToJavaVisitor {
         functionArguments.removeLastParams(2);
         return pair;
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        final Pair<String, Schema> stringSchemaPair = new Pair<>(
+        final Pair<String, Schema> pair = new Pair<>(
             "("
                 + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
                 + process(node.getBase(), unmangleNames).getLeft() + ".get"
                 + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
             schema
         );
-        return stringSchemaPair;
+        functionArguments.removeLastParams(2);
+        return pair;
       }
       throw new UnsupportedOperationException();
     }

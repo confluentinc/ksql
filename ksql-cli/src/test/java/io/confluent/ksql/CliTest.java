@@ -191,6 +191,7 @@ public class CliTest extends TestRunner {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
+    configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     return configMap;
   }
 

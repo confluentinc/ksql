@@ -154,16 +154,16 @@ public abstract class DataGenProducer {
     private final String key;
     private final GenericRow value;
 
-    ErrorLoggingCallback(String topic, String key, GenericRow value) {
+    ErrorLoggingCallback(final String topic, final String key, final GenericRow value) {
       this.topic = topic;
       this.key = key;
       this.value = value;
     }
 
     @Override
-    public void onCompletion(RecordMetadata metadata, Exception e) {
-      String keyString = key == null ? "null" : key;
-      String valueString = value == null ? "null" : value.toString();
+    public void onCompletion(final RecordMetadata metadata, final Exception e) {
+      final String keyString = key == null ? "null" : key;
+      final String valueString = value == null ? "null" : value.toString();
 
       if (e != null) {
         System.err.println("Error when sending message to topic: '" + topic + "', with key: '"

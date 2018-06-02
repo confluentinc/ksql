@@ -17,6 +17,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -77,14 +78,19 @@ public class AvroUtilTest {
                                      + "value_format='avro' );");
     AbstractStreamCreateStatement newAbstractStreamCreateStatement = AvroUtil.checkAndSetAvroSchema(
         abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
-    assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
-        new TableElement("ORDERTIME", "BIGINT"),
-        new TableElement("ORDERID", "BIGINT"),
-        new TableElement("ITEMID", "VARCHAR"),
-        new TableElement("ORDERUNITS", "DOUBLE"),
-        new TableElement("ARRAYCOL", "ARRAY<DOUBLE>"),
-        new TableElement("MAPCOL", "MAP<VARCHAR,DOUBLE>")
-        )));
+    assertThat(
+        newAbstractStreamCreateStatement.getElements(),
+        equalTo(
+            Arrays.asList(
+                new TableElement("ORDERTIME", new PrimitiveType(Type.KsqlType.BIGINT)),
+                new TableElement("ORDERID", new PrimitiveType(Type.KsqlType.BIGINT)),
+                new TableElement("ITEMID", new PrimitiveType(Type.KsqlType.STRING)),
+                new TableElement("ORDERUNITS", new PrimitiveType(Type.KsqlType.DOUBLE)),
+                new TableElement("ARRAYCOL", new Array(new PrimitiveType(Type.KsqlType.DOUBLE))),
+                new TableElement("MAPCOL", new Map(new PrimitiveType(Type.KsqlType.DOUBLE)))
+            )
+        )
+    );
   }
 
   @Test

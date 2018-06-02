@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -614,8 +615,8 @@ public class KsqlResourceTest {
         + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
     final String ksqlStringWithSchema =
         "CREATE TABLE ORDERS " +
-            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID VARCHAR, ORDERUNITS DOUBLE, " +
-            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR,DOUBLE>) " +
+            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRING, ORDERUNITS DOUBLE, " +
+            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>) " +
             "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 

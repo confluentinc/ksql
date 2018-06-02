@@ -236,7 +236,7 @@ public class KsqlResource {
       Statement statementWithSchema = maybeAddFieldsFromSchemaRegistry(
           statement, streamsProperties);
       getStatementExecutionPlan(
-          null, statementWithSchema,
+          statementWithSchema,
           statementWithSchema == statement
               ? statementText : SqlFormatter.formatSql(statementWithSchema),
           streamsProperties);

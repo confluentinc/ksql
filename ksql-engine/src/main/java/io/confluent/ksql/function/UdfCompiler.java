@@ -42,8 +42,6 @@ public class UdfCompiler {
       .put(Integer.class, index -> typeConversionCode("Integer", index))
       .put(long.class, index -> typeConversionCode("Long", index))
       .put(Long.class, index -> typeConversionCode("Long", index))
-      .put(float.class, index -> typeConversionCode("Float", index))
-      .put(Float.class, index -> typeConversionCode("Float", index))
       .put(double.class, index -> typeConversionCode("Double", index))
       .put(Double.class, index -> typeConversionCode("Double", index))
       .put(boolean.class, index -> typeConversionCode("Boolean", index))

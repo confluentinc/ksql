@@ -399,17 +399,7 @@ public class SchemaUtilTest {
   public void shouldGetLongSchemaForLongPrimitiveClass() {
     assertThat(SchemaUtil.getSchemaFromType(long.class), equalTo(Schema.INT64_SCHEMA));
   }
-
-  @Test
-  public void shouldGetFloatSchemaForFloatClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Float.class), equalTo(Schema.FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetFloatSchemaForFloatPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(float.class), equalTo(Schema.FLOAT64_SCHEMA));
-  }
-
+  
   @Test
   public void shouldGetFloatSchemaForDoubleClass() {
     assertThat(SchemaUtil.getSchemaFromType(Double.class), equalTo(Schema.FLOAT64_SCHEMA));

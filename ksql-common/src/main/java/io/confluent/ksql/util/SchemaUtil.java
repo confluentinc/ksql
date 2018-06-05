@@ -57,8 +57,7 @@ public class SchemaUtil {
       .put(long.class, () -> Schema.INT64_SCHEMA)
       .put(Double.class, () -> Schema.FLOAT64_SCHEMA)
       .put(double.class, () -> Schema.FLOAT64_SCHEMA)
-      .put(Float.class, () -> Schema.FLOAT64_SCHEMA)
-      .put(float.class, () -> Schema.FLOAT64_SCHEMA).build();
+      .build();
 
   private static Map<Pair<Schema.Type, Schema.Type>, Schema> numericTypePairMapping =
       ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()

@@ -50,12 +50,6 @@ public class UdfCompilerTest {
   }
 
   @Test
-  public void shouldCompileFunctionWithFloatArgument() throws NoSuchMethodException {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Float.class), classLoader);
-    assertThat(udf.eval(this, 1), equalTo(1.0F));
-  }
-
-  @Test
   public void shouldCompileFunctionWithIntegerArgument() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Integer.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1));
@@ -92,12 +86,6 @@ public class UdfCompilerTest {
   }
 
   @Test
-  public void shouldCompileFunctionWithPrimitiveFloatArgument() throws NoSuchMethodException {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", float.class), classLoader);
-    assertThat(udf.eval(this, 1), equalTo(1.0F));
-  }
-
-  @Test
   public void shouldCompileFunctionWithPrimitiveBooleanArgument() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", boolean.class), classLoader);
     assertThat(udf.eval(this, true), equalTo(true));
@@ -117,13 +105,6 @@ public class UdfCompilerTest {
 
     assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
   }
-
-  @Test
-  public void should() throws NoSuchMethodException {
-    final Method udf = getClass().getMethod("udf", Integer.class);
-    System.out.println(udf);
-  }
-
 
   public String udf(final Map<String, Integer> map) {
     return map.toString();

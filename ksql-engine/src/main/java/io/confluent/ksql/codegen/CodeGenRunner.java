@@ -55,14 +55,16 @@ public class CodeGenRunner {
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
+  private final ExpressionTypeManager expressionTypeManager;
 
   public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
     this.schema = schema;
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public Set<ParameterType> getParameterInfo(final Expression expression) {
-    Visitor visitor = new Visitor(schema, functionRegistry);
+    Visitor visitor = new Visitor(schema, functionRegistry, expressionTypeManager);
     visitor.process(expression, null);
     return visitor.parameters;
   }
@@ -94,10 +96,6 @@ public class CodeGenRunner {
 
     ee.setParameters(parameterNames, parameterTypes);
 
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        schema,
-        functionRegistry
-    );
     Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
@@ -112,13 +110,18 @@ public class CodeGenRunner {
     private final Schema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
+    private final ExpressionTypeManager expressionTypeManager;
 
     private int functionCounter = 0;
 
-    Visitor(Schema schema, FunctionRegistry functionRegistry) {
+    Visitor(
+        final Schema schema,
+        final FunctionRegistry functionRegistry,
+        final ExpressionTypeManager expressionTypeManager) {
       this.schema = schema;
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
+      this.expressionTypeManager = expressionTypeManager;
     }
 
     private void addParameter(Optional<Field> schemaField) {
@@ -136,8 +139,6 @@ public class CodeGenRunner {
       final int functionNumber = functionCounter++;
       final List<Type> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
-      final ExpressionTypeManager expressionTypeManager =
-          new ExpressionTypeManager(schema, functionRegistry);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
         argumentTypes.add(expressionTypeManager.getExpressionType(argExpr));

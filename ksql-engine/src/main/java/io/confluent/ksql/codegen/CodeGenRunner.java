@@ -98,7 +98,7 @@ public class CodeGenRunner {
         schema,
         functionRegistry
     );
-    Schema expressionType = expressionTypeManager.getExpressionType(expression);
+    Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
@@ -122,9 +122,9 @@ public class CodeGenRunner {
     }
 
     private void addParameter(Optional<Field> schemaField) {
-      parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.get().schema()),
-          schemaField.get().name().replace(".", "_")));
+      schemaField.ifPresent(f -> parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(f.schema()),
+          f.name().replace(".", "_"))));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -140,7 +140,7 @@ public class CodeGenRunner {
           new ExpressionTypeManager(schema, functionRegistry);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr).type());
+        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);

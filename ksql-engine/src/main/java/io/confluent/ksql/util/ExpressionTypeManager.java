@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.codegen.FunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -37,6 +36,8 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -53,10 +54,14 @@ public class ExpressionTypeManager
     this.functionRegistry = functionRegistry;
   }
 
-  public Schema getExpressionType(final Expression expression) {
+  public Schema getExpressionSchema(final Expression expression) {
     ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
     return expressionTypeContext.getSchema();
+  }
+
+  public Schema.Type getExpressionType(final Expression expression) {
+    return getExpressionSchema(expression).type();
   }
 
   static class ExpressionTypeContext {
@@ -188,19 +193,18 @@ public class ExpressionTypeManager
 
     final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
     if (udfFactory != null) {
-      final FunctionArguments functionArguments = new FunctionArguments();
-      functionArguments.beginFunction();
+      List<Schema.Type> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        functionArguments.addArgumentType(expressionTypeContext.getSchema().type());
+        argTypes.add(expressionTypeContext.getSchema().type());
       }
-      final Schema returnType = udfFactory.getFunction(functionArguments.endFunction())
+      final Schema returnType = udfFactory.getFunction(argTypes)
           .getReturnType();
       expressionTypeContext.setSchema(returnType);
     } else if (functionRegistry.isAggregate(node.getName().getSuffix())) {
       KsqlAggregateFunction ksqlAggregateFunction =
           functionRegistry.getAggregate(
-              node.getName().getSuffix(), getExpressionType(node.getArguments().get(0)));
+              node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       throw new KsqlException("Unknown function: " + node.getName().toString());

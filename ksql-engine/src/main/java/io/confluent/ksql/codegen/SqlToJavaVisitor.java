@@ -242,7 +242,7 @@ public class SqlToJavaVisitor {
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
       node.getArguments().forEach(arg -> argumentTypes.add(
-          expressionTypeManager.getExpressionType(arg).type()
+          expressionTypeManager.getExpressionType(arg)
       ));
       final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
       String javaReturnType = SchemaUtil.getJavaType(returnType)

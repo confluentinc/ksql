@@ -81,7 +81,7 @@ public class DropSourceCommand implements DdlCommand {
 
     return new DdlCommandResult(true, "Source " + sourceName + " was dropped. "
                                       + (deleteTopic ? "Topic '"
-                                                    + dataSource.getKsqlTopic().getTopicName()
+                                                    + dataSource.getKsqlTopic().getKafkaTopicName()
                                                     + "' was marked for deletion. Actual deletion "
                                                     + "and removal from brokers may take some time "
                                                     + "to complete." : ""));

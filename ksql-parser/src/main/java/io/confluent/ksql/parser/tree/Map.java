@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-
 import java.util.Objects;
 import java.util.Optional;
 

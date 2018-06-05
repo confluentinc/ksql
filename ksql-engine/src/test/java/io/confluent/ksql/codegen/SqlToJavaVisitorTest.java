@@ -81,8 +81,8 @@ public class SqlToJavaVisitorTest {
     String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
-    assertThat(javaExpression, equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)(Long"
-                                       + ".parseLong(\"0\"))))"));
+    assertThat(javaExpression,
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)(Integer.parseInt(\"0\"))))"));
   }
 
   @Test

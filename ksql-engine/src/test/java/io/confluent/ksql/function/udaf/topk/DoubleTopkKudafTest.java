@@ -46,9 +46,9 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    KsqlAggregateFunction<Object, List> topkKudaf =
+    KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    List window = new ArrayList();
+    List<Double> window = new ArrayList<>();
     for (Object value : valuesArray) {
       window = topkKudaf.aggregate(value , window);
     }

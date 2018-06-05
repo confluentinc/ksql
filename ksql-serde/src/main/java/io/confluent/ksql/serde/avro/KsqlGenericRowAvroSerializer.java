@@ -41,8 +41,8 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   public KsqlGenericRowAvroSerializer(
       org.apache.kafka.connect.data.Schema schema,
-      SchemaRegistryClient schemaRegistryClient, KsqlConfig
-          ksqlConfig
+      SchemaRegistryClient schemaRegistryClient,
+      KsqlConfig ksqlConfig
   ) {
     String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
 

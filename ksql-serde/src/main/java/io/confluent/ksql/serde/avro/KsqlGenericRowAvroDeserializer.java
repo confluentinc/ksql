@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
@@ -141,13 +142,10 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     return ksqlMap;
   }
 
-  private Object handleArray(Schema fieldSchema, GenericData.Array genericArray) {
-    ArrayList ksqlArray = new ArrayList();
-    for (int i = 0; i < genericArray.size(); i++) {
-      Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
-      ksqlArray.add(obj);
-    }
-    return ksqlArray;
+  private List<?> handleArray(final Schema fieldSchema, final GenericData.Array<?> genericArray) {
+    return genericArray.stream()
+        .map(element -> enforceFieldType(fieldSchema.valueSchema(), element))
+        .collect(Collectors.toList());
   }
 
   Map<String, String> getCaseInsensitiveFieldMap(GenericRecord genericRecord) {

@@ -53,8 +53,11 @@ public class KsqlGenericRowAvroSerializerTest {
         .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
         .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
         .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
-        .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
-        .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA, org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+        .field("arraycol".toUpperCase(),
+            SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+        .field("mapcol".toUpperCase(), SchemaBuilder
+            .map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA,
+                org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
         .build();
   }
 
@@ -64,20 +67,22 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0,
-                                 new ArrayList(Arrays.asList(100.0)),
-                                 Collections.singletonMap("key1", 100.0));
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0,
+        Collections.singletonList(100.0),
+        Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
     byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
     KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
-    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize("t1", serializedRow);
+    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer
+        .deserialize("t1", serializedRow);
     Assert.assertNotNull(genericRecord);
     assertThat("Incorrect serialization.", genericRecord.get("ordertime".toUpperCase()), equalTo
         (1511897796092L));
     assertThat("Incorrect serialization.", genericRecord.get("orderid".toUpperCase()), equalTo
         (1L));
-    assertThat("Incorrect serialization.", genericRecord.get("itemid".toUpperCase()).toString(), equalTo("item_1"));
+    assertThat("Incorrect serialization.", genericRecord.get("itemid".toUpperCase()).toString(),
+        equalTo("item_1"));
     assertThat("Incorrect serialization.", genericRecord.get("orderunits".toUpperCase()), equalTo
         (10.0));
 
@@ -98,14 +103,15 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, null, 10.0,
-                                 new ArrayList(Arrays.asList(100.0)),
-                                 Collections.singletonMap("key1", 100.0));
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, null, 10.0,
+        Collections.singletonList(100.0),
+        Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
     byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
     KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
-    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize("t1", serializedRow);
+    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer
+        .deserialize("t1", serializedRow);
     Assert.assertNotNull(genericRecord);
     assertThat("Incorrect serialization.", genericRecord.get("ordertime".toUpperCase()), equalTo
         (1511897796092L));
@@ -122,7 +128,7 @@ public class KsqlGenericRowAvroSerializerTest {
     assertThat("Incorrect serialization.", array.size(), equalTo(1));
     assertThat("Incorrect serialization.", array.get(0), equalTo(100.0));
     assertThat("Incorrect serialization.", map,
-               equalTo(Collections.singletonMap(new Utf8("key1"), 100.0)));
+        equalTo(Collections.singletonMap(new Utf8("key1"), 100.0)));
 
   }
 
@@ -133,7 +139,7 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     GenericRow genericRow = new GenericRow(columns);
     ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
@@ -146,17 +152,17 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", "10.0", new Double[]{100.0},
-                                 Collections.singletonMap("key1", 100.0));
+    List<Object> columns = Arrays
+        .asList(1511897796092L, 1L, "item_1", "10.0", Collections.singletonList(100.0),
+            Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
     try {
       byte[] serilizedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
       Assert.fail("Did not fail for incompatible types.");
     } catch (Exception e) {
-      assertThat(e.getMessage(), equalTo("org.apache.kafka.common.errors.SerializationException: Error serializing Avro message"));
+      assertThat(e.getMessage(), equalTo(
+          "org.apache.kafka.common.errors.SerializationException: Error serializing Avro message"));
     }
-
   }
-
 }

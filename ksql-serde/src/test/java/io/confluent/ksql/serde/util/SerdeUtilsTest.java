@@ -19,6 +19,7 @@ package io.confluent.ksql.serde.util;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
 public class SerdeUtilsTest {
@@ -92,7 +93,7 @@ public class SerdeUtilsTest {
     assertThat(l, equalTo(1L));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToLong() {
     Long l = SerdeUtils.toLong("1!:)");
   }
@@ -127,7 +128,7 @@ public class SerdeUtilsTest {
     assertThat(d, equalTo(1.0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
     Double d = SerdeUtils.toDouble("1!:)");
   }

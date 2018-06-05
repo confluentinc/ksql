@@ -19,6 +19,7 @@ package io.confluent.ksql.serde.json;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 
+import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Field;
@@ -27,9 +28,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +40,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KsqlJsonSerializer(Schema schema) {
+  public KsqlJsonSerializer(final Schema schema) {
     this.schema = makeOptional(schema);
     jsonConverter = new JsonConverter();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
@@ -58,26 +57,26 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       return null;
     }
     try {
-      Struct struct = new Struct(schema);
+      final Struct struct = new Struct(schema);
       for (int i = 0; i < data.getColumns().size(); i++) {
-        if (schema.fields().get(i).schema().type() == Schema.Type.STRUCT) {
-          struct.put(schema.fields().get(i), updateStructSchema(
+        Schema structSchema = schema.fields().get(i).schema();
+        if (structSchema.type() == Schema.Type.STRUCT) {
+          Field structField = schema.fields().get(i);
+          struct.put(structField, updateStructSchema(
               (Struct) data.getColumns().get(i),
-              schema.fields().get(i).schema()));
+              structField.schema()));
         } else {
           struct.put(schema.fields().get(i), data.getColumns().get(i));
         }
-
       }
 
-      byte[] serialized = jsonConverter.fromConnectData(topic, schema, struct);
-      return serialized;
+      return jsonConverter.fromConnectData(topic, schema, struct);
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }
   }
 
-  private Schema makeOptional(Schema schema) {
+  private Schema makeOptional(final Schema schema) {
     switch (schema.type()) {
       case BOOLEAN:
         return Schema.OPTIONAL_BOOLEAN_SCHEMA;
@@ -95,7 +94,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
         return SchemaBuilder.map(schema.keySchema(), makeOptional(schema.valueSchema()))
             .optional().build();
       case STRUCT:
-        SchemaBuilder schemaBuilder = new SchemaBuilder(Schema.Type.STRUCT);
+        final SchemaBuilder schemaBuilder = new SchemaBuilder(Schema.Type.STRUCT);
         schema.fields()
             .forEach(field -> schemaBuilder.field(field.name(), makeOptional(field.schema())));
         return schemaBuilder.optional().build();
@@ -110,100 +109,112 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
    * however, although the schemas are the same but the objects do not match.
    * This is to overcome this problem.
    */
-  private Struct updateStructSchema(Struct struct, Schema schema) {
+  private Struct updateStructSchema(final Struct struct, final Schema schema) {
     if (!compareSchemas(schema, struct.schema())) {
       throw new KsqlException("Incompatible schemas: " + schema + ", " + struct.schema());
     }
     Struct updatedStruct = new Struct(schema);
     for (Field field : schema.fields()) {
-      if (field.schema().type() == Schema.Type.STRUCT) {
-        Struct structField = updateStructSchema((Struct) struct.get(field.name()), field.schema());
-        updatedStruct.put(field.name(), structField);
-      } else if (field.schema().type() == Schema.Type.ARRAY) {
-        updatedStruct.put(field.name(),
-            updateArraySchema((List) struct.get(field.name()), field.schema()));
-      } else if (field.schema().type() == Schema.Type.MAP) {
-        updatedStruct.put(field.name(),
-            updateMapSchema((Map) struct.get(field.name()), field.schema()));
-      } else {
-        updatedStruct.put(field.name(), struct.get(field.name()));
+      switch (field.schema().type()) {
+        case STRUCT:
+          updatedStruct.put(field.name(),
+              updateStructSchema((Struct) struct.get(field.name()), field.schema()));
+          break;
+        case ARRAY:
+          updatedStruct.put(field.name(),
+              updateArraySchema((List) struct.get(field.name()), field.schema()));
+          break;
+        case MAP:
+          updatedStruct.put(field.name(),
+              updateMapSchema((Map) struct.get(field.name()), field.schema()));
+          break;
+        default:
+          updatedStruct.put(field.name(), struct.get(field.name()));
       }
     }
 
     return updatedStruct;
   }
 
-  private List updateArraySchema(List arrayList, Schema arraySchema) {
-    List updatedArray = new ArrayList();
-    if (arraySchema.valueSchema().type() == Schema.Type.STRUCT) {
-      arrayList.stream().forEach(
-          item -> updatedArray.add(updateStructSchema((Struct) item, arraySchema.valueSchema()))
-      );
-    } else if (arraySchema.valueSchema().type() == Schema.Type.ARRAY) {
-      arrayList.stream().forEach(
-          item -> updatedArray.add(updateArraySchema((List) item, arraySchema.valueSchema())));
-    } else if (arraySchema.valueSchema().type() == Schema.Type.MAP) {
-      arrayList.stream().forEach(
-          item -> updatedArray.add(updateMapSchema((Map) item, arraySchema.valueSchema())));
-    } else {
-      arrayList.stream().forEach(item -> updatedArray.add(item));
+  private List<?> updateArraySchema(List<?> elements, Schema arraySchema) {
+    switch (arraySchema.valueSchema().type()) {
+      case STRUCT:
+        return elements.stream()
+            .map(item -> updateStructSchema((Struct) item, arraySchema.valueSchema()))
+            .collect(Collectors.toList());
+      case ARRAY:
+        return elements.stream()
+            .map(item -> updateArraySchema((List) item, arraySchema.valueSchema()))
+            .collect(Collectors.toList());
+      case MAP:
+        return elements.stream()
+            .map(item -> updateMapSchema((Map) item, arraySchema.valueSchema()))
+            .collect(Collectors.toList());
+      default:
+        return elements;
     }
-    return updatedArray;
   }
 
-  private Map updateMapSchema(Map map, Schema mapSchema) {
-    Map updatedMap = new HashMap();
-    if (mapSchema.valueSchema().type() == Schema.Type.STRUCT) {
-      map.entrySet()
-          .stream()
-          .forEach(entry ->
-              updatedMap.put(((Map.Entry) entry).getKey(),
-                  updateStructSchema((Struct) ((Map.Entry) entry).getValue(),
-                      mapSchema.valueSchema())));
-    } else if (mapSchema.valueSchema().type() == Schema.Type.ARRAY) {
-      map.entrySet()
-          .stream()
-          .forEach(entry ->
-              updatedMap.put(((Map.Entry) entry).getKey(),
-                  updateArraySchema((List) ((Map.Entry) entry).getValue(),
-                      mapSchema.valueSchema())));
-    } else if (mapSchema.valueSchema().type() == Schema.Type.MAP) {
-      map.entrySet()
-          .stream()
-          .forEach(entry ->
-              updatedMap.put(((Map.Entry) entry).getKey(),
-                  updateMapSchema((Map) ((Map.Entry) entry).getValue(),
-                      mapSchema.valueSchema())));
-    } else {
-      map.entrySet()
-          .stream()
-          .forEach(entry ->
-              updatedMap.put(((Map.Entry) entry).getKey(),
-                  ((Map.Entry) entry).getValue()));
+  private Map updateMapSchema(final Map map, final Schema mapSchema) {
+    switch (mapSchema.valueSchema().type()) {
+      case STRUCT:
+        return (Map) map.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> ((Map.Entry) e).getKey(),
+                e -> updateStructSchema((Struct) ((Map.Entry) e).getValue(),
+                    mapSchema.valueSchema())
+            ));
+      case ARRAY:
+        return (Map) map.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> ((Map.Entry) e).getKey(),
+                e -> updateArraySchema((List) ((Map.Entry) e).getValue(),
+                    mapSchema.valueSchema())
+            ));
+      case MAP:
+        return (Map) map.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> ((Map.Entry) e).getKey(),
+                e -> updateMapSchema((Map) ((Map.Entry) e).getValue(),
+                    mapSchema.valueSchema())
+            ));
+      default:
+        return (Map) map.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> ((Map.Entry) e).getKey(),
+                e -> ((Map.Entry) e).getValue()
+            ));
     }
-    return updatedMap;
   }
 
-  private boolean compareSchemas(Schema schema1, Schema schema2) {
+  private boolean compareSchemas(final Schema schema1, final Schema schema2) {
     if (schema1.type() != schema2.type()) {
       return false;
     }
-    if (schema1.type() == Schema.Type.STRUCT) {
-      if (schema1.fields().size() != schema2.fields().size()) {
+
+    switch (schema1.type()) {
+      case STRUCT:
+        return compareStructSchema(schema1, schema2);
+      case ARRAY:
+        return compareSchemas(schema1.valueSchema(), schema2.valueSchema());
+      case MAP:
+        return compareSchemas(schema1.valueSchema(), schema2.valueSchema())
+            && compareSchemas(schema1.keySchema(), schema2.keySchema());
+      default:
+        return true;
+    }
+  }
+
+  private boolean compareStructSchema(Schema schema1, Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()) {
+      return false;
+    }
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())
+          || !compareSchemas(schema1.fields().get(i).schema(),
+          schema2.fields().get(i).schema())) {
         return false;
       }
-      for (int i = 0; i < schema1.fields().size(); i++) {
-        if (!schema1.fields().get(i).name().equalsIgnoreCase(schema2.fields().get(i).name())
-            || !compareSchemas(schema1.fields().get(i).schema(),
-            schema2.fields().get(i).schema())) {
-          return false;
-        }
-      }
-    } else if (schema1.type() == Schema.Type.ARRAY) {
-      return compareSchemas(schema1.valueSchema(), schema2.valueSchema());
-    } else if (schema1.type() == Schema.Type.MAP) {
-      return compareSchemas(schema1.valueSchema(), schema2.valueSchema())
-          && compareSchemas(schema1.keySchema(), schema2.keySchema());
     }
     return true;
   }

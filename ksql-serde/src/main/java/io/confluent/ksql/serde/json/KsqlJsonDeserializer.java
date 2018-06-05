@@ -19,6 +19,7 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -51,7 +52,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KsqlJsonDeserializer(Schema schema, boolean isInternal) {
+  public KsqlJsonDeserializer(final Schema schema, final boolean isInternal) {
+    // If this is a Deserializer for an internal topic in the streams app
     if (isInternal) {
       this.schema = schema;
     } else {
@@ -62,7 +64,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, boolean b) {
   }
 
   @Override
@@ -81,17 +83,17 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @SuppressWarnings("unchecked")
-  private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
+  private GenericRow getGenericRow(final byte[] rowJsonBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
 
     SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
-    Map valueMap = (Map) schemaAndValue.value();
+    Map<String, Object> valueMap = (Map) schemaAndValue.value();
 
-    Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
-    List columns = new ArrayList();
+    final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
+    final List<Object> columns = new ArrayList();
     for (Field field : schema.fields()) {
-      Object columnVal = valueMap
+      final Object columnVal = valueMap
           .get(keyMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));
 
@@ -101,7 +103,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   // This is a temporary requirement until we can ensure that the types that Connect JSON
   // convertor creates are supported in KSQL.
-  private Object enforceFieldType(Schema fieldSchema, Object columnVal) {
+  private Object enforceFieldType(final Schema fieldSchema, final Object columnVal) {
     if (columnVal == null) {
       return null;
     }
@@ -117,43 +119,54 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       case STRING:
         return columnVal.toString();
       case ARRAY:
-        List arrayList = (List) columnVal;
-        List columnArrayList = new ArrayList();
-        arrayList
-            .stream()
-            .forEach(object -> columnArrayList
-                .add(enforceFieldType(fieldSchema.valueSchema(), object)));
-
-        return columnArrayList;
+        return enforceFieldTypeForArray(fieldSchema, (List) columnVal);
       case MAP:
-        Map<String, Object> map = (Map) columnVal;
-        Map<String, Object> columnMap = new HashMap();
-        map.forEach((k, v) -> columnMap.put(enforceFieldType(Schema.STRING_SCHEMA, k).toString(),
-                                            enforceFieldType(fieldSchema.valueSchema(), v)));
-        return columnMap;
+        return enforceFieldTypeForMap(fieldSchema, (Map) columnVal);
       case STRUCT:
-        Map structMap = (Map) columnVal;
-        Struct columnStruct = new Struct(fieldSchema);
-        Map<String, String> caseInsensitiveFieldNameMap =
-            getCaseInsensitiveFieldNameMap(fieldSchema.fields());
-        fieldSchema.fields()
-            .forEach(
-                field -> columnStruct.put(field.name(),
-                                          enforceFieldType(
-                                              field.schema(), structMap.get(
-                                                  caseInsensitiveFieldNameMap.get(field.name())
-                                              ))));
-        return columnStruct;
+        return enforceFieldTypeForStruct(fieldSchema, (Map) columnVal);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
   }
 
+  private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final List<?> arrayList) {
+    return arrayList.stream()
+        .map(item -> enforceFieldType(fieldSchema.valueSchema(), item))
+        .collect(Collectors.toList());
+  }
 
-  private Map<String, String> getCaseInsensitiveFieldNameMap(List<Field> fields) {
-    Map<String, String> fieldNameMap = new HashMap<>();
-    fields.forEach(field -> fieldNameMap.put(field.name().toUpperCase(), field.name()));
-    return fieldNameMap;
+  private Map<String, Object> enforceFieldTypeForMap(
+      final Schema fieldSchema,
+      final Map<String, Object> columnMap) {
+    return columnMap.entrySet().stream()
+        .collect(Collectors.toMap(
+            e -> enforceFieldType(Schema.STRING_SCHEMA, e.getKey()).toString(),
+            e -> enforceFieldType(fieldSchema.valueSchema(), e.getValue())
+        ));
+  }
+
+  private Struct enforceFieldTypeForStruct(
+      final Schema fieldSchema,
+      final Map<String, Object> structMap) {
+    Struct columnStruct = new Struct(fieldSchema);
+    Map<String, String> caseInsensitiveFieldNameMap =
+        getCaseInsensitiveFieldNameMap(fieldSchema.fields());
+    fieldSchema.fields()
+        .forEach(
+            field -> columnStruct.put(field.name(),
+                enforceFieldType(
+                    field.schema(), structMap.get(
+                        caseInsensitiveFieldNameMap.get(field.name())
+                    ))));
+    return columnStruct;
+  }
+
+  private Map<String, String> getCaseInsensitiveFieldNameMap(final List<Field> fields) {
+    return fields.stream()
+        .map(Field::name)
+        .collect(Collectors.toMap(
+            String::toUpperCase,
+            name -> name));
   }
 
   static class CaseInsensitiveJsonNode {

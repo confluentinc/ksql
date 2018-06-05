@@ -84,8 +84,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   // Visible for testing
   KsqlRestClient(final Client client,
-                 final String serverAddress,
-                 final Map<String, Object> localProperties) {
+      final String serverAddress,
+      final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
     this.serverAddress = parseServerAddress(serverAddress);
     this.localProperties = Maps.newHashMap(
@@ -122,7 +122,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return makeRequest("/info", ServerInfo.class);
   }
 
-  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+  public <T> RestResponse<T> makeRequest(String path, Class<T> type) {
     Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
@@ -283,7 +283,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
             if (genericRow != null) {
               bufferedRow = StreamedRow.row(genericRow);
             } else {
-              return false;
+              bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
             }
           } catch (IOException exception) {
             // TODO: Should the exception be handled somehow else?

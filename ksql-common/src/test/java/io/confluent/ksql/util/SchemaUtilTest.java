@@ -380,13 +380,13 @@ public class SchemaUtilTest {
   public void shouldStripAliasFromFieldName() {
     Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
     assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+               equalTo(schema.fields().get(0).name()));
   }
 
   @Test
   public void shouldReturnFieldNameWithoutAliasAsIs() {
     assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+               equalTo(schema.fields().get(0).name()));
   }
 
   @Test

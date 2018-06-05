@@ -61,10 +61,17 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     if (currentVal == null) {
       return currentAggValList;
     }
-
+    final int currentSize = currentAggValList.size();
+    if (!currentAggValList.isEmpty()) {
+      final T last = currentAggValList.get(currentSize - 1);
+      if (currentVal.compareTo(last) <= 0
+          && currentSize == tkVal) {
+        return currentAggValList;
+      }
+    }
     Set<T> set = new HashSet<>(currentAggValList);
     set.add(currentVal);
-    List list = new ArrayList(set);
+    List<T> list = new ArrayList<>(set);
     list.sort(Comparator.reverseOrder());
     if (list.size() > tkVal) {
       list.remove(list.size() - 1);

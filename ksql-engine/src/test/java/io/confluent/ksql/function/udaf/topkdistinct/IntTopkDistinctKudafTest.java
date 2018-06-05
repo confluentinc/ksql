@@ -34,19 +34,18 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkDistinctKudafTest {
 
-  private List<Integer> valuesArray;
+  private final List<Integer> valuesArray =
+      ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25, 60, 80);
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
       TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
 
   @Before
   public void setup() {
-    valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25,
-                                  60, 80);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    List<Integer> currentVal = new ArrayList<Integer>();
+    List<Integer> currentVal = new ArrayList<>();
     for (Integer d : valuesArray) {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
@@ -57,7 +56,7 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    List<Integer> currentVal = new ArrayList<Integer>();
+    List<Integer> currentVal = new ArrayList<>();
     currentVal = intTopkDistinctKudaf.aggregate(80, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(80)));
@@ -103,7 +102,7 @@ public class IntTopkDistinctKudafTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<Integer>());
+    List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<>());
     assertThat(aggregate, equalTo(new ArrayList<Integer>(Arrays.asList(1))));
     List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, ImmutableList.of(1));
     assertThat(agg2, equalTo(new ArrayList<Integer>(ImmutableList.of(100, 1))));
@@ -130,7 +129,7 @@ public class IntTopkDistinctKudafTest {
           return aggregate;
         })
         .reduce((agg1, agg2) -> intTopkDistinctKudaf.getMerger().apply("blah", agg1, agg2))
-        .orElse(new ArrayList<Integer>());
+        .orElse(new ArrayList<>());
 
     // Then:
     assertThat(result, is(ImmutableList.of(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));

@@ -16,44 +16,66 @@
 
 package io.confluent.ksql.serde.util;
 
+import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
+
 public class SerdeUtils {
 
-  public static boolean toBoolean(Object object) {
+  public static boolean toBoolean(final Object object) {
+    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {
       return (Boolean) object;
     }
     throw new IllegalArgumentException("This Object doesn't represent a boolean");
   }
 
-  public static int toInteger(Object object) {
+  public static int toInteger(final Object object) {
+    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Integer) {
       return (Integer) object;
-    } else if (object instanceof Number) {
+    }
+    if (object instanceof Number) {
       return ((Number) object).intValue();
-    } else if (object instanceof String) {
+    }
+    if (object instanceof String) {
       return Integer.parseInt((String) object);
     }
     throw new IllegalArgumentException("This Object doesn't represent an int");
   }
 
-  public static long toLong(Object object) {
+  public static long toLong(final Object object) {
+    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Long) {
       return (Long) object;
-    } else if (object instanceof Number) {
+    }
+    if (object instanceof Number) {
       return ((Number) object).longValue();
-    } else if (object instanceof String) {
-      return Long.parseLong((String) object);
+    }
+    if (object instanceof String) {
+      try {
+        return Long.parseLong((String) object);
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Cannot convert " + object + " to BIGINT.", e);
+      }
+
     }
     throw new IllegalArgumentException("This Object doesn't represent a long");
   }
 
-  public static double toDouble(Object object) {
+  public static double toDouble(final Object object) {
+    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Double) {
       return (Double) object;
-    } else if (object instanceof Number) {
+    }
+    if (object instanceof Number) {
       return ((Number) object).doubleValue();
-    } else if (object instanceof String) {
-      return Double.parseDouble((String) object);
+    }
+    if (object instanceof String) {
+      try {
+        return Double.parseDouble((String) object);
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Cannot convert " + object + " to DOUBLE.", e);
+      }
     }
     throw new IllegalArgumentException("This Object doesn't represent a double");
   }

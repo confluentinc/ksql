@@ -85,14 +85,13 @@ public class TopkKudaf<T extends Comparable<? super T>>
   @Override
   public Merger<String, List<T>> getMerger() {
     return (aggKey, aggOneList, aggTwoList) -> {
-      List<T> mergedList = new ArrayList<>(aggOneList);
+      final List<T> mergedList = new ArrayList<>(aggOneList);
       mergedList.addAll(aggTwoList);
       mergedList.sort(Comparator.reverseOrder());
       if (mergedList.size() < topKSize) {
         return mergedList;
-      } else {
-        return mergedList.subList(0, topKSize);
       }
+      return mergedList.subList(0, topKSize);
     };
   }
 

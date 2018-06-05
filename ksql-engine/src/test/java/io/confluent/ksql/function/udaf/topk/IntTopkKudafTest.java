@@ -52,7 +52,7 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    List<Integer> currentVal = new ArrayList();
+    List<Integer> currentVal = new ArrayList<>();
     for (Integer value : valuesArray) {
       currentVal = topkKudaf.aggregate(value, currentVal);
     }
@@ -62,7 +62,7 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    List<Integer> currentVal = new ArrayList();
+    List<Integer> currentVal = new ArrayList<>();
     currentVal = topkKudaf.aggregate(10, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(10)));
@@ -97,9 +97,9 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    List aggregate = topkKudaf.aggregate(1, new ArrayList());
+    List aggregate = topkKudaf.aggregate(1, new ArrayList<>());
     assertThat(aggregate, equalTo(ImmutableList.of(1)));
-    List agg2 = topkKudaf.aggregate(100, new ArrayList(Arrays.asList(1)));
+    List agg2 = topkKudaf.aggregate(100, new ArrayList<>(Collections.singletonList(1)));
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
@@ -135,7 +135,7 @@ public class IntTopkKudafTest {
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
     // When:
-    final List result = IntStream.range(0, 4)
+    final List<Integer> result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
           List<Integer> aggregate = new ArrayList<>(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0,

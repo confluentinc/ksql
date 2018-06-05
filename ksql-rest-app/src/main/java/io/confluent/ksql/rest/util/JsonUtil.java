@@ -31,10 +31,12 @@ public class JsonUtil {
 
   private static ObjectMapper objectMapper = new ObjectMapper();
 
-  public static GenericRow buildGenericRowFromJson(String jsonString) throws IOException {
+  public static GenericRow buildGenericRowFromJson(final String jsonString) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(jsonString);
     List columns = new ArrayList();
+    // If this is a streamedRow object
     if (jsonNode.has("row") && jsonNode.has("errorMessage")) {
+      // If there is no error message this is a valid GenericRow.
       if (jsonNode.get("errorMessage").toString().equalsIgnoreCase("null")) {
         JsonNode columnsArray = jsonNode.get("row").get("columns");
         if (columnsArray == null) {

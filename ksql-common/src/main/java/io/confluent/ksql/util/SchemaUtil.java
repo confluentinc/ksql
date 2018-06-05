@@ -100,18 +100,18 @@ public class SchemaUtil {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
-        return Schema.OPTIONAL_STRING_SCHEMA;
+        return Schema.STRING_SCHEMA;
       case "BOOLEAN":
       case "BOOL":
-        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
+        return Schema.BOOLEAN_SCHEMA;
       case "INTEGER":
       case "INT":
-        return Schema.OPTIONAL_INT32_SCHEMA;
+        return Schema.INT32_SCHEMA;
       case "BIGINT":
       case "LONG":
-        return Schema.OPTIONAL_INT64_SCHEMA;
+        return Schema.INT64_SCHEMA;
       case "DOUBLE":
-        return Schema.OPTIONAL_FLOAT64_SCHEMA;
+        return Schema.FLOAT64_SCHEMA;
       default:
         return getKsqlComplexType(sqlType);
     }
@@ -219,9 +219,7 @@ public class SchemaUtil {
       return "MAP[" + describeSchema(schema.keySchema()) + ","
              + describeSchema(schema.valueSchema()) + "]";
     } else if (schema.type() == Schema.Type.STRUCT) {
-      return schema.fields().stream()
-          .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
-          .collect(Collectors.joining(", ", "STRUCT <", ">"));
+      return getStructString(schema);
     } else {
       return TYPE_MAP.get(schema.type().name());
     }
@@ -318,7 +316,6 @@ public class SchemaUtil {
   }
 
   private static String getStructString(final Schema schema) {
-
     return schema.fields().stream()
         .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
         .collect(Collectors.joining(", ", "STRUCT <", ">"));

@@ -230,26 +230,23 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
-      String functionName = node.getName().getSuffix();
-      UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
-      FunctionArguments functionArguments = new FunctionArguments();
-      ExpressionTypeManager expressionTypeManager
+      final String functionName = node.getName().getSuffix();
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final List<Schema.Type> argumentTypes = new ArrayList<>();
+      final ExpressionTypeManager expressionTypeManager
           = new ExpressionTypeManager(schema, functionRegistry);
-      functionArguments.beginFunction();
 
       String instanceName = functionName + "_" + functionCounter++;
 
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
-      node.getArguments().stream().forEach(arg -> functionArguments.addArgumentType(
+      node.getArguments().forEach(arg -> argumentTypes.add(
           expressionTypeManager.getExpressionType(arg).type()
       ));
-      final List<Schema.Type> types = functionArguments.endFunction();
-      final Schema returnType = udfFactory.getFunction(types).getReturnType();
+      final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
       String javaReturnType = SchemaUtil.getJavaType(returnType)
           .getSimpleName();
-      functionArguments.addArgumentType(returnType.type());
 
       final StringBuilder builder = new StringBuilder("(");
       builder.append("(").append(javaReturnType).append(") ")

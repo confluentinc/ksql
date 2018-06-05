@@ -16,8 +16,11 @@
 
 package io.confluent.ksql.codegen;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -110,13 +113,18 @@ public class CodeGenRunner {
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
 
-    private final FunctionArguments functionArguments = new FunctionArguments();
     private int functionCounter = 0;
 
     Visitor(Schema schema, FunctionRegistry functionRegistry) {
       this.schema = schema;
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
+    }
+
+    private void addParameter(Optional<Field> schemaField) {
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.get().schema()),
+          schemaField.get().name().replace(".", "_")));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -126,17 +134,17 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       final int functionNumber = functionCounter++;
-      functionArguments.beginFunction();
+      final List<Type> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
-      ExpressionTypeManager expressionTypeManager =
+      final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        functionArguments.addArgumentType(expressionTypeManager.getExpressionType(argExpr).type());
+        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr).type());
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlFunction function = holder.getFunction(functionArguments.endFunction());
+      final KsqlFunction function = holder.getFunction(argumentTypes);
       parameters.add(new ParameterType(function,
           node.getName().getSuffix() + "_" + functionNumber));
       return null;
@@ -182,9 +190,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.get().schema()),
-          schemaField.get().name().replace(".", "_")));
+      addParameter(schemaField);
       return null;
     }
 
@@ -202,9 +208,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.get().schema()),
-          schemaField.get().name().replace(".", "_")));
+      addParameter(schemaField);
       process(node.getIndex(), context);
       return null;
     }
@@ -216,9 +220,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.get().schema()),
-          schemaField.get().name().replace(".", "_")));
+      addParameter(schemaField);
       return null;
     }
 

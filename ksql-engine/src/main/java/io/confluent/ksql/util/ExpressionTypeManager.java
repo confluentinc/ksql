@@ -47,7 +47,6 @@ public class ExpressionTypeManager
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
-  private final FunctionArguments functionArguments = new FunctionArguments();
 
   public ExpressionTypeManager(Schema schema, final FunctionRegistry functionRegistry) {
     this.schema = schema;
@@ -76,15 +75,11 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
                                              final ExpressionTypeContext expressionTypeContext) {
-    final int argCount = functionArguments.numCurrentFunctionArguments();
     process(node.getLeft(), expressionTypeContext);
     Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     Schema rightType = expressionTypeContext.getSchema();
     expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
-    if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
-      functionArguments.mergeArithmeticArguments(argCount);
-    }
     return null;
   }
 
@@ -193,6 +188,7 @@ public class ExpressionTypeManager
 
     final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
     if (udfFactory != null) {
+      final FunctionArguments functionArguments = new FunctionArguments();
       functionArguments.beginFunction();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);

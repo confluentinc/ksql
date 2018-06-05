@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -31,7 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -141,7 +140,7 @@ public class AggregateNodeTest {
   }
 
   private AggregateNode buildAggregateNode(String queryString) {
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore()).buildLogicalPlan(queryString);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry())).buildLogicalPlan(queryString);
     return (AggregateNode) planNode.getSource();
   }
 
@@ -149,7 +148,7 @@ public class AggregateNodeTest {
     return aggregateNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 

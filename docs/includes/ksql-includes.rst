@@ -169,7 +169,7 @@ the latest offset.
        Page_24
        Page_73
        Page_78
-       LIMIT reached for the partition.
+       LIMIT reached
        Query terminated
 
 #. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The results from this
@@ -279,7 +279,7 @@ the latest offset.
        FEMALE | Region_9 | 6
        MALE | Region_8 | 2
        OTHER | Region_5 | 4
-       LIMIT reached for the partition.
+       LIMIT reached
        Query terminated
        ksql>
 

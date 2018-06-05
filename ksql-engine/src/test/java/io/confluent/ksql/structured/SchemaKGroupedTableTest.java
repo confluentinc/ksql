@@ -2,7 +2,7 @@ package io.confluent.ksql.structured;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -21,6 +21,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KTable;
@@ -42,16 +43,16 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class SchemaKGroupedTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KTable kTable;
   private KsqlTable ksqlTable;
-  private FunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry;
 
 
   @Before
   public void init() {
-    functionRegistry = new FunctionRegistry();
+    functionRegistry = new InternalFunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
@@ -83,10 +84,7 @@ public class SchemaKGroupedTableTest {
   public void shouldFailwindowedTableAggregation() {
     SchemaKGroupedTable kGroupedTable = buildGroupedKTable(
         "SELECT col0, col1, col2 FROM test1;", "COL1", "COL2");
-    FunctionRegistry functionRegistry = new FunctionRegistry();
-    List<Expression> args = Collections.singletonList(
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0"));
+    InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     WindowExpression windowExpression = new WindowExpression(
         "window", new TumblingWindowExpression(30, TimeUnit.SECONDS));
     try {
@@ -94,7 +92,7 @@ public class SchemaKGroupedTableTest {
           new KudafInitializer(1),
           Collections.singletonMap(
               0,
-              functionRegistry.getAggregateFunction("SUM", args, ksqlTable.getSchema())),
+              functionRegistry.getAggregate("SUM", Schema.INT64_SCHEMA)),
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
@@ -110,16 +108,13 @@ public class SchemaKGroupedTableTest {
   public void shouldFailUnsupportedAggregateFunction() {
     SchemaKGroupedTable kGroupedTable = buildGroupedKTable(
         "SELECT col0, col1, col2 FROM test1;", "COL1", "COL2");
-    FunctionRegistry functionRegistry = new FunctionRegistry();
-    List<Expression> args = Collections.singletonList(
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0"));
+    InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     try {
       Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = new HashMap<>();
       aggValToFunctionMap.put(
-          0, functionRegistry.getAggregateFunction("MAX", args, ksqlTable.getSchema()));
+          0, functionRegistry.getAggregate("MAX", Schema.INT64_SCHEMA));
       aggValToFunctionMap.put(
-          1, functionRegistry.getAggregateFunction("MIN", args, ksqlTable.getSchema()));
+          1, functionRegistry.getAggregate("MIN", Schema.INT64_SCHEMA));
       kGroupedTable.aggregate(
           new KudafInitializer(1),
           aggValToFunctionMap,

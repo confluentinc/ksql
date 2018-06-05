@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -191,7 +191,7 @@ public class KsqlStructuredDataOutputNodeTest {
     return outputNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
@@ -208,7 +208,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForNonWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
@@ -228,7 +228,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
@@ -247,7 +247,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));

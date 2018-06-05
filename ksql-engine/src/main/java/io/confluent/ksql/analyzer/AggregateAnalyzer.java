@@ -53,7 +53,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   @Override
   protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
     String functionName = node.getName().getSuffix();
-    if (functionRegistry.isAnAggregateFunction(functionName)) {
+    if (functionRegistry.isAggregate(functionName)) {
       if (node.getArguments().isEmpty()) {
         Expression argExpression;
         if (analysis.getJoin() != null) {

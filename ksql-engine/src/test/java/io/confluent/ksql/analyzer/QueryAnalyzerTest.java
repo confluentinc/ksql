@@ -24,8 +24,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -34,7 +35,9 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
@@ -51,9 +54,9 @@ import static org.junit.Assert.fail;
 
 public class QueryAnalyzerTest {
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlParser ksqlParser = new KsqlParser();
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new FunctionRegistry());
+  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry());
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
@@ -151,7 +154,7 @@ public class QueryAnalyzerTest {
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_1")),
-        new LongLiteral("10"))));
+        new IntegerLiteral(new NodeLocation(0, 0), "10"))));
   }
 
   @Test

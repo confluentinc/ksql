@@ -13,7 +13,17 @@ Configuring KSQL Server
 KSQL configuration parameters can be set for KSQL server and queries as well as for the underlying Kafka Streams and
 Kafka Clients (producer and consumer).
 
+.. _set-ksql-server-properties:
+
 ------------------------------
+Setting KSQL Server Parameters
+------------------------------
+
+You can specify KSQL server configuration parameters by using the server configuration file (``ksql-server.properties``)
+or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS`` take precedence over those specified in the
+KSQL configuration file. A recommended approach is to configure a common set of properties using the KSQL configuration
+file and override specific properties as needed, using the ``KSQL_OPTS`` environment variable.
+
 KSQL Server Configuration File
 ------------------------------
 
@@ -42,7 +52,23 @@ specified.
 
 For more information, see :ref:`ksql-param-reference`.
 
-.. _configuring-ksql:
+KSQL_OPTS Environment Variable
+------------------------------
+
+You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. The properties are
+standard Java system properties. For example, to change ``ui.enabled`` from true to false:
+
+.. code:: bash
+
+    $ KSQL_OPTS="-Dui.enabled=false" <path-to-confluent>/bin/ksql-server-start \
+      <path-to-confluent>/etc/ksql/ksql-server.properties
+
+You can specify multiple parameters at the same time. For example, to configure ``ui.enabled`` and ``num.stream.threads``:
+
+.. code:: bash
+
+    $ KSQL_OPTS="-Dui.enabled=false -Dnum.stream.threads=1" <path-to-confluent>/bin/ksql-server-start \
+      <path-to-confluent>/etc/ksql/ksql-server.properties
 
 -----------
 JMX Metrics

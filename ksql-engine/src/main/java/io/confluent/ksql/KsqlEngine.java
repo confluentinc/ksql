@@ -53,6 +53,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -109,7 +110,6 @@ public class KsqlEngine implements Closeable {
   private final Set<QueryMetadata> allLiveQueries;
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
-  private final FunctionRegistry functionRegistry;
   private SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaClientSupplier clientSupplier;
@@ -153,7 +153,7 @@ public class KsqlEngine implements Closeable {
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
         schemaRegistryClient,
         new DefaultKafkaClientSupplier(),
-        new MetaStoreImpl()
+        new MetaStoreImpl(new InternalFunctionRegistry())
     );
   }
 
@@ -167,7 +167,7 @@ public class KsqlEngine implements Closeable {
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
         schemaRegistryClient,
         clientSupplier,
-        new MetaStoreImpl()
+        new MetaStoreImpl(new InternalFunctionRegistry())
     );
   }
 
@@ -206,7 +206,6 @@ public class KsqlEngine implements Closeable {
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
-    this.functionRegistry = new FunctionRegistry();
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.queryIdGenerator = new QueryIdGenerator();
@@ -567,7 +566,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public FunctionRegistry getFunctionRegistry() {
-    return functionRegistry;
+    return metaStore;
   }
 
   public KafkaTopicClient getTopicClient() {

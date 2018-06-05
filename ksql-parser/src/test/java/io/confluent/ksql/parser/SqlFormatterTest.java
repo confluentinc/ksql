@@ -17,6 +17,8 @@
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.function.TestFunctionRegistry;
+
 import org.junit.Test;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -51,7 +53,8 @@ public class SqlFormatterTest {
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    List<Statement> statements = new KsqlParser().buildAst(sql, MetaStoreFixture.getNewMetaStore());
+    List<Statement> statements = new KsqlParser().buildAst(sql,
+        MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }
 

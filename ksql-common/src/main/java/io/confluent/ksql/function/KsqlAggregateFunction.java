@@ -17,38 +17,34 @@
 package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
-
-public class KsqlFunction {
-
-  private final Schema returnType;
-  private final List<Schema> arguments;
-  private final String functionName;
-  private final Class kudfClass;
-
-  KsqlFunction(Schema returnType, List<Schema> arguments, String functionName,
-               Class kudfClass) {
-    this.returnType = returnType;
-    this.arguments = arguments;
-    this.functionName = functionName;
-    this.kudfClass = kudfClass;
-  }
-
-  public Schema getReturnType() {
-    return returnType;
-  }
-
-  public List<Schema> getArguments() {
-    return arguments;
-  }
-
-  String getFunctionName() {
-    return functionName;
-  }
+import java.util.function.Supplier;
 
 
-  public Class getKudfClass() {
-    return kudfClass;
-  }
+public interface KsqlAggregateFunction<V, A> {
+
+  KsqlAggregateFunction<V, A> getInstance(AggregateFunctionArguments aggregateFunctionArguments);
+
+  String getFunctionName();
+
+  Supplier<A> getInitialValueSupplier();
+
+  int getArgIndexInValue();
+
+  Schema getReturnType();
+
+  boolean hasSameArgTypes(List<Schema> argTypeList);
+
+  /**
+   * Merges values inside the window.
+   * @return A - type of return value
+   */
+  A aggregate(V currentValue, A aggregateValue);
+
+  /**
+   * Merges two session windows together with the same merge key.
+   */
+  Merger<String, A> getMerger();
 }

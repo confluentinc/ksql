@@ -1,16 +1,10 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -19,12 +13,7 @@ import org.easymock.Capture;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import javax.websocket.CloseReason;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
-
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,8 +24,18 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
+import javax.websocket.CloseReason;
+import javax.websocket.RemoteEndpoint;
+import javax.websocket.Session;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
@@ -47,6 +46,8 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 public class WSQueryEndpointTest {
   private KsqlEngine ksqlEngine;
@@ -188,7 +189,7 @@ public class WSQueryEndpointTest {
     expectLastCall().once();
     for (KeyValue<String, GenericRow> row : rows) {
       async.sendText(
-          eq(objectMapper.writeValueAsString(new StreamedRow(row.value))),
+          eq(objectMapper.writeValueAsString(StreamedRow.row(row.value))),
           anyObject());
       expectLastCall().once();
     }

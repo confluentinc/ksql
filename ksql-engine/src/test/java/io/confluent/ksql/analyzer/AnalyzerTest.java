@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -35,7 +36,7 @@ public class AnalyzerTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   }
 
   private Analysis analyze(String queryStr) {

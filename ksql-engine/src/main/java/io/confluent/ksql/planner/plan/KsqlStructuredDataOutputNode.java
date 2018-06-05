@@ -50,7 +50,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
-  final boolean doCreateInto;
+  private final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
 
 

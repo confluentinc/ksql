@@ -35,7 +35,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -106,9 +105,6 @@ public class StreamedQueryResource {
       final PrintTopic printTopic
   ) {
     String topicName = printTopic.getTopic().toString();
-    Long
-        interval =
-        Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
@@ -123,7 +119,7 @@ public class StreamedQueryResource {
         ksqlEngine.getSchemaRegistryClient(),
         properties,
         topicName,
-        interval,
+        printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getFromBeginning()
     );

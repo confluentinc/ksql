@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
+import io.confluent.ksql.function.udf.geo.GeoDistanceKudf;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
@@ -38,28 +39,91 @@ import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.SubstringKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class FunctionRegistry {
-
-  private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
+public class InternalFunctionRegistry implements FunctionRegistry {
+  private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
   private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 
-  public FunctionRegistry() {
+  public InternalFunctionRegistry() {
     init();
   }
 
+  private InternalFunctionRegistry(final Map<String, UdfFactory> ksqlFunctionMap,
+                                   final Map<String, AggregateFunctionFactory>
+                                       aggregateFunctionMap) {
+    this.ksqlFunctionMap = ksqlFunctionMap;
+    this.aggregateFunctionMap = aggregateFunctionMap;
+  }
+
   private void init() {
+    addStringFunctions();
+    addMathFunctions();
+    addDateTimeFunctions();
+    addGeoFunctions();
+    addJsonFunctions();
+    addUdafFunctions();
+  }
+
+  public UdfFactory getUdfFactory(final String functionName) {
+    return ksqlFunctionMap.get(functionName.toUpperCase());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public boolean addFunction(final KsqlFunction ksqlFunction) {
+    final String key = ksqlFunction.getFunctionName().toUpperCase();
+    ksqlFunctionMap.compute(key, (s, udf) -> {
+      if (udf == null) {
+        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
+      }
+      udf.addFunction(ksqlFunction);
+      return udf;
+    });
+
+    return true;
+  }
+
+  @Override
+  public boolean isAggregate(final String functionName) {
+    return aggregateFunctionMap.containsKey(functionName.toUpperCase());
+  }
+
+  @Override
+  public KsqlAggregateFunction getAggregate(final String functionName,
+                                            final Schema argumentType) {
+    AggregateFunctionFactory aggregateFunctionFactory
+        = aggregateFunctionMap.get(functionName.toUpperCase());
+    if (aggregateFunctionFactory == null) {
+      throw new KsqlException("No aggregate function with name " + functionName + " exists!");
+    }
+    return aggregateFunctionFactory.getProperAggregateFunction(
+        Collections.singletonList(argumentType));
+  }
+
+  @Override
+  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
+    aggregateFunctionMap.put(
+        aggregateFunctionFactory.functionName.toUpperCase(),
+        aggregateFunctionFactory);
+  }
+
+  @Override
+  public FunctionRegistry copy() {
+    return new InternalFunctionRegistry(
+        new HashMap<>(ksqlFunctionMap),
+        new HashMap<>(aggregateFunctionMap));
+  }
+
+  private void addStringFunctions() {
 
     /***************************************
      * String functions                     *
@@ -82,6 +146,12 @@ public class FunctionRegistry {
                                             "SUBSTRING", SubstringKudf
                                                 .class);
     addFunction(substring);
+    addFunction(new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
+            .STRING_SCHEMA,
+        Schema
+            .INT32_SCHEMA),
+        "SUBSTRING", SubstringKudf
+        .class));
 
     KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
                                                                            Schema.STRING_SCHEMA),
@@ -101,22 +171,25 @@ public class FunctionRegistry {
                                       "LEN", LenKudf.class);
     addFunction(len);
 
-    /***************************************
-     * Math functions                      *
-     ***************************************/
+  }
 
+  private void addMathFunctions() {
     KsqlFunction abs = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                      "ABS", AbsKudf.class);
+                                        "ABS", AbsKudf.class);
     addFunction(abs);
+    addFunction(new KsqlFunction(Schema.FLOAT64_SCHEMA,
+                                 Collections.singletonList(Schema.INT64_SCHEMA),
+                                 "ABS",
+                                 AbsKudf.class));
 
     KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA,
                                          Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                       "CEIL", CeilKudf.class);
+                                         "CEIL", CeilKudf.class);
     addFunction(ceil);
 
     KsqlFunction floor = new KsqlFunction(Schema.FLOAT64_SCHEMA,
                                           Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                        "FLOOR", FloorKudf.class);
+                                          "FLOOR", FloorKudf.class);
     addFunction(floor);
 
     KsqlFunction
@@ -130,9 +203,11 @@ public class FunctionRegistry {
     addFunction(random);
 
 
-    /***************************************
-     * Date/Time functions                      *
-     ***************************************/
+  }
+
+
+  private void addDateTimeFunctions() {
+
     KsqlFunction timestampToString = new KsqlFunction(Schema.STRING_SCHEMA,
                                                       Arrays.asList(Schema.INT64_SCHEMA,
                                                                     Schema.STRING_SCHEMA),
@@ -146,9 +221,22 @@ public class FunctionRegistry {
                                                       StringToTimestamp.class);
     addFunction(stringToTimestamp);
 
-    /***************************************
-     * JSON functions                     *
-     ****************************************/
+  }
+
+  private void addGeoFunctions() {
+    KsqlFunction geoDistance = new KsqlFunction(Schema.FLOAT64_SCHEMA,
+                                                Arrays.asList(Schema.FLOAT64_SCHEMA,
+                                                              Schema.FLOAT64_SCHEMA,
+                                                              Schema.FLOAT64_SCHEMA,
+                                                              Schema.FLOAT64_SCHEMA,
+                                                              Schema.OPTIONAL_STRING_SCHEMA),
+                                                "GEO_DISTANCE", GeoDistanceKudf.class);
+    addFunction(geoDistance);
+
+  }
+
+  private void addJsonFunctions() {
+
 
     KsqlFunction getStringFromJson = new KsqlFunction(
         Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
@@ -179,11 +267,9 @@ public class FunctionRegistry {
         Schema.BOOLEAN_SCHEMA,
         Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
+  }
 
-    /***************************************
-     * UDAFs                               *
-     ***************************************/
-
+  private void addUdafFunctions() {
     addAggregateFunctionFactory(new CountAggFunctionFactory());
     addAggregateFunctionFactory(new SumAggFunctionFactory());
 
@@ -192,36 +278,5 @@ public class FunctionRegistry {
 
     addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
     addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-
   }
-
-  public KsqlFunction getFunction(String functionName) {
-    return ksqlFunctionMap.get(functionName);
-  }
-
-  private void addFunction(KsqlFunction ksqlFunction) {
-    ksqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
-  }
-
-  public boolean isAnAggregateFunction(String functionName) {
-    return aggregateFunctionMap.containsKey(functionName);
-  }
-
-  public KsqlAggregateFunction getAggregateFunction(String functionName,
-          List<Expression> functionArgs, Schema schema) {
-    AggregateFunctionFactory aggregateFunctionFactory = aggregateFunctionMap.get(functionName);
-    if (aggregateFunctionFactory == null) {
-      throw new KsqlException("No aggregate function with name " + functionName + " exists!");
-    }
-    ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, this);
-    Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    return aggregateFunctionFactory.getProperAggregateFunction(Arrays.asList(expressionType));
-  }
-
-  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
-    aggregateFunctionMap.put(aggregateFunctionFactory.functionName, aggregateFunctionFactory);
-  }
-
-
 }

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -53,7 +53,7 @@ public class KsqlBareOutputNodeTest {
   private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
   private SchemaKStream stream;
   private StreamsBuilder builder;
-  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
 
   @Before
@@ -121,7 +121,7 @@ public class KsqlBareOutputNodeTest {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 

@@ -18,23 +18,15 @@ package io.confluent.ksql.planner;
 
 
 import org.apache.kafka.common.utils.Utils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
 import java.util.Set;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -52,8 +44,8 @@ public class PlanSourceExtractorVisitorTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
-    functionRegistry = new FunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    functionRegistry = new InternalFunctionRegistry();
     logicalPlanBuilder = new LogicalPlanBuilder(metaStore);
   }
 

@@ -33,9 +33,9 @@ We encourage you to try them in development and testing environments and to take
 [Confluent Community resources](#community) to get help and share feedback.
 
 * [Download latest KSQL Preview](https://www.confluent.io/preview-release).
-* Follow the [Preview Quick Start](https://docs.confluent.io/5.0.0-beta1/quickstart/index.html).
-* Read the [KSQL Preview Documentation](https://docs.confluent.io/5.0.0-beta1/ksql/docs/), notably
-  [KSQL Tutorials and Examples](https://docs.confluent.io/5.0.0-beta1/ksql/docs/tutorials/), which include Docker-based
+* Follow the [Preview Quick Start](https://docs.confluent.io/5.0.0-beta30/quickstart/index.html).
+* Read the [KSQL Preview Documentation](https://docs.confluent.io/5.0.0-beta30/ksql/docs/), notably
+  [KSQL Tutorials and Examples](https://docs.confluent.io/5.0.0-beta30/ksql/docs/tutorials/), which include Docker-based
   variants.
 
 
@@ -92,6 +92,7 @@ CREATE TABLE error_counts AS
 
 # Latest News
 
+* [KSQL May 2018 Preview Release available](https://www.confluent.io/blog/may-preview-release-advancing-ksql-and-schema-registry/), June 2018
 * [KSQL April 2018 Preview Release available](https://www.confluent.io/blog/introducing-confluent-platform-preview-releases/),
   May 2018
 * [Confluent Platform 4.1 with Production-Ready KSQL Now Available](https://www.confluent.io/blog/confluent-platform-4-1-with-production-ready-ksql-now-available/), Apr 2018

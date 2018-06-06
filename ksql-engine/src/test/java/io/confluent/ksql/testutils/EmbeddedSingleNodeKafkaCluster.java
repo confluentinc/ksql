@@ -23,6 +23,7 @@ import com.google.common.io.Files;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.resource.Resource;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
@@ -328,9 +329,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(), SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
       brokerConfig.putAll(ServerKeyStore.keyStoreProps());
+      brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());
+      clientConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
       return this;
     }
 

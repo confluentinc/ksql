@@ -56,7 +56,8 @@ public final class ClientTrustStore {
   public static Map<String, ?> trustStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath(),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword()
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword(),
+        SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, ""
     );
   }
 

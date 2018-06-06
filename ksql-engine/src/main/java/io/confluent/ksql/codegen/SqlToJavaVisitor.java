@@ -18,6 +18,7 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.base.Joiner;
 
+import io.confluent.ksql.util.ExpressionTypeManager;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -69,7 +70,6 @@ public class SqlToJavaVisitor {
 
   private Schema schema;
   private FunctionRegistry functionRegistry;
-  private FunctionArguments functionArguments = new FunctionArguments();
 
   public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
     this.schema = schema;
@@ -120,7 +120,6 @@ public class SqlToJavaVisitor {
         final BooleanLiteral node,
         final Boolean unmangleNames
     ) {
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>(String.valueOf(node.getValue()), Schema.BOOLEAN_SCHEMA);
     }
 
@@ -129,7 +128,6 @@ public class SqlToJavaVisitor {
         final StringLiteral node,
         final Boolean unmangleNames
     ) {
-      functionArguments.addArgumentType(Schema.Type.STRING);
       return new Pair<>("\"" + node.getValue() + "\"", Schema.STRING_SCHEMA);
     }
 
@@ -141,7 +139,6 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames) {
-      functionArguments.addArgumentType(Schema.Type.FLOAT64);
       return new Pair<>(Double.toString(node.getValue()), Schema.FLOAT64_SCHEMA);
     }
 
@@ -174,7 +171,6 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Field not found: " + fieldName);
       }
       final Schema schema = schemaField.get().schema();
-      functionArguments.addArgumentType(schema.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -189,7 +185,6 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Field not found: " + fieldName);
       }
       final Schema schema = schemaField.get().schema();
-      functionArguments.addArgumentType(schema.type());
       return new Pair<>(fieldName, schema);
     }
 
@@ -204,7 +199,6 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Field not found: " + fieldName);
       }
       final Schema schema = schemaField.get().schema();
-      functionArguments.addArgumentType(schema.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -225,33 +219,34 @@ public class SqlToJavaVisitor {
     }
 
     protected Pair<String, Schema> visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
-      functionArguments.addArgumentType(Schema.Type.INT64);
       return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")", Schema.INT64_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
                                                        final Boolean context) {
-      functionArguments.addArgumentType(Schema.Type.INT32);
       return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")", Schema.INT32_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
-      String functionName = node.getName().getSuffix();
-      UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
-      functionArguments.beginFunction();
+      final String functionName = node.getName().getSuffix();
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final List<Schema.Type> argumentTypes = new ArrayList<>();
+      final ExpressionTypeManager expressionTypeManager
+          = new ExpressionTypeManager(schema, functionRegistry);
 
       String instanceName = functionName + "_" + functionCounter++;
 
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
-      final List<Schema.Type> types = functionArguments.endFunction();
-      final Schema returnType = udfFactory.getFunction(types).getReturnType();
+      node.getArguments().forEach(arg -> argumentTypes.add(
+          expressionTypeManager.getExpressionType(arg)
+      ));
+      final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
       String javaReturnType = SchemaUtil.getJavaType(returnType)
           .getSimpleName();
-      functionArguments.addArgumentType(returnType.type());
 
       final StringBuilder builder = new StringBuilder("(");
       builder.append("(").append(javaReturnType).append(") ")
@@ -265,7 +260,6 @@ public class SqlToJavaVisitor {
         LogicalBinaryExpression node,
         Boolean unmangleNames
     ) {
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
             formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames),
@@ -287,7 +281,6 @@ public class SqlToJavaVisitor {
     @Override
     protected Pair<String, Schema> visitNotExpression(NotExpression node, Boolean unmangleNames) {
       String exprString = process(node.getValue(), unmangleNames).getLeft();
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
     }
 
@@ -372,7 +365,6 @@ public class SqlToJavaVisitor {
           break;
       }
       String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>(expr, Schema.BOOLEAN_SCHEMA);
     }
 
@@ -381,7 +373,6 @@ public class SqlToJavaVisitor {
       Pair<String, Schema> expr = process(node.getExpression(), context);
       String returnTypeStr = node.getType();
       Schema returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-      functionArguments.addArgumentType(returnType.type());
       switch (returnTypeStr) {
 
         case "VARCHAR":
@@ -435,7 +426,6 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>("((" + value.getLeft() + ") == null )", Schema.BOOLEAN_SCHEMA);
     }
 
@@ -445,7 +435,6 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      functionArguments.addArgumentType(Schema.Type.BOOLEAN);
       return new Pair<>("((" + value.getLeft() + ") != null )", Schema.BOOLEAN_SCHEMA);
     }
 
@@ -455,7 +444,6 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      functionArguments.addArgumentType(value.getRight().type());
       switch (node.getSign()) {
         case MINUS:
           // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
@@ -473,12 +461,8 @@ public class SqlToJavaVisitor {
         ArithmeticBinaryExpression node,
         Boolean unmangleNames
     ) {
-      final int argCount = functionArguments.numCurrentFunctionArguments();
       Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
-      if (functionArguments.numCurrentFunctionArguments() > argCount + 1) {
-        functionArguments.mergeArithmeticArguments(argCount);
-      }
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
           Schema.FLOAT64_SCHEMA
@@ -495,7 +479,6 @@ public class SqlToJavaVisitor {
       String paternString = process(node.getPattern(), true).getLeft().substring(1);
       paternString = paternString.substring(0, paternString.length() - 1);
       String valueString = process(node.getValue(), true).getLeft();
-      functionArguments.addArgumentType(Schema.Type.STRING);
       if (paternString.startsWith("%")) {
         if (paternString.endsWith("%")) {
           return new Pair<>(
@@ -539,7 +522,6 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
-      functionArguments.addArgumentType(schemaField.get().schema().valueSchema().type());
 
       if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
         final Pair<String, Schema> pair = new Pair<>(
@@ -547,7 +529,6 @@ public class SqlToJavaVisitor {
                 + process(node.getIndex(), unmangleNames).getLeft() + ")]",
             schema
         );
-        functionArguments.removeLastParams(2);
         return pair;
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
         final Pair<String, Schema> stringSchemaPair = new Pair<>(

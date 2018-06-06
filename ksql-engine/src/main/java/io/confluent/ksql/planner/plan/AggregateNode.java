@@ -331,7 +331,7 @@ public class AggregateNode extends PlanNode {
         new ExpressionTypeManager(schema, functionRegistry);
     final List<Expression> functionArgs = internalSchema.getInternalExpressionList(
         functionCall.getArguments());
-    final Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
+    final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
     final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
         .getAggregate(functionCall.getName().toString(), expressionType);
 

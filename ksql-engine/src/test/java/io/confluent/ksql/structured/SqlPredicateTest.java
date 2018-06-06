@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class SqlPredicateTest {
+
   private SchemaKStream initialSchemaKStream;
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
@@ -61,11 +62,13 @@ public class SqlPredicateTest {
     functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
-    kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
-                             ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-                                                   null, new KsqlConfig(Collections.emptyMap()),
-                                                   false, new MockSchemaRegistryClient()
-                                                   )));
+    kStream = builder
+        .stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
+            ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+                ksqlStream.getSchema(), new KsqlConfig(Collections
+                    .emptyMap()),
+                false, new MockSchemaRegistryClient()
+            )));
   }
 
 
@@ -77,12 +80,13 @@ public class SqlPredicateTest {
     analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-                                                                analysis, functionRegistry);
-    for (Expression expression: analysis.getSelectExpressions()) {
+        analysis, functionRegistry);
+    for (Expression expression : analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry)
+        .buildPlan();
     return logicalPlan;
   }
 
@@ -93,14 +97,14 @@ public class SqlPredicateTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
-                                             kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
         .getSchema(), false, functionRegistry);
 
     Assert.assertTrue(predicate.getFilterExpression()
-                          .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
+        .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
     Assert.assertTrue(predicate.getColumnIndexes().length == 1);
 
   }
@@ -112,17 +116,17 @@ public class SqlPredicateTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
-                                             kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
         .getSchema(), false, functionRegistry);
 
     Assert.assertTrue(predicate
-                          .getFilterExpression()
-                          .toString()
-                          .equalsIgnoreCase("((TEST1.COL0 > 100) AND"
-                                            + " (LEN(TEST1.COL2) = 5))"));
+        .getFilterExpression()
+        .toString()
+        .equalsIgnoreCase("((TEST1.COL0 > 100) AND"
+            + " (LEN(TEST1.COL2) = 5))"));
     Assert.assertTrue(predicate.getColumnIndexes().length == 3);
 
   }

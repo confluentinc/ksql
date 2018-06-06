@@ -295,7 +295,7 @@ public class SqlToJavaVisitor {
       switch (type) {
         case IS_DISTINCT_FROM:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
-              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
+                 + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
         default:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
       }
@@ -360,16 +360,17 @@ public class SqlToJavaVisitor {
         case STRING:
           exprFormat += visitStringComparisonExpression(node.getType());
           break;
-        case MAP:
-          throw new KsqlException("Cannot compare MAP values");
-        case ARRAY:
-          throw new KsqlException("Cannot compare ARRAY values");
         case BOOLEAN:
           exprFormat += visitBooleanComparisonExpression(node.getType());
           break;
-        default:
+        case FLOAT64:
+        case INT32:
+        case INT64:
           exprFormat += visitScalarComparisonExpression(node.getType());
           break;
+        default:
+          throw new KsqlException(
+              String.format("Cannot compare %s values", left.getRight().type()));
       }
       String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
       functionArguments.addArgumentType(Schema.Type.BOOLEAN);
@@ -539,27 +540,32 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
-      functionArguments.addArgumentType(schemaField.get().schema().valueSchema().type());
-
-      if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        final Pair<String, Schema> pair = new Pair<>(
-            process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-                + process(node.getIndex(), unmangleNames).getLeft() + ")]",
-            schema
-        );
-        functionArguments.removeLastParams(2);
-        return pair;
-      } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        final Pair<String, Schema> stringSchemaPair = new Pair<>(
-            "("
-                + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-                + process(node.getBase(), unmangleNames).getLeft() + ".get"
-                + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
-            schema
-        );
-        return stringSchemaPair;
+      final Schema internalSchema = schemaField.get().schema();
+      final String internalSchemaJavaType =
+          SchemaUtil.getJavaType(internalSchema).getCanonicalName();
+      switch (internalSchema.type()) {
+        case ARRAY:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get((int)(%s)))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()
+              ),
+              internalSchema.valueSchema()
+          );
+        case MAP:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get(%s))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()),
+              internalSchema.valueSchema()
+          );
+        default:
+          throw new UnsupportedOperationException();
       }
-      throw new UnsupportedOperationException();
     }
 
     @Override

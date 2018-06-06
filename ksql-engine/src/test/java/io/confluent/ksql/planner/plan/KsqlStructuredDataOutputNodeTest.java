@@ -151,8 +151,9 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldHaveCorrectOutputNodeSchema() {
-    final List<Field> expected = Arrays.asList(new Field("ROWTIME", 0, Schema.INT64_SCHEMA),
-        new Field("ROWKEY", 1, Schema.STRING_SCHEMA),
+    final List<Field> expected = Arrays.asList(
+        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("field1", 2, Schema.STRING_SCHEMA),
         new Field("field2", 3, Schema.STRING_SCHEMA),
         new Field("field3", 4, Schema.STRING_SCHEMA),

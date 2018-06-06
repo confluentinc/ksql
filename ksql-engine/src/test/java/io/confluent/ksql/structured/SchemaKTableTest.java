@@ -79,9 +79,9 @@ public class SchemaKTableTest {
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
-            .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-                , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(null, new
-                    KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClient())));
+        .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
+            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema() , new
+                KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClient())));
 
   }
 

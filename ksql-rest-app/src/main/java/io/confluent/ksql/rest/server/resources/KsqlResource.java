@@ -216,9 +216,9 @@ public class KsqlResource {
     } else if (statement instanceof Explain) {
       explainQuery((Explain) statement, statementText);
     } else if (isExecutableDdlStatement(statement)
-        || statement instanceof CreateAsSelect
-        || statement instanceof InsertInto
-        || statement instanceof TerminateQuery) {
+               || statement instanceof CreateAsSelect
+               || statement instanceof InsertInto
+               || statement instanceof TerminateQuery) {
       Statement statementWithFields = statement;
       String statementTextWithFields = statementText;
       if (statement instanceof AbstractStreamCreateStatement) {
@@ -298,8 +298,7 @@ public class KsqlResource {
     } else if (isExecutableDdlStatement(statement)
                || statement instanceof CreateAsSelect
                || statement instanceof InsertInto
-               || statement instanceof TerminateQuery
-    ) {
+               || statement instanceof TerminateQuery) {
       return distributeStatement(statementText, statement, streamsProperties);
     }
     // This line is unreachable. Once we have distinct exception types we won't need a
@@ -479,7 +478,7 @@ public class KsqlResource {
       if (metadata == null) {
         throw new KsqlException(
             "Query with id:" + queryId + " does not exist, use SHOW QUERIES to view the full "
-                + "set of queries.");
+            + "set of queries.");
       }
       return QueryDescription.forQueryMetadata(metadata);
     }
@@ -512,11 +511,10 @@ public class KsqlResource {
   private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
-    ddlCommandTasks.put(Query.class,
-        (statement, statementText, properties) -> {
-          QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan((Query)statement);
-          return queryMetadata;
-        }
+    ddlCommandTasks.put(
+        Query.class,
+        (statement, statementText, properties) ->
+          ksqlEngine.getQueryExecutionPlan((Query)statement)
     );
 
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {

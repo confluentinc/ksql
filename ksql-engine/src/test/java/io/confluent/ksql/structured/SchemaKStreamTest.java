@@ -61,7 +61,8 @@ public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KStream kStream;
   private KsqlStream ksqlStream;
@@ -74,7 +75,9 @@ public class SchemaKStreamTest {
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(Serdes.String(), ksqlStream.getKsqlTopic()
-            .getKsqlTopicSerDe().getGenericRowSerde(null, new KsqlConfig(Collections.emptyMap())
+            .getKsqlTopicSerDe()
+            .getGenericRowSerde(ksqlStream.getSchema(), new KsqlConfig(Collections
+                    .emptyMap())
                 , false, new MockSchemaRegistryClient())));
   }
 
@@ -85,25 +88,30 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode
+        .getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream
+        .select(projectNameExpressionPairList);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
+        projectedSchemaKStream.getSchema().fields().get(0));
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
+        projectedSchemaKStream.getSchema().fields().get(1));
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().field("COL2").schema().type() == Schema.Type.STRING);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().field("COL3").schema().type() == Schema.Type.FLOAT64);
 
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
-                      initialSchemaKStream);
+        initialSchemaKStream);
   }
 
   @Test
@@ -115,8 +123,10 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode
+        .getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream
+        .select(projectNameExpressionPairList);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("NEWKEY", 0, Schema.INT64_SCHEMA)));
@@ -131,8 +141,10 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode
+        .getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream
+        .select(projectNameExpressionPairList);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("COL0", 1, Schema.INT64_SCHEMA)));
@@ -147,8 +159,10 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode
+        .getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream
+        .select(projectNameExpressionPairList);
     assertThat(projectedSchemaKStream.getKeyField(), nullValue());
   }
 
@@ -158,22 +172,27 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream
+        .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
+        projectedSchemaKStream.getSchema().fields().get(0));
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_1") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
+        projectedSchemaKStream.getSchema().fields().get(1));
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_2") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema().type() == Schema.Type.INT32);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema().type() == Schema.Type.FLOAT64);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().fields().get(1).schema().type() == Schema.Type.INT32);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSchema().fields().get(2).schema().type() == Schema.Type.FLOAT64);
 
-    Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert.assertTrue(
+        projectedSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
   }
 
   @Test
@@ -183,26 +202,31 @@ public class SchemaKStreamTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
-                      filteredSchemaKStream.getSchema().fields().get(2));
+        filteredSchemaKStream.getSchema().fields().get(2));
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
-                      filteredSchemaKStream.getSchema().fields().get(3));
+        filteredSchemaKStream.getSchema().fields().get(3));
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
-                      filteredSchemaKStream.getSchema().fields().get(4));
+        filteredSchemaKStream.getSchema().fields().get(4));
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
-                      filteredSchemaKStream.getSchema().fields().get(5));
+        filteredSchemaKStream.getSchema().fields().get(5));
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertTrue(
+        filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type()
+        == Schema.Type.STRING);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type()
+        == Schema.Type.STRING);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type()
+        == Schema.Type.FLOAT64);
 
-    Assert.assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert
+        .assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
   }
 
   @Test

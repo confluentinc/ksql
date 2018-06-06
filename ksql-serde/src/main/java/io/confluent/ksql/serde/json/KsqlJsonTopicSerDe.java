@@ -48,7 +48,8 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
     final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(schema);
+    final Deserializer<GenericRow> genericRowDeserializer =
+        new KsqlJsonDeserializer(schema, isInternal);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

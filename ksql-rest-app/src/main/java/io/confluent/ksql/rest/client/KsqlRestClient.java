@@ -21,6 +21,19 @@ import com.google.common.collect.Maps;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.util.JsonUtil;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import java.io.Closeable;
@@ -46,17 +59,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.SchemaMapper;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
 
@@ -82,8 +84,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   // Visible for testing
   KsqlRestClient(final Client client,
-                 final String serverAddress,
-                 final Map<String, Object> localProperties) {
+      final String serverAddress,
+      final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
     this.serverAddress = parseServerAddress(serverAddress);
     this.localProperties = Maps.newHashMap(
@@ -120,17 +122,17 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return makeRequest("/info", ServerInfo.class);
   }
 
-  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+  public <T> RestResponse<T> makeRequest(String path, Class<T> type) {
     Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
         return RestResponse.erroneous(
-                new KsqlErrorMessage(
-                    Errors.ERROR_CODE_UNAUTHORIZED,
-                    new AuthenticationException(
-                        "Could not authenticate successfully with the supplied credentials."
-                    )
+            new KsqlErrorMessage(
+                Errors.ERROR_CODE_UNAUTHORIZED,
+                new AuthenticationException(
+                    "Could not authenticate successfully with the supplied credentials."
                 )
+            )
         );
       }
       if (response.getStatus() != Response.Status.OK.getStatusCode()) {
@@ -277,7 +279,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         String responseLine = responseScanner.nextLine().trim();
         if (!responseLine.isEmpty()) {
           try {
-            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+            GenericRow genericRow = JsonUtil.buildGenericRowFromJson(responseLine);
+            if (genericRow != null) {
+              bufferedRow = StreamedRow.row(genericRow);
+            } else {
+              bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+            }
           } catch (IOException exception) {
             // TODO: Should the exception be handled somehow else?
             // Swallowing it silently seems like a bad idea...

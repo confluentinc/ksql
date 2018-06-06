@@ -31,20 +31,14 @@ import static org.junit.Assert.assertThat;
 
 public class StringTopkDistinctKudafTest {
 
-  private List<String> valuesArray;
+  private final List<String> valuesArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
+      "25", "60", "80");;
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
 
-  @Before
-  public void setup() {
-    valuesArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
-                                  "25", "60", "80");
-
-  }
-
   @Test
   public void shouldAggregateTopK() {
-    List<String> currentVal = new ArrayList();
+    List<String> currentVal = new ArrayList<>();
     for (String d: valuesArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
     }
@@ -54,7 +48,7 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    List<String> currentVal = new ArrayList();
+    List<String> currentVal = new ArrayList<>();
     currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("80")));

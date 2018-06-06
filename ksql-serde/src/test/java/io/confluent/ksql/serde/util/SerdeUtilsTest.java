@@ -26,30 +26,30 @@ public class SerdeUtilsTest {
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
-    Boolean b = SerdeUtils.toBoolean(new Boolean(true));
+    Boolean b = SerdeUtils.toBoolean(true);
     assertThat(b, equalTo(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonBooleanToBoolean() {
-    Boolean b = SerdeUtils.toBoolean(new Integer(1));
+    Boolean b = SerdeUtils.toBoolean(1);
   }
 
   @Test
   public void shouldConvertToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(new Integer(1));
+    Integer i = SerdeUtils.toInteger(1);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertLongToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(new Long(1L));
+    Integer i = SerdeUtils.toInteger(1L);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertDoubleToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(new Double(1.0));
+    Integer i = SerdeUtils.toInteger(1.0);
     assertThat(i, equalTo(1));
   }
 
@@ -59,31 +59,31 @@ public class SerdeUtilsTest {
     assertThat(i, equalTo(1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToInt() {
     Integer i = SerdeUtils.toInteger("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonIntegerToIntegr() {
-    Object i = SerdeUtils.toInteger(new Boolean(true));
+    Object i = SerdeUtils.toInteger(true);
   }
 
   @Test
   public void shouldConvertToLongCorrectly() {
-    Long l = SerdeUtils.toLong(new Long(1L));
+    Long l = SerdeUtils.toLong(1L);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertIntToLongCorrectly() {
-    Long l = SerdeUtils.toLong(new Integer(1));
+    Long l = SerdeUtils.toLong(1);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertDoubleToLongCorrectly() {
-    Long l = SerdeUtils.toLong(new Double(1.0));
+    Long l = SerdeUtils.toLong(1.0);
     assertThat(l, equalTo(1L));
   }
 
@@ -100,25 +100,25 @@ public class SerdeUtilsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleLong() {
-    Object i = SerdeUtils.toInteger(new Boolean(true));
+    Object i = SerdeUtils.toInteger(true);
   }
 
 
   @Test
   public void shouldConvertToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(new Double(1.0));
+    Double d = SerdeUtils.toDouble(1.0);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertIntToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(new Integer(1));
+    Double d = SerdeUtils.toDouble(1);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertLongToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(new Long(1L));
+    Double d = SerdeUtils.toDouble(1L);
     assertThat(d, equalTo(1.0));
   }
 
@@ -135,7 +135,7 @@ public class SerdeUtilsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
-    Object i = SerdeUtils.toDouble(new Boolean(true));
+    Object i = SerdeUtils.toDouble(true);
   }
 
 

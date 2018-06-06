@@ -107,7 +107,6 @@ public class KsqlJsonSerializerTest {
     itemSchema = SchemaBuilder.struct()
         .field("ITEMID", Schema.INT64_SCHEMA)
         .field("NAME", Schema.STRING_SCHEMA)
-//        .field("CATEGORY", categorySchema)
         .field("CATEGORIES", SchemaBuilder.array(categorySchema))
         .build();
 

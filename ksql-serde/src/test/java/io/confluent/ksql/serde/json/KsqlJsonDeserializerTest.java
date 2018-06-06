@@ -36,7 +36,7 @@ import io.confluent.ksql.GenericRow;
 
 public class KsqlJsonDeserializerTest {
 
-  Schema orderSchema;
+  private Schema orderSchema;
 
   @Before
   public void before() {

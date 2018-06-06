@@ -63,4 +63,65 @@ public class GenericRowTest {
 
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPrintPrimitiveRowCorrectly() {
+    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+        "StringColumn", 1, 100000L, true, 1.23));
+
+    final String rowString = genericRow.toString();
+
+    assertThat(rowString, equalTo(
+        "[ 'StringColumn' | 1 | 100000 | true | 1.23 ]"));
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPrintArrayRowCorrectly() {
+
+    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+        ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0)));
+
+    final String rowString = genericRow.toString();
+
+    assertThat(rowString, equalTo(
+        "[ [10.0, 20.0, 30.0, 40.0, 50.0] ]"));
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPrintMapRowCorrectly() {
+
+    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+        ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0)));
+
+    final String rowString = genericRow.toString();
+
+    assertThat(rowString, equalTo(
+        "[ {key1=100.0, key2=200.0, key3=300.0} ]"));
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPrintStructRowCorrectly() {
+    final Struct address = new Struct(addressSchema);
+    address.put("NUMBER", 101L);
+    address.put("STREET", "University Ave.");
+    address.put("CITY", "Palo Alto");
+    address.put("STATE", "CA");
+    address.put("ZIPCODE", 94301L);
+
+    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+        address));
+
+    final String rowString = genericRow.toString();
+
+    assertThat(rowString, equalTo(
+        "[ Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
+
+  }
+
 }

@@ -31,20 +31,14 @@ import static org.junit.Assert.assertThat;
 
 public class LongTopkDistinctKudafTest {
 
-  private List<Long> valuesArray;
+  private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
+      60L, 80L);
   private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT64_SCHEMA);
 
-  @Before
-  public void setup() {
-    valuesArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
-                                  60L, 80L);
-
-  }
-
   @Test
   public void shouldAggregateTopK() {
-    List<Long> currentVal = new ArrayList();
+    List<Long> currentVal = new ArrayList<>();
     for (Long d: valuesArray) {
       currentVal = longTopkDistinctKudaf.aggregate(d, currentVal);
     }
@@ -54,7 +48,7 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    List<Long> currentVal = new ArrayList();
+    List<Long> currentVal = new ArrayList<>();
     currentVal = longTopkDistinctKudaf.aggregate(80L, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(80L)));
@@ -63,10 +57,10 @@ public class LongTopkDistinctKudafTest {
   @Test
   public void shouldMergeTopK() {
     List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
-    List<Long> array2 = ImmutableList.of(60L, 50L, 48l);
+    List<Long> array2 = ImmutableList.of(60L, 50L, 48L);
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        ImmutableList.of(60L, 50L, 48l)));
+        ImmutableList.of(60L, 50L, 48L)));
   }
 
   @Test

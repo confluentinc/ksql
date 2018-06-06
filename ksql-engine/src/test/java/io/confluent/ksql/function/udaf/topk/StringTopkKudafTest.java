@@ -33,14 +33,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class StringTopkKudafTest {
-  private List<String> valueArray;
+  private final List<String> valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
+      "Test", "123", "432");;
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
-                                  "Test", "123", "432");
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
   }

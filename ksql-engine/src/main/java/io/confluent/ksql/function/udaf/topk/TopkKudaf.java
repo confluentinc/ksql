@@ -37,11 +37,11 @@ public class TopkKudaf<T extends Comparable<? super T>>
 
   @SuppressWarnings("unchecked")
   TopkKudaf(final String functionName,
-            final int argIndexInValue,
-            final int topKSize,
-            final Schema returnType,
-            final List<Schema> argumentTypes,
-            final Class<T> clazz) {
+      final int argIndexInValue,
+      final int topKSize,
+      final Schema returnType,
+      final List<Schema> argumentTypes,
+      final Class<T> clazz) {
     super(
         functionName,
         argIndexInValue,
@@ -84,14 +84,26 @@ public class TopkKudaf<T extends Comparable<? super T>>
   @SuppressWarnings("unchecked")
   @Override
   public Merger<String, List<T>> getMerger() {
-    return (aggKey, aggOneList, aggTwoList) -> {
-      final List<T> mergedList = new ArrayList<>(aggOneList);
-      mergedList.addAll(aggTwoList);
-      mergedList.sort(Comparator.reverseOrder());
-      if (mergedList.size() < topKSize) {
-        return mergedList;
+    return (aggKey, aggOne, aggTwo) -> {
+      final ArrayList<T> merged = new ArrayList<>(
+          Math.min(topKSize, aggOne.size() + aggTwo.size()));
+
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != topKSize; ++i) {
+        final T v1 = idx1 < aggOne.size() ? aggOne.get(idx1) : null;
+        final T v2 = idx2 < aggTwo.size() ? aggTwo.get(idx2) : null;
+
+        if (v1 != null && (v2 == null || v1.compareTo(v2) >= 0)) {
+          merged.add(v1);
+          idx1++;
+        } else if (v2 != null && (v1 == null || v1.compareTo(v2) < 0)) {
+          merged.add(v2);
+          idx2++;
+        }
       }
-      return mergedList.subList(0, topKSize);
+
+      return merged;
     };
   }
 

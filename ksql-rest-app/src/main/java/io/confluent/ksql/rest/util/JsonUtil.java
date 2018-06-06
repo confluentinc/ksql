@@ -32,13 +32,13 @@ public class JsonUtil {
   private static ObjectMapper objectMapper = new ObjectMapper();
 
   public static GenericRow buildGenericRowFromJson(final String jsonString) throws IOException {
-    JsonNode jsonNode = objectMapper.readTree(jsonString);
-    List columns = new ArrayList();
+    final JsonNode jsonNode = objectMapper.readTree(jsonString);
+    final List<Object> columns = new ArrayList<>();
     // If this is a streamedRow object
     if (jsonNode.has("row") && jsonNode.has("errorMessage")) {
       // If there is no error message this is a valid GenericRow.
       if (jsonNode.get("errorMessage").toString().equalsIgnoreCase("null")) {
-        JsonNode columnsArray = jsonNode.get("row").get("columns");
+        final JsonNode columnsArray = jsonNode.get("row").get("columns");
         if (columnsArray == null) {
           return null;
         }
@@ -50,7 +50,7 @@ public class JsonUtil {
         return null;
       }
     } else {
-      Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
+      final Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
       fields.forEachRemaining(field -> columns.add(field.getValue()));
       return new GenericRow(columns);
     }

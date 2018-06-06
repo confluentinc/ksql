@@ -49,7 +49,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 
 public class KsqlGenericRowAvroDeserializerTest {
 
-  String schemaStr = "{"
+  private String schemaStr = "{"
       + "\"namespace\": \"kql\","
       + " \"name\": \"orders\","
       + " \"type\": \"record\","
@@ -66,9 +66,9 @@ public class KsqlGenericRowAvroDeserializerTest {
       + "}";
 
 
-  GenericRecord genericRecord = null;
-  org.apache.kafka.connect.data.Schema schema;
-  Schema avroSchema;
+  private GenericRecord genericRecord = null;
+  private org.apache.kafka.connect.data.Schema schema;
+  private Schema avroSchema;
 
   @Before
   public void before() {
@@ -114,7 +114,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     assertThat("Column number does not match.", genericRow.getColumns().size(), equalTo(6));
     assertThat("Invalid column value.", genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat("Invalid column value.", genericRow.getColumns().get(1), equalTo(1L));
-    assertThat("Invalid column value.", ((ArrayList) genericRow.getColumns().get(4)).get(0), equalTo
+    assertThat("Invalid column value.", ((List) genericRow.getColumns().get(4)).get(0), equalTo
         (100.0));
     assertThat("Invalid column value.", ((Map<String, Double>) genericRow.getColumns().get(5))
             .get("key1"),

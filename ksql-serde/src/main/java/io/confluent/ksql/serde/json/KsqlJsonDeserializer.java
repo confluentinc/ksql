@@ -84,11 +84,11 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(final byte[] rowJsonBytes) throws IOException {
-    JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
-    CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
+    final JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
+    final CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
 
-    SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
-    Map<String, Object> valueMap = (Map) schemaAndValue.value();
+    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
+    final Map<String, Object> valueMap = (Map) schemaAndValue.value();
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();
@@ -119,11 +119,11 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       case STRING:
         return columnVal.toString();
       case ARRAY:
-        return enforceFieldTypeForArray(fieldSchema, (List) columnVal);
+        return enforceFieldTypeForArray(fieldSchema, (List<?>) columnVal);
       case MAP:
-        return enforceFieldTypeForMap(fieldSchema, (Map) columnVal);
+        return enforceFieldTypeForMap(fieldSchema, (Map<String, Object>) columnVal);
       case STRUCT:
-        return enforceFieldTypeForStruct(fieldSchema, (Map) columnVal);
+        return enforceFieldTypeForStruct(fieldSchema, (Map<String, Object>) columnVal);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
@@ -148,8 +148,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   private Struct enforceFieldTypeForStruct(
       final Schema fieldSchema,
       final Map<String, Object> structMap) {
-    Struct columnStruct = new Struct(fieldSchema);
-    Map<String, String> caseInsensitiveFieldNameMap =
+    final Struct columnStruct = new Struct(fieldSchema);
+    final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(fieldSchema.fields());
     fieldSchema.fields()
         .forEach(

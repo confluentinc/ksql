@@ -38,7 +38,12 @@ public class SerdeUtils {
       return ((Number) object).intValue();
     }
     if (object instanceof String) {
-      return Integer.parseInt((String) object);
+      try {
+        return Integer.parseInt((String) object);
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Cannot convert " + object + " to INT.", e);
+      }
+
     }
     throw new IllegalArgumentException("This Object doesn't represent an int");
   }

@@ -23,9 +23,7 @@ import org.apache.kafka.streams.kstream.Merger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
@@ -57,38 +55,65 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   }
 
   @Override
-  public List<T> aggregate(final T currentVal, final List<T> currentAggValList) {
-    if (currentVal == null) {
-      return currentAggValList;
+  public List<T> aggregate(final T currentValue, final List<T> aggregateValue) {
+
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    final int currentSize = currentAggValList.size();
-    if (!currentAggValList.isEmpty()) {
-      final T last = currentAggValList.get(currentSize - 1);
-      if (currentVal.compareTo(last) <= 0
-          && currentSize == tkVal) {
-        return currentAggValList;
-      }
+
+    final int currentSize = aggregateValue.size();
+    if (currentSize == tkVal && currentValue.compareTo(aggregateValue.get(currentSize - 1)) <= 0) {
+      return aggregateValue;
     }
-    Set<T> set = new HashSet<>(currentAggValList);
-    set.add(currentVal);
-    List<T> list = new ArrayList<>(set);
-    list.sort(Comparator.reverseOrder());
-    if (list.size() > tkVal) {
-      list.remove(list.size() - 1);
+
+    if (aggregateValue.contains(currentValue)) {
+      return aggregateValue;
     }
-    return list;
+
+    if (currentSize == tkVal) {
+      aggregateValue.set(currentSize - 1, currentValue);
+    } else {
+      aggregateValue.add(currentValue);
+    }
+
+    aggregateValue.sort(Comparator.reverseOrder());
+    return aggregateValue;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public Merger<String, List<T>> getMerger() {
-    return (aggKey, aggOneList, aggTwoList) -> {
-      Set<T> set = new HashSet<>(aggOneList);
-      set.addAll(aggTwoList);
-      List<T> list = new ArrayList<>(set);
-      list.sort(Comparator.reverseOrder());
-      return list.subList(0, Math.min(list.size(), tkVal));
+    return (aggKey, aggOne, aggTwo) -> {
+      final List<T> merged = new ArrayList<>(Math.min(tkVal, aggOne.size() + aggTwo.size()));
+
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != tkVal; ++i) {
+        final T v1 = getNextItem(aggOne, idx1);
+        final T v2 = getNextItem(aggTwo, idx2);
+
+        if (v1 == null && v2 == null) {
+          break;
+        }
+
+        if (v1 != null && (v2 == null || v1.compareTo(v2) > 0)) {
+          merged.add(v1);
+          idx1++;
+        } else if (v1 == null || v2.compareTo(v1) > 0) {
+          merged.add(v2);
+          idx2++;
+        } else if (v1.compareTo(v2) == 0) {
+          merged.add(v1);
+          idx1++;
+          idx2++;
+        }
+      }
+      return merged;
     };
+  }
+
+  private T getNextItem(final List<T> aggList, int idx) {
+    return idx < aggList.size() ? aggList.get(idx) : null;
   }
 
   @Override

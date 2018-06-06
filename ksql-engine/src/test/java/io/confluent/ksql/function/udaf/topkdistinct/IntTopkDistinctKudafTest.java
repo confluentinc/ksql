@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,10 +39,6 @@ public class IntTopkDistinctKudafTest {
       ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25, 60, 80);
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
       TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT32_SCHEMA);
-
-  @Before
-  public void setup() {
-  }
 
   @Test
   public void shouldAggregateTopK() {
@@ -64,8 +61,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45, 25));
-    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60, 50, 48));
+    List<Integer> array1 = ImmutableList.of(50, 45, 25);
+    List<Integer> array2 = ImmutableList.of(60, 50, 48);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(ImmutableList.of(60, 50, 48)));
@@ -73,8 +70,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45));
-    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60));
+    List<Integer> array1 = ImmutableList.of(50, 45);
+    List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(ImmutableList.of(60, 50, 45)));
@@ -82,8 +79,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(50, 45));
-    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60, 50));
+    List<Integer> array1 = ImmutableList.of(50, 45);
+    List<Integer> array2 = ImmutableList.of(60, 50);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(ImmutableList.of(60, 50, 45)));
@@ -91,8 +88,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    List<Integer> array1 = new ArrayList<Integer>(ImmutableList.of(60));
-    List<Integer> array2 = new ArrayList<Integer>(ImmutableList.of(60));
+    List<Integer> array1 = ImmutableList.of(60);
+    List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
                equalTo(
@@ -103,9 +100,9 @@ public class IntTopkDistinctKudafTest {
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
     List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<>());
-    assertThat(aggregate, equalTo(new ArrayList<Integer>(Arrays.asList(1))));
-    List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, ImmutableList.of(1));
-    assertThat(agg2, equalTo(new ArrayList<Integer>(ImmutableList.of(100, 1))));
+    assertThat(aggregate, equalTo(Collections.singletonList(1)));
+    List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, aggregate);
+    assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
   @SuppressWarnings("unchecked")
@@ -121,7 +118,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
-          List<Integer> aggregate = ImmutableList.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+          List<Integer> aggregate = Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
           for (int value : values) {
             aggregate = intTopkDistinctKudaf.aggregate(value + threadNum, aggregate);
@@ -143,12 +140,12 @@ public class IntTopkDistinctKudafTest {
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
         new TopkDistinctKudaf("TopkDistinctKudaf", 0, topX, Schema.INT32_SCHEMA, Integer.class);
     final List<Integer> aggregate = IntStream.range(0, topX)
-        .mapToObj(Integer::valueOf)
+        .boxed()
         .collect(Collectors.toList());
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.aggregate(i, new ArrayList<>(aggregate));
+      intTopkDistinctKudaf.aggregate(i, aggregate);
     }
 
     final long took = System.currentTimeMillis() - start;
@@ -172,8 +169,7 @@ public class IntTopkDistinctKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.getMerger().apply("ignored", new ArrayList<>(aggregate1), new
-          ArrayList<>(aggregate2));
+      intTopkDistinctKudaf.getMerger().apply("ignored", aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;

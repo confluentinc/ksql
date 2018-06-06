@@ -43,7 +43,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class KsqlGenericRowAvroSerializerTest {
 
 
-  org.apache.kafka.connect.data.Schema schema;
+  private org.apache.kafka.connect.data.Schema schema;
 
   @Before
   public void before() {

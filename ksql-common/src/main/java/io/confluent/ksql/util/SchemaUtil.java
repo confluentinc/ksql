@@ -191,7 +191,7 @@ public class SchemaUtil {
           .put("MAP", "MAP")
           .build();
 
-  public static String getSchemaFieldType(Field field) {
+  public static String getSchemaFieldType(final Field field) {
     if (field.schema().type() == Schema.Type.ARRAY) {
       return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
@@ -212,7 +212,7 @@ public class SchemaUtil {
 
 
   //TODO: Improve the format with proper indentation.
-  public static String describeSchema(Schema schema) {
+  public static String describeSchema(final Schema schema) {
     if (schema.type() == Schema.Type.ARRAY) {
       return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
     } else if (schema.type() == Schema.Type.MAP) {
@@ -225,7 +225,7 @@ public class SchemaUtil {
     }
   }
 
-  public static String getJavaCastString(Schema schema) {
+  public static String getJavaCastString(final Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "(Integer)";
@@ -243,7 +243,7 @@ public class SchemaUtil {
     }
   }
 
-  public static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
+  public static Schema addImplicitRowTimeRowKeyToSchema(final Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
@@ -256,7 +256,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
+  public static Schema removeImplicitRowTimeRowKeyFromSchema(final Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
       String fieldName = field.name();
@@ -269,7 +269,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
+  public static Set<Integer> getRowTimeRowKeyIndexes(final Schema schema) {
     Set<Integer> indexSet = new HashSet<>();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
@@ -281,13 +281,13 @@ public class SchemaUtil {
     return indexSet;
   }
 
-  public static String getSchemaDefinitionString(Schema schema) {
+  public static String getSchemaDefinitionString(final Schema schema) {
     return schema.fields().stream()
         .map(field -> field.name() + " : " + getSqlTypeName(field.schema()))
         .collect(Collectors.joining(", ", "[", "]"));
   }
 
-  public static String getSqlTypeName(Schema schema) {
+  public static String getSqlTypeName(final Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "INT";
@@ -336,7 +336,7 @@ public class SchemaUtil {
     return fieldAssembler.endRecord().toString();
   }
 
-  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
+  private static org.apache.avro.Schema getAvroSchemaForField(final Schema fieldSchema) {
     switch (fieldSchema.type()) {
       case STRING:
         return unionWithNull(create(org.apache.avro.Schema.Type.STRING));
@@ -360,14 +360,14 @@ public class SchemaUtil {
     }
   }
 
-  private static org.apache.avro.Schema unionWithNull(org.apache.avro.Schema schema) {
+  private static org.apache.avro.Schema unionWithNull(final org.apache.avro.Schema schema) {
     return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
   }
 
   /**
    * Rename field names to be consistent with the internal column names.
    */
-  public static Schema getAvroSerdeKsqlSchema(Schema schema) {
+  public static Schema getAvroSerdeKsqlSchema(final Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
       schemaBuilder.field(field.name().replace(".", "_"), field.schema());
@@ -376,7 +376,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static String getFieldNameWithNoAlias(Field field) {
+  public static String getFieldNameWithNoAlias(final Field field) {
     String name = field.name();
     if (name.contains(".")) {
       return name.substring(name.indexOf(".") + 1);
@@ -388,7 +388,7 @@ public class SchemaUtil {
   /**
    * Remove the alias when reading/writing from outside
    */
-  public static Schema getSchemaWithNoAlias(Schema schema) {
+  public static Schema getSchemaWithNoAlias(final Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
       String name = getFieldNameWithNoAlias(field);
@@ -397,7 +397,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static boolean areEqualSchemas(Schema schema1, Schema schema2) {
+  public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {
     if (schema1.fields().size() != schema2.fields().size()) {
       return false;
     }

@@ -39,13 +39,12 @@ import static org.junit.Assert.assertThat;
 
 public class IntTopkKudafTest {
 
-  private List<Integer> valuesArray;
+  private final List<Integer> valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
   private KsqlAggregateFunction<Integer, List<Integer>> topkKudaf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setup() {
-    valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
     topkKudaf = new TopKAggregateFunctionFactory(3)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
   }
@@ -97,9 +96,9 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    List aggregate = topkKudaf.aggregate(1, new ArrayList<>());
+    List<Integer> aggregate = topkKudaf.aggregate(1, new ArrayList<>());
     assertThat(aggregate, equalTo(ImmutableList.of(1)));
-    List agg2 = topkKudaf.aggregate(100, new ArrayList<>(Collections.singletonList(1)));
+    List<Integer> agg2 = topkKudaf.aggregate(100, aggregate);
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
@@ -111,13 +110,13 @@ public class IntTopkKudafTest {
     topkKudaf = new TopKAggregateFunctionFactory(topKSize)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
-        .mapToObj(Integer::valueOf)
+        .boxed()
         .collect(Collectors.toList());
 
     initialAggregate.sort(Comparator.reverseOrder());
     // When:
-    final List<Integer> result = topkKudaf.aggregate(10, new ArrayList<>(initialAggregate));
-    final List<Integer> combined = topkKudaf.getMerger().apply("key", result, new ArrayList<>(initialAggregate));
+    final List<Integer> result = topkKudaf.aggregate(10, initialAggregate);
+    final List<Integer> combined = topkKudaf.getMerger().apply("key", result, initialAggregate);
 
     // Then:
     assertThat(combined.get(0), is(299));
@@ -138,8 +137,8 @@ public class IntTopkKudafTest {
     final List<Integer> result = IntStream.range(0, 4)
         .parallel()
         .mapToObj(threadNum -> {
-          List<Integer> aggregate = new ArrayList<>(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                                  0, 0, 0));
+          List<Integer> aggregate = Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                  0, 0, 0);
           for (int value : values) {
             aggregate = topkKudaf.aggregate(value + threadNum, aggregate);
           }
@@ -160,12 +159,12 @@ public class IntTopkKudafTest {
     topkKudaf = new TopKAggregateFunctionFactory(topX)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
     final List<Integer> aggregate = IntStream.range(0, topX)
-        .mapToObj(Integer::valueOf)
+        .boxed()
         .collect(Collectors.toList());
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      topkKudaf.aggregate(i, new ArrayList<>(aggregate));
+      topkKudaf.aggregate(i, aggregate);
     }
 
     final long took = System.currentTimeMillis() - start;
@@ -189,8 +188,7 @@ public class IntTopkKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      topkKudaf.getMerger().apply("ignmored", new ArrayList<>(aggregate1), new ArrayList<>
-          (aggregate2));
+      topkKudaf.getMerger().apply("ignmored", aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;

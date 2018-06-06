@@ -543,28 +543,29 @@ public class SqlToJavaVisitor {
       final Schema internalSchema = schemaField.get().schema();
       final String internalSchemaJavaType =
           SchemaUtil.getJavaType(internalSchema).getCanonicalName();
-      if (internalSchema.type() == Schema.Type.ARRAY) {
-        return new Pair<>(
-            String.format("((%s) ((%s)%s).get((int)(%s)))",
-                          SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
-                          internalSchemaJavaType,
-                          process(node.getBase(), unmangleNames).getLeft(),
-                          process(node.getIndex(), unmangleNames).getLeft()
-            ),
-            schemaField.get().schema().valueSchema()
-        );
-
-      } else if (internalSchema.type() == Schema.Type.MAP) {
-        return new Pair<>(
-            String.format("(%s ((%s)%s).get(%s))",
-                          SchemaUtil.getJavaCastString(internalSchema.valueSchema()),
-                          internalSchemaJavaType,
-                          process(node.getBase(), unmangleNames).getLeft(),
-                          process(node.getIndex(), unmangleNames).getLeft()),
-            schemaField.get().schema().valueSchema()
-        );
+      switch (internalSchema.type()) {
+        case ARRAY:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get((int)(%s)))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()
+              ),
+              internalSchema.valueSchema()
+          );
+        case MAP:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get(%s))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()),
+              internalSchema.valueSchema()
+          );
+        default:
+          throw new UnsupportedOperationException();
       }
-      throw new UnsupportedOperationException();
     }
 
     @Override

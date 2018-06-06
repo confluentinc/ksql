@@ -32,14 +32,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class LongTopkKudafTest {
-  private List<Long> valuesArray;
+  private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
+      25L);;
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
-                                  25L);
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.INT64_SCHEMA);
   }

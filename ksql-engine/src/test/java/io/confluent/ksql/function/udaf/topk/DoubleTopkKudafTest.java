@@ -32,14 +32,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class DoubleTopkKudafTest {
-  private List valuesArray;
+  private final List<Double> valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
+      25.0);
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before
   public void setup() {
-    valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
-                                  25.0);
     topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.FLOAT64_SCHEMA);
   }
@@ -58,9 +57,9 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    KsqlAggregateFunction<Object, List> topkKudaf =
+    KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    List currentVal = new ArrayList();
+    List<Double> currentVal = new ArrayList();
     currentVal = topkKudaf.aggregate(10.0, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(10.0)));
@@ -68,7 +67,7 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    KsqlAggregateFunction<Object, List> topkKudaf =
+    KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<Double> array1 = ImmutableList.of(50.0, 45.0, 25.0);
     List<Double> array2 = ImmutableList.of(60.0, 55.0, 48.0);
@@ -79,24 +78,24 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    KsqlAggregateFunction<Object, List> topkKudaf =
+    KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<Double> array1 = ImmutableList.of(50.0, 45.0);
     List<Double> array2 = ImmutableList.of(60.0);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList(60.0, 50.0, 45.0)));
+               equalTo(ImmutableList.of(60.0, 50.0, 45.0)));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    KsqlAggregateFunction<Object, List> topkKudaf =
+    KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<Double> array1 = ImmutableList.of(50.0);
     List<Double> array2 = ImmutableList.of(60.0);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
-               equalTo(Arrays.asList(60.0, 50.0)));
+               equalTo(ImmutableList.of(60.0, 50.0)));
   }
 
 }

@@ -33,7 +33,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class QueryDescription {
 
-  private final String id;
+  private final EntityQueryId id;
   private final String statementText;
   private final List<FieldSchemaInfo> schema;
   private final Set<String> sources;
@@ -44,7 +44,7 @@ public class QueryDescription {
 
   @JsonCreator
   public QueryDescription(
-      @JsonProperty("id") String id,
+      @JsonProperty("id") EntityQueryId id,
       @JsonProperty("statementText") String statementText,
       @JsonProperty("schema") List<FieldSchemaInfo> schema,
       @JsonProperty("sources") Set<String> sources,
@@ -65,7 +65,7 @@ public class QueryDescription {
 
   private QueryDescription(String id, QueryMetadata queryMetadata, Set<String> sinks) {
     this(
-        id,
+        new EntityQueryId(id),
         queryMetadata.getStatementString(),
         queryMetadata.getResultSchema().fields().stream().map(
             field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
@@ -86,7 +86,7 @@ public class QueryDescription {
     return new QueryDescription("", queryMetadata, Collections.emptySet());
   }
 
-  public String getId() {
+  public EntityQueryId getId() {
     return id;
   }
 

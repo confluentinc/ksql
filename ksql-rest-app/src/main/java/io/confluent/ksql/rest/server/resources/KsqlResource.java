@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -380,7 +381,7 @@ public class KsqlResource {
                 q -> new RunningQuery(
                     q.getStatementString(),
                     q.getSinkNames(),
-                    q.getQueryId().getId()))
+                    new EntityQueryId(q.getQueryId())))
             .collect(Collectors.toList()));
   }
 
@@ -431,7 +432,7 @@ public class KsqlResource {
         .stream()
         .filter(predicate)
         .map(q -> new RunningQuery(
-            q.getStatementString(), q.getSinkNames(), q.getQueryId().getId()))
+            q.getStatementString(), q.getSinkNames(), new EntityQueryId(q.getQueryId())))
         .collect(Collectors.toList());
   }
 

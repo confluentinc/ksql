@@ -26,6 +26,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -373,7 +374,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowStreamsExtended() throws Exception {
+  public void shouldReturnDescriptionsForShowStreamsExtended() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
@@ -405,7 +406,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowTablesExtended() throws Exception {
+  public void shouldReturnDescriptionsForShowTablesExtended() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
@@ -437,7 +438,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnDescriptionsForShowQueriesExtended() throws Exception {
+  public void shouldReturnDescriptionsForShowQueriesExtended() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Map<String, Object> overriddenProperties =
@@ -460,7 +461,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testDescribeStatement() throws Exception {
+  public void testDescribeStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(
@@ -624,6 +625,7 @@ public class KsqlResourceTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateTableWithInference() {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
         + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
     final String ksqlStringWithSchema =
@@ -703,7 +705,7 @@ public class KsqlResourceTest {
   private void validateQueryDescription(
       String ksqlQueryString,
       Map<String, Object> overriddenProperties,
-      KsqlEntity entity) throws Exception {
+      KsqlEntity entity) {
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         ksqlQueryString, overriddenProperties).get(0);
     validateQueryDescription(queryMetadata, overriddenProperties, entity);
@@ -729,7 +731,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFillExplainQueryWithCorrectInfo() throws Exception {
+  public void shouldFillExplainQueryWithCorrectInfo() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlQueryString = "SELECT * FROM test_stream;";
     final String ksqlString = "EXPLAIN " + ksqlQueryString;
@@ -744,7 +746,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFillExplainQueryByIDWithCorrectInfo() throws Exception {
+  public void shouldFillExplainQueryByIDWithCorrectInfo() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     final String ksqlQueryString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
@@ -812,6 +814,46 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(), containsString("internal error"));
 
     EasyMock.verify(mockEngine);
+  }
+
+  @Test
+  public void shouldListPropertiesWithOverrides() {
+    final String ksqlString = "list properties;";
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+    final Response response
+        = handleKsqlStatements(
+            testResource,
+        new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", 100)));
+
+    assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
+    final KsqlEntityList entityList = (KsqlEntityList)response.getEntity();
+    assertThat(entityList.size(), equalTo(1));
+    assertThat(entityList.get(0), instanceOf(PropertiesList.class));
+    final PropertiesList propertiesList = (PropertiesList)entityList.get(0);
+    assertThat(propertiesList.getProperties().get("ksql.streams.auto.offset.reset"), equalTo(100));
+    assertThat(
+        propertiesList.getOverwrittenProperties(),
+        hasItem(equalTo("ksql.streams.auto.offset.reset")));
+  }
+
+
+
+  @Test
+  public void shouldListPropertiesWithNoOverrides() {
+    final String ksqlString = "list properties;";
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+    final Response response
+        = handleKsqlStatements(testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
+
+
+    assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
+    final KsqlEntityList entityList = (KsqlEntityList)response.getEntity();
+    assertThat(entityList.size(), equalTo(1));
+    assertThat(entityList.get(0), instanceOf(PropertiesList.class));
+    final PropertiesList propertiesList = (PropertiesList)entityList.get(0);
+    assertThat(propertiesList.getOverwrittenProperties().size(), equalTo(0));
   }
 
   private void registerSchema(SchemaRegistryClient schemaRegistryClient)

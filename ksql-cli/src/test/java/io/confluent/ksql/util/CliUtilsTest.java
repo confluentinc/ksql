@@ -16,13 +16,19 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-import java.io.IOException;
-import java.net.ConnectException;
-import java.sql.SQLDataException;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Unit tests for class {@link CliUtils}.
@@ -30,16 +36,40 @@ import java.sql.SQLDataException;
  * @see CliUtils
  */
 public class CliUtilsTest {
-
   @Test
   public void testGetAvroSchemaThrowsKsqlException() {
-    CliUtils cliUtils = new CliUtils();
-
     try {
+      CliUtils cliUtils = new CliUtils();
       cliUtils.getAvroSchema("TZGUM?ploV");
       fail("Expecting exception: KsqlException");
     } catch (KsqlException e) {
-      assertEquals(CliUtils.class.getName(), e.getStackTrace()[0].getClassName());
+      assertThat(CliUtils.class.getName(), equalTo(e.getStackTrace()[0].getClassName()));
     }
+  }
+
+  @Test
+  public void shouldUpdateOverwrittenPropertiesCorrectly() {
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList(
+        "list properties;",
+        ImmutableMap.of(key, "earliest"),
+        ImmutableList.of(key)
+    );
+    final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    assertThat(properties.containsKey(key + " (LOCAL OVERRIDE)"), is(true));
+    assertThat(properties.get(key + " (LOCAL OVERRIDE)"), equalTo("earliest"));
+  }
+
+  @Test
+  public void shouldNotChangeUnwrittenProperty() {
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList(
+        "list properties;",
+        ImmutableMap.of(key, "earliest"),
+        Collections.emptyList()
+    );
+    final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+    assertThat(properties.get(key), equalTo("earliest"));
   }
 }

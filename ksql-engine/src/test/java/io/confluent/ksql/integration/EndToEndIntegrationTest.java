@@ -15,6 +15,7 @@
  **/
 package io.confluent.ksql.integration;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -82,11 +83,9 @@ public class EndToEndIntegrationTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
-    Map<String, Object> streamsConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
-    streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    testHarness.start(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
-    KsqlConfig ksqlconfig = new KsqlConfig(streamsConfig);
+    KsqlConfig ksqlconfig = testHarness.ksqlConfig.clone();
 
     ksqlEngine = new KsqlEngine(ksqlconfig);
 

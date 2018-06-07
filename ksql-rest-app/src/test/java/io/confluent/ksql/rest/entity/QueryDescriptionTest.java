@@ -98,7 +98,7 @@ public class QueryDescriptionTest {
 
     QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
 
-    assertThat(queryDescription.getId(), equalTo(""));
+    assertThat(queryDescription.getId().getId(), equalTo(""));
     assertThat(queryDescription.getExecutionPlan(), equalTo("execution plan"));
     assertThat(queryDescription.getSources(), equalTo(Collections.singleton("source")));
     assertThat(queryDescription.getStatementText(), equalTo("test statement"));
@@ -131,7 +131,7 @@ public class QueryDescriptionTest {
         new QueryId("query_id"), DataSource.DataSourceType.KSTREAM, "app id", null,
         sinkTopic, topology, streamsProperties);
     QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
-    assertThat(queryDescription.getId(), equalTo("query_id"));
+    assertThat(queryDescription.getId().getId(), equalTo("query_id"));
     assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));
   }
 }

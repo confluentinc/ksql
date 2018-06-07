@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.EntityQueryId;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -453,12 +454,14 @@ public class KsqlResourceTest {
         new RunningQuery(
             queries.get(0).getStatementString(),
             ((PersistentQueryMetadata)queries.get(0)).getSinkNames(),
-            ((PersistentQueryMetadata)queries.get(0)).getQueryId().getId()));
+            new EntityQueryId(
+                ((PersistentQueryMetadata)queries.get(0)).getQueryId())));
     List<RunningQuery> readQueries = Collections.singletonList(
         new RunningQuery(
             queries.get(1).getStatementString(),
             ((PersistentQueryMetadata)queries.get(1)).getSinkNames(),
-            ((PersistentQueryMetadata)queries.get(1)).getQueryId().getId()));
+            new EntityQueryId(
+                ((PersistentQueryMetadata)queries.get(1)).getQueryId())));
     SourceDescription expectedDescription =
         new SourceDescription(
             testResource.getKsqlEngine().getMetaStore().getSource(streamName), false, "JSON",

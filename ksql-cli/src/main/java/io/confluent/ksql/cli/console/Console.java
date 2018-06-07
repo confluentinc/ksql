@@ -396,7 +396,7 @@ public abstract class Console implements Closeable {
       tableBuilder.withColumnHeaders("Query ID", "Kafka Topic", "Query String");
       runningQueries.forEach(
           r -> tableBuilder.withRow(
-              r.getId(), String.join(",", r.getSinks()), r.getQueryString()));
+              r.getId().getId(), String.join(",", r.getSinks()), r.getQueryString()));
       tableBuilder.withFooterLine("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescriptionEntity) {
       SourceDescriptionEntity sourceDescriptionEntity = (SourceDescriptionEntity) ksqlEntity;
@@ -531,7 +531,7 @@ public abstract class Console implements Closeable {
           "-----------------------------------"
       ));
       for (RunningQuery writeQuery : source.getWriteQueries()) {
-        writer().println(writeQuery.getId() + " : " + writeQuery.getQueryString());
+        writer().println(writeQuery.getId().getId() + " : " + writeQuery.getQueryString());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
     }
@@ -641,7 +641,7 @@ public abstract class Console implements Closeable {
   }
 
   private void printQueryDescription(QueryDescription query) {
-    writer().println(String.format("%-20s : %s", "ID", query.getId()));
+    writer().println(String.format("%-20s : %s", "ID", query.getId().getId()));
     if (query.getStatementText().length() > 0) {
       writer().println(String.format("%-20s : %s", "SQL", query.getStatementText()));
     }

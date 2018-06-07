@@ -21,6 +21,8 @@ import com.google.common.collect.Maps;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.util.JsonUtil;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import java.io.Closeable;
@@ -120,7 +122,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return makeRequest("/info", ServerInfo.class);
   }
 
-  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+  public <T> RestResponse<T> makeRequest(String path, Class<T> type) {
     Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
@@ -277,7 +279,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         String responseLine = responseScanner.nextLine().trim();
         if (!responseLine.isEmpty()) {
           try {
-            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+            GenericRow genericRow = JsonUtil.buildGenericRowFromJson(responseLine);
+            if (genericRow != null) {
+              bufferedRow = StreamedRow.row(genericRow);
+            } else {
+              bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+            }
           } catch (IOException exception) {
             // TODO: Should the exception be handled somehow else?
             // Swallowing it silently seems like a bad idea...

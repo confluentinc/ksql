@@ -300,8 +300,8 @@ public class PhysicalPlanBuilder {
         throw new KsqlException(String.format("Incompatible schema between results and sink. "
                                               + "Result schema is %s, but the sink schema is %s"
                                               + ".",
-                                              SchemaUtil.schemaString(resultSchema),
-                                              SchemaUtil.schemaString(
+                                              SchemaUtil.getSchemaDefinitionString(resultSchema),
+                                              SchemaUtil.getSchemaDefinitionString(
                                                   SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
                                                       structuredDataSource.getSchema()))));
       }

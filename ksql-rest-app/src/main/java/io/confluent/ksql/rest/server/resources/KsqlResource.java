@@ -513,10 +513,8 @@ public class KsqlResource {
 
   private void registerDdlCommandTasks() {
     ddlCommandTasks.put(Query.class,
-        (statement, statementText, properties) -> {
-          QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan((Query)statement);
-          return queryMetadata;
-        }
+        (statement, statementText, properties) ->
+            ksqlEngine.getQueryExecutionPlan((Query)statement)
     );
 
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {

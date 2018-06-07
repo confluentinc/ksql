@@ -48,8 +48,8 @@ public class GenericRowValueTypeEnforcer {
       case BOOLEAN:
         return enforceBoolean(value);
       case ARRAY:
-        return value;
       case MAP:
+      case STRUCT:
         return value;
       default:
         throw new KsqlException("Type is not supported: " + schema);

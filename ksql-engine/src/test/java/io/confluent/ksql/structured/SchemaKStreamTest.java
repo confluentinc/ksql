@@ -119,7 +119,7 @@ public class SchemaKStreamTest {
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
     assertThat(
         projectedSchemaKStream.getKeyField(),
-        equalTo(new Field("NEWKEY", 0, Schema.INT64_SCHEMA)));
+        equalTo(new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA)));
   }
 
   @Test
@@ -135,7 +135,7 @@ public class SchemaKStreamTest {
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
     assertThat(
         projectedSchemaKStream.getKeyField(),
-        equalTo(new Field("COL0", 1, Schema.INT64_SCHEMA)));
+        equalTo(new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA)));
   }
 
   @Test

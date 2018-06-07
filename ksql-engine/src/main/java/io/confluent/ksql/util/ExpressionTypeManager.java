@@ -99,7 +99,7 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
@@ -129,50 +129,50 @@ public class ExpressionTypeManager
 
   protected Expression visitStringLiteral(final StringLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.STRING_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_STRING_SCHEMA);
     return null;
   }
 
   protected Expression visitBooleanLiteral(final BooleanLiteral node,
                                            final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   protected Expression visitLongLiteral(final LongLiteral node,
                                         final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.INT64_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_INT64_SCHEMA);
     return null;
   }
 
   @Override
   protected Expression visitIntegerLiteral(final IntegerLiteral node,
                                            final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.INT32_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_INT32_SCHEMA);
     return null;
   }
 
   protected Expression visitDoubleLiteral(final DoubleLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.FLOAT64_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
     return null;
   }
 
   protected Expression visitLikePredicate(LikePredicate node,
                                           ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   protected Expression visitIsNotNullPredicate(IsNotNullPredicate node,
                                                ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   protected Expression visitIsNullPredicate(IsNullPredicate node,
                                             ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 

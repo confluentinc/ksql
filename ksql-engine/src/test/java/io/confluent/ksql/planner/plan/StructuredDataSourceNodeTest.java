@@ -58,11 +58,11 @@ public class StructuredDataSourceNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.STRING_SCHEMA)
-      .field("field2", Schema.STRING_SCHEMA)
-      .field("field3", Schema.STRING_SCHEMA)
-      .field("timestamp", Schema.INT64_SCHEMA)
-      .field("key", Schema.STRING_SCHEMA)
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
@@ -128,7 +128,7 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldExtracKeyField() {
-    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.STRING_SCHEMA)));
+    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA)));
   }
 
   @Test

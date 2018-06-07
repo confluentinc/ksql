@@ -183,7 +183,7 @@ public class SchemaKTable extends SchemaKStream {
             new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
         Serialized.with(keySerde, valSerde));
 
-    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,

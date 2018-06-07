@@ -52,7 +52,7 @@ public class InternalFunctionRegistryTest {
   }
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final KsqlFunction func = new KsqlFunction(Schema.STRING_SCHEMA,
+  private final KsqlFunction func = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
       Collections.emptyList(),
       "func",
       Func1.class);
@@ -67,7 +67,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldNotAddFunctionWithSameNameAsExistingFunctionAndOnDifferentClass() {
-    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction func2 = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Collections.emptyList(),
         "func",
         Func2.class);
@@ -85,7 +85,7 @@ public class InternalFunctionRegistryTest {
   public void shouldCreateCopyOfRegistry() {
     functionRegistry.addFunction(func);
     final FunctionRegistry copy = functionRegistry.copy();
-    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction func2 = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Collections.emptyList(),
         "func2",
        Func2.class);
@@ -152,27 +152,27 @@ public class InternalFunctionRegistryTest {
             };
           }
         });
-    assertThat(functionRegistry.getAggregate("my_aggregate", Schema.INT32_SCHEMA), not(nullValue()));
+    assertThat(functionRegistry.getAggregate("my_aggregate", Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
   }
 
   @Test
   public void shouldAddFunctionWithSameNameButDifferentReturnTypes() {
     functionRegistry.addFunction(func);
     assertTrue(functionRegistry.addFunction(
-        new KsqlFunction(Schema.INT64_SCHEMA,
-            Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class)));
+        new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class)));
   }
 
   @Test
   public void shouldAddFunctionWithSameNameClassButDifferentArguments() {
-    final KsqlFunction func2 = new KsqlFunction(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.INT64_SCHEMA), "func", Func1.class);
+    final KsqlFunction func2 = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class);
 
     functionRegistry.addFunction(func);
     assertTrue(functionRegistry.addFunction(
         func2));
     assertThat(functionRegistry.getUdfFactory("func")
-        .getFunction(Collections.singletonList(Schema.INT64_SCHEMA.type())), equalTo(func2));
+        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA.type())), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.emptyList()), equalTo(func));
   }

@@ -31,8 +31,8 @@ public class IntegerSumKudaf
     implements TableAggregationFunction<Integer, Integer> {
 
   IntegerSumKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0, Schema.INT32_SCHEMA,
-          Collections.singletonList(Schema.INT32_SCHEMA)
+    super(functionName, argIndexInValue, () -> 0, Schema.OPTIONAL_INT32_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA)
     );
   }
 

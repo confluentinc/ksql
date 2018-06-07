@@ -106,9 +106,9 @@ public class KsqlBareOutputNodeTest {
   @Test
   public void shouldCreateCorrectSchema() {
     final Schema schema = stream.getSchema();
-    assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.INT64_SCHEMA),
-        new Field("COL2", 1, Schema.STRING_SCHEMA),
-        new Field("COL3", 2, Schema.FLOAT64_SCHEMA))));
+    assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA))));
   }
 
   @Test

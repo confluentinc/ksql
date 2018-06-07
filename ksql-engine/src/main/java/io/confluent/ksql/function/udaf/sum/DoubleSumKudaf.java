@@ -31,8 +31,8 @@ public class DoubleSumKudaf
     implements TableAggregationFunction<Double, Double> {
 
   DoubleSumKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0.0, Schema.FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+    super(functionName, argIndexInValue, () -> 0.0, Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
     );
   }
 

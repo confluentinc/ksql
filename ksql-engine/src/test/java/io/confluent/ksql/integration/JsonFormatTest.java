@@ -104,7 +104,7 @@ public class JsonFormatTest {
     topicProducer
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
-    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
+    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
     GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","

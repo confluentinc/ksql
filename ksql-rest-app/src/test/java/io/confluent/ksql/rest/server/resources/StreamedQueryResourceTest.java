@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.StreamedRow;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -47,7 +48,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.rest.util.JsonUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -239,7 +239,7 @@ public class StreamedQueryResourceTest {
         synchronized (writtenRows) {
           expectedRow = writtenRows.poll();
         }
-        GenericRow testRow = JsonUtil.buildGenericRowFromJson(responseLine);
+        GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
         assertEquals(expectedRow, testRow);
       }
     }

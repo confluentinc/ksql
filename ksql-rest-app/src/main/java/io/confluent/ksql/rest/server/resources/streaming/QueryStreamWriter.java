@@ -39,7 +39,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -54,7 +53,6 @@ class QueryStreamWriter implements StreamingOutput {
   private final KsqlEngine ksqlEngine;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
-  private final KsqlJsonSerializer jsonSerializer;
 
   QueryStreamWriter(
       KsqlEngine ksqlEngine,
@@ -78,7 +76,6 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
     this.ksqlEngine = ksqlEngine;
 
-    this.jsonSerializer = new KsqlJsonSerializer(queryMetadata.getResultSchema());
     queryMetadata.getKafkaStreams().start();
   }
 
@@ -126,7 +123,7 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private void write(OutputStream output, GenericRow row) throws IOException {
-    output.write(jsonSerializer.serialize("", row));
+    objectMapper.writeValue(output, StreamedRow.row(row));
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
   }

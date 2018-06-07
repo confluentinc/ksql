@@ -74,7 +74,6 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessArrayExpressionCorrectly() throws Exception {
-
     String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -87,8 +86,6 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessMapExpressionCorrectly() throws Exception {
-
-
     String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 

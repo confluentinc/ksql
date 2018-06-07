@@ -37,11 +37,13 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   private final Schema outputSchema;
 
   @SuppressWarnings("unchecked")
-  TopkDistinctKudaf(final String functionName,
+  TopkDistinctKudaf(
+      final String functionName,
       final int argIndexInValue,
       final int tkVal,
       final Schema outputSchema,
-      final Class<T> ttClass) {
+      final Class<T> ttClass
+  ) {
     super(
         functionName, argIndexInValue,
         ArrayList::new,

@@ -139,9 +139,7 @@ public class IntTopkDistinctKudafTest {
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
         new TopkDistinctKudaf("TopkDistinctKudaf", 0, topX, Schema.INT32_SCHEMA, Integer.class);
-    final List<Integer> aggregate = IntStream.range(0, topX)
-        .boxed()
-        .collect(Collectors.toList());
+    final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {

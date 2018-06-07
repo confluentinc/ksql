@@ -36,12 +36,14 @@ public class TopkKudaf<T extends Comparable<? super T>>
   private final List<Schema> argumentTypes;
 
   @SuppressWarnings("unchecked")
-  TopkKudaf(final String functionName,
+  TopkKudaf(
+      final String functionName,
       final int argIndexInValue,
       final int topKSize,
       final Schema returnType,
       final List<Schema> argumentTypes,
-      final Class<T> clazz) {
+      final Class<T> clazz
+  ) {
     super(
         functionName,
         argIndexInValue,
@@ -85,7 +87,7 @@ public class TopkKudaf<T extends Comparable<? super T>>
   @Override
   public Merger<String, List<T>> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
-      final ArrayList<T> merged = new ArrayList<>(
+      final List<T> merged = new ArrayList<>(
           Math.min(topKSize, aggOne.size() + aggTwo.size()));
 
       int idx1 = 0;
@@ -100,6 +102,8 @@ public class TopkKudaf<T extends Comparable<? super T>>
         } else if (v2 != null && (v1 == null || v1.compareTo(v2) < 0)) {
           merged.add(v2);
           idx2++;
+        } else {
+          break;
         }
       }
 

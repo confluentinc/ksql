@@ -157,9 +157,7 @@ public class IntTopkKudafTest {
     final int topX = 10;
     topkKudaf = new TopKAggregateFunctionFactory(topX)
         .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
-    final List<Integer> aggregate = IntStream.range(0, topX)
-        .boxed()
-        .collect(Collectors.toList());
+    final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {

@@ -34,7 +34,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
 
-  public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
+  public static final String STRING_TIMESTAMP_FORMAT = "ksql.timestamp.string.format";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 

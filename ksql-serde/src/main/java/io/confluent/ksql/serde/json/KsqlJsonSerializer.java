@@ -60,9 +60,9 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     try {
       final Struct struct = new Struct(schema);
       for (int i = 0; i < data.getColumns().size(); i++) {
-        Schema structSchema = schema.fields().get(i).schema();
+        final Schema structSchema = schema.fields().get(i).schema();
         if (structSchema.type() == Schema.Type.STRUCT) {
-          Field structField = schema.fields().get(i);
+          final Field structField = schema.fields().get(i);
           struct.put(structField, updateStructSchema(
               (Struct) data.getColumns().get(i),
               structField.schema()));

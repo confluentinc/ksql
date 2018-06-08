@@ -114,7 +114,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     };
   }
 
-  private T getNextItem(final List<T> aggList, int idx) {
+  private static <T> T getNextItem(final List<T> aggList, int idx) {
     return idx < aggList.size() ? aggList.get(idx) : null;
   }
 

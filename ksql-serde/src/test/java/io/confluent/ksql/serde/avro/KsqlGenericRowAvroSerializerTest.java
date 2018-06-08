@@ -24,12 +24,11 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -102,7 +101,7 @@ public class KsqlGenericRowAvroSerializerTest {
         ).serializer();
 
     final List columns = Arrays.asList(
-        1511897796092L, 1L, null, 10.0, new ArrayList(Arrays.asList(100.0)),
+        1511897796092L, 1L, null, 10.0, new ArrayList<>(Arrays.asList(100.0)),
         Collections.singletonMap("key1", 100.0));
 
     final GenericRow genericRow = new GenericRow(columns);

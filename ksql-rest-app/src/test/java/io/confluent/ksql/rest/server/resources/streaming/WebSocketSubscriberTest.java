@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
@@ -127,10 +128,17 @@ public class WebSocketSubscriberTest {
 
     EasyMock.replay(subscription, session, basic);
 
-    subscriber.onSchema(SchemaBuilder.struct().build());
+    subscriber.onSchema(SchemaBuilder
+                            .struct()
+        .field("currency", Schema.STRING_SCHEMA)
+        .field("amount", Schema.OPTIONAL_FLOAT32_SCHEMA)
+                            .build());
     subscriber.close();
 
-    assertEquals("{\"type\":\"struct\",\"fields\":[],\"optional\":false}", schema.getValue());
+    assertEquals("{\"type\":\"struct\",\"fields\":["
+                 + "{\"type\":\"string\",\"optional\":false,\"field\":\"currency\"},"
+                 + "{\"type\":\"float\",\"optional\":true,\"field\":\"amount\"}],"
+                 + "\"optional\":false}", schema.getValue());
     assertEquals("Unable to send schema", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.PROTOCOL_ERROR, reason.getValue().getCloseCode());
 

@@ -11,7 +11,7 @@ KSQL supports many of the security features of both Apache Kafka and the |sr|.
 and mutual authentication for authorization.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
-file and then :ref:`start the KSQL server <install_ksql-server>` with your configuration file specified.
+file and then :ref:`start the KSQL server <start_ksql-server>` with your configuration file specified.
 
 .. code:: bash
 
@@ -197,7 +197,6 @@ Standard ACLs
     The authenticated KSQL user always requires:
 
     - ``DESCRIBE_CONFIGS`` permission on the ``CLUSTER`` resource type.
-    - ``DESCRIBE`` permission on the ``__consumer_offsets`` topic.
 
 Input topics
     An input topic is one that has been imported into KSQL using a ``CREATE STREAM`` or ``CREATE TABLE``
@@ -206,7 +205,7 @@ Input topics
     The authenticated KSQL user requires ``DESCRIBE`` and ``READ`` permissions for each input topic.
 
 Output topics
-    KSQL creates output topics when you run persistent ``CREATE TABLE AS SELECT`` or ``CREATE TABLE AS SELECT`` queries.
+    KSQL creates output topics when you run persistent ``CREATE STREAM AS SELECT`` or ``CREATE TABLE AS SELECT`` queries.
 
     The authenticated KSQL user requires ``DESCRIBE`` and ``WRITE`` permissions on each output topic.
 
@@ -228,7 +227,7 @@ Change-log and repartition topics
     before running KSQL. To determine the list of output topics and their required configuration, (partition count,
     replication factor, retention policy, etc), you can run initially run KSQL on a Kafka cluster with none or open ACLs first.
 
-    All changelog and repartition topics are prefixed with ``confluent-ksql-<ksql-service-id>`` where ``ksql.service.id`` defaults to
+    All changelog and repartition topics are prefixed with ``_confluent-ksql-<ksql.service.id>`` where ``ksql.service.id`` defaults to
     ``default_``, (for more information, see :ref:`ksql-service-id`), and postfixed with either ``-changelog`` or ``-repartition``,
     respectively.
 
@@ -243,7 +242,7 @@ Consumer groups
     `Managing Consumer Groups <http://kafka.apache.org/documentation.html#basic_ops_consumer_group>`__.
 
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
-    where the default of ``ksql.service.id`` is ``ksql_``.
+    where the default of ``ksql.service.id`` is ``default_``.
 
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors

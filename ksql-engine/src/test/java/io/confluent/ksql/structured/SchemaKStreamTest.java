@@ -18,7 +18,7 @@ package io.confluent.ksql.structured;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -36,9 +36,10 @@ import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,24 +52,24 @@ import java.util.List;
 
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.sameInstance;
 
 
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KStream kStream;
   private KsqlStream ksqlStream;
-  private FunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
-    functionRegistry = new FunctionRegistry();
+    functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
@@ -105,9 +106,54 @@ public class SchemaKStreamTest {
                       initialSchemaKStream);
   }
 
+  @Test
+  public void shouldUpdateKeyIfRenamed() {
+    String selectQuery = "SELECT col0 as NEWKEY, col2, col3 FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    assertThat(
+        projectedSchemaKStream.getKeyField(),
+        equalTo(new Field("NEWKEY", 0, Schema.INT64_SCHEMA)));
+  }
 
   @Test
-  public void testSelectWithExpression() throws Exception {
+  public void shouldUpdateKeyIfMovedToDifferentIndex() {
+    String selectQuery = "SELECT col2, col0, col3 FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    assertThat(
+        projectedSchemaKStream.getKeyField(),
+        equalTo(new Field("COL0", 1, Schema.INT64_SCHEMA)));
+  }
+
+  @Test
+  public void shouldDropKeyIfNotSelected() {
+    String selectQuery = "SELECT col2, col3 FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    assertThat(projectedSchemaKStream.getKeyField(), nullValue());
+  }
+
+  @Test
+  public void testSelectWithExpression() {
     String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
@@ -131,7 +177,7 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testFilter() throws Exception {
+  public void testFilter() {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);

@@ -16,8 +16,10 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.parser.SqlFormatter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +41,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
@@ -49,18 +49,16 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 class QueryEngine {
 
@@ -128,23 +126,19 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
-
-      tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-      tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      if (analysis.isDoCreateInto()) {
+        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+        tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      }
     }
     return logicalPlan;
-  }
-
-  private TimestampExtractionPolicy getTimestampExtractionPolicy(final OutputNode outputNode) {
-    return outputNode.getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy
-        ? outputNode.getTheSourceNode().getTimestampExtractionPolicy()
-        : outputNode.getTimestampExtractionPolicy();
   }
 
   List<QueryMetadata> buildPhysicalPlans(
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenProperties,
+      final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
   ) {
 
@@ -167,7 +161,7 @@ class QueryEngine {
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, statementPlanPair,
-            overriddenProperties, updateMetastore
+            overriddenProperties, clientSupplier, updateMetastore
         );
       }
 
@@ -179,6 +173,7 @@ class QueryEngine {
       final List<QueryMetadata> physicalPlans,
       final Pair<String, PlanNode> statementPlanPair,
       final Map<String, Object> overriddenProperties,
+      final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
   ) {
 
@@ -193,7 +188,9 @@ class QueryEngine {
         overriddenProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
-        ksqlEngine.getSchemaRegistryClient()
+        ksqlEngine.getSchemaRegistryClient(),
+        ksqlEngine.getQueryIdGenerator(),
+        new KafkaStreamsBuilderImpl(clientSupplier)
     );
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }
@@ -207,12 +204,12 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      Pair<DdlStatement, String> avroCheckResult =
+      AbstractStreamCreateStatement streamCreateStatementWithSchema =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
-      if (avroCheckResult.getRight() != null) {
-        statement = avroCheckResult.getLeft();
-        sqlExpression = avroCheckResult.getRight();
+      if (streamCreateStatementWithSchema != streamCreateStatement) {
+        statement = (DdlStatement)streamCreateStatementWithSchema;
+        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
     DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
@@ -241,7 +238,7 @@ class QueryEngine {
     );
   }
 
-  private Pair<DdlStatement, String> maybeAddFieldsFromSchemaRegistry(
+  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
       AbstractStreamCreateStatement streamCreateStatement
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
@@ -274,20 +271,10 @@ class QueryEngine {
           newProperties
       );
     }
-    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(
-            streamCreateStatement,
-            new HashMap<>(),
-            ksqlEngine.getSchemaRegistryClient()
-        );
-    if (avroCheckResult.getRight() != null) {
-      if (avroCheckResult.getLeft() instanceof CreateStream) {
-        return new Pair<>((CreateStream) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      } else if (avroCheckResult.getLeft() instanceof CreateTable) {
-        return new Pair<>((CreateTable) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      }
-    }
-    return new Pair<>(null, null);
+    return AvroUtil.checkAndSetAvroSchema(
+        streamCreateStatement,
+        new HashMap<>(),
+        ksqlEngine.getSchemaRegistryClient());
   }
 
 }

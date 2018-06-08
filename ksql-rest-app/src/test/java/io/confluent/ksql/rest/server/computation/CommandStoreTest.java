@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.Pair;
@@ -72,7 +73,7 @@ public class CommandStoreTest {
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 
-    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
+    final CommandStore command = createCommandStore();
     final List<Pair<CommandId, Command>> commands = getPriorCommands(command);
     assertThat(commands, equalTo(Arrays.asList(new Pair<>(createId, originalCommand),
         new Pair<>(dropId, dropCommand),
@@ -93,9 +94,16 @@ public class CommandStoreTest {
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 
-    final CommandStore commandStore = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
+    final CommandStore commandStore = createCommandStore();
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
     assertThat(restoreCommands.terminatedQueries(), equalTo(Collections.singletonMap(new QueryId("queryId"), terminated)));
+  }
+
+  private CommandStore createCommandStore() {
+    return new CommandStore(COMMAND_TOPIC,
+        commandConsumer,
+        commandProducer,
+        new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry())));
   }
 
   private List<Pair<CommandId, Command>> getPriorCommands(CommandStore command) {

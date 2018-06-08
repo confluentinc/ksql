@@ -70,7 +70,7 @@ public class KafkaTopicClientImplIntegrationTest {
 
   @After
   public void tearDown() {
-    adminClient.close();
+    client.close();
   }
 
   @Test

@@ -111,7 +111,8 @@ public class LogicalPlanner {
           intoDataSource.getKsqlTopic(),
           intoDataSource.getKsqlTopic().getTopicName(),
           intoProperties,
-          analysis.getLimitClause()
+          analysis.getLimitClause(),
+          analysis.isDoCreateInto()
       );
 
     }
@@ -141,7 +142,7 @@ public class LogicalPlanner {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionType(expression);
+      Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       aggregateSchema = aggregateSchema.field(alias, expressionType);
     }
@@ -170,7 +171,7 @@ public class LogicalPlanner {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionType(expression);
+      Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       projectionSchema = projectionSchema.field(alias, expressionType);
 

@@ -16,29 +16,46 @@
 
 package io.confluent.ksql.rest.client;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ExecutionPlan;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import org.apache.kafka.streams.StreamsConfig;
+import org.easymock.EasyMock;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
+import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class KsqlRestClientTest {
 
@@ -160,4 +177,77 @@ public class KsqlRestClientTest {
 
   }
 
+  @Test
+  public void shouldReturnStatusForSpecificCommand() {
+    RestResponse<CommandStatus> commandStatusRestResponse = ksqlRestClient.makeStatusRequest("TOPIC/c1/CREATE");
+    Assert.assertThat(commandStatusRestResponse, CoreMatchers.notNullValue());
+    Assert.assertThat(commandStatusRestResponse.isSuccessful(), CoreMatchers.equalTo(true));
+    CommandStatus commandStatus = commandStatusRestResponse.getResponse();
+    Assert.assertThat(commandStatus.getStatus(), CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
+  }
+
+  @Test(expected = KsqlRestClientException.class)
+  public void shouldThrowOnInvalidServerAddress() {
+    new KsqlRestClient("not-valid-address", Collections.emptyMap());
+  }
+
+  private <T> Client mockClientExpectingGetRequestAndReturningStatusWithEntity(
+      String server, String path, Response.Status status, Optional<T> entity, Class<T> clazz)
+      throws Exception {
+    Client client = EasyMock.createNiceMock(Client.class);
+    WebTarget target = EasyMock.createNiceMock(WebTarget.class);
+
+    EasyMock.expect(client.target(new URI(server))).andReturn(target);
+    EasyMock.expect(target.path(path)).andReturn(target);
+    Invocation.Builder builder = EasyMock.createNiceMock(Invocation.Builder.class);
+    EasyMock.expect(target.request(MediaType.APPLICATION_JSON_TYPE)).andReturn(builder);
+    Response response = EasyMock.createNiceMock(Response.class);
+    EasyMock.expect(builder.get()).andReturn(response);
+    EasyMock.expect(response.getStatus()).andReturn(status.getStatusCode()).anyTimes();
+    if (entity.isPresent()) {
+      EasyMock.expect(response.readEntity(clazz)).andReturn(entity.get()).anyTimes();
+    }
+    EasyMock.replay(client, target, builder, response);
+
+    return client;
+  }
+
+  private Client mockClientExpectingGetRequestAndReturningStatus(
+      String server, String path, Response.Status status) throws Exception {
+    return mockClientExpectingGetRequestAndReturningStatusWithEntity(
+        server, path, status, Optional.empty(), Object.class);
+  }
+
+  @Test
+  public void shouldRaiseAuthenticationExceptionOn401Response() throws Exception {
+    String serverAddress = "http://foobar";
+    Client client = mockClientExpectingGetRequestAndReturningStatus(
+        serverAddress, "/info", Response.Status.UNAUTHORIZED);
+    KsqlRestClient restClient = new KsqlRestClient(client, serverAddress, Collections.emptyMap());
+    RestResponse restResponse = restClient.getServerInfo();
+    assertTrue(restResponse.isErroneous());
+  }
+
+  @Test
+  public void shouldReturnSuccessfulResponseWhenAuthenticationSucceeds() throws Exception {
+    String serverAddress = "http://foobar";
+    Client client = mockClientExpectingGetRequestAndReturningStatus(
+        serverAddress, "/info", Response.Status.OK);
+    KsqlRestClient restClient = new KsqlRestClient(client, serverAddress, Collections.emptyMap());
+    RestResponse restResponse = restClient.getServerInfo();
+    assertTrue(restResponse.isSuccessful());
+  }
+
+  @Test
+  public void shouldReturnErroneousResponseOnError() throws Exception {
+    String serverAddress = "http://foobar";
+    KsqlErrorMessage ksqlError = new KsqlErrorMessage(500001, "badbadnotgood");
+    Client mockClient = mockClientExpectingGetRequestAndReturningStatusWithEntity(
+        serverAddress, "/info", Response.Status.INTERNAL_SERVER_ERROR,
+        Optional.of(ksqlError), KsqlErrorMessage.class);
+    KsqlRestClient ksqlRestClient = new KsqlRestClient(mockClient, serverAddress, Collections.emptyMap());
+    RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
+    assertThat(restResponse.isErroneous(), CoreMatchers.equalTo(true));
+    assertThat(restResponse.getErrorMessage(), CoreMatchers.equalTo(ksqlError));
+  }
 }

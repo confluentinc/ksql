@@ -1,5 +1,20 @@
 package io.confluent.ksql.rest.entity;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -17,23 +32,10 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -81,7 +83,7 @@ public class QueryDescriptionTest {
 
   @Test
   public void shouldSetFieldsCorrectlyForQueryMetadata() {
-    KafkaStreams queryStreams = mock(KafkaStreams.class);
+    KafkaStreams queryStreams = niceMock(KafkaStreams.class);
     FakeSourceNode sourceNode = new FakeSourceNode("source");
     OutputNode outputNode = new FakeOutputNode(sourceNode);
     Topology topology = mock(Topology.class);
@@ -110,8 +112,8 @@ public class QueryDescriptionTest {
   }
 
   @Test
-  public void shouldSetIdCorrectlyForPersistentQueryMetadata() {
-    KafkaStreams queryStreams = mock(KafkaStreams.class);
+  public void shouldSetFieldsCorrectlyForPersistentQueryMetadata() {
+    KafkaStreams queryStreams = niceMock(KafkaStreams.class);
     FakeSourceNode sourceNode = new FakeSourceNode("source");
     OutputNode outputNode = new FakeOutputNode(sourceNode);
     Topology topology = mock(Topology.class);
@@ -130,5 +132,6 @@ public class QueryDescriptionTest {
         sinkTopic, topology, streamsProperties);
     QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
     assertThat(queryDescription.getId().getId(), equalTo("query_id"));
+    assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));
   }
 }

@@ -7,7 +7,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 **Prerequisites**
 
--  Docker is installed and configured with at least 4 GB of memory.
+-  Docker must be installed and configured with at least 4 GB of memory.
 
    -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
    -  `All platforms <https://docs.docker.com/engine/installation/>`__
@@ -110,6 +110,8 @@ Configure and Start Elastic, Grafana, and |cp|
         Starting ksql-server
         ksql-server is [UP]
 
+    .. tip:: If you receive an out of memory error, see the :ref:`prerequisites <ksql_clickstream-docker>`.
+
 ---------------------------
 Create the Clickstream Data
 ---------------------------
@@ -184,7 +186,7 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        ksql> run script '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        ksql> RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
 
     The output should resemble:
 
@@ -259,7 +261,7 @@ Verify the data
         1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
         1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
         1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-        LIMIT reached for the partition.
+        LIMIT reached
         Query terminated
 
     **View the events per minute**
@@ -278,7 +280,7 @@ Verify the data
         1521108180000 | 5 : Window{start=1521108180000 end=-} | 5 | 24
         1521108180000 | 9 : Window{start=1521108180000 end=-} | 9 | 19
         1521108180000 | 34 : Window{start=1521108180000 end=-} | 34 | 18
-        LIMIT reached for the partition.
+        LIMIT reached
         Query terminated
 
     **View pages per minute**
@@ -296,7 +298,7 @@ Verify the data
         1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
         1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
         1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
-        LIMIT reached for the partition.
+        LIMIT reached
         Query terminated
 
 .. _view-grafana-docker:

@@ -22,7 +22,7 @@ KSQL provides start and stop scripts.
 
 ksql-server-start
     This script starts the KSQL server. It requires a server configuration file as an argument and is located in the ``/bin`` directory
-    of your |cp| installation. For more information, see :ref:`install_ksql-server`.
+    of your |cp| installation. For more information, see :ref:`start_ksql-server`.
 
 ksql-server-stop
     This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.
@@ -70,6 +70,12 @@ Your output should resemble:
     messages-consumed-max: 103397.81191436431
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
+
+=================
+Capacity Planning
+=================
+
+The :ref:`Capacity Planning guide <ksql_capacity_planning>` describes how to size your KSQL clusters.
 
 ===============
 Troubleshooting

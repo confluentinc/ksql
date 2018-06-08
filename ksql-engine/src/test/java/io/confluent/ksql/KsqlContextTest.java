@@ -16,26 +16,27 @@
 
 package io.confluent.ksql;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.easymock.EasyMock.*;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 public class KsqlContextTest {
 
@@ -48,21 +49,16 @@ public class KsqlContextTest {
 
   @Test
   public void shouldRunSimpleStatements() throws Exception {
-    AdminClient adminClient = mock(AdminClient.class);
-    KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClientImpl.class);
     KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-
-    Map<QueryId, PersistentQueryMetadata> liveQueryMap = new HashMap<>();
-
-    KsqlContext ksqlContext = new KsqlContext(adminClient, kafkaTopicClient, ksqlEngine);
 
     expect(ksqlEngine.buildMultipleQueries(statement1, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());
     expect(ksqlEngine.buildMultipleQueries(statement2, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
-    expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap);
     replay(ksqlEngine);
+
+    KsqlContext ksqlContext = new KsqlContext(ksqlEngine);
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
 

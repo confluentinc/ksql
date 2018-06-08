@@ -23,14 +23,13 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
-import io.confluent.ksql.util.KsqlException;
 
-public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFunction<T, T[]> {
+public class TopkKudaf<T extends Comparable<? super T>> extends BaseAggregateFunction<T, T[]> {
 
   private final int topKSize;
   private final Class<T> clazz;
@@ -39,15 +38,17 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   private final Comparator<T> comparator;
 
   @SuppressWarnings("unchecked")
-  TopkKudaf(final int argIndexInValue,
+  TopkKudaf(final String functionName,
+            final int argIndexInValue,
             final int topKSize,
             final Schema returnType,
             final List<Schema> argumentTypes,
             final Class<T> clazz) {
-    super(argIndexInValue,
+    super(functionName,
+        argIndexInValue,
         () -> (T[]) Array.newInstance(clazz, topKSize),
-          returnType,
-          argumentTypes
+        returnType,
+        argumentTypes
     );
     this.topKSize = topKSize;
     this.returnType = returnType;
@@ -70,26 +71,26 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
 
   @SuppressWarnings("unchecked")
   @Override
-  public T[] aggregate(final T currentVal, final T[] currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public T[] aggregate(final T currentValue, final T[] aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
 
-    final T last = currentAggVal[currentAggVal.length - 1];
-    if (last != null && currentVal.compareTo(last) <= 0) {
-      return currentAggVal;
+    final T last = aggregateValue[aggregateValue.length - 1];
+    if (last != null && currentValue.compareTo(last) <= 0) {
+      return aggregateValue;
     }
 
-    final int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
+    final int nullIndex = ArrayUtil.getNullIndex(aggregateValue);
     if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
-      Arrays.sort(currentAggVal, comparator);
-      return currentAggVal;
+      aggregateValue[nullIndex] = currentValue;
+      Arrays.sort(aggregateValue, comparator);
+      return aggregateValue;
     }
 
-    currentAggVal[currentAggVal.length - 1] = currentVal;
-    Arrays.sort(currentAggVal, comparator);
-    return currentAggVal;
+    aggregateValue[aggregateValue.length - 1] = currentValue;
+    Arrays.sort(aggregateValue, comparator);
+    return aggregateValue;
   }
 
   @SuppressWarnings("unchecked")
@@ -118,15 +119,11 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(final Map<String, Integer> expressionNames,
-                                                   final List<Expression> functionArguments) {
-    if (functionArguments.size() != 2) {
-      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",
-                                            functionArguments.size()));
-    }
-
-    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    final int topKSize = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkKudaf<>(udafIndex, topKSize, returnType, argumentTypes, clazz);
+  public KsqlAggregateFunction<T, T[]> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    aggregateFunctionArguments.ensureArgCount(2, "TopK");
+    final int udafIndex = aggregateFunctionArguments.udafIndex();
+    final int topKSize = Integer.parseInt(aggregateFunctionArguments.arg(1));
+    return new TopkKudaf<>(functionName, udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

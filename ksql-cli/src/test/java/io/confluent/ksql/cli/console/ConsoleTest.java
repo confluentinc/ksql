@@ -18,6 +18,8 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -36,7 +38,6 @@ import java.util.Map;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -48,6 +49,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -60,6 +62,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
@@ -85,14 +88,23 @@ public class ConsoleTest {
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new GenericRow(ImmutableList.of("col_1", "col_2")));
+    StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
     terminal.printStreamedRow(row);
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new FakeException());
-    terminal.printStreamedRow(row);
+    final FakeException exception = new FakeException();
+
+    terminal.printStreamedRow(StreamedRow.error(exception));
+
+    assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
+  }
+
+  @Test
+  public void testPrintFinalMessageStreamedRow() throws IOException {
+    terminal.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
   @Test
@@ -102,8 +114,10 @@ public class ConsoleTest {
     properties.put("k2", "v2");
     properties.put("k3", true);
 
-    List<Queries.RunningQuery> queries = new ArrayList<>();
-    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", new QueryId("0")));
+    List<RunningQuery> queries = new ArrayList<>();
+    queries.add(
+        new RunningQuery(
+            "select * from t1", Collections.singleton("Test"), new EntityQueryId("0")));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -157,7 +171,7 @@ public class ConsoleTest {
     List<FieldSchemaInfo> res = new ArrayList<>();
     List<Field> fields = dataSourceBuilder.build().fields();
     for (Field field : fields) {
-      res.add(new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field)));
+      res.add(new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldType(field)));
     }
 
     return res;

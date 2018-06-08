@@ -32,16 +32,17 @@ import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.serde.DataSource;
@@ -240,8 +241,18 @@ public class StatementExecutor {
           commandId,
           terminatedQueries,
           statementStr,
-          wasDropped
-      );
+          wasDropped);
+      if (successMessage == null) {
+        return;
+      }
+    } else if (statement instanceof InsertInto) {
+      successMessage = handleInsertInto((InsertInto) statement,
+                       command,
+                       commandId,
+                       terminatedQueries,
+                       statementStr,
+                       false
+                       );
       if (successMessage == null) {
         return;
       }
@@ -301,12 +312,36 @@ public class StatementExecutor {
         querySpecification,
         statement.getName().getSuffix(),
         statement.getProperties(),
-        statement.getPartitionByColumn()
+        statement.getPartitionByColumn(),
+        true
     );
     if (startQuery(statementStr, query, commandId, terminatedQueries, command, wasDropped)) {
       return statement instanceof CreateTableAsSelect
              ? "Table created and running"
              : "Stream created and running";
+    }
+
+    return null;
+  }
+
+  private String handleInsertInto(final InsertInto statement,
+                                      final Command command,
+                                      final CommandId commandId,
+                                      final Map<QueryId, CommandId> terminatedQueries,
+                                      final String statementStr,
+                                      final boolean wasDropped) throws Exception {
+    QuerySpecification querySpecification =
+        (QuerySpecification) statement.getQuery().getQueryBody();
+    Query query = ksqlEngine.addInto(
+        statement.getQuery(),
+        querySpecification,
+        statement.getTarget().getSuffix(),
+        new HashMap<>(),
+        Optional.empty(),
+        false
+    );
+    if (startQuery(statementStr, query, commandId, terminatedQueries, command, wasDropped)) {
+      return "Insert Into query is running.";
     }
 
     return null;
@@ -325,7 +360,8 @@ public class StatementExecutor {
       Relation into = querySpecification.getInto();
       if (into instanceof Table) {
         Table table = (Table) into;
-        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
+        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null
+            && querySpecification.isShouldCreateInto()) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()
@@ -375,7 +411,7 @@ public class StatementExecutor {
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
 
     final QueryId queryId = terminateQuery.getQueryId();
-    final QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
+    final QueryMetadata queryMetadata = ksqlEngine.getPersistentQuery(queryId);
     if (!ksqlEngine.terminateQuery(queryId, true)) {
       throw new Exception(String.format("No running query with id %s was found", queryId));
     }

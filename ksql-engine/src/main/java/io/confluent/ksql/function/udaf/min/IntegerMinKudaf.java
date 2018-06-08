@@ -20,39 +20,35 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
-public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
+public class IntegerMinKudaf extends BaseAggregateFunction<Integer, Integer> {
 
-  IntegerMinKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> Integer.MAX_VALUE, Schema.INT32_SCHEMA,
+  IntegerMinKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Integer.MAX_VALUE, Schema.INT32_SCHEMA,
           Collections.singletonList(Schema.INT32_SCHEMA)
     );
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(Integer currentValue, Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return Math.min(currentVal, currentAggVal);
+    return Math.min(currentValue, aggregateValue);
   }
 
   @Override
   public Merger<String, Integer> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      return Math.min(aggOne, aggTwo);
-    };
+    return (aggKey, aggOne, aggTwo) -> Math.min(aggOne, aggTwo);
   }
 
   @Override
-  public KsqlAggregateFunction<Integer, Integer> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new IntegerMinKudaf(udafIndex);
+  public KsqlAggregateFunction<Integer, Integer> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new IntegerMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

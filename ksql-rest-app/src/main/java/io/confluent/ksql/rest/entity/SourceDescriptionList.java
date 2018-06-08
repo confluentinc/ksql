@@ -18,12 +18,10 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("source_descriptions")
 public class SourceDescriptionList extends KsqlEntity {
 
   private final List<SourceDescription> sourceDescriptions;

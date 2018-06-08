@@ -242,6 +242,10 @@ public abstract class AstVisitor<R, C> {
     return visitLiteral(node, context);
   }
 
+  protected R visitIntegerLiteral(IntegerLiteral node, C context) {
+    return visitLiteral(node, context);
+  }
+
   protected R visitLogicalBinaryExpression(LogicalBinaryExpression node, C context) {
     return visitExpression(node, context);
   }
@@ -258,7 +262,19 @@ public abstract class AstVisitor<R, C> {
     return visitQueryBody(node, context);
   }
 
-  protected R visitRow(Row node, C context) {
+  protected R visitPrimitiveType(PrimitiveType node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitArray(Array node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitMap(Map node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitStruct(Struct node, C context) {
     return visitNode(node, context);
   }
 
@@ -323,6 +339,10 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitInsertInto(InsertInto node, C context) {
     return visitStatement(node, context);
   }
 

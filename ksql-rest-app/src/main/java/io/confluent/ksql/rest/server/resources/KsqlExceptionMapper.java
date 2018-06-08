@@ -41,8 +41,7 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
           .type(MediaType.APPLICATION_JSON_TYPE)
           .entity(
               new KsqlErrorMessage(
-                  webApplicationException.getResponse().getStatus()
-                      * Errors.HTTP_TO_ERROR_CODE_MULTIPLIER,
+                  Errors.toErrorCode(webApplicationException.getResponse().getStatus()),
                   webApplicationException))
           .build();
     }

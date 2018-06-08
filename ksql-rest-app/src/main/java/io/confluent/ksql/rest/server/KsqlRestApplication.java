@@ -68,10 +68,12 @@ import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
@@ -89,7 +91,6 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -107,7 +108,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
   private static final String EXPANDED_FOLDER = "/expanded";
-  private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -150,19 +150,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.versionCheckerAgent = versionCheckerAgent;
     this.serverInfo = serverInfo;
 
-    this.commandRunnerThread = new Thread(commandRunner);
-    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
 
-    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
-      log.warn("System property {} is not set. User interface will be disabled",
-          KsqlRestConfig.INSTALL_DIR_CONFIG);
-      this.uiFolder = null;
-    } else if (isUiEnabled) {
-      this.uiFolder = ksqlInstallDir + "/ui";
-    } else {
-      this.uiFolder = null;
-    }
-    this.isUiEnabled = isUiEnabled && uiFolder != null;
+    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;
+    this.isUiEnabled = isUiEnabled;
   }
 
   @Override
@@ -276,6 +268,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                       exec
                   );
                 }
+
               })
               .build()
       );
@@ -291,24 +284,19 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   )
       throws Exception {
 
-    Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
+    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
+      log.warn("System property {} is not set. User interface will be disabled",
+               KsqlRestConfig.INSTALL_DIR_CONFIG);
+      isUiEnabled = false;
+    }
 
-    KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
+    KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    final String kafkaClusterId;
-    try {
-      kafkaClusterId = adminClient.describeCluster().clusterId().get();
-    } catch (final UnsupportedVersionException e) {
-      throw new KsqlException(
-          "The kafka brokers are incompatible with. "
-          + "KSQL requires broker versions >= 0.10.1.x"
-      );
-    }
+    final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
 
     String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
@@ -337,7 +325,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                "STRING"
+                new PrimitiveType(Type.KsqlType.STRING)
             )),
             false,
             Collections.singletonMap(
@@ -381,9 +369,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         commandStore
     );
 
-    RootDocument rootDocument = new RootDocument(isUiEnabled,
-                                                 restConfig.getList(RestConfig.LISTENERS_CONFIG)
-                                                     .get(0));
+    RootDocument rootDocument = new RootDocument(isUiEnabled);
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
@@ -412,6 +398,22 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         versionCheckerAgent,
         new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
     );
+  }
+
+  private static String getKafkaClusterId(final KsqlConfig ksqlConfig) {
+
+    try (AdminClient client = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())) {
+
+      return client.describeCluster().clusterId().get();
+
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to get Kafka cluster information", e);
+    }
   }
 
   static void ensureCommandTopic(final KsqlRestConfig restConfig,

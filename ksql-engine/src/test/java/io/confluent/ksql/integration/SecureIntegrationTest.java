@@ -18,7 +18,6 @@ package io.confluent.ksql.integration;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -57,9 +56,11 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -94,8 +95,8 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
-    topicClient = new KafkaTopicClientImpl(AdminClient.create(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps()));
+    topicClient = new KafkaTopicClientImpl(
+        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
 
     produceInitData();
   }
@@ -192,24 +193,24 @@ public class SecureIntegrationTest {
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
-
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -225,10 +226,12 @@ public class SecureIntegrationTest {
     outputTopic = "ACLS_TEST_3";
 
     final String repartitionTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-repartition";
 
     final String changeLogTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
+        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
+        + "-changelog";
 
     SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
     SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
@@ -239,9 +242,6 @@ public class SecureIntegrationTest {
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
@@ -255,7 +255,8 @@ public class SecureIntegrationTest {
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_3",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
+                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -276,24 +277,23 @@ public class SecureIntegrationTest {
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
-
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
+                  + "-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
@@ -338,9 +338,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
-
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(
-        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     execInitCreateStreamQueries();
   }
@@ -396,10 +394,16 @@ public class SecureIntegrationTest {
 
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
+    awaitAsyncTopicCreation(INPUT_TOPIC);
+
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
     topicProducer
         .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
+  }
+
+  private void awaitAsyncTopicCreation(final String topicName) {
+    assertThatEventually(() -> topicClient.isTopicExists(topicName), is(true));
   }
 
   private void execInitCreateStreamQueries() throws Exception {

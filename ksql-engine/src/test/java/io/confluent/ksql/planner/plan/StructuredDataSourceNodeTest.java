@@ -27,16 +27,14 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -86,7 +84,7 @@ public class StructuredDataSourceNodeTest {
     return node.buildStream(builder,
         ksqlConfig,
         new FakeKafkaTopicClient(),
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 

@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
@@ -34,7 +33,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class QueryDescription {
 
-  private final QueryId id;
+  private final EntityQueryId id;
   private final String statementText;
   private final List<FieldSchemaInfo> schema;
   private final Set<String> sources;
@@ -45,7 +44,7 @@ public class QueryDescription {
 
   @JsonCreator
   public QueryDescription(
-      @JsonProperty("id") QueryId id,
+      @JsonProperty("id") EntityQueryId id,
       @JsonProperty("statementText") String statementText,
       @JsonProperty("schema") List<FieldSchemaInfo> schema,
       @JsonProperty("sources") Set<String> sources,
@@ -64,15 +63,15 @@ public class QueryDescription {
     this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
   }
 
-  private QueryDescription(QueryId queryId, QueryMetadata queryMetadata) {
+  private QueryDescription(String id, QueryMetadata queryMetadata, Set<String> sinks) {
     this(
-        queryId,
+        new EntityQueryId(id),
         queryMetadata.getStatementString(),
         queryMetadata.getResultSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field))
+            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
         ).collect(Collectors.toList()),
         queryMetadata.getSourceNames(),
-        Collections.emptySet(),
+        sinks,
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties());
@@ -81,12 +80,13 @@ public class QueryDescription {
   public static QueryDescription forQueryMetadata(QueryMetadata queryMetadata) {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       return new QueryDescription(
-          ((PersistentQueryMetadata) queryMetadata).getQueryId(), queryMetadata);
+          ((PersistentQueryMetadata) queryMetadata).getQueryId().getId(), queryMetadata,
+          ((PersistentQueryMetadata) queryMetadata).getSinkNames());
     }
-    return new QueryDescription(new QueryId(""), queryMetadata);
+    return new QueryDescription("", queryMetadata, Collections.emptySet());
   }
 
-  public QueryId getId() {
+  public EntityQueryId getId() {
     return id;
   }
 

@@ -61,9 +61,10 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
+    | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
     | EXPLAIN ANALYZE?
             ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
@@ -261,10 +262,8 @@ primaryExpression
     | STRING                                                                         #stringLiteral
     | BINARY_LITERAL                                                                 #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
-    | '(' expression (',' expression)+ ')'                                           #rowConstructor
-    | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' over?     #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' over?                    #functionCall
     | identifier '->' expression                                                     #lambda
     | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
@@ -309,7 +308,7 @@ type
     : type ARRAY
     | ARRAY '<' type '>'
     | MAP '<' type ',' type '>'
-    | ROW '(' identifier type (',' identifier type)* ')'
+    | STRUCT '<' identifier type (',' identifier type)* '>'
     | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;
 
@@ -385,7 +384,7 @@ number
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
     | ADD
-    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP | ARRAY
+    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | STRUCT | MAP | ARRAY
     | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
@@ -508,6 +507,7 @@ PRECEDING: 'PRECEDING';
 FOLLOWING: 'FOLLOWING';
 CURRENT: 'CURRENT';
 ROW: 'ROW';
+STRUCT: 'STRUCT';
 WITH: 'WITH';
 RECURSIVE: 'RECURSIVE';
 VALUES: 'VALUES';

@@ -23,7 +23,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
@@ -37,7 +37,7 @@ public class LogicalPlanBuilder {
 
   private final MetaStore metaStore;
   private final KsqlParser parser = new KsqlParser();
-  private final FunctionRegistry functionRegistry = new FunctionRegistry();
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   public LogicalPlanBuilder(final MetaStore metaStore) {
     this.metaStore = metaStore;

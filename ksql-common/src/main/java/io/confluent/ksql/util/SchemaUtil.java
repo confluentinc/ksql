@@ -25,8 +25,10 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;
@@ -41,6 +43,21 @@ public class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
+
+  private static Map<Pair<Schema.Type, Schema.Type>, Schema> numericTypePairMapping =
+      ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.INT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.INT32_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
+      .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.FLOAT64_SCHEMA)
+      .build();
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -63,7 +80,6 @@ public class SchemaUtil {
         throw new KsqlException("Type is not supported: " + schema.type());
     }
   }
-
 
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
     if (schema.fields() != null) {
@@ -172,14 +188,49 @@ public class SchemaUtil {
           .put("MAP", "MAP")
           .build();
 
-  public static String getSchemaFieldName(Field field) {
+  public static String getSchemaFieldType(Field field) {
     if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + ","
-          + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
+          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
+    } else if (field.schema().type() == Schema.Type.STRUCT) {
+      StringBuilder stringBuilder = new StringBuilder("STRUCT <");
+      stringBuilder.append(
+          field.schema().fields().stream()
+              .map(schemaField -> getSchemaFieldType(schemaField))
+              .collect(Collectors.joining(", ")));
+      stringBuilder.append(">");
+      return stringBuilder.toString();
     } else {
       return TYPE_MAP.get(field.schema().type().name());
+    }
+  }
+
+
+  //TODO: Improve the format with proper indentation.
+  public static String describeSchema(Schema schema) {
+    if (schema.type() == Schema.Type.ARRAY) {
+      return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
+    } else if (schema.type() == Schema.Type.MAP) {
+      return "MAP[" + describeSchema(schema.keySchema()) + ","
+             + describeSchema(schema.valueSchema()) + "]";
+    } else if (schema.type() == Schema.Type.STRUCT) {
+      StringBuilder stringBuilder = new StringBuilder("STRUCT < ");
+      boolean addComma = false;
+      for (Field structField: schema.fields()) {
+        if (addComma) {
+          stringBuilder.append(", ");
+        } else {
+          addComma = true;
+        }
+        stringBuilder
+            .append("\n\t " + structField.name() + " " + describeSchema(structField.schema()));
+      }
+      stringBuilder.append("\n >");
+      return stringBuilder.toString();
+    } else {
+      return TYPE_MAP.get(schema.type().name());
     }
   }
 
@@ -358,6 +409,33 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
+  public static boolean areEqualSchemas(Schema schema1, Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()) {
+      return false;
+    }
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!schema1.fields().get(i).equals(schema2.fields().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static String schemaString(Schema schema) {
+    StringBuilder stringBuilder = new StringBuilder("[ ");
+    boolean addComma = false;
+    for (Field field : schema.fields()) {
+      if (addComma) {
+        stringBuilder.append(", ");
+      } else {
+        addComma = true;
+      }
+      stringBuilder.append(String.format("(%s : %s)", field.name(), field.schema()));
+    }
+    stringBuilder.append("]");
+    return stringBuilder.toString();
+  }
+
   public static int getIndexInSchema(final String fieldName, final Schema schema) {
     List<Field> fields = schema.fields();
     for (int i = 0; i < fields.size(); i++) {
@@ -372,5 +450,15 @@ public class SchemaUtil {
             + " in schema. fields="
             + fields
     );
+  }
+
+  public static Schema resolveArithmeticType(final Schema.Type left,
+                                             final Schema.Type right) {
+
+    final Schema schema = numericTypePairMapping.get(new Pair<>(left, right));
+    if (schema == null) {
+      throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
+    }
+    return schema;
   }
 }

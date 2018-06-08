@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -90,14 +88,8 @@ public class StandaloneExecutor implements Executable {
           StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        ksqlConfig,
-        new KafkaTopicClientImpl(
-            AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
-
-    return new StandaloneExecutor(
-        ksqlEngine,
-        queriesFile);
+    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    return new StandaloneExecutor(ksqlEngine, queriesFile);
   }
 
   private void showWelcomeMessage() {
@@ -105,7 +97,6 @@ public class StandaloneExecutor implements Executable {
     if (console == null) {
       return;
     }
-
     final PrintWriter writer =
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 

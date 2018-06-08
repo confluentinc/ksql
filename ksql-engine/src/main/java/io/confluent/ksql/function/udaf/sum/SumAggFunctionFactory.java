@@ -25,11 +25,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SumAggFunctionFactory extends AggregateFunctionFactory {
+  private static final String FUNCTION_NAME = "SUM";
 
   public SumAggFunctionFactory() {
-    super("SUM", Arrays.asList(new DoubleSumKudaf(-1),
-                               new LongSumKudaf(-1),
-                               new IntegerSumKudaf(-1)));
+    super(
+        FUNCTION_NAME,
+        Arrays.asList(
+            new DoubleSumKudaf(FUNCTION_NAME, -1), new LongSumKudaf(FUNCTION_NAME, -1),
+            new IntegerSumKudaf(FUNCTION_NAME,-1)));
   }
 
   @Override

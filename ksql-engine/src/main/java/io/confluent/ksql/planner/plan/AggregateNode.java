@@ -36,9 +36,9 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -51,6 +51,7 @@ import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -143,7 +144,7 @@ public class AggregateNode extends PlanNode {
   private List<Pair<String, Expression>> getFinalSelectExpressions() {
     List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
-      throw new KsqlException(
+      throw new RuntimeException(
           "Incompatible aggregate schema, field count must match, "
           + "selected field count:"
           + finalSelectExpressions.size()
@@ -187,18 +188,12 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClient
     );
 
-    if (sourceSchemaKStream instanceof SchemaKTable) {
-      throw new KsqlException(
-          "Unsupported aggregation. KSQL currently only supports aggregation on a Stream.");
-    }
-
     // Pre aggregate computations
     InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
                                                        getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded = maybeSetTheKeyField(
-        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList()),
-        internalSchema);
+    final SchemaKStream aggregateArgExpanded =
+        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
 
     KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopic()
@@ -240,19 +235,16 @@ public class AggregateNode extends PlanNode {
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
-        new KudafAggregator(
-            createAggValToFunctionMap(
-                aggregateArgExpanded,
-                aggregateSchema,
-                initializer,
-                aggValToValColumnMap.size(),
-                functionRegistry,
-                internalSchema
-            ),
-            aggValToValColumnMap
-        ), getWindowExpression(),
-        aggValueGenericRowSerde
-    );
+        createAggValToFunctionMap(
+            aggregateArgExpanded,
+            aggregateSchema,
+            initializer,
+            aggValToValColumnMap.size(),
+            functionRegistry,
+            internalSchema),
+        aggValToValColumnMap,
+        getWindowExpression(),
+        aggValueGenericRowSerde);
 
     SchemaKTable result = new SchemaKTable(
         aggStageSchema,
@@ -269,8 +261,7 @@ public class AggregateNode extends PlanNode {
       result = result.filter(getHavingExpressions());
     }
 
-    return result.select(internalSchema.updateFinalSelectExpressions(
-        getFinalSelectExpressions()));
+    return result.select(internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()));
   }
 
   protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
@@ -309,16 +300,10 @@ public class AggregateNode extends PlanNode {
       int udafIndexInAggSchema = initialUdafIndex;
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
       for (FunctionCall functionCall : getFunctionList()) {
-        KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
-            .getAggregateFunction(functionCall.getName().toString(),
-                                  internalSchema.getInternalExpressionList(
-                                      functionCall.getArguments()),
-                                  aggregateArgExpanded.getSchema()
-            );
-        KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getInstance(
-            internalSchema.getInternalNameToIndexMap(),
-            internalSchema.getInternalExpressionList(functionCall.getArguments())
-        );
+        KsqlAggregateFunction aggregateFunction = getAggregateFunction(
+            functionRegistry,
+            internalSchema,
+            functionCall, aggregateArgExpanded.getSchema());
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
         initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
@@ -338,6 +323,23 @@ public class AggregateNode extends PlanNode {
     }
   }
 
+  private KsqlAggregateFunction getAggregateFunction(final FunctionRegistry functionRegistry,
+                                                     final InternalSchema internalSchema,
+                                                     final FunctionCall functionCall,
+                                                     final Schema schema) {
+    final ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, functionRegistry);
+    final List<Expression> functionArgs = internalSchema.getInternalExpressionList(
+        functionCall.getArguments());
+    final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
+    final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+        .getAggregate(functionCall.getName().toString(), expressionType);
+
+    return aggregateFunctionInfo.getInstance(
+        new AggregateFunctionArguments(internalSchema.getInternalNameToIndexMap(),
+            functionArgs.stream().map(Expression::toString).collect(Collectors.toList())));
+  }
+
   private Schema buildAggregateSchema(
       final Schema schema,
       final FunctionRegistry functionRegistry,
@@ -350,14 +352,11 @@ public class AggregateNode extends PlanNode {
     }
     for (int aggFunctionVarSuffix = 0;
          aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
-      String udafName = getFunctionList().get(aggFunctionVarSuffix).getName()
-          .getSuffix();
-      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(
-          udafName,
-          internalSchema.getInternalExpressionList(
-              getFunctionList().get(aggFunctionVarSuffix).getArguments()),
-          schema
-      );
+      KsqlAggregateFunction aggregateFunction = getAggregateFunction(
+          functionRegistry,
+          internalSchema,
+          getFunctionList().get(aggFunctionVarSuffix),
+          schema);
       schemaBuilder.field(
           AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
           + aggFunctionVarSuffix,
@@ -367,39 +366,6 @@ public class AggregateNode extends PlanNode {
 
     return schemaBuilder.build();
   }
-
-  private SchemaKStream maybeSetTheKeyField(SchemaKStream schemaKStream,
-                                            InternalSchema internalSchema) {
-    Map<String, String> fieldsWithNoAlias = internalSchema
-        .getExpressionToInternalColumnNameMap()
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            e -> e.getKey().contains(".")
-                 ? e.getKey().substring(e.getKey().indexOf(".") + 1)
-                 : e.getKey(),
-            e -> e.getValue()
-        ));
-
-    if (schemaKStream.getKeyField() != null) {
-      String keyFieldName = schemaKStream.getKeyField().name();
-      return new SchemaKStream(schemaKStream.getSchema(),
-                               schemaKStream.getKstream(),
-                               fieldsWithNoAlias
-                                   .containsKey(keyFieldName)
-                               ? new Field(fieldsWithNoAlias.get(keyFieldName),
-                                           schemaKStream.getKeyField().index(),
-                                           schemaKStream.getKeyField().schema()
-                               )
-                               : null,
-                               schemaKStream.getSourceSchemaKStreams(),
-                               schemaKStream.getType(),
-                               schemaKStream.getFunctionRegistry(),
-                               schemaKStream.getSchemaRegistryClient());
-    }
-    return schemaKStream;
-  }
-
 
   class InternalSchema {
     private final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();

@@ -22,7 +22,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
@@ -33,10 +33,10 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SerDeUtil;
+
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,12 +53,12 @@ public class SqlPredicateTest {
   MetaStore metaStore;
   KStream kStream;
   KsqlStream ksqlStream;
-  FunctionRegistry functionRegistry;
+  InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
-    functionRegistry = new FunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),

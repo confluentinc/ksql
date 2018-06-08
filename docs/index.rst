@@ -3,18 +3,6 @@
 KSQL
 ====
 
-.. toctree::
-   :titlesonly:
-   :maxdepth: 1
-   :hidden:
-
-   quickstart
-   installation/index
-   operations
-   tutorials/index
-   syntax-reference
-   faq
-
 .. raw:: html
 
    <h2>What Is KSQL?</h2>
@@ -84,3 +72,23 @@ KSQL CLI
 ---------------------
 
 .. include:: includes/ksql-supported-versions.rst
+
+
+.. raw:: html
+
+   <h2>KSQL Documentation</h2>
+
+---------------------
+
+.. toctree::
+    :titlesonly:
+    :maxdepth: 2
+
+    quickstart
+    installation/index
+    operations
+    capacity-planning
+    tutorials/index
+    syntax-reference
+    api
+    faq

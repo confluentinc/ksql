@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +18,18 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.base.Joiner;
 
+import io.confluent.ksql.util.ExpressionTypeManager;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -44,6 +46,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
@@ -84,9 +87,10 @@ public class SqlToJavaVisitor {
   }
 
 
-  public class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
+  private class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
 
-    FunctionRegistry functionRegistry;
+    private final FunctionRegistry functionRegistry;
+    private int functionCounter = 0;
 
     Formatter(FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
@@ -166,7 +170,8 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
     @Override
@@ -179,7 +184,8 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName, schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName, schema);
     }
 
     @Override
@@ -192,7 +198,8 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
     private String formatQualifiedName(QualifiedName name) {
@@ -215,27 +222,37 @@ public class SqlToJavaVisitor {
       return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")", Schema.INT64_SCHEMA);
     }
 
+    @Override
+    protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
+                                                       final Boolean context) {
+      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")", Schema.INT32_SCHEMA);
+    }
 
     @Override
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder("(");
-      String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(name);
-      String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
-      builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
-      boolean addComma = false;
-      for (Expression argExpr : node.getArguments()) {
-        Pair<String, Schema> processedArg = process(argExpr, unmangleNames);
-        if (addComma) {
-          builder.append(" , ");
-        } else {
-          addComma = true;
-        }
-        builder.append(processedArg.getLeft());
-      }
-      builder.append(")");
-      builder.append(")");
-      return new Pair<>(builder.toString(), ksqlFunction.getReturnType());
+      final String functionName = node.getName().getSuffix();
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final List<Schema.Type> argumentTypes = new ArrayList<>();
+      final ExpressionTypeManager expressionTypeManager
+          = new ExpressionTypeManager(schema, functionRegistry);
+
+      String instanceName = functionName + "_" + functionCounter++;
+
+      final String arguments = node.getArguments().stream()
+          .map(arg -> process(arg, unmangleNames).getLeft())
+          .collect(Collectors.joining(", "));
+      node.getArguments().forEach(arg -> argumentTypes.add(
+          expressionTypeManager.getExpressionType(arg)
+      ));
+      final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
+      String javaReturnType = SchemaUtil.getJavaType(returnType)
+          .getSimpleName();
+
+      final StringBuilder builder = new StringBuilder("(");
+      builder.append("(").append(javaReturnType).append(") ")
+          .append(instanceName).append(".evaluate(")
+          .append(arguments).append("))");
+      return new Pair<>(builder.toString(), returnType);
     }
 
     @Override
@@ -356,7 +373,6 @@ public class SqlToJavaVisitor {
       Pair<String, Schema> expr = process(node.getExpression(), context);
       String returnTypeStr = node.getType();
       Schema returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-
       switch (returnTypeStr) {
 
         case "VARCHAR":
@@ -428,7 +444,6 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-
       switch (node.getSign()) {
         case MINUS:
           // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
@@ -464,7 +479,6 @@ public class SqlToJavaVisitor {
       String paternString = process(node.getPattern(), true).getLeft().substring(1);
       paternString = paternString.substring(0, paternString.length() - 1);
       String valueString = process(node.getValue(), true).getLeft();
-
       if (paternString.startsWith("%")) {
         if (paternString.endsWith("%")) {
           return new Pair<>(
@@ -508,20 +522,23 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
+
       if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>(
+        final Pair<String, Schema> pair = new Pair<>(
             process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-            + process(node.getIndex(), unmangleNames).getLeft() + ")]",
+                + process(node.getIndex(), unmangleNames).getLeft() + ")]",
             schema
         );
+        return pair;
       } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        return new Pair<>(
+        final Pair<String, Schema> stringSchemaPair = new Pair<>(
             "("
-            + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-            + process(node.getBase(), unmangleNames).getLeft() + ".get"
-            + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
+                + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
+                + process(node.getBase(), unmangleNames).getLeft() + ".get"
+                + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
             schema
         );
+        return stringSchemaPair;
       }
       throw new UnsupportedOperationException();
     }
@@ -545,11 +562,6 @@ public class SqlToJavaVisitor {
     private String formatIdentifier(String s) {
       // TODO: handle escaping properly
       return s;
-    }
-
-    private String joinExpressions(List<Expression> expressions, boolean unmangleNames) {
-      return Joiner.on(", ").join(expressions.stream()
-                                      .map((e) -> process(e, unmangleNames)).iterator());
     }
 
     private String getCastToBooleanString(Schema schema, String exprStr) {

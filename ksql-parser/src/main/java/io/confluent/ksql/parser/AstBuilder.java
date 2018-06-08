@@ -19,6 +19,14 @@ package io.confluent.ksql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlException;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -32,17 +40,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -72,6 +75,7 @@ import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -88,13 +92,13 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -103,7 +107,6 @@ import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -117,6 +120,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
@@ -126,14 +130,14 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -256,6 +260,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
+  public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
+    Optional<Expression> partitionByColumn = Optional.empty();
+    if (context.identifier() != null) {
+      partitionByColumn = Optional.of(new QualifiedNameReference(
+          QualifiedName.of(getIdentifierText(context.identifier()))));
+    }
+    return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
+                                   (Query) visitQuery(context.query()), partitionByColumn);
+  }
+
+  @Override
   public Node visitDropTopic(SqlBaseParser.DropTopicContext context) {
     return new DropTopic(
         getLocation(context),
@@ -269,7 +284,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new DropTable(
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 
@@ -278,7 +294,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new DropStream(
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 
@@ -324,6 +341,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               getLocation(context),
               query.getSelect(),
               query.getInto(),
+              query.isShouldCreateInto(),
               query.getFrom(),
               query.getWindowExpression(),
               query.getWhere(),
@@ -372,6 +390,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         select,
         into,
+        true,
         from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),
@@ -686,16 +705,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           getLocation(context),
           topicName,
           fromBeginning,
-          null
+          Optional.empty()
       );
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
       SqlBaseParser.IntegerLiteralContext integerLiteralContext =
           (SqlBaseParser.IntegerLiteralContext) context.number();
+      final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          (LongLiteral) visitIntegerLiteral(integerLiteralContext)
+          Optional.of(literal.getValue())
       );
     } else {
       throw new KsqlException("Interval value should be integer in 'PRINT' command!");
@@ -1036,18 +1056,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitRowConstructor(SqlBaseParser.RowConstructorContext context) {
-    return new Row(getLocation(context), visit(context.expression(), Expression.class));
-  }
-
-
-  @Override
   public Node visitCast(SqlBaseParser.CastContext context) {
     boolean isTryCast = context.TRY_CAST() != null;
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
-        getType(context.type()),
+        getType(context.type()).toString(),
         isTryCast
     );
   }
@@ -1279,7 +1293,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new LongLiteral(getLocation(context), context.getText());
+    return new IntegerLiteral(getLocation(context), context.getText());
   }
 
   @Override
@@ -1480,53 +1494,30 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  private static String getType(SqlBaseParser.TypeContext type) {
+  private static Type getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      String signature = baseTypeToString(type.baseType());
-      if (!type.typeParameter().isEmpty()) {
-        String typeParameterSignature = type
-            .typeParameter()
-            .stream()
-            .map(AstBuilder::typeParameterToString)
-            .collect(Collectors.joining(","));
-        signature += "(" + typeParameterSignature + ")";
-      }
-      return signature;
+      return PrimitiveType.getPrimitiveType(baseTypeToString(type.baseType()));
     }
 
     if (type.ARRAY() != null) {
-      return "ARRAY(" + getType(type.type(0)) + ")";
+      return new Array(getType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-      return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
+      return new io.confluent.ksql.parser.tree.Map(getType(type.type(1)));
     }
 
-    if (type.ROW() != null) {
-      StringBuilder builder = new StringBuilder("(");
+    if (type.STRUCT() != null) {
+      List<Pair<String, Type>> structItems = new ArrayList<>();
       for (int i = 0; i < type.identifier().size(); i++) {
-        if (i != 0) {
-          builder.append(",");
-        }
-        builder.append(getIdentifierText(type.identifier(i)))
-            .append(" ")
-            .append(getType(type.type(i)));
+        String itemName = getIdentifierText(type.identifier(i));
+        Type itemType = getType(type.type(i));
+        structItems.add(new Pair<>(itemName, itemType));
       }
-      builder.append(")");
-      return "ROW" + builder.toString();
+      return new Struct(structItems);
     }
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
-  }
-
-  private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter) {
-    if (typeParameter.INTEGER_VALUE() != null) {
-      return typeParameter.INTEGER_VALUE().toString();
-    }
-    if (typeParameter.type() != null) {
-      return getType(typeParameter.type());
-    }
-    throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
   }
 
   private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
@@ -1600,4 +1591,5 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       super(message, cause);
     }
   }
+
 }

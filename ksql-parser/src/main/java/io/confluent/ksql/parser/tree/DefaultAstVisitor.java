@@ -266,7 +266,7 @@ public abstract class DefaultAstVisitor<R, C>
     return visitQueryBody(node, context);
   }
 
-  protected R visitRow(Row node, C context) {
+  protected R visitStruct(Struct node, C context) {
     return visitNode(node, context);
   }
 
@@ -327,6 +327,10 @@ public abstract class DefaultAstVisitor<R, C>
   }
 
   protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitInsertInto(InsertInto node, C context) {
     return visitStatement(node, context);
   }
 

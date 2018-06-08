@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -26,20 +27,13 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.Assert;
-
-import java.util.HashMap;
-import java.util.Map;
-
 public class MetaStoreFixture {
 
-  public static MetaStore getNewMetaStore() {
+  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
 
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
-    final MetaStore metaStore = new MetaStoreImpl();
+    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
     SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
@@ -66,6 +60,8 @@ public class MetaStoreFixture {
     metaStore.putSource(ksqlStream);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.INT64_SCHEMA)
         .field("COL0", SchemaBuilder.INT64_SCHEMA)
         .field("COL1", SchemaBuilder.STRING_SCHEMA)
         .field("COL2", SchemaBuilder.STRING_SCHEMA)

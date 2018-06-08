@@ -55,6 +55,8 @@ public class Map extends Type {
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj;
+    return
+        obj instanceof Map
+        && Objects.equals(valueType, ((Map)obj).valueType);
   }
 }

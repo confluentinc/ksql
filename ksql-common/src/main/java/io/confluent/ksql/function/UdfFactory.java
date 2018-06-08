@@ -74,6 +74,10 @@ public class UdfFactory {
   }
 
   public KsqlFunction getFunction(final List<Schema.Type> paramTypes) {
-    return functions.get(paramTypes);
+    final KsqlFunction function = functions.get(paramTypes);
+    if (function == null) {
+      throw new KsqlException("Function '" + name + "' does not accept parameters of types:" + paramTypes);
+    }
+    return function;
   }
 }

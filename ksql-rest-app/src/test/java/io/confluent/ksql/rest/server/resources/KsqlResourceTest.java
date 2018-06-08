@@ -17,6 +17,14 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -149,8 +157,7 @@ public class KsqlResourceTest {
 
     public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
 
-    public static KsqlResource get(KsqlEngine ksqlEngine) throws Exception {
-
+    public static KsqlResource get(KsqlEngine ksqlEngine) {
       Properties defaultKsqlConfig = getDefaultKsqlConfig();
 
       // Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
@@ -167,9 +174,14 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
+      return get(ksqlEngine, commandStore, statementExecutor);
+    }
 
+    public static KsqlResource get(KsqlEngine ksqlEngine,
+                                   CommandStore commandStore,
+                                   StatementExecutor statementExecutor) {
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
       return new KsqlResource(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
@@ -265,7 +277,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testInstantRegisterTopic() throws Exception {
+  public void testInstantRegisterTopic() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     final String ksqlTopic = "FOO";
@@ -303,7 +315,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListRegisteredTopics() throws Exception {
+  public void testListRegisteredTopics() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST REGISTERED TOPICS;";
 
@@ -332,7 +344,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testShowQueries() throws Exception {
+  public void testShowQueries() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SHOW QUERIES;";
 
@@ -470,7 +482,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListStreamsStatement() throws Exception {
+  public void testListStreamsStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST STREAMS;";
 
@@ -491,7 +503,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListTablesStatement() throws Exception {
+  public void testListTablesStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST TABLES;";
 
@@ -520,7 +532,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCSASStatementResultType() throws Exception {
+  public void shouldFailForIncorrectCSASStatementResultType() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
@@ -553,7 +565,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCTASStatementResultType() throws Exception {
+  public void shouldFailForIncorrectCTASStatementResultType() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE s1 AS SELECT * FROM test_stream;";
 
@@ -570,7 +582,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectDropStreamStatement() throws Exception {
+  public void shouldFailForIncorrectDropStreamStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "DROP TABLE test_stream;";
     Response response = handleKsqlStatements(
@@ -584,7 +596,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectDropTableStatement() throws Exception {
+  public void shouldFailForIncorrectDropTableStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "DROP STREAM test_table;";
     Response response = handleKsqlStatements(
@@ -596,11 +608,33 @@ public class KsqlResourceTest {
         equalTo("incompatible data source type is table, but statement was drop stream"));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
-  public void shouldCreateTableWithInference() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+  public void shouldCreateTableWithInference() {
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
-                              + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+        + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+    final String ksqlStringWithSchema =
+        "CREATE TABLE ORDERS " +
+            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRING, ORDERUNITS DOUBLE, " +
+            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>) " +
+            "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
+            "AVRO_SCHEMA_ID='1', KEY='orderid');";
+
+    CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
+    CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId, (x) -> {});
+    commandStatusFuture.complete(
+        new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    CommandStore commandStore = EasyMock.mock(CommandStore.class);
+    EasyMock.expect(commandStore.distributeStatement(
+        EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
+        EasyMock.anyObject(Map.class))).andReturn(commandId);
+    StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
+    EasyMock.expect(
+        statementExecutor.registerQueuedStatement(commandId)).andReturn(commandStatusFuture);
+    EasyMock.replay(commandStore, statementExecutor);
+
+    KsqlResource testResource = TestKsqlResourceUtil.get(
+        ksqlEngine, commandStore, statementExecutor);
 
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
@@ -611,10 +645,12 @@ public class KsqlResourceTest {
     assertThat(
         commandStatusEntity.getCommandId().getType().name().toUpperCase(),
         equalTo("TABLE"));
+
+    EasyMock.verify(commandStore, statementExecutor);
   }
 
   @Test
-  public void shouldFailCreateTableWithInferenceWithIncorrectKey() throws Exception {
+  public void shouldFailCreateTableWithInferenceWithIncorrectKey() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
                               + "VALUE_FORMAT = 'avro', KEY = 'orderid1');";
@@ -628,7 +664,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailBareQuery() throws Exception {
+  public void shouldFailBareQuery() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SELECT * FROM test_table;";
     Response response = handleKsqlStatements(
@@ -640,7 +676,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailPrintTopic() throws Exception {
+  public void shouldFailPrintTopic() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "PRINT 'orders-topic';";
     Response response = handleKsqlStatements(
@@ -715,7 +751,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturn5xxOnSystemError() throws Exception {
+  public void shouldReturn5xxOnSystemError() {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     // Set up a mock engine to mirror the returns of the real engine
     KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
@@ -739,7 +775,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturn5xxOnStatementSystemError() throws Exception {
+  public void shouldReturn5xxOnStatementSystemError() {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     // Set up a mock engine to mirror the returns of the real engine
     KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);

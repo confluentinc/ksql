@@ -24,12 +24,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Optional;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.util.HashMap;
-import java.util.Optional;
 
 public class SchemaUtilTest {
 
@@ -360,6 +360,14 @@ public class SchemaUtilTest {
     assertThat(
         SchemaUtil.resolveArithmeticType(Schema.Type.FLOAT32, Schema.Type.FLOAT64).type(),
         equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test
+  public void shouldResolveStringAndStringToString() {
+
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.STRING).type(),
+        equalTo(Schema.Type.STRING));
   }
 
   @Test(expected = KsqlException.class)

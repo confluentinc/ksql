@@ -21,7 +21,7 @@ public class EntityUtilTest {
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getType(), equalTo(schemaName));
+    assertThat(entity.get(0).getSchema().getTypeName(), equalTo(schemaName));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(null));
   }
@@ -43,7 +43,7 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectStringField() {
-    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "VARCHAR(STRING)");
+    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "STRING");
   }
 
   @Test
@@ -62,9 +62,9 @@ public class EntityUtilTest {
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getType(), equalTo("MAP"));
+    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
-    assertThat(entity.get(0).getSchema().getMemberSchema().getType(), equalTo("INTEGER"));
+    assertThat(entity.get(0).getSchema().getMemberSchema().getTypeName(), equalTo("INTEGER"));
   }
 
   @Test
@@ -78,9 +78,9 @@ public class EntityUtilTest {
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getType(), equalTo("ARRAY"));
+    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
-    assertThat(entity.get(0).getSchema().getMemberSchema().getType(), equalTo("BIGINT"));
+    assertThat(entity.get(0).getSchema().getMemberSchema().getTypeName(), equalTo("BIGINT"));
   }
 
   @Test
@@ -100,10 +100,10 @@ public class EntityUtilTest {
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getType(), equalTo("STRUCT"));
+    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
     assertThat(entity.get(0).getSchema().getFields().size(), equalTo(1));
     FieldInfo inner = entity.get(0).getSchema().getFields().get(0);
-    assertThat(inner.getSchema().getType(), equalTo("VARCHAR(STRING)"));
+    assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(null));
   }
 
@@ -120,8 +120,8 @@ public class EntityUtilTest {
 
     assertThat(entity.size(), equalTo(2));
     assertThat(entity.get(0).getName(), equalTo("field1"));
-    assertThat(entity.get(0).getSchema().getType(), equalTo("INTEGER"));
+    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
     assertThat(entity.get(1).getName(), equalTo("field2"));
-    assertThat(entity.get(1).getSchema().getType(), equalTo("BIGINT"));
+    assertThat(entity.get(1).getSchema().getTypeName(), equalTo("BIGINT"));
   }
 }

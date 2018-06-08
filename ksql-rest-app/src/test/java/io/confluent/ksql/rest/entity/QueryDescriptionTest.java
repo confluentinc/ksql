@@ -108,7 +108,7 @@ public class QueryDescriptionTest {
         equalTo(
             Arrays.asList(
                 new FieldInfo("field1", new SchemaInfo("INTEGER", null, null)),
-                new FieldInfo("field2", new SchemaInfo("VARCHAR(STRING)", null, null)))));
+                new FieldInfo("field2", new SchemaInfo("STRING", null, null)))));
   }
 
   @Test

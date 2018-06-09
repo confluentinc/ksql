@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;
@@ -177,61 +178,6 @@ public class SchemaUtil {
       newSchema.field((alias + "." + field.name()), field.schema());
     }
     return newSchema;
-  }
-
-  private static final ImmutableMap<String, String> TYPE_MAP =
-      new ImmutableMap.Builder<String, String>()
-          .put("STRING", "VARCHAR(STRING)")
-          .put("INT64", "BIGINT")
-          .put("INT32", "INTEGER")
-          .put("FLOAT64", "DOUBLE")
-          .put("BOOLEAN", "BOOLEAN")
-          .put("ARRAY", "ARRAY")
-          .put("MAP", "MAP")
-          .put("STRUCT", "STRUCT")
-          .build();
-
-  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = TYPE_MAP.get(type.name());
-    if (sqlType == null) {
-      throw new IllegalArgumentException("Unknown schema type: " + type);
-    }
-
-    return sqlType;
-  }
-
-  public static String getSchemaFieldType(final Field field) {
-    if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
-          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.STRUCT) {
-      StringBuilder stringBuilder = new StringBuilder("STRUCT <");
-      stringBuilder.append(
-          field.schema().fields().stream()
-              .map(schemaField -> getSchemaFieldType(schemaField))
-              .collect(Collectors.joining(", ")));
-      stringBuilder.append(">");
-      return stringBuilder.toString();
-    } else {
-      return TYPE_MAP.get(field.schema().type().name());
-    }
-  }
-
-
-  //TODO: Improve the format with proper indentation.
-  public static String describeSchema(final Schema schema) {
-    if (schema.type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.MAP) {
-      return "MAP[" + describeSchema(schema.keySchema()) + ","
-          + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.STRUCT) {
-      return getStructString(schema);
-    } else {
-      return TYPE_MAP.get(schema.type().name());
-    }
   }
 
   public static String getJavaCastString(final Schema schema) {

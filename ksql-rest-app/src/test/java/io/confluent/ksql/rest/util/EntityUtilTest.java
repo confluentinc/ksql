@@ -6,6 +6,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -23,8 +24,8 @@ public class EntityUtilTest {
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo(schemaName));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
-    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(null));
+    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }
 
   @Test
@@ -64,7 +65,7 @@ public class EntityUtilTest {
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
+    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
     assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("INTEGER"));
   }
 
@@ -80,7 +81,7 @@ public class EntityUtilTest {
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
+    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
     assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("BIGINT"));
   }
 
@@ -105,7 +106,7 @@ public class EntityUtilTest {
     assertThat(entity.get(0).getSchema().getFields().get().size(), equalTo(1));
     FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
-    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(null));
+    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }
 
   @Test

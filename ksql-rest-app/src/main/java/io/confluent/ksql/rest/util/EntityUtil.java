@@ -20,35 +20,37 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class EntityUtil {
   public static List<FieldInfo> buildSourceSchemaEntity(final Schema schema) {
-    return buildSchemaEntity(schema).getFields();
+    return buildSchemaEntity(schema).getFields()
+        .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
   }
 
   private static SchemaInfo buildSchemaEntity(final Schema schema) {
-    if (schema == null) {
-      return null;
+    switch (schema.type()) {
+      case ARRAY:
+      case MAP:
+        return new SchemaInfo(
+            getSchemaTypeString(schema.type()),
+            null,
+            buildSchemaEntity(schema.valueSchema())
+        );
+      case STRUCT:
+        return new SchemaInfo(
+            getSchemaTypeString(schema.type()),
+            schema.fields()
+                .stream()
+                .map(
+                    f -> new FieldInfo(f.name(), buildSchemaEntity(f.schema())))
+                .collect(Collectors.toList()),
+            null
+        );
+      default:
+        return new SchemaInfo(getSchemaTypeString(schema.type()), null, null);
     }
-
-    List<FieldInfo> fields = null;
-    if (schema.type().equals(Schema.Type.STRUCT)) {
-      fields = schema.fields()
-          .stream()
-          .map(
-              f -> new FieldInfo(f.name(), buildSchemaEntity(f.schema())))
-          .collect(Collectors.toList());
-    }
-
-    SchemaInfo valueSchema = null;
-    if (Arrays.asList(Schema.Type.ARRAY, Schema.Type.MAP).contains(schema.type())) {
-      valueSchema = buildSchemaEntity(schema.valueSchema());
-    }
-
-    return new SchemaInfo(getSchemaTypeString(schema.type()), fields, valueSchema);
   }
 
   private static SchemaInfo.Type getSchemaTypeString(final Schema.Type type) {

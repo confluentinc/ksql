@@ -488,19 +488,19 @@ public abstract class Console implements Closeable {
     switch (schema.getType()) {
       case ARRAY:
         return new StringBuilder()
-            .append(SchemaInfo.Type.ARRAY.name() + "<")
-            .append(schemaToTypeString(schema.getMemberSchema()))
+            .append(SchemaInfo.Type.ARRAY.name()).append("<")
+            .append(schemaToTypeString(schema.getMemberSchema().get()))
             .append(">")
             .toString();
       case MAP:
         return new StringBuilder()
             .append(SchemaInfo.Type.MAP.name())
-            .append("<" + SchemaInfo.Type.STRING + ", ")
-            .append(schemaToTypeString(schema.getMemberSchema()))
+            .append("<").append(SchemaInfo.Type.STRING).append(", ")
+            .append(schemaToTypeString(schema.getMemberSchema().get()))
             .append(">")
             .toString();
       case STRUCT:
-        return schema.getFields()
+        return schema.getFields().get()
             .stream()
             .map(f -> f.getName() + " " + schemaToTypeString(f.getSchema()))
             .collect(Collectors.joining(", ", SchemaInfo.Type.STRUCT.name() + "<", ">"));

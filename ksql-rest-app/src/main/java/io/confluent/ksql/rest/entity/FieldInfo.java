@@ -22,13 +22,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 
 public class FieldInfo {
-  String name;
-  SchemaInfo schema;
+  private final String name;
+  private final SchemaInfo schema;
 
   @JsonCreator
   public FieldInfo(
-      @JsonProperty("name") String name,
-      @JsonProperty("schema") SchemaInfo schema) {
+      @JsonProperty("name") final String name,
+      @JsonProperty("schema") final SchemaInfo schema) {
+    Objects.requireNonNull(name);
+    Objects.requireNonNull(schema);
     this.name = name;
     this.schema = schema;
   }
@@ -44,8 +46,7 @@ public class FieldInfo {
 
   @Override
   public boolean equals(Object other) {
-    return
-        other instanceof FieldInfo
+    return other instanceof FieldInfo
         && Objects.equals(name, ((FieldInfo)other).name)
         && Objects.equals(schema, ((FieldInfo)other).schema);
   }

@@ -18,10 +18,10 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SchemaInfo {
   public enum Type {
@@ -41,15 +41,10 @@ public class SchemaInfo {
 
   @JsonCreator
   public SchemaInfo(
-      @JsonProperty("type") String type,
-      @JsonProperty("fields") List<FieldInfo> fields,
-      @JsonProperty("memberSchema") SchemaInfo memberSchema) {
-    this.type = Type.valueOf(type);
-    this.fields = fields == null ? null : ImmutableList.copyOf(fields);
-    this.memberSchema = memberSchema;
-  }
-
-  public SchemaInfo(Type type, List<FieldInfo> fields, SchemaInfo memberSchema) {
+      @JsonProperty("type") final Type type,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
+    Objects.requireNonNull(type);
     this.type = type;
     this.fields = fields;
     this.memberSchema = memberSchema;
@@ -64,18 +59,17 @@ public class SchemaInfo {
     return type.name();
   }
 
-  public List<FieldInfo> getFields() {
-    return fields;
+  public Optional<List<FieldInfo>> getFields() {
+    return Optional.ofNullable(fields);
   }
 
-  public SchemaInfo getMemberSchema() {
-    return memberSchema;
+  public Optional<SchemaInfo> getMemberSchema() {
+    return Optional.ofNullable(memberSchema);
   }
 
   @Override
   public boolean equals(Object other) {
-    return
-        other instanceof SchemaInfo
+    return other instanceof SchemaInfo
         && Objects.equals(type, ((SchemaInfo)other).type)
         && Objects.equals(fields, ((SchemaInfo)other).fields)
         && Objects.equals(memberSchema, ((SchemaInfo)other).memberSchema);

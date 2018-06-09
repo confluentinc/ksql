@@ -1,25 +1,29 @@
 package io.confluent.ksql.rest.entity;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class SchemaDescriptionFormatTest {
-  ObjectMapper objectMapper = new ObjectMapper();
+  private ObjectMapper newObjectMapper() {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new Jdk8Module());
+    return objectMapper;
+  }
 
-  private void shouldSerializeCorrectly(String descriptionString,
-                                        List<FieldInfo> deserialized) throws IOException {
-    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
-    String serialized=  objectMapper.writeValueAsString(deserialized);
+  private void shouldSerializeCorrectly(final String descriptionString,
+                                        final List<FieldInfo> deserialized) throws IOException {
+    final ObjectMapper objectMapper = newObjectMapper();
+    final List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
+    final String serialized=  objectMapper.writeValueAsString(deserialized);
     assertThat(
         objectMapper.readValue(serialized, List.class),
         equalTo(deserializedGeneric));
@@ -27,11 +31,13 @@ public class SchemaDescriptionFormatTest {
 
   @Test
   public void shouldFormatSchemaEntityCorrectlyForStruct() throws IOException {
-    String descriptionString = "[\n" +
+    final String descriptionString = "[\n" +
         "  {\n" +
         "    \"name\": \"l1integer\",\n" +
         "    \"schema\": {\n" +
-        "      \"type\": \"INTEGER\"\n" +
+        "      \"type\": \"INTEGER\",\n" +
+        "      \"fields\": null,\n" +
+        "      \"memberSchema\": null\n" +
         "    }\n" +
         "  },\n" +
         "  {\n" +
@@ -42,21 +48,27 @@ public class SchemaDescriptionFormatTest {
         "        {\n" +
         "          \"name\": \"l2string\",\n" +
         "          \"schema\": {\n" +
-        "            \"type\": \"STRING\"\n" +
+        "            \"type\": \"STRING\",\n" +
+        "            \"fields\": null,\n" +
+        "            \"memberSchema\": null\n" +
         "          }\n" +
         "        },\n" +
         "        {\n" +
         "          \"name\": \"l2integer\",\n" +
         "          \"schema\": {\n" +
-        "            \"type\": \"INTEGER\"\n" +
+        "            \"type\": \"INTEGER\",\n" +
+        "            \"fields\": null,\n" +
+        "            \"memberSchema\": null\n" +
         "          }\n" +
         "        }\n" +
-        "      ]\n" +
+        "      ],\n" +
+        "      \"memberSchema\": null\n" +
         "    }\n" +
         "  }\n" +
         "]";
 
-    List<FieldInfo> deserialized = objectMapper.readValue(
+    final ObjectMapper objectMapper = newObjectMapper();
+    final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 
     // Test deserialization
@@ -67,18 +79,18 @@ public class SchemaDescriptionFormatTest {
         equalTo(
             new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)));
     assertThat(deserialized.get(1).getName(), equalTo("l1struct"));
-    SchemaInfo structSchema = deserialized.get(1).getSchema();
+    final SchemaInfo structSchema = deserialized.get(1).getSchema();
     assertThat(structSchema.getType(), equalTo(SchemaInfo.Type.STRUCT));
-    assertThat(structSchema.getMemberSchema(), nullValue());
-    assertThat(structSchema.getFields().size(), equalTo(2));
-    assertThat(structSchema.getFields().get(0).getName(), equalTo("l2string"));
+    assertThat(structSchema.getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(structSchema.getFields().get().size(), equalTo(2));
+    assertThat(structSchema.getFields().get().get(0).getName(), equalTo("l2string"));
     assertThat(
-        structSchema.getFields().get(0).getSchema(),
+        structSchema.getFields().get().get(0).getSchema(),
         equalTo(
             new SchemaInfo(SchemaInfo.Type.STRING, null, null)));
-    assertThat(structSchema.getFields().get(1).getName(), equalTo("l2integer"));
+    assertThat(structSchema.getFields().get().get(1).getName(), equalTo("l2integer"));
     assertThat(
-        structSchema.getFields().get(1).getSchema(),
+        structSchema.getFields().get().get(1).getSchema(),
         equalTo(
             new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)));
 
@@ -87,19 +99,23 @@ public class SchemaDescriptionFormatTest {
 
   @Test
   public void shouldFormatSchemaEntityCorrectlyForMap() throws IOException {
-    String descriptionString = "[\n" +
+    final String descriptionString = "[\n" +
         "  {\n" +
         "    \"name\": \"mapfield\",\n" +
         "    \"schema\": {\n" +
         "      \"type\": \"MAP\",\n" +
         "      \"memberSchema\": {\n" +
-        "        \"type\": \"STRING\"\n" +
-        "      }\n" +
+        "        \"type\": \"STRING\",\n" +
+        "        \"memberSchema\": null,\n" +
+        "        \"fields\": null\n" +
+        "      },\n" +
+        "      \"fields\": null\n" +
         "    }\n" +
         "  }\n" +
         "]";
 
-    List<FieldInfo> deserialized = objectMapper.readValue(
+    final ObjectMapper objectMapper = newObjectMapper();
+    final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 
     // Test deserialization
@@ -118,19 +134,23 @@ public class SchemaDescriptionFormatTest {
 
   @Test
   public void shouldFormatSchemaEntityCorrectlyForArray() throws IOException {
-    String descriptionString = "[\n" +
+    final String descriptionString = "[\n" +
         "  {\n" +
         "    \"name\": \"arrayfield\",\n" +
         "    \"schema\": {\n" +
         "      \"type\": \"ARRAY\",\n" +
         "      \"memberSchema\": {\n" +
-        "        \"type\": \"STRING\"\n" +
-        "      }\n" +
+        "        \"type\": \"STRING\",\n" +
+        "        \"memberSchema\": null,\n" +
+        "        \"fields\": null\n" +
+        "      },\n" +
+        "      \"fields\": null\n" +
         "    }\n" +
         "  }\n" +
         "]";
 
-    List<FieldInfo> deserialized = objectMapper.readValue(
+    final ObjectMapper objectMapper = newObjectMapper();
+    final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 
     // Test deserialization

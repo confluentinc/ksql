@@ -11,13 +11,14 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class EntityUtilTest {
-  private void shouldBuildCorrectPrimitiveField(Schema primitiveSchema, String schemaName) {
-    Schema schema = SchemaBuilder
+  private void shouldBuildCorrectPrimitiveField(final Schema primitiveSchema,
+                                                final String schemaName) {
+    final Schema schema = SchemaBuilder
         .struct()
         .field("field", primitiveSchema)
         .build();
 
-    List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
@@ -53,39 +54,39 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectMapField() {
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .struct()
         .field("field", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
-    assertThat(entity.get(0).getSchema().getMemberSchema().getTypeName(), equalTo("INTEGER"));
+    assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("INTEGER"));
   }
 
   @Test
   public void shouldBuildCorrectArrayField() {
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .struct()
         .field("field", SchemaBuilder.array(SchemaBuilder.INT64_SCHEMA))
         .build();
 
-    List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(null));
-    assertThat(entity.get(0).getSchema().getMemberSchema().getTypeName(), equalTo("BIGINT"));
+    assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("BIGINT"));
   }
 
   @Test
   public void shouldBuildCorrectStructField() {
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .struct()
         .field(
             "field",
@@ -96,27 +97,27 @@ public class EntityUtilTest {
         .build();
 
 
-    List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
-    assertThat(entity.get(0).getSchema().getFields().size(), equalTo(1));
-    FieldInfo inner = entity.get(0).getSchema().getFields().get(0);
+    assertThat(entity.get(0).getSchema().getFields().get().size(), equalTo(1));
+    FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(null));
   }
 
   @Test
   public void shouldBuildMiltipleFieldsCorrectly() {
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .struct()
         .field("field1", Schema.INT32_SCHEMA)
         .field("field2", Schema.INT64_SCHEMA)
         .build();
 
 
-    List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     assertThat(entity.size(), equalTo(2));
     assertThat(entity.get(0).getName(), equalTo("field1"));

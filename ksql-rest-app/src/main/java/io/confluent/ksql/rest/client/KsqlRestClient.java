@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.Maps;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -358,6 +359,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     final ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+    objectMapper.registerModule(new Jdk8Module());
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }

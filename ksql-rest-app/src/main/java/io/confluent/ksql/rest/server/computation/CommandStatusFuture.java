@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 public class CommandStatusFuture implements Future<CommandStatus> {
-  interface Cleanup {
+  public interface Cleanup {
     void run(CommandId commandId);
   }
 

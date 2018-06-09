@@ -75,6 +75,7 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
     this.ksqlEngine = ksqlEngine;
+
     queryMetadata.getKafkaStreams().start();
   }
 
@@ -162,8 +163,8 @@ class QueryStreamWriter implements StreamingOutput {
     @Override
     public void uncaughtException(Thread thread, Throwable exception) {
       streamsException = exception instanceof Exception
-                         ? (Exception) exception
-                         : new RuntimeException(exception);
+          ? (Exception) exception
+          : new RuntimeException(exception);
     }
   }
 

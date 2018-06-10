@@ -97,13 +97,14 @@ public class ConnectDataTranslator {
     final Map<String, String> caseInsensitiveFieldNameMap
         = getCaseInsensitiveFieldMap(connectStruct.schema());
     for (Field field : schema.fields()) {
+      final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema
-      if (caseInsensitiveFieldNameMap.containsKey(field.name().toUpperCase())) {
-        Object fieldValue = connectStruct.get(
-            caseInsensitiveFieldNameMap.get(field.name().toUpperCase()));
-        Schema fieldSchema = connectSchema.field(
-            caseInsensitiveFieldNameMap.get(field.name().toUpperCase())).schema();
+      if (caseInsensitiveFieldNameMap.containsKey(fieldNameUppercase)) {
+        final Object fieldValue = connectStruct.get(
+            caseInsensitiveFieldNameMap.get(fieldNameUppercase));
+        final Schema fieldSchema = connectSchema.field(
+            caseInsensitiveFieldNameMap.get(fieldNameUppercase)).schema();
         ksqlStruct.put(field.name(), toKsqlValue(field.schema(), fieldSchema, fieldValue));
       }
     }

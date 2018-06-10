@@ -37,7 +37,7 @@ public class ConnectSchemaTranslator {
       case FLOAT64:
       case STRING:
       case BOOLEAN:
-        return SchemaBuilder.type(schema.type()).build();
+        return SchemaBuilder.type(schema.type()).optional().build();
       case ARRAY:
         return toKsqlArraySchema(schema);
       case MAP:
@@ -53,11 +53,14 @@ public class ConnectSchemaTranslator {
   private Schema toKsqlMapSchema(final Schema schema) {
     return SchemaBuilder.map(
         toKsqlFieldSchema(schema.keySchema()),
-        toKsqlFieldSchema(schema.valueSchema()));
+        toKsqlFieldSchema(schema.valueSchema())
+    ).optional().build();
   }
 
   private Schema toKsqlArraySchema(final Schema schema) {
-    return SchemaBuilder.array(schema.valueSchema());
+    return SchemaBuilder.array(
+        toKsqlSchema(schema.valueSchema())
+    ).optional().build();
   }
 
   private Schema toKsqlStructSchema(final Schema schema) {
@@ -68,6 +71,6 @@ public class ConnectSchemaTranslator {
         schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
       }
     }
-    return schemaBuilder.build();
+    return schemaBuilder.optional().build();
   }
 }

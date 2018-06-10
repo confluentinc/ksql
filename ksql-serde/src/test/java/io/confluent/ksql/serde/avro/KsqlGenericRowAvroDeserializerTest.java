@@ -84,8 +84,9 @@ public class KsqlGenericRowAvroDeserializerTest {
   @SuppressWarnings("unchecked")
   public void shouldDeserializeCorrectly() {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
-                                 Collections.singletonMap("key1", 100.0));
+    final List columns = Arrays.asList(
+        1511897796092L, 1L, "item_1", 10.0, Arrays.asList((Double)100.0),
+        Collections.singletonMap("key1", 100.0));
 
     final GenericRow genericRow = new GenericRow(columns);
 
@@ -121,8 +122,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         .build();
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     final List columns = Arrays.asList(
-        1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
-        Collections.singletonMap("key1", 100.0));
+        1511897796092L, 1L, "item_1", 10.0, Collections.emptyList(), Collections.emptyMap());
 
     GenericRow genericRow = new GenericRow(columns);
 
@@ -189,11 +189,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     final GenericRecord avroRecord = new GenericData.Record(rowAvroSchema);
     final List<org.apache.avro.Schema.Field> fields = rowAvroSchema.getFields();
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      if (fields.get(i).schema().getType() == org.apache.avro.Schema.Type.ARRAY) {
-        avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.getColumns().get(i)));
-      } else {
-        avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
-      }
+      avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
     }
 
     return kafkaAvroSerializer.serialize(topicName, avroRecord);

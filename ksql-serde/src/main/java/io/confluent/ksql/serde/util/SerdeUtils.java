@@ -100,9 +100,8 @@ public class SerdeUtils {
       if (field.schema().type().equals(Schema.Type.ARRAY)) {
         optionalBuilder.field(
             field.name(),
-            SchemaBuilder.array(
-                field.schema().valueSchema()
-            ).optional().build()
+            SchemaBuilder.array(field.schema().valueSchema())
+                .optional().build()
         );
       }
       if (field.schema().type().equals(Schema.Type.MAP)) {

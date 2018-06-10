@@ -64,7 +64,7 @@ public class KsqlGenericRowAvroSerializerTest {
         ).serializer();
 
     final List columns = Arrays.asList(
-        1511897796092L, 1L, "item_1", 10.0, new ArrayList(Arrays.asList(100.0)),
+        1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
 
     final GenericRow genericRow = new GenericRow(columns);
@@ -101,7 +101,7 @@ public class KsqlGenericRowAvroSerializerTest {
         ).serializer();
 
     final List columns = Arrays.asList(
-        1511897796092L, 1L, null, 10.0, new ArrayList<>(Arrays.asList(100.0)),
+        1511897796092L, 1L, null, 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
 
     final GenericRow genericRow = new GenericRow(columns);
@@ -154,7 +154,7 @@ public class KsqlGenericRowAvroSerializerTest {
         ).serializer();
 
     final List columns = Arrays.asList(
-        1511897796092L, 1L, "item_1", "10.0", new Double[]{100.0},
+        1511897796092L, 1L, "item_1", "10.0", Arrays.asList((Double)100.0),
         Collections.singletonMap("key1", 100.0));
 
     final GenericRow genericRow = new GenericRow(columns);

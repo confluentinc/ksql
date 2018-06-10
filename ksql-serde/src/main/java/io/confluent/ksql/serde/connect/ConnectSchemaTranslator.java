@@ -59,7 +59,7 @@ public class ConnectSchemaTranslator {
 
   private Schema toKsqlArraySchema(final Schema schema) {
     return SchemaBuilder.array(
-        toKsqlSchema(schema.valueSchema())
+        toKsqlFieldSchema(schema.valueSchema())
     ).optional().build();
   }
 

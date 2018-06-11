@@ -84,7 +84,7 @@ public class UdfFactory {
         .map(SchemaUtil::getSchemaTypeAsSqlType)
         .collect(Collectors.joining(", ", "[", "]"));
 
-    throw new KsqlException("Function '" + name +
-                            "' does not accept parameters of types:" + sqlParamTypes);
+    throw new KsqlException("Function '" + name
+                            + "' does not accept parameters of types:" + sqlParamTypes);
   }
 }

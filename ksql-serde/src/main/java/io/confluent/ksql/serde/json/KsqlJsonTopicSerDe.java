@@ -40,15 +40,16 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
 
   @Override
   public Serde<GenericRow> getGenericRowSerde(Schema schema, KsqlConfig ksqlConfig,
-                                              boolean isInternal,
-                                              SchemaRegistryClient schemaRegistryClient) {
+      boolean isInternal,
+      SchemaRegistryClient schemaRegistryClient) {
     Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(schema);
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(schema,
+        isInternal);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

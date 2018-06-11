@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Arrays;
 import java.util.List;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
@@ -28,7 +28,7 @@ import io.confluent.ksql.util.KsqlException;
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   public TopkDistinctAggFunctionFactory() {
-    super("TOPKDISTINCT", Arrays.asList());
+    super("TOPKDISTINCT", Collections.emptyList());
   }
 
   @Override
@@ -48,7 +48,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
         return new TopkDistinctKudaf<>(functionName, -1, 0, Schema.STRING_SCHEMA, String.class);
       default:
         throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
-                                + " argument type exists!");
+            + " argument type exists!");
     }
 
   }

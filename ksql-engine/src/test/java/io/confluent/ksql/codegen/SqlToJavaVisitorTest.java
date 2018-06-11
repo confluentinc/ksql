@@ -30,11 +30,10 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
-  private InternalFunctionRegistry functionRegistry;
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
   public void init() {
-    functionRegistry = new InternalFunctionRegistry();
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
     new UdfLoader(metaStore,
@@ -43,11 +42,23 @@ public class SqlToJavaVisitorTest {
         value -> false,
         new UdfCompiler(), true).load();
 
+    final Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER",Schema.INT64_SCHEMA)
+        .field("STREET", Schema.STRING_SCHEMA)
+        .field("CITY", Schema.STRING_SCHEMA)
+        .field("STATE", Schema.STRING_SCHEMA)
+        .field("ZIPCODE", Schema.INT64_SCHEMA)
+        .build();
+
     schema = SchemaBuilder.struct()
-            .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
-            .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
-            .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
-            .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA);
+        .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
+        .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
+        .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
+        .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA)
+        .field("TEST1.COL4", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
+        .field("TEST1.COL5", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("TEST1.COL6", addressSchema)
+        .build();
   }
 
   private Analysis analyzeQuery(String queryStr) {
@@ -60,7 +71,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void processBasicJavaMath() {
+  public void shouldProcessBasicJavaMath() {
     String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -71,11 +82,35 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldProcessArrayExpressionCorrectly() {
+    String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
+    Analysis analysis = analyzeQuery(simpleQuery);
+
+    String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression,
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)(Integer.parseInt(\"0\"))))"));
+  }
+
+  @Test
+  public void shouldProcessMapExpressionCorrectly() {
+    String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
+    Analysis analysis = analyzeQuery(simpleQuery);
+
+    String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
+  }
+
+  @Test
   public void shouldCreateCorrectCastJavaExpression() {
+
     String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
-                         + "varchar) FROM "
-                         + "test1 WHERE "
-                         + "col0 > 100;";
+        + "varchar) FROM "
+        + "test1 WHERE "
+        + "col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
     String javaExpression0 = new SqlToJavaVisitor(schema, functionRegistry)
@@ -100,8 +135,8 @@ public class SqlToJavaVisitorTest {
 
     assertThat(javaExpression, is(
         "((String) CONCAT_0.evaluate("
-        + "((String) SUBSTRING_1.evaluate(TEST1_COL1, Integer.parseInt(\"1\"), Integer.parseInt(\"3\"))), "
-        + "((String) CONCAT_2.evaluate(\"-\","
-        + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Integer.parseInt(\"4\"), Integer.parseInt(\"5\")))))))"));
+            + "((String) SUBSTRING_1.evaluate(TEST1_COL1, Integer.parseInt(\"1\"), Integer.parseInt(\"3\"))), "
+            + "((String) CONCAT_2.evaluate(\"-\","
+            + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Integer.parseInt(\"4\"), Integer.parseInt(\"5\")))))))"));
   }
 }

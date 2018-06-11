@@ -31,10 +31,10 @@ public class UserDataProvider extends TestDataProvider {
   private static final String key = "USERID";
 
   private static final Schema schema = SchemaBuilder.struct()
-          .field("REGISTERTIME", SchemaBuilder.INT64_SCHEMA)
-          .field("GENDER", SchemaBuilder.STRING_SCHEMA)
-          .field("REGIONID", SchemaBuilder.STRING_SCHEMA)
-          .field("USERID", SchemaBuilder.STRING_SCHEMA).build();
+      .field("REGISTERTIME", SchemaBuilder.INT64_SCHEMA)
+      .field("GENDER", SchemaBuilder.STRING_SCHEMA)
+      .field("REGIONID", SchemaBuilder.STRING_SCHEMA)
+      .field("USERID", SchemaBuilder.STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new UserDataProvider().buildData();
 
@@ -47,11 +47,11 @@ public class UserDataProvider extends TestDataProvider {
     // create a records with:
     // key == user_id
     // value = (creation_time, gender, region, user_id)
-    dataMap.put("USER_0", new GenericRow(Arrays.asList(0, "FEMALE", "REGION_0", "USER_0")));
-    dataMap.put("USER_1", new GenericRow(Arrays.asList(1, "MALE", "REGION_1", "USER_1")));
-    dataMap.put("USER_2", new GenericRow(Arrays.asList(2, "FEMALE", "REGION_1", "USER_2")));
-    dataMap.put("USER_3", new GenericRow(Arrays.asList(3, "MALE", "REGION_0", "USER_3")));
-    dataMap.put("USER_4", new GenericRow(Arrays.asList(4, "MALE", "REGION_4", "USER_4")));
+    dataMap.put("USER_0", new GenericRow(Arrays.asList(0L, "FEMALE", "REGION_0", "USER_0")));
+    dataMap.put("USER_1", new GenericRow(Arrays.asList(1L, "MALE", "REGION_1", "USER_1")));
+    dataMap.put("USER_2", new GenericRow(Arrays.asList(2L, "FEMALE", "REGION_1", "USER_2")));
+    dataMap.put("USER_3", new GenericRow(Arrays.asList(3L, "MALE", "REGION_0", "USER_3")));
+    dataMap.put("USER_4", new GenericRow(Arrays.asList(4L, "MALE", "REGION_4", "USER_4")));
 
     return dataMap;
   }

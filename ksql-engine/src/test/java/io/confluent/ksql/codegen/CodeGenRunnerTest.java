@@ -110,9 +110,9 @@ public class CodeGenRunnerTest {
             .field("CODEGEN_TEST.COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
             .field("CODEGEN_TEST.COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
             .field("CODEGEN_TEST.COL11",
-                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                   SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.STRING_SCHEMA))
             .field("CODEGEN_TEST.COL12",
-                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                   SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.INT32_SCHEMA))
             .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
         Schema metaStoreSchema = SchemaBuilder.struct()
             .field("COL0", SchemaBuilder.INT64_SCHEMA)
@@ -127,9 +127,9 @@ public class CodeGenRunnerTest {
             .field("COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
             .field("COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
             .field("COL11",
-                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.STRING_SCHEMA))
             .field("COL12",
-                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.INT32_SCHEMA))
             .field("COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
         KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
@@ -432,6 +432,47 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
 
         // Then:
+    }
+
+    @Test
+    public void shouldHandleMaps() throws Exception {
+        final String query =
+            "SELECT col11['address'] as Address FROM codegen_test;";
+
+        final Map<String, String> inputs = new HashMap<>();
+        inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
+
+        final Analysis analysis = analyzeQuery(query);
+        final ExpressionMetadata expressionMetadata
+            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
+
+        assertThat(expressionMetadata.getExpressionEvaluator().evaluate(new Object[]{inputs}),
+            equalTo("{\"city\":\"adelaide\",\"country\":\"oz\"}"));
+    }
+
+    @Test
+    public void shouldHandleUdfsExtractingFromMaps() throws Exception {
+        final String query =
+            "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test;";
+
+        final Map<String, String> inputs = new HashMap<>();
+        inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
+
+        final Analysis analysis = analyzeQuery(query);
+        final ExpressionMetadata metadata
+            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
+
+        final Object [] params = new Object[2];
+        for (int i = 0; i < 2; i++) {
+            if (metadata.getIndexes()[i] == -1) {
+                params[i] = metadata.getUdfs()[i];
+            } else {
+                params[i] = inputs;
+            }
+        }
+        assertThat(metadata.getExpressionEvaluator()
+                .evaluate(params),
+            equalTo("adelaide"));
     }
 
     private List<Object> executeExpression(final String query,

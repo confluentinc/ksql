@@ -77,10 +77,10 @@ public class ExpressionTypeManagerTest {
         Analysis analysis = analyzeQuery(simpleQuery);
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0));
-        Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
+        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
         Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType3.type() == Schema.Type.INT64);
@@ -93,9 +93,9 @@ public class ExpressionTypeManagerTest {
         Analysis analysis = analyzeQuery(simpleQuery);
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
+        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
         Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
@@ -107,11 +107,11 @@ public class ExpressionTypeManagerTest {
         Analysis analysis = analyzeQuery(simpleQuery);
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
+        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
 
         Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType1.type() == Schema.Type.FLOAT64);
@@ -126,11 +126,11 @@ public class ExpressionTypeManagerTest {
         Analysis analysis = analyzeQuery(simpleQuery);
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
+        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
 
         Assert.assertTrue(exprType0.type() == Schema.Type.STRING);
         Assert.assertTrue(exprType1.type() == Schema.Type.STRING);
@@ -147,7 +147,7 @@ public class ExpressionTypeManagerTest {
         final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
             functionRegistry);
 
-        assertThat(expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0)),
+        assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
             equalTo(Schema.STRING_SCHEMA));
 
     }

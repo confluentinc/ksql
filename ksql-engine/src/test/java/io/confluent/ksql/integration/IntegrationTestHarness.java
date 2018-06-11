@@ -307,7 +307,7 @@ public class IntegrationTestHarness {
                                                    DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
-        return new KsqlJsonDeserializer(schema);
+        return new KsqlJsonDeserializer(schema, false);
       case AVRO:
         return new KsqlGenericRowAvroDeserializer(schema,
                                                   this.schemaRegistryClient,

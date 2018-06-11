@@ -105,17 +105,17 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitArray(Array node, Boolean unmangleNames) {
-      return "ARRAY <" + process(node.getItemType(), unmangleNames) + ">";
+      return "ARRAY<" + process(node.getItemType(), unmangleNames) + ">";
     }
 
     @Override
     protected String visitMap(Map node, Boolean unmangleNames) {
-      return "MAP < VARCHAR , " + process(node.getValueType(), unmangleNames) + ">";
+      return "MAP<VARCHAR, " + process(node.getValueType(), unmangleNames) + ">";
     }
 
     @Override
     protected String visitStruct(Struct node, Boolean unmangleNames) {
-      return "STRUCT <" + Joiner.on(", ").join(node.getItems().stream()
+      return "STRUCT<" + Joiner.on(", ").join(node.getItems().stream()
                                                 .map((child) ->
                                                          child.getLeft()
                                                          + process(child.getRight(), unmangleNames))

@@ -15,18 +15,18 @@
         "CREATE TABLE S2 as SELECT id, topkdistinct(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\",\"value\":0}", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 99}", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 7}", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[0,null,null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100,0,null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100,99,0],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100,99,7],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[100,99,7],\"ID\":0}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,0]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,99,0]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,99,7]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,99,7]}", "timestamp": 0}
       ]
     },
     {
@@ -43,11 +43,13 @@
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[2147483648,null,null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[2147483648,100,null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[2147483648,100,99],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[2147483648,100,99],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[2147483648,100,99],\"ID\":0}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,99]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,99]}",
+          "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,99]}",
+          "timestamp": 0}
       ]
     },
     {
@@ -64,11 +66,13 @@
         {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"d\"}", "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"a\",null,null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"b\",\"a\",null],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"c\",\"b\",\"a\"],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"c\",\"b\",\"a\"],\"ID\":0}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"d\",\"c\",\"b\"],\"ID\":0}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"a\"]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"b\",\"a\"]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"c\",\"b\",\"a\"]}",
+          "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"c\",\"b\",\"a\"]}", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"d\",\"c\",\"b\"]}",
+          "timestamp": 0}
       ]
     }
 

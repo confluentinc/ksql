@@ -122,9 +122,8 @@ public class CliTest extends TestRunner {
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-
     restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
-                                                      EasyMock.mock(VersionCheckerAgent.class)
+        EasyMock.mock(VersionCheckerAgent.class)
     );
 
     restServer.start();
@@ -162,14 +161,14 @@ public class CliTest extends TestRunner {
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
     testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
-                                                "1", "0", "0")));
+        "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-  
+
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
@@ -260,7 +259,6 @@ public class CliTest extends TestRunner {
   public void testPrint() throws InterruptedException {
 
     Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-
     wait.start();
     Thread.sleep(1000);
     wait.interrupt();
@@ -316,44 +314,52 @@ public class CliTest extends TestRunner {
   @Test
   public void testSelectProject() {
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
-        Double[]{100.0,
-        110.99,
-        90.0 })));
-    expectedResults.put("2", new GenericRow(Arrays.asList("ITEM_2", 20.0, new
-        Double[]{10.0,
-        10.99,
-        9.0 })));
+    expectedResults.put("1", new GenericRow(
+        Arrays.asList(
+            "ITEM_1",
+            10.0,
+            new Double[]{100.0, 110.99, 90.0 })));
+    expectedResults.put("2", new GenericRow(
+        Arrays.asList(
+            "ITEM_2",
+            20.0,
+            new Double[]{10.0, 10.99, 9.0 })));
 
-    expectedResults.put("3", new GenericRow(Arrays.asList("ITEM_3", 30.0, new
-        Double[]{10.0,
-        10.99,
-        91.0 })));
+    expectedResults.put("3", new GenericRow(
+        Arrays.asList(
+            "ITEM_3",
+            30.0,
+            new Double[]{10.0, 10.99, 91.0 })));
 
-    expectedResults.put("4", new GenericRow(Arrays.asList("ITEM_4", 40.0, new
-        Double[]{10.0,
-        140.99,
-        94.0 })));
+    expectedResults.put("4", new GenericRow(
+        Arrays.asList(
+            "ITEM_4",
+            40.0,
+            new Double[]{10.0, 140.99, 94.0 })));
 
-    expectedResults.put("5", new GenericRow(Arrays.asList("ITEM_5", 50.0, new
-        Double[]{160.0,
-        160.99,
-        98.0 })));
+    expectedResults.put("5", new GenericRow(
+        Arrays.asList(
+            "ITEM_5",
+            50.0,
+            new Double[]{160.0, 160.99, 98.0 })));
 
-    expectedResults.put("6", new GenericRow(Arrays.asList("ITEM_6", 60.0, new
-        Double[]{1000.0,
-        1100.99,
-        900.0 })));
+    expectedResults.put("6", new GenericRow(
+        Arrays.asList(
+            "ITEM_6",
+            60.0,
+            new Double[]{1000.0, 1100.99, 900.0 })));
 
-    expectedResults.put("7", new GenericRow(Arrays.asList("ITEM_7", 70.0, new
-        Double[]{1100.0,
-        1110.99,
-        190.0 })));
+    expectedResults.put("7", new GenericRow(
+        Arrays.asList(
+            "ITEM_7",
+            70.0,
+            new Double[]{1100.0, 1110.99, 190.0 })));
 
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 80.0, new
-        Double[]{1100.0,
-        1110.99,
-        970.0 })));
+    expectedResults.put("8", new GenericRow(
+        Arrays.asList(
+            "ITEM_8",
+            80.0,
+            new Double[]{1100.0, 1110.99, 970.0 })));
 
     Schema resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
@@ -375,19 +381,21 @@ public class CliTest extends TestRunner {
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
-    expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0,
-        "2018-01-08",
-        new Double[]{1100.0,
-            1110.99,
-            970.0 },
-        mapField)));
+    expectedResults.put("8", new GenericRow(
+        Arrays.asList(
+            8,
+            "ORDER_6",
+            "ITEM_8",
+            80.0,
+            "2018-01-08",
+            new Double[]{1100.0, 1110.99, 970.0 },
+            mapField)));
 
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'",
         orderDataProvider.schema(),
         expectedResults
-        );
+    );
   }
 
   @Test

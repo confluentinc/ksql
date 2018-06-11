@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -110,8 +111,8 @@ public class KsqlGenericRowAvroDeserializerTest {
     assertThat("Column number does not match.", genericRow.getColumns().size(), equalTo(6));
     assertThat("Invalid column value.", genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat("Invalid column value.", genericRow.getColumns().get(1), equalTo(1L));
-    assertThat("Invalid column value.", ((Double[])genericRow.getColumns().get(4))[0], equalTo
-        (100.0));
+    assertThat("Invalid column value.", ((List<Double>)genericRow.getColumns().get(4)), equalTo
+        (ImmutableList.of(100.0)));
     assertThat("Invalid column value.", ((Map<String, Double>)genericRow.getColumns().get(5))
                    .get("key1"),
                equalTo
@@ -122,7 +123,7 @@ public class KsqlGenericRowAvroDeserializerTest {
   @SuppressWarnings("unchecked")
   public void shouldDeserializeCorrectly() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -142,7 +143,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         ( "item_1"));
     assertThat("Incorrect deserializarion", row.getColumns().get(3), equalTo
         ( 10.0));
-    assertThat("Incorrect deserializarion", ((Double[])row.getColumns().get(4)).length, equalTo
+    assertThat("Incorrect deserializarion", ((List<Double>)row.getColumns().get(4)).size(), equalTo
         (1));
     assertThat("Incorrect deserializarion", ((Map)row.getColumns().get(5)).size(), equalTo
         (1));
@@ -160,7 +161,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
         .build();
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -196,7 +197,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     Schema.Parser parser = new Schema.Parser();
     Schema avroSchema1 = parser.parse(schemaStr1);
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
     GenericRow genericRow = new GenericRow(columns);
     byte[] serializedRow = getSerializedRow("t1", schemaRegistryClient, avroSchema1, genericRow);

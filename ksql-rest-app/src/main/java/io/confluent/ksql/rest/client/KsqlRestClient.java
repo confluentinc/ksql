@@ -120,7 +120,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return makeRequest("/info", ServerInfo.class);
   }
 
-  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+  public <T> RestResponse<T> makeRequest(String path, Class<T> type) {
     Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {

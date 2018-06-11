@@ -143,7 +143,7 @@ public class KsqlResourceTest {
     @Override
     public Future<RecordMetadata> send(ProducerRecord record) {
       // Fake result: only for testing purpose
-      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0, 0, 0, 0, 0, 0));
+      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0));
     }
   }
 

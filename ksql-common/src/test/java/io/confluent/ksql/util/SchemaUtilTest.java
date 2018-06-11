@@ -449,6 +449,13 @@ public class SchemaUtilTest {
         equalTo(Schema.Type.FLOAT64));
   }
 
+  @Test
+  public void shouldResolveStringAndStringToString() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.STRING).type(),
+        equalTo(Schema.Type.STRING));
+  }
+
   @Test(expected = KsqlException.class)
   public void shouldThrowExceptionWhenResolvingStringWithAnythingElse() {
     SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.FLOAT64);

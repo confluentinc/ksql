@@ -35,7 +35,6 @@ public class SchemaUtilTest {
 
   Schema schema;
 
-
   @Before
   public void init() {
     schema = SchemaBuilder.struct()
@@ -135,7 +134,6 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.getSqlTypeName(structSchema),
         equalTo("STRUCT <COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR,DOUBLE>>"));
   }
-
 
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
@@ -275,9 +273,8 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldFailForIncorrectSchema() {
-
     try {
-      Schema schema8 = SchemaUtil.getTypeSchema("BYTES");
+      SchemaUtil.getTypeSchema("BYTES");
       Assert.fail();
     } catch (Exception e) {
       assertThat(e.getMessage(), equalTo("Unsupported type: BYTES"));
@@ -290,11 +287,9 @@ public class SchemaUtilTest {
     int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());
     int index3 = SchemaUtil.getFieldIndexByName(schema, "mapcol".toUpperCase());
 
-
     assertThat("Incorrect index.", index1, equalTo(1));
     assertThat("Incorrect index.", index2, equalTo(2));
     assertThat("Incorrect index.", index3, equalTo(5));
-
   }
 
   @Test
@@ -447,6 +442,13 @@ public class SchemaUtilTest {
     assertThat(
         SchemaUtil.resolveArithmeticType(Schema.Type.FLOAT32, Schema.Type.FLOAT64).type(),
         equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test
+  public void shouldResolveStringAndStringToString() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.STRING).type(),
+        equalTo(Schema.Type.STRING));
   }
 
   @Test(expected = KsqlException.class)

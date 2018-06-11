@@ -26,23 +26,36 @@ public class Window
 
 
   private final WindowExpression windowExpression;
+  private final String windowName;
 
-  public Window(String windowName, WindowExpression windowExpression) {
+  public Window(final String windowName, final WindowExpression windowExpression) {
     this(Optional.empty(), windowName, windowExpression);
   }
 
-  public Window(NodeLocation location, String windowName, WindowExpression windowExpression) {
+  public Window(
+      final NodeLocation location,
+      final String windowName,
+      final WindowExpression windowExpression
+  ) {
     this(Optional.of(location), windowName, windowExpression);
   }
 
-  private Window(Optional<NodeLocation> location, String windowName,
-                 WindowExpression windowExpression) {
+  private Window(
+      final Optional<NodeLocation> location,
+      final String windowName,
+      final WindowExpression windowExpression
+  ) {
     super(location);
     this.windowExpression = requireNonNull(windowExpression, "windowExpression is null");
+    this.windowName = windowName;
   }
 
   public WindowExpression getWindowExpression() {
     return windowExpression;
+  }
+
+  public String getWindowName() {
+    return windowName;
   }
 
   @Override

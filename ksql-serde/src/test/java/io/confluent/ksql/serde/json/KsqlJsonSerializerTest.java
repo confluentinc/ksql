@@ -52,15 +52,15 @@ public class KsqlJsonSerializerTest {
   public void before() {
 
     orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
         .field("arraycol".toUpperCase(),
-            SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+            SchemaBuilder.array(org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("mapcol".toUpperCase(), SchemaBuilder
-            .map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA,
-                org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+            .map(org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA,
+                org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
   }
 
@@ -92,32 +92,32 @@ public class KsqlJsonSerializerTest {
 
   private Schema getSchemaWithStruct() {
     addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.INT64_SCHEMA)
-        .field("STREET", Schema.STRING_SCHEMA)
-        .field("CITY", Schema.STRING_SCHEMA)
-        .field("STATE", Schema.STRING_SCHEMA)
-        .field("ZIPCODE", Schema.INT64_SCHEMA)
-        .build();
+        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
 
     categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.INT64_SCHEMA)
-        .field("NAME", Schema.STRING_SCHEMA)
-        .build();
+        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional().build();
 
     itemSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.INT64_SCHEMA)
-        .field("NAME", Schema.STRING_SCHEMA)
-        .field("CATEGORIES", SchemaBuilder.array(categorySchema))
-        .build();
+        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CATEGORIES", SchemaBuilder.array(categorySchema).optional().build())
+        .optional().build();
 
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     Schema schema = schemaBuilder
-        .field("ordertime", Schema.INT64_SCHEMA)
-        .field("orderid", Schema.INT64_SCHEMA)
+        .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid", itemSchema)
-        .field("orderunits", Schema.INT32_SCHEMA)
-        .field("arraycol", schemaBuilder.array(Schema.FLOAT64_SCHEMA))
-        .field("mapcol", schemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("orderunits", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("arraycol", schemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("mapcol", schemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("address", addressSchema).build();
 
     return schema;

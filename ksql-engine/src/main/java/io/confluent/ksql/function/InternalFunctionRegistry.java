@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
+
   private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
   private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 
@@ -57,9 +58,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     init();
   }
 
-  private InternalFunctionRegistry(final Map<String, UdfFactory> ksqlFunctionMap,
-                                   final Map<String, AggregateFunctionFactory>
-                                       aggregateFunctionMap) {
+  private InternalFunctionRegistry(
+      final Map<String, UdfFactory> ksqlFunctionMap,
+      final Map<String, AggregateFunctionFactory> aggregateFunctionMap
+  ) {
     this.ksqlFunctionMap = ksqlFunctionMap;
     this.aggregateFunctionMap = aggregateFunctionMap;
   }
@@ -98,8 +100,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema argumentType) {
+  public KsqlAggregateFunction getAggregate(
+      final String functionName,
+      final Schema argumentType
+  ) {
     AggregateFunctionFactory aggregateFunctionFactory
         = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
@@ -129,77 +133,84 @@ public class InternalFunctionRegistry implements FunctionRegistry {
      * String functions                     *
      ****************************************/
 
-    KsqlFunction lcase = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
-                                        "LCASE", LCaseKudf.class);
+    KsqlFunction lcase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
+        "LCASE", LCaseKudf.class);
     addFunction(lcase);
 
-    KsqlFunction ucase = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
-                                        "UCASE", UCaseKudf.class);
+    KsqlFunction ucase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
+        "UCASE", UCaseKudf.class);
     addFunction(ucase);
 
-    KsqlFunction substring = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
-                                                                                  .STRING_SCHEMA,
-                                                                              Schema
-                                                                                  .INT32_SCHEMA,
-                                                                              Schema
-                                                                                  .INT32_SCHEMA),
-                                            "SUBSTRING", SubstringKudf
-                                                .class);
+    KsqlFunction substring = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Schema.OPTIONAL_INT32_SCHEMA,
+        Schema.OPTIONAL_INT32_SCHEMA),
+        "SUBSTRING", SubstringKudf
+        .class);
     addFunction(substring);
-    addFunction(new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
-            .STRING_SCHEMA,
-        Schema
-            .INT32_SCHEMA),
+    addFunction(new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Schema.OPTIONAL_INT32_SCHEMA),
         "SUBSTRING", SubstringKudf
         .class));
 
-    KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
-                                                                           Schema.STRING_SCHEMA),
-                                         "CONCAT", ConcatKudf.class);
+    KsqlFunction concat = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA),
+        "CONCAT", ConcatKudf.class);
     addFunction(concat);
 
-    KsqlFunction trim = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
-                                       "TRIM", TrimKudf.class);
+    KsqlFunction trim = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
+        "TRIM", TrimKudf.class);
     addFunction(trim);
 
-    KsqlFunction ifNull = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
-                                                                           Schema.STRING_SCHEMA),
-                                         "IFNULL", IfNullKudf.class);
+    KsqlFunction ifNull = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA),
+        "IFNULL", IfNullKudf.class);
     addFunction(ifNull);
 
-    KsqlFunction len = new KsqlFunction(Schema.INT32_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
-                                      "LEN", LenKudf.class);
+    KsqlFunction len = new KsqlFunction(
+        Schema.OPTIONAL_INT32_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
+        "LEN",
+        LenKudf.class);
     addFunction(len);
 
   }
 
   private void addMathFunctions() {
-    KsqlFunction abs = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                        "ABS", AbsKudf.class);
+    KsqlFunction abs = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "ABS", AbsKudf.class);
     addFunction(abs);
-    addFunction(new KsqlFunction(Schema.FLOAT64_SCHEMA,
-                                 Collections.singletonList(Schema.INT64_SCHEMA),
-                                 "ABS",
-                                 AbsKudf.class));
+    addFunction(new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "ABS",
+        AbsKudf.class));
 
-    KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA,
-                                         Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                         "CEIL", CeilKudf.class);
+    KsqlFunction ceil = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "CEIL", CeilKudf.class);
     addFunction(ceil);
 
-    KsqlFunction floor = new KsqlFunction(Schema.FLOAT64_SCHEMA,
-                                          Arrays.asList(Schema.FLOAT64_SCHEMA),
-                                          "FLOOR", FloorKudf.class);
+    KsqlFunction floor = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "FLOOR", FloorKudf.class);
     addFunction(floor);
 
     KsqlFunction
         round =
-        new KsqlFunction(Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
-                         "ROUND", RoundKudf.class);
+        new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
+            Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+            "ROUND", RoundKudf.class);
     addFunction(round);
 
-    KsqlFunction random = new KsqlFunction(Schema.FLOAT64_SCHEMA, new ArrayList<>(),
-                                           "RANDOM", RandomKudf.class);
+    KsqlFunction random = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA, new ArrayList<>(),
+        "RANDOM", RandomKudf.class);
     addFunction(random);
 
 
@@ -208,64 +219,71 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   private void addDateTimeFunctions() {
 
-    KsqlFunction timestampToString = new KsqlFunction(Schema.STRING_SCHEMA,
-                                                      Arrays.asList(Schema.INT64_SCHEMA,
-                                                                    Schema.STRING_SCHEMA),
-                                        "TIMESTAMPTOSTRING", TimestampToString.class);
+    KsqlFunction timestampToString = new KsqlFunction(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+        "TIMESTAMPTOSTRING",
+        TimestampToString.class);
     addFunction(timestampToString);
 
-    KsqlFunction stringToTimestamp = new KsqlFunction(Schema.INT64_SCHEMA,
-                                                      Arrays.asList(Schema.STRING_SCHEMA,
-                                                                    Schema.STRING_SCHEMA),
-                                                      "STRINGTOTIMESTAMP",
-                                                      StringToTimestamp.class);
+    KsqlFunction stringToTimestamp = new KsqlFunction(
+        Schema.OPTIONAL_INT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+        "STRINGTOTIMESTAMP",
+        StringToTimestamp.class);
     addFunction(stringToTimestamp);
 
   }
 
   private void addGeoFunctions() {
-    KsqlFunction geoDistance = new KsqlFunction(Schema.FLOAT64_SCHEMA,
-                                                Arrays.asList(Schema.FLOAT64_SCHEMA,
-                                                              Schema.FLOAT64_SCHEMA,
-                                                              Schema.FLOAT64_SCHEMA,
-                                                              Schema.FLOAT64_SCHEMA,
-                                                              Schema.OPTIONAL_STRING_SCHEMA),
-                                                "GEO_DISTANCE", GeoDistanceKudf.class);
+    KsqlFunction geoDistance = new KsqlFunction(
+        Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA),
+        "GEO_DISTANCE", GeoDistanceKudf.class);
     addFunction(geoDistance);
 
   }
 
   private void addJsonFunctions() {
 
-
     KsqlFunction getStringFromJson = new KsqlFunction(
-        Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         "EXTRACTJSONFIELD", JsonExtractStringKudf.class);
     addFunction(getStringFromJson);
 
     KsqlFunction jsonArrayContainsString = new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
-            "ARRAYCONTAINS", ArrayContainsKudf.class);
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+        "ARRAYCONTAINS", ArrayContainsKudf.class);
     addFunction(jsonArrayContainsString);
 
     addFunction(new KsqlFunction(
-        Schema.BOOLEAN_SCHEMA,
-        Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(), Schema.STRING_SCHEMA),
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+            Schema.OPTIONAL_STRING_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-        Schema.BOOLEAN_SCHEMA,
-        Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(), Schema.INT32_SCHEMA),
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
+            Schema.OPTIONAL_INT32_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-        Schema.BOOLEAN_SCHEMA,
-        Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(), Schema.INT64_SCHEMA),
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
+            Schema.OPTIONAL_INT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-        Schema.BOOLEAN_SCHEMA,
-        Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
+            Schema.OPTIONAL_FLOAT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
   }
 

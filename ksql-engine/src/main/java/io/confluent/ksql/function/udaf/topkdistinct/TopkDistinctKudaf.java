@@ -47,7 +47,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     super(
         functionName, argIndexInValue,
         ArrayList::new,
-        SchemaBuilder.array(outputSchema).build(),
+        SchemaBuilder.array(outputSchema).optional().build(),
         Collections.singletonList(outputSchema)
     );
 

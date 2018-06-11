@@ -1564,7 +1564,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
       }
     }
 

@@ -60,8 +60,8 @@ public class ProjectNodeTest {
     final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
         source,
         SchemaBuilder.struct()
-            .field("field1", Schema.STRING_SCHEMA)
-            .field("field2", Schema.STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
             .build(),
         Collections.singletonList(new BooleanLiteral("true")));
 
@@ -88,8 +88,8 @@ public class ProjectNodeTest {
     final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
         source,
         SchemaBuilder.struct()
-            .field("field1", Schema.STRING_SCHEMA)
-            .field("field2", Schema.STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
             .build(),
         Arrays.asList(trueExpression, falseExpression));
 
@@ -103,7 +103,7 @@ public class ProjectNodeTest {
   }
 
   private void mockSourceNode() {
-    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.STRING_SCHEMA));
+    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
     EasyMock.expect(source.buildStream(anyObject(StreamsBuilder.class),
         anyObject(KsqlConfig.class),
         anyObject(KafkaTopicClient.class),

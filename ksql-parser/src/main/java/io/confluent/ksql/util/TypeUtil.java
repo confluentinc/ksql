@@ -71,22 +71,22 @@ public class TypeUtil {
   public static Schema getTypeSchema(final Type ksqlType) {
     switch (ksqlType.getKsqlType()) {
       case BOOLEAN:
-        return Schema.BOOLEAN_SCHEMA;
+        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case INTEGER:
-        return Schema.INT32_SCHEMA;
+        return Schema.OPTIONAL_INT32_SCHEMA;
       case BIGINT:
-        return Schema.INT64_SCHEMA;
+        return Schema.OPTIONAL_INT64_SCHEMA;
       case DOUBLE:
-        return Schema.FLOAT64_SCHEMA;
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
       case STRING:
-        return Schema.STRING_SCHEMA;
+        return Schema.OPTIONAL_STRING_SCHEMA;
       case ARRAY:
         return SchemaBuilder.array(
           getTypeSchema(((Array) ksqlType).getItemType())
-          );
+          ).optional().build();
       case MAP:
-        return SchemaBuilder.map(Schema.STRING_SCHEMA,
-                                 getTypeSchema(((Map) ksqlType).getValueType()));
+        return SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA,
+                                 getTypeSchema(((Map) ksqlType).getValueType())).optional().build();
       case STRUCT:
         return buildStructSchema((Struct) ksqlType);
 
@@ -100,7 +100,7 @@ public class TypeUtil {
     for (Pair<String, Type> field: struct.getItems()) {
       strcutSchemaBuilder.field(field.getLeft(), getTypeSchema(field.getRight()));
     }
-    return strcutSchemaBuilder.build();
+    return strcutSchemaBuilder.optional().build();
   }
 
 

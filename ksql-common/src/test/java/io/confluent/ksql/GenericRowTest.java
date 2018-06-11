@@ -30,12 +30,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class GenericRowTest {
 
   private final Schema addressSchema = SchemaBuilder.struct()
-      .field("NUMBER",Schema.INT64_SCHEMA)
-      .field("STREET", Schema.STRING_SCHEMA)
-      .field("CITY", Schema.STRING_SCHEMA)
-      .field("STATE", Schema.STRING_SCHEMA)
-      .field("ZIPCODE", Schema.INT64_SCHEMA)
-      .build();
+      .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
+      .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+      .optional().build();
 
   @SuppressWarnings("unchecked")
   @Test

@@ -43,6 +43,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -551,5 +552,30 @@ public class PhysicalPlanBuilderTest {
     String serviceId = physicalPlanBuilder.getServiceId();
     assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
+  }
+
+  @Test
+  public void shouldHaveOptionalFieldsInResultSchema() {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
+        + "col2 FROM "
+        + "test1;";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(configMap),
+        kafkaTopicClient,
+        new MetaStoreImpl(new InternalFunctionRegistry()));
+
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+        csasQuery + "\n " +
+        insertIntoQuery, new
+        HashMap<>());
+    Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
+    resultSchema.fields().stream().forEach(
+        field -> Assert.assertTrue(field.schema().isOptional())
+    );
   }
 }

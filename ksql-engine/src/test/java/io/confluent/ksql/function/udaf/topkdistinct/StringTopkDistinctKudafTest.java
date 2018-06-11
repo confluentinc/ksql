@@ -34,7 +34,7 @@ public class StringTopkDistinctKudafTest {
   private final List<String> valuesArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
       "25", "60", "80");;
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
-      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.STRING_SCHEMA);
+      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_STRING_SCHEMA);
 
   @Test
   public void shouldAggregateTopK() {

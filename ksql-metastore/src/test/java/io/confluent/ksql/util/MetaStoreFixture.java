@@ -36,14 +36,14 @@ public class MetaStoreFixture {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
     SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
-        .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
-        .field("ROWKEY", SchemaBuilder.INT64_SCHEMA)
-        .field("COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
-        .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("COL5", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build());
 
     KsqlTopic
         ksqlTopic1 =
@@ -60,13 +60,13 @@ public class MetaStoreFixture {
     metaStore.putSource(ksqlStream);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
-        .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
-        .field("ROWKEY", SchemaBuilder.INT64_SCHEMA)
-        .field("COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
 
     KsqlTopic
         ksqlTopic2 =
@@ -85,10 +85,10 @@ public class MetaStoreFixture {
     metaStore.putSource(ksqlTable);
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
-        .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
-        .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
-        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
+        .field("ORDERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ORDERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
 
     KsqlTopic
         ksqlTopicOrders =

@@ -30,7 +30,7 @@ public class SerDeUtil {
     org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
 
     SchemaBuilder inferredSchema = SchemaBuilder.struct().name(avroSchema.getName());
-    for (org.apache.avro.Schema.Field avroField: avroSchema.getFields()) {
+    for (org.apache.avro.Schema.Field avroField : avroSchema.getFields()) {
       inferredSchema.field(avroField.name(), getKsqlSchemaForAvroSchema(avroField.schema()));
     }
 
@@ -40,27 +40,28 @@ public class SerDeUtil {
   private static Schema getKsqlSchemaForAvroSchema(org.apache.avro.Schema avroSchema) {
     switch (avroSchema.getType()) {
       case INT:
-        return Schema.INT32_SCHEMA;
+        return Schema.OPTIONAL_INT32_SCHEMA;
       case LONG:
-        return Schema.INT64_SCHEMA;
+        return Schema.OPTIONAL_INT64_SCHEMA;
       case DOUBLE:
       case FLOAT:
-        return Schema.FLOAT64_SCHEMA;
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
       case BOOLEAN:
-        return Schema.BOOLEAN_SCHEMA;
+        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case STRING:
-        return Schema.STRING_SCHEMA;
+        return Schema.OPTIONAL_STRING_SCHEMA;
       case ARRAY:
-        return SchemaBuilder.array(getKsqlSchemaForAvroSchema(avroSchema.getElementType()));
+        return SchemaBuilder.array(getKsqlSchemaForAvroSchema(avroSchema.getElementType()))
+            .optional().build();
       case MAP:
-        return SchemaBuilder.map(Schema.STRING_SCHEMA,
-                                 getKsqlSchemaForAvroSchema(avroSchema.getValueType()));
+        return SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA,
+            getKsqlSchemaForAvroSchema(avroSchema.getValueType())).optional().build();
       case UNION:
         return handleUnion(avroSchema);
-        
+
       default:
         throw new KsqlException(String.format("KSQL doesn't currently support Avro type: %s",
-                                              avroSchema.getFullName()));
+            avroSchema.getFullName()));
     }
   }
 
@@ -76,7 +77,7 @@ public class SerDeUtil {
       }
     }
     throw new KsqlException("Union type cannot have more than two types and "
-                                          + "one of them should be null.");
+        + "one of them should be null.");
   }
 
 }

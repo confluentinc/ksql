@@ -56,7 +56,7 @@ public class IntegerMaxKudafTest {
 
   private IntegerMaxKudaf getIntegerMaxKudaf() {
     KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     assertThat(aggregateFunction, instanceOf(IntegerMaxKudaf.class));
     return  (IntegerMaxKudaf) aggregateFunction;
   }

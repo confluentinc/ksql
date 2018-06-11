@@ -41,7 +41,7 @@ public class StringTopkKudafTest {
   @Before
   public void setup() {
     topKFactory = new TopKAggregateFunctionFactory(3);
-    argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
+    argumentType = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
   }
 
   @Test

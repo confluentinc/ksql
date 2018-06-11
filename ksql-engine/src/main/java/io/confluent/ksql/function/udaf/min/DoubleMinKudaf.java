@@ -28,8 +28,8 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
   DoubleMinKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+    super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
     );
   }
 

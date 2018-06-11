@@ -388,7 +388,7 @@ public class SchemaUtilTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnknownSchemaType() {
-    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRUCT);
+    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.BYTES);
   }
 
   @Test

@@ -45,7 +45,7 @@ public class SchemaUtil {
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
 
-  private static Map<Pair<Schema.Type, Schema.Type>, Schema> numericTypePairMapping =
+  private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
       ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
           .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
           .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
@@ -58,6 +58,7 @@ public class SchemaUtil {
           .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
           .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
           .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
           .build();
 
   public static Class getJavaType(final Schema schema) {
@@ -438,7 +439,7 @@ public class SchemaUtil {
   public static Schema resolveArithmeticType(final Schema.Type left,
       final Schema.Type right) {
 
-    final Schema schema = numericTypePairMapping.get(new Pair<>(left, right));
+    final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
     if (schema == null) {
       throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
     }

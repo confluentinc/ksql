@@ -55,6 +55,8 @@ public class Array extends Type {
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj;
+    return
+        obj instanceof Array
+        && Objects.equals(itemType, ((Array)obj).itemType);
   }
 }

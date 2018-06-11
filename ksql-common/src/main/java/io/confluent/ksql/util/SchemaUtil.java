@@ -191,6 +191,15 @@ public class SchemaUtil {
           .put("MAP", "MAP")
           .build();
 
+  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
+    final String sqlType = TYPE_MAP.get(type.name());
+    if (sqlType == null) {
+      throw new IllegalArgumentException("Unknown schema type: " + type);
+    }
+
+    return sqlType;
+  }
+
   public static String getSchemaFieldType(final Field field) {
     if (field.schema().type() == Schema.Type.ARRAY) {
       return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";

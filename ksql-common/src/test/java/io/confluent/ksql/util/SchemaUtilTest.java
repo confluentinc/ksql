@@ -388,7 +388,7 @@ public class SchemaUtilTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnknownSchemaType() {
-    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRUCT);
+    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.BYTES);
   }
 
   @Test
@@ -462,6 +462,13 @@ public class SchemaUtilTest {
     assertThat(
         SchemaUtil.resolveArithmeticType(Schema.Type.FLOAT32, Schema.Type.FLOAT64).type(),
         equalTo(Schema.Type.FLOAT64));
+  }
+
+  @Test
+  public void shouldResolveStringAndStringToString() {
+    assertThat(
+        SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.STRING).type(),
+        equalTo(Schema.Type.STRING));
   }
 
   @Test(expected = KsqlException.class)

@@ -453,8 +453,7 @@ public class SchemaUtilTest {
   public void shouldThrowExceptionWhenResolvingStringWithAnythingElse() {
     SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.FLOAT64);
   }
-<<<<<<< HEAD
-
+  
   @Test
   public void shouldGetBooleanSchemaForBooleanClass() {
     assertThat(SchemaUtil.getSchemaFromType(Boolean.class), equalTo(Schema.BOOLEAN_SCHEMA));

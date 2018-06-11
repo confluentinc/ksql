@@ -160,6 +160,20 @@ public class ConnectSchemaTranslatorTest {
   }
 
   @Test
+  public void shouldThrowOnNonStringMapKey() {
+    final Schema connectSchema = SchemaBuilder
+        .struct()
+        .field("map", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .build();
+
+    try {
+      schemaTranslator.toKsqlSchema(connectSchema);
+      fail("Schema translator should fail on seeing a BYTES field");
+    } catch (KsqlException e) {
+    }
+  }
+
+  @Test
   public void shouldThrowOnUnsupportedType() {
     final Schema connectSchema = SchemaBuilder
         .struct()

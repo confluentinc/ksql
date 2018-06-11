@@ -18,7 +18,6 @@ package io.confluent.ksql.serde.connect;
 
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -32,7 +31,7 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
   private final Converter converter;
 
   public KsqlConnectSerializer(final Schema schema, final Converter converter) {
-    this.schema = SerdeUtils.toOptionalSchema(schema);
+    this.schema = schema;
     this.converter = converter;
   }
 
@@ -47,10 +46,11 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
       Streams.forEachPair(
           schema.fields().stream(),
           genericRow.getColumns().stream(),
-          (field, columnValue) -> struct.put(field, columnValue));
+          struct::put);
       return converter.fromConnectData(topic, schema, struct);
     } catch (Exception e) {
-      throw new SerializationException(e);
+      throw new SerializationException(
+          "Error serializing row to topic " + topic + " using Converter API", e);
     }
   }
 

@@ -66,12 +66,19 @@ public class KsqlGenericRowAvroDeserializerTest {
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     avroSchema = parser.parse(schemaStr);
     schema = SchemaBuilder.struct()
-        .field("ORDERTIME".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("ORDERID".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("ITEMID".toUpperCase(), Schema.STRING_SCHEMA)
-        .field("ORDERUNITS".toUpperCase(), Schema.FLOAT64_SCHEMA)
-        .field("ARRAYCOL".toUpperCase(), SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
-        .field("MAPCOL".toUpperCase(), SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("ORDERTIME".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ORDERID".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field(
+            "ARRAYCOL".toUpperCase(),
+            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field(
+            "MAPCOL".toUpperCase(),
+            SchemaBuilder.map(
+                Schema.STRING_SCHEMA,
+                Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .optional()
         .build();
 
     ksqlConfig = new KsqlConfig(
@@ -115,10 +122,10 @@ public class KsqlGenericRowAvroDeserializerTest {
   @Test
   public void shouldDeserializeIfThereAreRedundantFields() {
     final Schema newSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), Schema.FLOAT64_SCHEMA)
+        .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     final List columns = Arrays.asList(

@@ -51,8 +51,12 @@ public class ConnectSchemaTranslator {
   }
 
   private Schema toKsqlMapSchema(final Schema schema) {
+    final Schema keySchema = toKsqlFieldSchema(schema.keySchema());
+    if (!keySchema.type().equals(Schema.Type.STRING)) {
+      throw new KsqlException("Map key must be of type STRING");
+    }
     return SchemaBuilder.map(
-        toKsqlFieldSchema(schema.keySchema()),
+        keySchema,
         toKsqlFieldSchema(schema.valueSchema())
     ).optional().build();
   }

@@ -34,8 +34,8 @@ public class AvroSchemaTranslator extends ConnectSchemaTranslator {
 
   @Override
   protected Schema toKsqlFieldSchema(final Schema connectSchema) {
-    if (connectSchema.type() == Schema.Type.STRUCT
-        && connectSchema.name() == AvroData.AVRO_TYPE_UNION) {
+    if (connectSchema.type().equals(Schema.Type.STRUCT)
+        && connectSchema.name().equals(AvroData.AVRO_TYPE_UNION)) {
       throw new KsqlException("Union type not supported");
     }
     return super.toKsqlFieldSchema(connectSchema);

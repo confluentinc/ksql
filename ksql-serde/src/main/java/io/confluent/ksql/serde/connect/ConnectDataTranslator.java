@@ -28,12 +28,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ConnectDataTranslator {
-  public GenericRow toKsqlRow(final Schema schema, final Schema connectSchema,
-                              final Object connectData) {
-    if (! schema.type().equals(Schema.Type.STRUCT)) {
+  GenericRow toKsqlRow(final Schema schema, final Schema connectSchema,
+                       final Object connectData) {
+    if (!schema.type().equals(Schema.Type.STRUCT)) {
       throw new KsqlException("Schema for a KSQL row should be a struct");
     }
     final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData);
+    if (rowStruct == null) {
+      return null;
+    }
     return new GenericRow(
         schema.fields()
             .stream()
@@ -42,6 +45,7 @@ public class ConnectDataTranslator {
     );
   }
 
+  @SuppressWarnings("unchecked")
   private Object toKsqlValue(final Schema schema, final Schema connectSchema,
                              final Object connectValue) {
     // Map a connect value+schema onto the schema expected by KSQL. For now this involves:
@@ -69,7 +73,10 @@ public class ConnectDataTranslator {
           schema.keySchema(), connectSchema.keySchema(),
           schema.valueSchema(), connectSchema.valueSchema(), (Map) connectValue);
     }
-    return toKsqlStruct(schema, connectSchema, (Struct) connectValue);
+    if (schema.type().equals(Schema.Type.STRUCT)) {
+      return toKsqlStruct(schema, connectSchema, (Struct) connectValue);
+    }
+    throw new RuntimeException("Unexpected data type seen in schema: " + schema.type().getName());
   }
 
   private List toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,

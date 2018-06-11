@@ -44,14 +44,18 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class KsqlGenericRowAvroSerializerTest {
 
   final Schema schema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), Schema.FLOAT64_SCHEMA)
-        .field("arraycol".toUpperCase(), SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build())
+        .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field(
+            "arraycol".toUpperCase(),
+            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field(
             "mapcol".toUpperCase(),
-            SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).build())
+            SchemaBuilder.map(
+                Schema.STRING_SCHEMA,
+                Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
 
   @Test

@@ -43,7 +43,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   private AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient, final KsqlConfig ksqlConfig) {
-    AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
+    final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
     avroConverter.configure(
         Collections.singletonMap(
             AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,

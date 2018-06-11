@@ -17,7 +17,6 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -31,9 +30,10 @@ public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   final ConnectDataTranslator connectToKsqlTranslator;
 
   public KsqlConnectDeserializer(
-      final Schema schema, final Converter converter,
+      final Schema schema,
+      final Converter converter,
       final ConnectDataTranslator connectToKsqlTranslator) {
-    this.schema = SerdeUtils.toOptionalSchema(schema);
+    this.schema = schema;
     this.converter = converter;
     this.connectToKsqlTranslator = connectToKsqlTranslator;
   }
@@ -45,9 +45,6 @@ public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
-    if (bytes == null) {
-      return null;
-    }
     final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
     return connectToKsqlTranslator.toKsqlRow(
         schema, schemaAndValue.schema(), schemaAndValue.value());

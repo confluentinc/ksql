@@ -94,12 +94,10 @@ public class TypeUtil {
     }
   }
 
-  private static SchemaBuilder buildStructSchema(final Struct struct) {
+  private static Schema buildStructSchema(final Struct struct) {
     final SchemaBuilder structSchemaBuilder = SchemaBuilder.struct();
     for (Pair<String, Type> field: struct.getItems()) {
-      structSchemaBuilder.field(
-          field.getLeft(),
-          getTypeSchemaBuilder(field.getRight()).optional().build());
+      structSchemaBuilder.field(field.getLeft(), getTypeSchema(field.getRight()));
     }
     return structSchemaBuilder.optional().build();
   }

@@ -124,6 +124,16 @@ public class KsqlRestClientTest {
               size());
       Assert.assertEquals("hello", row.getColumns().
               get(0));
+      writer.enq("{\"row\":null,\"errorMessage\":null,\"finalMessage\":\"Limit Reached\"}");
+      Thread t1 = new Thread(() -> queryStream.hasNext());
+      t1.setDaemon(true);
+      t1.start();
+      t1.join(10000);
+      Assert.assertFalse(t1.isAlive());
+      Assert.assertTrue(queryStream.hasNext());
+      StreamedRow error_message = queryStream.next();
+      System.out.println();
+
     } finally {
       writer.finished();
     }

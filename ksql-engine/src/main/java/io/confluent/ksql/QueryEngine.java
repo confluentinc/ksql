@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.parser.SqlFormatter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -40,8 +41,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
@@ -205,12 +204,12 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      Pair<DdlStatement, String> avroCheckResult =
+      AbstractStreamCreateStatement streamCreateStatementWithSchema =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
-      if (avroCheckResult.getRight() != null) {
-        statement = avroCheckResult.getLeft();
-        sqlExpression = avroCheckResult.getRight();
+      if (streamCreateStatementWithSchema != streamCreateStatement) {
+        statement = (DdlStatement)streamCreateStatementWithSchema;
+        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
     DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
@@ -239,7 +238,7 @@ class QueryEngine {
     );
   }
 
-  private Pair<DdlStatement, String> maybeAddFieldsFromSchemaRegistry(
+  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
       AbstractStreamCreateStatement streamCreateStatement
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
@@ -272,20 +271,10 @@ class QueryEngine {
           newProperties
       );
     }
-    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(
-            streamCreateStatement,
-            new HashMap<>(),
-            ksqlEngine.getSchemaRegistryClient()
-        );
-    if (avroCheckResult.getRight() != null) {
-      if (avroCheckResult.getLeft() instanceof CreateStream) {
-        return new Pair<>((CreateStream) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      } else if (avroCheckResult.getLeft() instanceof CreateTable) {
-        return new Pair<>((CreateTable) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      }
-    }
-    return new Pair<>(null, null);
+    return AvroUtil.checkAndSetAvroSchema(
+        streamCreateStatement,
+        new HashMap<>(),
+        ksqlEngine.getSchemaRegistryClient());
   }
 
 }

@@ -522,25 +522,32 @@ public class SqlToJavaVisitor {
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + arrayBaseName);
       }
-
-      if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        final Pair<String, Schema> pair = new Pair<>(
-            process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-                + process(node.getIndex(), unmangleNames).getLeft() + ")]",
-            schema
-        );
-        return pair;
-      } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        final Pair<String, Schema> stringSchemaPair = new Pair<>(
-            "("
-                + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-                + process(node.getBase(), unmangleNames).getLeft() + ".get"
-                + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
-            schema
-        );
-        return stringSchemaPair;
+      final Schema internalSchema = schemaField.get().schema();
+      final String internalSchemaJavaType =
+          SchemaUtil.getJavaType(internalSchema).getCanonicalName();
+      switch (internalSchema.type()) {
+        case ARRAY:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get((int)(%s)))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()
+              ),
+              internalSchema.valueSchema()
+          );
+        case MAP:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get(%s))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()),
+              internalSchema.valueSchema()
+          );
+        default:
+          throw new UnsupportedOperationException();
       }
-      throw new UnsupportedOperationException();
     }
 
     @Override

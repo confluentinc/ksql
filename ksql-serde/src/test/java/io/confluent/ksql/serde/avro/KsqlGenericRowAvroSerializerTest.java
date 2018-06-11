@@ -42,7 +42,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class KsqlGenericRowAvroSerializerTest {
 
 
-  org.apache.kafka.connect.data.Schema schema;
+  private org.apache.kafka.connect.data.Schema schema;
 
   @Before
   public void before() {
@@ -63,7 +63,7 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Collections.singletonList(100.0),
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -96,7 +96,7 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, null, 10.0, new Double[]{100.0},
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, null, 10.0, Collections.singletonList(100.0),
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -130,7 +130,7 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     GenericRow genericRow = new GenericRow(columns);
     ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
@@ -143,7 +143,7 @@ public class KsqlGenericRowAvroSerializerTest {
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", "10.0", new Double[]{100.0},
+    List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", "10.0", new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);

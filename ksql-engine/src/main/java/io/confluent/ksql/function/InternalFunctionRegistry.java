@@ -58,9 +58,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     init();
   }
 
-  private InternalFunctionRegistry(final Map<String, UdfFactory> ksqlFunctionMap,
-      final Map<String, AggregateFunctionFactory>
-          aggregateFunctionMap) {
+  private InternalFunctionRegistry(
+      final Map<String, UdfFactory> ksqlFunctionMap,
+      final Map<String, AggregateFunctionFactory> aggregateFunctionMap
+  ) {
     this.ksqlFunctionMap = ksqlFunctionMap;
     this.aggregateFunctionMap = aggregateFunctionMap;
   }
@@ -99,8 +100,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(final String functionName,
-      final Schema argumentType) {
+  public KsqlAggregateFunction getAggregate(
+      final String functionName,
+      final Schema argumentType
+  ) {
     AggregateFunctionFactory aggregateFunctionFactory
         = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
@@ -216,15 +219,16 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   private void addDateTimeFunctions() {
 
-    KsqlFunction timestampToString = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA),
-        "TIMESTAMPTOSTRING", TimestampToString.class);
+    KsqlFunction timestampToString = new KsqlFunction(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+        "TIMESTAMPTOSTRING",
+        TimestampToString.class);
     addFunction(timestampToString);
 
-    KsqlFunction stringToTimestamp = new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA),
+    KsqlFunction stringToTimestamp = new KsqlFunction(
+        Schema.OPTIONAL_INT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         "STRINGTOTIMESTAMP",
         StringToTimestamp.class);
     addFunction(stringToTimestamp);
@@ -232,7 +236,8 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   private void addGeoFunctions() {
-    KsqlFunction geoDistance = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+    KsqlFunction geoDistance = new KsqlFunction(
+        Schema.OPTIONAL_FLOAT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA,
             Schema.OPTIONAL_FLOAT64_SCHEMA,
             Schema.OPTIONAL_FLOAT64_SCHEMA,

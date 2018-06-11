@@ -88,39 +88,39 @@ public class CodeGenRunnerTest {
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         final Schema schema = SchemaBuilder.struct()
-            .field("CODEGEN_TEST.COL0", SchemaBuilder.INT64_SCHEMA)
-            .field("CODEGEN_TEST.COL1", SchemaBuilder.STRING_SCHEMA)
-            .field("CODEGEN_TEST.COL2", SchemaBuilder.STRING_SCHEMA)
-            .field("CODEGEN_TEST.COL3", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("CODEGEN_TEST.COL4", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("CODEGEN_TEST.COL5", SchemaBuilder.INT32_SCHEMA)
-            .field("CODEGEN_TEST.COL6", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("CODEGEN_TEST.COL7", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("CODEGEN_TEST.COL8", SchemaBuilder.INT64_SCHEMA)
-            .field("CODEGEN_TEST.COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
-            .field("CODEGEN_TEST.COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
+            .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("CODEGEN_TEST.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("CODEGEN_TEST.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("CODEGEN_TEST.COL4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("CODEGEN_TEST.COL5", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+            .field("CODEGEN_TEST.COL6", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("CODEGEN_TEST.COL7", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("CODEGEN_TEST.COL8", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("CODEGEN_TEST.COL9", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL10", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL11",
-                   SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.STRING_SCHEMA))
+                   SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL12",
-                   SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.INT32_SCHEMA))
-            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
+                   SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
         Schema metaStoreSchema = SchemaBuilder.struct()
-            .field("COL0", SchemaBuilder.INT64_SCHEMA)
-            .field("COL1", SchemaBuilder.STRING_SCHEMA)
-            .field("COL2", SchemaBuilder.STRING_SCHEMA)
-            .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("COL4", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("COL5", SchemaBuilder.INT32_SCHEMA)
-            .field("COL6", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("COL7", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("COL8", SchemaBuilder.INT64_SCHEMA)
-            .field("COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
-            .field("COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
+            .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("COL4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("COL5", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+            .field("COL6", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("COL7", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("COL8", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("COL9", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("COL10", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("COL11",
-                SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.STRING_SCHEMA))
+                SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("COL12",
-                SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.INT32_SCHEMA))
-            .field("COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
+                SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
         KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",

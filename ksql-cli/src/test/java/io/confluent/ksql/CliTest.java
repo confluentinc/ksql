@@ -362,9 +362,9 @@ public class CliTest extends TestRunner {
             new Double[]{1100.0, 1110.99, 970.0 })));
 
     Schema resultSchema = SchemaBuilder.struct()
-        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
+        .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
 
     testCreateStreamAsSelect(

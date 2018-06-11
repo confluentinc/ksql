@@ -140,7 +140,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       final Map<String, Object> columnMap) {
     return columnMap.entrySet().stream()
         .collect(Collectors.toMap(
-            e -> enforceFieldType(Schema.STRING_SCHEMA, e.getKey()).toString(),
+            e -> enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
             e -> enforceFieldType(fieldSchema.valueSchema(), e.getValue())
         ));
   }

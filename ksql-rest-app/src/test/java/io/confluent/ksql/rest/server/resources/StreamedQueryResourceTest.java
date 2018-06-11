@@ -191,7 +191,7 @@ public class StreamedQueryResourceTest {
             mockKafkaTopicClient, null, Collections.emptyMap());
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
-        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
+        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
     expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);

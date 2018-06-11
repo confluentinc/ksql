@@ -39,7 +39,7 @@ public class LongTopkKudafTest {
   @Before
   public void setup() {
     topKFactory = new TopKAggregateFunctionFactory(3);
-    argumentType = Collections.singletonList(Schema.INT64_SCHEMA);
+    argumentType = Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA);
   }
 
   @Test

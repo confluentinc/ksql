@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -374,6 +375,20 @@ public class SchemaUtilTest {
     assertThat("Invalid SQL type.", sqlType5, equalTo("VARCHAR"));
     assertThat("Invalid SQL type.", sqlType6, equalTo("ARRAY<DOUBLE>"));
     assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR,DOUBLE>"));
+  }
+
+  @Test
+  public void shouldGetCorrectSqlTypeFromSchemaType() {
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR(STRING)"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT64), is("BIGINT"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT32), is("INTEGER"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.FLOAT64), is("DOUBLE"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.BOOLEAN), is("BOOLEAN"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnUnknownSchemaType() {
+    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRUCT);
   }
 
   @Test

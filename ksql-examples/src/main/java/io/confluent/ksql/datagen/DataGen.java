@@ -115,6 +115,7 @@ public class DataGen {
         + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
         + "'pageviews')] "
         + "schema=<avro schema file> "
+        + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
         + "topic=<kafka topic name> "
         + "key=<name of key column> "

@@ -47,10 +47,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
-  public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
-
-  public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
-
   public static final String
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
 

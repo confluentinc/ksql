@@ -24,14 +24,18 @@ import io.confluent.ksql.function.udf.UdfDescription;
     description = "returns a substring of the passed in value")
 public class Substring {
 
-  @Udf
-  public String substring(final String value, final int start) {
-    return value.substring(start);
+  @Udf(description = "Returns a string that is a substring of this string. The"
+      + " substring begins with the character at the specified startIndex and"
+      + " extends to the end of this string.")
+  public String substring(final String value, final int startIndex) {
+    return value.substring(startIndex);
   }
 
-  @Udf
-  public String substring(final String value, final int start, final int end) {
-    return value.substring(start, end);
+  @Udf(description = "Returns a string that is a substring of this string. The"
+      + " substring begins with the character at the specified startIndex and"
+      + " extends to the character at endIndex -1.")
+  public String substring(final String value, final int startIndex, final int endIndex) {
+    return value.substring(startIndex, endIndex);
   }
 
 }

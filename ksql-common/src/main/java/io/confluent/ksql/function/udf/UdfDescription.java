@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface UdfDescription {
   String name();
-  String description() default "";
+  String description();
   String author() default "";
   String version() default "";
 }

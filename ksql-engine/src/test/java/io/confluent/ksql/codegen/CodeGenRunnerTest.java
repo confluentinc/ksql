@@ -94,7 +94,7 @@ public class CodeGenRunnerTest {
         new UdfLoader(metaStore,
             TestUtils.tempDirectory(),
             getClass().getClassLoader(),
-            value -> true, new UdfCompiler(), true)
+            value -> false, new UdfCompiler(), true)
             .load();
 
         final Schema schema = SchemaBuilder.struct()

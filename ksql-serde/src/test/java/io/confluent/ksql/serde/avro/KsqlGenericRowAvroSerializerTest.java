@@ -56,6 +56,7 @@ public class KsqlGenericRowAvroSerializerTest {
             SchemaBuilder.map(
                 Schema.STRING_SCHEMA,
                 Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .optional()
         .build();
 
   @Test

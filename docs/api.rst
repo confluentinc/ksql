@@ -207,7 +207,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "SELECT * FROM pageviews;"
+        "ksql": "SELECT * FROM pageviews;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

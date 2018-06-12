@@ -35,16 +35,17 @@ public class SimpleGroupBy
 
   private final List<Expression> columns;
 
-  public SimpleGroupBy(List<Expression> simpleGroupByExpressions) {
+  public SimpleGroupBy(final List<Expression> simpleGroupByExpressions) {
     this(Optional.empty(), simpleGroupByExpressions);
   }
 
-  public SimpleGroupBy(NodeLocation location, List<Expression> simpleGroupByExpressions) {
+  public SimpleGroupBy(final NodeLocation location, final List<Expression> simpleGroupByExpressions) {
     this(Optional.of(location), simpleGroupByExpressions);
   }
 
-  private SimpleGroupBy(Optional<NodeLocation> location,
-                        List<Expression> simpleGroupByExpressions) {
+  private SimpleGroupBy(
+      final Optional<NodeLocation> location,
+      final List<Expression> simpleGroupByExpressions) {
     super(location);
     this.columns = requireNonNull(simpleGroupByExpressions);
   }

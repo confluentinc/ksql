@@ -143,9 +143,9 @@ public class SchemaKTableTest {
     Assert.assertTrue(projectedSchemaKStream.getSchema()
                           .field("COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema() == Schema
-        .INT32_SCHEMA);
+        .OPTIONAL_INT32_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema() == Schema
-        .FLOAT64_SCHEMA);
+        .OPTIONAL_FLOAT64_SCHEMA);
 
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);

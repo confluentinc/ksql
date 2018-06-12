@@ -58,7 +58,7 @@ public class IntegerMinKudafTest {
 
   private IntegerMinKudaf getIntegerMinKudaf() {
     KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     assertThat(aggregateFunction, instanceOf(IntegerMinKudaf.class));
     return  (IntegerMinKudaf) aggregateFunction;
   }

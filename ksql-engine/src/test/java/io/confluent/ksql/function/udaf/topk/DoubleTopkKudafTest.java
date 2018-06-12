@@ -39,7 +39,7 @@ public class DoubleTopkKudafTest {
   @Before
   public void setup() {
     topKFactory = new TopKAggregateFunctionFactory(3);
-    argumentType = Collections.singletonList(Schema.FLOAT64_SCHEMA);
+    argumentType = Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA);
   }
 
   @Test
@@ -58,7 +58,7 @@ public class DoubleTopkKudafTest {
   public void shouldAggregateTopKWithLessThanKValues() {
     KsqlAggregateFunction<Object, List<Double>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
-    List<Double> currentVal = new ArrayList();
+    List<Double> currentVal = new ArrayList<>();
     currentVal = topkKudaf.aggregate(10.0, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(10.0)));

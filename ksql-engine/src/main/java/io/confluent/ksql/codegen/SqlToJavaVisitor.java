@@ -120,7 +120,7 @@ public class SqlToJavaVisitor {
         final BooleanLiteral node,
         final Boolean unmangleNames
     ) {
-      return new Pair<>(String.valueOf(node.getValue()), Schema.BOOLEAN_SCHEMA);
+      return new Pair<>(String.valueOf(node.getValue()), Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
@@ -128,7 +128,7 @@ public class SqlToJavaVisitor {
         final StringLiteral node,
         final Boolean unmangleNames
     ) {
-      return new Pair<>("\"" + node.getValue() + "\"", Schema.STRING_SCHEMA);
+      return new Pair<>("\"" + node.getValue() + "\"", Schema.OPTIONAL_STRING_SCHEMA);
     }
 
     @Override
@@ -139,7 +139,7 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames) {
-      return new Pair<>(Double.toString(node.getValue()), Schema.FLOAT64_SCHEMA);
+      return new Pair<>(Double.toString(node.getValue()), Schema.OPTIONAL_FLOAT64_SCHEMA);
     }
 
     @Override
@@ -219,13 +219,15 @@ public class SqlToJavaVisitor {
     }
 
     protected Pair<String, Schema> visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
-      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")", Schema.INT64_SCHEMA);
+      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")",
+          Schema.OPTIONAL_INT64_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
-                                                       final Boolean context) {
-      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")", Schema.INT32_SCHEMA);
+        final Boolean context) {
+      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")",
+          Schema.OPTIONAL_INT32_SCHEMA);
     }
 
     @Override
@@ -263,17 +265,17 @@ public class SqlToJavaVisitor {
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
             formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames),
-            Schema.BOOLEAN_SCHEMA
+            Schema.OPTIONAL_BOOLEAN_SCHEMA
         );
       } else if (node.getType() == LogicalBinaryExpression.Type.AND) {
         return new Pair<>(
             formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames),
-            Schema.BOOLEAN_SCHEMA
+            Schema.OPTIONAL_BOOLEAN_SCHEMA
         );
       }
       throw new UnsupportedOperationException(
           format("not yet implemented: %s.visit%s", getClass().getName(),
-                 node.getClass().getSimpleName()
+              node.getClass().getSimpleName()
           )
       );
     }
@@ -281,7 +283,7 @@ public class SqlToJavaVisitor {
     @Override
     protected Pair<String, Schema> visitNotExpression(NotExpression node, Boolean unmangleNames) {
       String exprString = process(node.getValue(), unmangleNames).getLeft();
-      return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
+      return new Pair<>("(!" + exprString + ")", Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     private String nullCheckPrefix(ComparisonExpression.Type type) {
@@ -365,7 +367,7 @@ public class SqlToJavaVisitor {
           break;
       }
       String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
-      return new Pair<>(expr, Schema.BOOLEAN_SCHEMA);
+      return new Pair<>(expr, Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
@@ -426,7 +428,7 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      return new Pair<>("((" + value.getLeft() + ") == null )", Schema.BOOLEAN_SCHEMA);
+      return new Pair<>("((" + value.getLeft() + ") == null )", Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
@@ -435,7 +437,7 @@ public class SqlToJavaVisitor {
         Boolean unmangleNames
     ) {
       Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      return new Pair<>("((" + value.getLeft() + ") != null )", Schema.BOOLEAN_SCHEMA);
+      return new Pair<>("((" + value.getLeft() + ") != null )", Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
@@ -465,7 +467,7 @@ public class SqlToJavaVisitor {
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          Schema.FLOAT64_SCHEMA
+          Schema.OPTIONAL_FLOAT64_SCHEMA
       );
     }
 
@@ -483,14 +485,14 @@ public class SqlToJavaVisitor {
         if (paternString.endsWith("%")) {
           return new Pair<>(
               "(" + valueString + ").contains(\""
-              + paternString.substring(1, paternString.length() - 1)
-              + "\")",
-              Schema.STRING_SCHEMA
+                  + paternString.substring(1, paternString.length() - 1)
+                  + "\")",
+              Schema.OPTIONAL_STRING_SCHEMA
           );
         } else {
           return new Pair<>(
               "(" + valueString + ").endsWith(\"" + paternString.substring(1) + "\")",
-              Schema.STRING_SCHEMA
+              Schema.OPTIONAL_STRING_SCHEMA
           );
         }
       }
@@ -498,9 +500,9 @@ public class SqlToJavaVisitor {
       if (paternString.endsWith("%")) {
         return new Pair<>(
             "(" + valueString + ")"
-            + ".startsWith(\""
-            + paternString.substring(0, paternString.length() - 1) + "\")",
-            Schema.STRING_SCHEMA
+                + ".startsWith(\""
+                + paternString.substring(0, paternString.length() - 1) + "\")",
+            Schema.OPTIONAL_STRING_SCHEMA
         );
       }
 
@@ -563,7 +565,7 @@ public class SqlToJavaVisitor {
         boolean unmangleNames
     ) {
       return "(" + process(left, unmangleNames).getLeft() + " " + operator + " "
-             + process(right, unmangleNames).getLeft() + ")";
+          + process(right, unmangleNames).getLeft() + ")";
     }
 
     private String formatIdentifier(String s) {

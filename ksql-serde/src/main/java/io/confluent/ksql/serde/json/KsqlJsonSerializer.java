@@ -17,20 +17,14 @@
 package io.confluent.ksql.serde.json;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
 
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
@@ -42,7 +36,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
    * Default constructor needed by Kafka
    */
   public KsqlJsonSerializer(final Schema schema) {
-    this.schema = makeOptional(schema);
+    this.schema = schema;
     jsonConverter = new JsonConverter();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
   }
@@ -60,134 +54,12 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     try {
       final Struct struct = new Struct(schema);
       for (int i = 0; i < data.getColumns().size(); i++) {
-        final Schema structSchema = schema.fields().get(i).schema();
-        if (structSchema.type() == Schema.Type.STRUCT) {
-          final Field structField = schema.fields().get(i);
-          struct.put(structField, updateStructSchema(
-              (Struct) data.getColumns().get(i),
-              structField.schema()));
-        } else {
-          struct.put(schema.fields().get(i), data.getColumns().get(i));
-        }
+        struct.put(schema.fields().get(i), data.getColumns().get(i));
       }
 
       return jsonConverter.fromConnectData(topic, schema, struct);
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
-    }
-  }
-
-  private Schema makeOptional(final Schema schema) {
-    switch (schema.type()) {
-      case BOOLEAN:
-        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
-      case INT32:
-        return Schema.OPTIONAL_INT32_SCHEMA;
-      case INT64:
-        return Schema.OPTIONAL_INT64_SCHEMA;
-      case FLOAT64:
-        return Schema.OPTIONAL_FLOAT64_SCHEMA;
-      case STRING:
-        return Schema.OPTIONAL_STRING_SCHEMA;
-      case ARRAY:
-        return SchemaBuilder.array(makeOptional(schema.valueSchema())).optional().build();
-      case MAP:
-        return SchemaBuilder.map(schema.keySchema(), makeOptional(schema.valueSchema()))
-            .optional().build();
-      case STRUCT:
-        final SchemaBuilder schemaBuilder = new SchemaBuilder(Schema.Type.STRUCT);
-        schema.fields()
-            .forEach(field -> schemaBuilder.field(field.name(), makeOptional(field.schema())));
-        return schemaBuilder.optional().build();
-      default:
-        throw new KsqlException("Invalid type in schema: " + schema);
-    }
-  }
-
-  /**
-   * Temporary work around until schema comparison is fixed.
-   * Currently, when we put a value in a struct the schema object should match too
-   * however, although the schemas are the same but the objects do not match.
-   * This is to overcome this problem.
-   * The reason is that we have been using non-optional schema fields in our schema.
-   * We will need to switch to optional fields and that will eliminate the need to make
-   * the schema update here.
-   */
-  private Struct updateStructSchema(final Struct struct, final Schema schema) {
-    if (!compareSchemas(schema, struct.schema())) {
-      throw new KsqlException("Incompatible schemas: " + schema + ", " + struct.schema());
-    }
-    final Struct updatedStruct = new Struct(schema);
-    for (Field field : schema.fields()) {
-      switch (field.schema().type()) {
-        case STRUCT:
-          updatedStruct.put(field.name(),
-              updateStructSchema((Struct) struct.get(field.name()), field.schema()));
-          break;
-        case ARRAY:
-          updatedStruct.put(field.name(),
-              updateArraySchema((List) struct.get(field.name()), field.schema()));
-          break;
-        case MAP:
-          updatedStruct.put(field.name(),
-              updateMapSchema((Map) struct.get(field.name()), field.schema()));
-          break;
-        default:
-          updatedStruct.put(field.name(), struct.get(field.name()));
-      }
-    }
-
-    return updatedStruct;
-  }
-
-  private List<?> updateArraySchema(List<?> elements, Schema arraySchema) {
-    switch (arraySchema.valueSchema().type()) {
-      case STRUCT:
-        return elements.stream()
-            .map(item -> updateStructSchema((Struct) item, arraySchema.valueSchema()))
-            .collect(Collectors.toList());
-      case ARRAY:
-        return elements.stream()
-            .map(item -> updateArraySchema((List) item, arraySchema.valueSchema()))
-            .collect(Collectors.toList());
-      case MAP:
-        return elements.stream()
-            .map(item -> updateMapSchema((Map<String, ?>) item, arraySchema.valueSchema()))
-            .collect(Collectors.toList());
-      default:
-        return elements;
-    }
-  }
-
-  private Map<String, ?> updateMapSchema(final Map<String, ?> map, final Schema mapSchema) {
-    switch (mapSchema.valueSchema().type()) {
-      case STRUCT:
-        return map.entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                e -> updateStructSchema((Struct) e.getValue(),
-                    mapSchema.valueSchema())
-            ));
-      case ARRAY:
-        return map.entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                e -> updateArraySchema((List) e.getValue(),
-                    mapSchema.valueSchema())
-            ));
-      case MAP:
-        return map.entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                e -> updateMapSchema((Map<String, ?>) e.getValue(),
-                    mapSchema.valueSchema())
-            ));
-      default:
-        return map.entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                Entry::getValue
-            ));
     }
   }
 

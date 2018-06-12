@@ -119,7 +119,7 @@ public class PollingSubscriptionTest {
       super(
           MoreExecutors.listeningDecorator(exec),
           subscriber,
-          SchemaBuilder.STRING_SCHEMA
+          SchemaBuilder.OPTIONAL_STRING_SCHEMA
       );
     }
 

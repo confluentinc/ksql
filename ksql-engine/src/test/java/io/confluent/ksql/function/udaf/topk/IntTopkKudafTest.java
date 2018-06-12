@@ -45,7 +45,7 @@ public class IntTopkKudafTest {
   @Before
   public void setup() {
     topkKudaf = new TopKAggregateFunctionFactory(3)
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -107,7 +107,7 @@ public class IntTopkKudafTest {
     // Given:
     final int topKSize = 300;
     topkKudaf = new TopKAggregateFunctionFactory(topKSize)
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
         .boxed()
         .collect(Collectors.toList());
@@ -128,7 +128,7 @@ public class IntTopkKudafTest {
   public void shouldBeThreadSafe() {
     // Given:
     topkKudaf = new TopKAggregateFunctionFactory(12)
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
@@ -156,7 +156,7 @@ public class IntTopkKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     topkKudaf = new TopKAggregateFunctionFactory(topX)
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
@@ -174,7 +174,7 @@ public class IntTopkKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     topkKudaf = new TopKAggregateFunctionFactory(topX)
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
 
     final List<Integer> aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)

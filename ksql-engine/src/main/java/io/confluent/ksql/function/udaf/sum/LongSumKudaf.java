@@ -30,8 +30,8 @@ public class LongSumKudaf
     extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
 
   LongSumKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
-          Collections.singletonList(Schema.INT64_SCHEMA));
+    super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Override

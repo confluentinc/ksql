@@ -48,7 +48,7 @@ public class KudafUndoAggregatorTest {
     Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
     Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
     KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
-        "SUM", Schema.INT32_SCHEMA);
+        "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
         2, (TableAggregationFunction)functionInfo.getInstance(

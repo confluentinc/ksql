@@ -31,7 +31,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
 
   private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-      .field("id", Schema.INT64_SCHEMA);
+      .field("id", Schema.OPTIONAL_INT64_SCHEMA);
 
   @Test
   public void shouldCreateMetadataPolicyWhenTimestampFieldNotProvided() {
@@ -43,7 +43,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldCreateLongTimestampPolicyWhenTimestampFieldIsOfTypeLong() {
     final String timestamp = "timestamp";
     final Schema schema = schemaBuilder
-        .field(timestamp.toUpperCase(), Schema.INT64_SCHEMA)
+        .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
     TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, timestamp, null);
@@ -60,7 +60,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldCreateStringTimestampPolicyWhenTimestampFieldIsStringTypeAndFormatProvided() {
     final String field = "my_string_field";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.STRING_SCHEMA)
+        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
     TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, field, "yyyy-MM-DD");
@@ -72,7 +72,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldFailIfStringTimestampTypeAndFormatNotSupplied() {
     final String field = "my_string_field";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.STRING_SCHEMA)
+        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
 
     TimestampExtractionPolicyFactory.create(schema, field, null);
@@ -82,7 +82,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldSupportFieldsWithQuotedStrings() {
     final String field = "my_string_field";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.STRING_SCHEMA)
+        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
     TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, "'"+ field+ "'", "'yyyy-MM-DD'");
@@ -94,7 +94,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldThrowIfTimestampFieldTypeIsNotLongOrString() {
     final String field = "blah";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.FLOAT64_SCHEMA)
+        .field(field.toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
     TimestampExtractionPolicyFactory.create(schema, "'"+ field+ "'", null);
   }

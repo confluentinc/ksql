@@ -180,6 +180,27 @@ public class SchemaUtil {
     return newSchema;
   }
 
+  private static final ImmutableMap<String, String> TYPE_MAP =
+      new ImmutableMap.Builder<String, String>()
+          .put("STRING", "VARCHAR(STRING)")
+          .put("INT64", "BIGINT")
+          .put("INT32", "INTEGER")
+          .put("FLOAT64", "DOUBLE")
+          .put("BOOLEAN", "BOOLEAN")
+          .put("ARRAY", "ARRAY")
+          .put("MAP", "MAP")
+          .put("STRUCT", "STRUCT")
+          .build();
+
+  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
+    final String sqlType = TYPE_MAP.get(type.name());
+    if (sqlType == null) {
+      throw new IllegalArgumentException("Unknown schema type: " + type);
+    }
+
+    return sqlType;
+  }
+
   public static String getJavaCastString(final Schema schema) {
     switch (schema.type()) {
       case INT32:

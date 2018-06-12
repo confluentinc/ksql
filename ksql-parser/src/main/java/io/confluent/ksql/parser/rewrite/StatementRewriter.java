@@ -634,7 +634,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return visitNode(node, context);
   }
 
-  protected Node visitSingleColumn(SingleColumn node, final Object context) {
+  protected Node visitSingleColumn(final SingleColumn node, final Object context) {
     return node.getLocation()
         .map(location ->
             new SingleColumn(node.getLocation().get(),

@@ -39,7 +39,9 @@ public class SimpleGroupBy
     this(Optional.empty(), simpleGroupByExpressions);
   }
 
-  public SimpleGroupBy(final NodeLocation location, final List<Expression> simpleGroupByExpressions) {
+  public SimpleGroupBy(
+      final NodeLocation location,
+      final List<Expression> simpleGroupByExpressions) {
     this(Optional.of(location), simpleGroupByExpressions);
   }
 

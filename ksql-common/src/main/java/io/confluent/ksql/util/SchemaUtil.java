@@ -60,19 +60,20 @@ public class SchemaUtil {
       .put(double.class, () -> Schema.FLOAT64_SCHEMA)
       .build();
 
-  private static Map<Pair<Schema.Type, Schema.Type>, Schema> numericTypePairMapping =
+  private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
       ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.INT32_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.OPTIONAL_INT32_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
           .build();
 
   public static Class getJavaType(final Schema schema) {
@@ -119,18 +120,18 @@ public class SchemaUtil {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
-        return Schema.STRING_SCHEMA;
+        return Schema.OPTIONAL_STRING_SCHEMA;
       case "BOOLEAN":
       case "BOOL":
-        return Schema.BOOLEAN_SCHEMA;
+        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case "INTEGER":
       case "INT":
-        return Schema.INT32_SCHEMA;
+        return Schema.OPTIONAL_INT32_SCHEMA;
       case "BIGINT":
       case "LONG":
-        return Schema.INT64_SCHEMA;
+        return Schema.OPTIONAL_INT64_SCHEMA;
       case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
       default:
         return getKsqlComplexType(sqlType);
     }
@@ -208,7 +209,17 @@ public class SchemaUtil {
           .put("BOOLEAN", "BOOLEAN")
           .put("ARRAY", "ARRAY")
           .put("MAP", "MAP")
+          .put("STRUCT", "STRUCT")
           .build();
+
+  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
+    final String sqlType = TYPE_MAP.get(type.name());
+    if (sqlType == null) {
+      throw new IllegalArgumentException("Unknown schema type: " + type);
+    }
+
+    return sqlType;
+  }
 
   public static String getSchemaFieldType(final Field field) {
     if (field.schema().type() == Schema.Type.ARRAY) {
@@ -447,7 +458,7 @@ public class SchemaUtil {
   static Schema resolveArithmeticType(final Schema.Type left,
                                       final Schema.Type right) {
 
-    final Schema schema = numericTypePairMapping.get(new Pair<>(left, right));
+    final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
     if (schema == null) {
       throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
     }

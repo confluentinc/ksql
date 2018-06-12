@@ -377,7 +377,7 @@ public class SchemaKStream {
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to
     //       repartition.
-    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,
         kgroupedStream,

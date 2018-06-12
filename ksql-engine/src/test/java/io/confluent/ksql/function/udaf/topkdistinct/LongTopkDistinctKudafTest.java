@@ -34,7 +34,7 @@ public class LongTopkDistinctKudafTest {
   private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
       60L, 80L);
   private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
-      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.INT64_SCHEMA);
+      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_INT64_SCHEMA);
 
   @Test
   public void shouldAggregateTopK() {

@@ -137,7 +137,7 @@ public class KsqlResourceTest {
     @Override
     public Future<RecordMetadata> send(ProducerRecord record) {
       // Fake result: only for testing purpose
-      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0, 0, 0, 0, 0, 0));
+      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0));
     }
   }
 
@@ -197,11 +197,11 @@ public class KsqlResourceTest {
     }
 
     private static void addTestTopicAndSources(MetaStore metaStore, KafkaTopicClient kafkaTopicClient) {
-      Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
+      Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
           "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
-      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA);
+      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
           "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
@@ -358,8 +358,8 @@ public class KsqlResourceTest {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
-        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.STRING_SCHEMA);
+        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
     TestKsqlResourceUtil.addSource(
         testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
         DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -390,8 +390,8 @@ public class KsqlResourceTest {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
-        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.STRING_SCHEMA);
+        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
     TestKsqlResourceUtil.addSource(
         testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
         DataSource.DataSourceType.KTABLE, "new_table", "new_topic",

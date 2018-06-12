@@ -56,10 +56,10 @@ public class ExpressionTypeManagerTest {
             value -> false,
             new UdfCompiler(), true).load();
         schema = SchemaBuilder.struct()
-                .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
-                .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
-                .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
-                .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA);
+                .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+                .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+                .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+                .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
     }
 
     private Analysis analyzeQuery(String queryStr) {
@@ -148,7 +148,7 @@ public class ExpressionTypeManagerTest {
             functionRegistry);
 
         assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
-            equalTo(Schema.STRING_SCHEMA));
+            equalTo(Schema.OPTIONAL_STRING_SCHEMA));
 
     }
 }

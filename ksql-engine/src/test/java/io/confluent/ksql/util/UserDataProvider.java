@@ -31,10 +31,10 @@ public class UserDataProvider extends TestDataProvider {
   private static final String key = "USERID";
 
   private static final Schema schema = SchemaBuilder.struct()
-      .field("REGISTERTIME", SchemaBuilder.INT64_SCHEMA)
-      .field("GENDER", SchemaBuilder.STRING_SCHEMA)
-      .field("REGIONID", SchemaBuilder.STRING_SCHEMA)
-      .field("USERID", SchemaBuilder.STRING_SCHEMA).build();
+      .field("REGISTERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+      .field("GENDER", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("REGIONID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new UserDataProvider().buildData();
 

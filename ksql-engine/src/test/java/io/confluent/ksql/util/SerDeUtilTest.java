@@ -102,21 +102,21 @@ public class SerDeUtilTest {
   public void shouldReturnCorrectKsqlSchema() {
     Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaStr);
     assertThat("Incorrect schema.", schema.fields().size(), equalTo(8));
-    assertThat("Incorrect field schema.", schema.fields().get(0).schema(), equalTo(Schema.STRING_SCHEMA));
+    assertThat("Incorrect field schema.", schema.fields().get(0).schema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(1).schema(), equalTo(Schema
-                                                                                       .STRING_SCHEMA));
+                                                                                       .OPTIONAL_STRING_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(2).schema(), equalTo(Schema
-                                                                                       .STRING_SCHEMA));
+                                                                                       .OPTIONAL_STRING_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(3).schema(), equalTo(Schema
-                                                                                       .STRING_SCHEMA));
+                                                                                       .OPTIONAL_STRING_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(4).schema(), equalTo(Schema
-                                                                                       .STRING_SCHEMA));
+                                                                                       .OPTIONAL_STRING_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(5).schema(), equalTo(Schema
-                                                                                       .FLOAT64_SCHEMA));
+                                                                                       .OPTIONAL_FLOAT64_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(6).schema(), equalTo(Schema
-                                                                                       .FLOAT64_SCHEMA));
+                                                                                       .OPTIONAL_FLOAT64_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(7).schema(), equalTo(Schema
-                                                                                       .STRING_SCHEMA));
+                                                                                       .OPTIONAL_STRING_SCHEMA));
   }
 
 

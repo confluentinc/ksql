@@ -43,20 +43,20 @@ public class SqlToJavaVisitorTest {
         new UdfCompiler(), true).load();
 
     final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER",Schema.INT64_SCHEMA)
-        .field("STREET", Schema.STRING_SCHEMA)
-        .field("CITY", Schema.STRING_SCHEMA)
-        .field("STATE", Schema.STRING_SCHEMA)
-        .field("ZIPCODE", Schema.INT64_SCHEMA)
-        .build();
+        .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
 
     schema = SchemaBuilder.struct()
-        .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("TEST1.COL4", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
-        .field("TEST1.COL5", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("TEST1.COL4", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("TEST1.COL6", addressSchema)
         .build();
   }

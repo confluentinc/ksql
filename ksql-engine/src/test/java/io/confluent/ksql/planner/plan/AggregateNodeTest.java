@@ -102,9 +102,9 @@ public class AggregateNodeTest {
   public void shouldBuildCorrectAggregateSchema() {
     SchemaKStream stream = build();
     final List<Field> expected = Arrays.asList(
-        new Field("COL0", 0, Schema.INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.FLOAT64_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.INT64_SCHEMA));
+        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
+        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA));
     assertThat(stream.getSchema().fields(), equalTo(expected));
   }
 

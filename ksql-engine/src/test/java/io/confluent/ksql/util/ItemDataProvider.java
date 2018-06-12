@@ -35,8 +35,8 @@ public class ItemDataProvider extends TestDataProvider {
   private static final String key = "ID";
 
   private static final Schema schema = SchemaBuilder.struct()
-      .field("ID", SchemaBuilder.STRING_SCHEMA)
-      .field("DESCRIPTION", SchemaBuilder.STRING_SCHEMA).build();
+      .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new ItemDataProvider().buildData();
 

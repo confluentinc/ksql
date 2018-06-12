@@ -33,9 +33,9 @@ public class PageViewDataProvider extends TestDataProvider {
   private static final String key = "PAGEID";
 
   private static final Schema schema = SchemaBuilder.struct()
-      .field("VIEWTIME", SchemaBuilder.INT64_SCHEMA)
-      .field("USERID", SchemaBuilder.STRING_SCHEMA)
-      .field("PAGEID", SchemaBuilder.STRING_SCHEMA).build();
+      .field("VIEWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+      .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new PageViewDataProvider().buildData();
 

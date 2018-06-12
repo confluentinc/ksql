@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class UdfFactory {
   private final String name;
@@ -74,6 +75,16 @@ public class UdfFactory {
   }
 
   public KsqlFunction getFunction(final List<Schema.Type> paramTypes) {
-    return functions.get(paramTypes);
+    final KsqlFunction function = functions.get(paramTypes);
+    if (function != null) {
+      return function;
+    }
+
+    final String sqlParamTypes = paramTypes.stream()
+        .map(SchemaUtil::getSchemaTypeAsSqlType)
+        .collect(Collectors.joining(", ", "[", "]"));
+
+    throw new KsqlException("Function '" + name
+                            + "' does not accept parameters of types:" + sqlParamTypes);
   }
 }

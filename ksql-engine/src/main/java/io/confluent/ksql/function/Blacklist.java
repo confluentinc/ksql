@@ -32,7 +32,9 @@ import java.util.function.Predicate;
  */
 public class Blacklist implements Predicate<String> {
   private static final Logger logger = LoggerFactory.getLogger(Blacklist.class);
-  private String blackList = "";
+  private static final String EMPTY_BLACKLIST = "^(?)\\.?.*$";
+
+  private String blackList;
 
   Blacklist(final File inputFile) {
     try {
@@ -46,14 +48,18 @@ public class Blacklist implements Predicate<String> {
           });
       builder.deleteCharAt(builder.length() - 1);
       builder.append(")\\.?.*$");
-      this.blackList = builder.toString();
+      this.blackList = builder.toString().equals(EMPTY_BLACKLIST)
+          ? ""
+          : builder.toString();
+      logger.info("Setting UDF blacklisted classes to: " + blackList);
     } catch (IOException e) {
-      logger.error("failed to load resource blacklist from " + inputFile);
+      logger.error("failed to load resource blacklist from " + inputFile
+          + " all classes will be blacklisted");
     }
   }
 
   @Override
   public boolean test(final String resourceName) {
-    return resourceName.matches(blackList);
+    return blackList == null || resourceName.matches(blackList);
   }
 }

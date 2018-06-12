@@ -478,42 +478,50 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetBooleanSchemaForBooleanClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Boolean.class), equalTo(Schema.BOOLEAN_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(Boolean.class),
+        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
   }
 
   @Test
   public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(boolean.class), equalTo(Schema.BOOLEAN_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(boolean.class),
+        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
   }
 
   @Test
   public void shouldGetIntSchemaForIntegerClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Integer.class), equalTo(Schema.INT32_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(Integer.class),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
   public void shouldGetIntegerSchemaForIntPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(int.class), equalTo(Schema.INT32_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(int.class),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
   public void shouldGetLongSchemaForLongClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Long.class), equalTo(Schema.INT64_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(Long.class),
+        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Test
   public void shouldGetLongSchemaForLongPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(long.class), equalTo(Schema.INT64_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(long.class),
+        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
   }
   
   @Test
   public void shouldGetFloatSchemaForDoubleClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class), equalTo(Schema.FLOAT64_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(Double.class),
+        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
   }
 
   @Test
   public void shouldGetFloatSchemaForDoublePrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(double.class), equalTo(Schema.FLOAT64_SCHEMA));
+    assertThat(SchemaUtil.getSchemaFromType(double.class),
+        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
   }
 
   @Test
@@ -522,8 +530,8 @@ public class SchemaUtilTest {
         .getGenericParameterTypes()[0];
     final Schema schema = SchemaUtil.getSchemaFromType(type);
     assertThat(schema.type(), equalTo(Schema.Type.MAP));
-    assertThat(schema.keySchema(), equalTo(Schema.STRING_SCHEMA));
-    assertThat(schema.valueSchema(), equalTo(Schema.INT32_SCHEMA));
+    assertThat(schema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -532,13 +540,13 @@ public class SchemaUtilTest {
         .getGenericParameterTypes()[0];
     final Schema schema = SchemaUtil.getSchemaFromType(type);
     assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
-    assertThat(schema.valueSchema(), equalTo(Schema.FLOAT64_SCHEMA));
+    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
   }
 
   @Test
   public void shouldGetStringSchemaFromStringClass() {
     assertThat(SchemaUtil.getSchemaFromType(String.class),
-        equalTo(Schema.STRING_SCHEMA));
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test(expected = KsqlException.class)

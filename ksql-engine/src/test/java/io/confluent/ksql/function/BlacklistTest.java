@@ -69,6 +69,16 @@ public class BlacklistTest {
     assertTrue(blacklist.test("java.lang.Class"));
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Test
+  public void shouldNotBlacklistAnythingIfBlacklistFileIsEmpty() {
+    final Blacklist blacklist = new Blacklist(this.blacklistFile);
+    assertFalse(blacklist.test("java.lang.Process"));
+    assertFalse(blacklist.test("java.util.List"));
+    assertFalse(blacklist.test("java.lang.ProcessEnvironment"));
+    assertFalse(blacklist.test("java.lang.Class"));
+  }
+
   @Test
   public void shouldIgnoreBlankLines() throws IOException {
     writeBlacklist(ImmutableList.<String>builder().add("", "java.util", "").build());

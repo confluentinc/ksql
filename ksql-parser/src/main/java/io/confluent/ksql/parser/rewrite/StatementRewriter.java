@@ -35,7 +35,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateView;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
 import io.confluent.ksql.parser.tree.Delete;
@@ -44,14 +43,11 @@ import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropView;
 import io.confluent.ksql.parser.tree.ExistsPredicate;
-import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.ExplainOption;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Extract;
 import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
@@ -65,7 +61,6 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
-import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
@@ -83,13 +78,6 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
-import io.confluent.ksql.parser.tree.SetOperation;
-import io.confluent.ksql.parser.tree.SetSession;
-import io.confluent.ksql.parser.tree.ShowCatalogs;
-import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.ShowCreate;
-import io.confluent.ksql.parser.tree.ShowFunctions;
-import io.confluent.ksql.parser.tree.ShowPartitions;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -116,10 +104,6 @@ import io.confluent.ksql.util.KsqlException;
 
 
 public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
-
-  protected Node visitNode(final Node node, final Object context) {
-    return null;
-  }
 
   protected Node visitExpression(final Expression node, final Object context) {
     return node;
@@ -185,10 +169,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   }
 
-  protected Node visitLiteral(final Literal node, final Object context) {
-    return visitExpression(node, context);
-  }
-
   protected Node visitDoubleLiteral(final DoubleLiteral node, final Object context) {
     return node.getLocation()
         .map(location ->
@@ -218,45 +198,10 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitStatement(final Statement node, final Object context) {
-    return visitNode(node, context);
-  }
 
   protected Node visitQuery(final Query node, final Object context) {
     return new Query((QueryBody) process(node.getQueryBody(), context),
         node.getLimit());
-  }
-
-  protected Node visitExplain(final Explain node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitShowCatalogs(final ShowCatalogs node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitShowColumns(final ShowColumns node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitShowPartitions(final ShowPartitions node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitShowCreate(final ShowCreate node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitShowFunctions(final ShowFunctions node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitSetSession(final SetSession node, final Object context) {
-    return visitStatement(node, context);
-  }
-
-  protected Node visitGenericLiteral(final GenericLiteral node, final Object context) {
-    return visitLiteral(node, context);
   }
 
   protected Node visitTimeLiteral(final TimeLiteral node, final Object context) {
@@ -268,10 +213,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
             new TimeLiteral(node.getValue())
         );
 
-  }
-
-  protected Node visitExplainOption(final ExplainOption node, final Object context) {
-    return visitNode(node, context);
   }
 
   protected Node visitWithQuery(final WithQuery node, final Object context) {
@@ -308,14 +249,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
                     .collect(Collectors.toList())
             )
         );
-  }
-
-  protected Node visitRelation(final Relation node, final Object context) {
-    return visitNode(node, context);
-  }
-
-  protected Node visitQueryBody(final QueryBody node, final Object context) {
-    return visitRelation(node, context);
   }
 
   protected Node visitQuerySpecification(final QuerySpecification node, final Object context) {
@@ -363,10 +296,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
                 node.getLimit()
             )
         );
-  }
-
-  protected Node visitSetOperation(final SetOperation node, final Object context) {
-    return visitQueryBody(node, context);
   }
 
   protected Node visitTimestampLiteral(TimestampLiteral node, final Object context) {
@@ -628,10 +557,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .orElse(
             new NotExpression((Expression) process(node.getValue(), context))
         );
-  }
-
-  protected Node visitSelectItem(final SelectItem node, final Object context) {
-    return visitNode(node, context);
   }
 
   protected Node visitSingleColumn(final SingleColumn node, final Object context) {
@@ -996,17 +921,18 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitWindow(final Window node, final Object context) {
-    if (node.getLocation().isPresent()) {
-      return new Window(node.getLocation().get(),
-          node.getWindowName(),
-          (WindowExpression) process(node.getWindowExpression(), context)
-      );
-    } else {
-      return new Window(node.getWindowName(),
-          (WindowExpression) process(node.getWindowExpression(), context)
-      );
-    }
-
+    return node.getLocation()
+        .map(location ->
+            new Window(node.getLocation().get(),
+                node.getWindowName(),
+                (WindowExpression) process(node.getWindowExpression(), context)
+            )
+        )
+        .orElse(
+            new Window(node.getWindowName(),
+                (WindowExpression) process(node.getWindowExpression(), context)
+            )
+        );
   }
 
   protected Node visitWindowFrame(final WindowFrame node, final Object context) {
@@ -1243,10 +1169,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         );
   }
 
-  protected Node visitCreateView(final CreateView node, final Object context) {
-    return visitStatement(node, context);
-  }
-
   protected Node visitDropView(final DropView node, final Object context) {
     return node.getLocation()
         .map(location ->
@@ -1300,9 +1222,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         );
   }
 
-  protected Node visitGroupingElement(final GroupingElement node, final Object context) {
-    return visitNode(node, context);
-  }
 
   protected Node visitSimpleGroupBy(final SimpleGroupBy node, final Object context) {
     return node.getLocation()

@@ -25,6 +25,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -68,7 +69,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -704,13 +704,12 @@ public class KsqlResourceTest {
     QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(
-        queryDescription.getSchema(),
+        queryDescription.getFields(),
         equalTo(
-            queryMetadata.getOutputNode().getSchema().fields()
-                .stream()
-                .map(f -> new FieldSchemaInfo(
-                    f.name(), SchemaUtil.describeSchema(f.schema())))
-                .collect(Collectors.toList())));
+            EntityUtil.buildSourceSchemaEntity(
+                queryMetadata.getOutputNode().getSchema())
+        )
+    );
     assertThat(
         queryDescription.getOverriddenProperties(),
         equalTo(overriddenProperties));

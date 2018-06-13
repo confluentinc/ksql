@@ -42,8 +42,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
-
-
   private final KTable<?, GenericRow> ktable;
   private final boolean isWindowed;
 
@@ -192,4 +190,80 @@ public class SchemaKTable extends SchemaKStream {
         functionRegistry,
         schemaRegistryClient);
   }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable join(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    KTable joinedKTable =
+        ktable.join(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        Arrays.asList(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable leftJoin(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    KTable joinedKTable =
+        ktable.leftJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        Arrays.asList(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable outerJoin(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    KTable joinedKTable =
+        ktable.outerJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        Arrays.asList(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
 }

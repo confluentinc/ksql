@@ -45,6 +45,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -186,9 +187,11 @@ public class JoinNodeTest {
 
     RightTable rightTable = new RightTable(new PlanNodeId("1"), joinNode.getRight().getSchema());
 
-    JoinNode testJoinNode = new JoinNode(joinNode.getId(), joinNode.getType(), joinNode.getLeft()
+    JoinNode testJoinNode = new JoinNode(joinNode.getId(), joinNode.getJoinType(), joinNode.getLeft()
         , rightTable, joinNode.getLeftKeyFieldName(), joinNode.getRightKeyFieldName(), joinNode
-                                             .getLeftAlias(), joinNode.getRightAlias());
+                                             .getLeftAlias(), joinNode.getRightAlias(), null,
+                                         DataSource.DataSourceType.KSTREAM,
+                                         DataSource.DataSourceType.KTABLE);
     testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
                           new HashMap<>(), new MockSchemaRegistryClient());
 
@@ -214,8 +217,9 @@ public class JoinNodeTest {
       buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
     } catch (KsqlException e) {
       Assert.assertThat(e.getMessage(), equalTo(
-          "Stream and Table have different number of partitions. Either the stream or the table" +
-              "must be repartitioned such that both have the same number of partitions."
+          "Can't join STREAM with TABLE since the number of partitions don't match. STREAM "
+          + "partitions = 1; TABLE partitions = 2. Please repartition either one so that the "
+          + "number of partitions match."
       ));
     }
 

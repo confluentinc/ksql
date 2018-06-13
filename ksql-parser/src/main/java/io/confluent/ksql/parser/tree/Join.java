@@ -26,34 +26,34 @@ import static java.util.Objects.requireNonNull;
 public class Join
     extends Relation {
 
+  private final SpanExpression spanExpression;
+
   public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
-    this(Optional.empty(), type, left, right, criteria);
+    this(Optional.empty(), type, left, right, criteria, null);
   }
 
   public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria) {
-    this(Optional.of(location), type, left, right, criteria);
+              Optional<JoinCriteria> criteria, SpanExpression spanExpression) {
+    this(Optional.of(location), type, left, right, criteria, spanExpression);
   }
 
   private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
-               Optional<JoinCriteria> criteria) {
+               Optional<JoinCriteria> criteria,
+               SpanExpression spanExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
-    if ((type == Type.CROSS) || (type == Type.IMPLICIT)) {
-      checkArgument(!criteria.isPresent(), "%s join cannot have join criteria", type);
-    } else {
-      checkArgument(criteria.isPresent(), "No join criteria specified");
-    }
+    checkArgument(criteria.isPresent(), "No join criteria specified");
 
     this.type = type;
     this.left = left;
     this.right = right;
     this.criteria = criteria;
+    this.spanExpression = spanExpression;
   }
 
   public enum Type {
-    CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
+    INNER, LEFT, OUTER
   }
 
   private final Type type;
@@ -75,6 +75,11 @@ public class Join
 
   public Optional<JoinCriteria> getCriteria() {
     return criteria;
+  }
+
+  public Optional<SpanExpression> getSpanExpression() {
+    return spanExpression == null
+           ? Optional.empty() : Optional.of(spanExpression);
   }
 
   @Override

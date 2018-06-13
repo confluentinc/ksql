@@ -104,18 +104,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
     this.isJoin = true;
-    AliasedRelation left = (AliasedRelation) visit(context.left);
-    AliasedRelation right;
-    if (context.CROSS() != null) {
-      right = (AliasedRelation) visit(context.right);
-    } else {
-      if (context.NATURAL() != null) {
-        right = (AliasedRelation) visit(context.right);
-      } else {
-        right = (AliasedRelation) visit(context.rightRelation);
-      }
-    }
-
+    final AliasedRelation left = (AliasedRelation) visit(context.left);
     this.leftAlias = left.getAlias();
     StructuredDataSource
         leftDataSource =
@@ -126,6 +115,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     }
     this.joinLeftSchema = leftDataSource.getSchema();
 
+    final AliasedRelation right = (AliasedRelation) visit(context.right);
     this.rightAlias = right.getAlias();
     StructuredDataSource
         rightDataSource =

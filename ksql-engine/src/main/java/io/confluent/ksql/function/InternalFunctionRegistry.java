@@ -36,7 +36,6 @@ import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.IfNullKudf;
 import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
-import io.confluent.ksql.function.udf.string.SubstringKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.util.KsqlException;
@@ -143,23 +142,11 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "UCASE", UCaseKudf.class);
     addFunction(ucase);
 
-    KsqlFunction substring = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA),
-        "SUBSTRING", SubstringKudf
-        .class);
-    addFunction(substring);
-    addFunction(new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA),
-        "SUBSTRING", SubstringKudf
-        .class));
 
-    KsqlFunction concat = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA),
-        "CONCAT", ConcatKudf.class);
+    KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
+                                                                           Schema.STRING_SCHEMA),
+                                         "CONCAT", ConcatKudf.class);
+
     addFunction(concat);
 
     KsqlFunction trim = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,

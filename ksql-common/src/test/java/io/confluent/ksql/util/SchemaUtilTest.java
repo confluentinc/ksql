@@ -32,10 +32,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.lang.reflect.Type;
 public class SchemaUtilTest {
 
-  Schema schema;
-
+  private Schema schema;
 
   @Before
   public void init() {
@@ -441,4 +441,88 @@ public class SchemaUtilTest {
   public void shouldThrowExceptionWhenResolvingStringWithAnythingElse() {
     SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.FLOAT64);
   }
+
+  @Test
+  public void shouldGetBooleanSchemaForBooleanClass() {
+    assertThat(SchemaUtil.getSchemaFromType(Boolean.class),
+        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
+    assertThat(SchemaUtil.getSchemaFromType(boolean.class),
+        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetIntSchemaForIntegerClass() {
+    assertThat(SchemaUtil.getSchemaFromType(Integer.class),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetIntegerSchemaForIntPrimitiveClass() {
+    assertThat(SchemaUtil.getSchemaFromType(int.class),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetLongSchemaForLongClass() {
+    assertThat(SchemaUtil.getSchemaFromType(Long.class),
+        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetLongSchemaForLongPrimitiveClass() {
+    assertThat(SchemaUtil.getSchemaFromType(long.class),
+        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+  }
+  
+  @Test
+  public void shouldGetFloatSchemaForDoubleClass() {
+    assertThat(SchemaUtil.getSchemaFromType(Double.class),
+        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetFloatSchemaForDoublePrimitiveClass() {
+    assertThat(SchemaUtil.getSchemaFromType(double.class),
+        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
+    final Type type = getClass().getDeclaredMethod("mapType", Map.class)
+        .getGenericParameterTypes()[0];
+    final Schema schema = SchemaUtil.getSchemaFromType(type);
+    assertThat(schema.type(), equalTo(Schema.Type.MAP));
+    assertThat(schema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetArraySchemaFromListClass() throws NoSuchMethodException {
+    final Type type = getClass().getDeclaredMethod("listType", List.class)
+        .getGenericParameterTypes()[0];
+    final Schema schema = SchemaUtil.getSchemaFromType(type);
+    assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
+    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetStringSchemaFromStringClass() {
+    assertThat(SchemaUtil.getSchemaFromType(String.class),
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowExceptionIfClassDoesntMapToSchema() {
+    SchemaUtil.getSchemaFromType(System.class);
+  }
+
+  // Following methods not invoked but used to test conversion from Type -> Schema
+  private void mapType(final Map<String, Integer> map) {}
+
+  private void listType(final List<Double> list) {}
 }
+

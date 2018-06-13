@@ -40,8 +40,9 @@ public class KsqlServerMain {
       }
 
       final Properties properties = serverOptions.loadProperties(System::getProperties);
+      final String installDir = properties.getProperty("ksql.server.install.dir");
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
-      final Executable executable = createExecutable(properties, queriesFile);
+      final Executable executable = createExecutable(properties, queriesFile, installDir);
       new KsqlServerMain(executable).tryStartApp();
     } catch (final Exception e) {
       log.error("Failed to start KSQL", e);
@@ -68,10 +69,11 @@ public class KsqlServerMain {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
       final Properties properties,
-      final Optional<String> queriesFile
+      final Optional<String> queriesFile,
+      final String installDir
   ) throws Exception {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutor.create(properties, queriesFile.get());
+      return StandaloneExecutor.create(properties, queriesFile.get(), installDir);
     }
 
     if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {

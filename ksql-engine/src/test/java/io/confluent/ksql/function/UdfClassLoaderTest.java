@@ -36,8 +36,12 @@ public class UdfClassLoaderTest {
   private final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
       getClass().getClassLoader(), resourceName -> false);
 
+
   @Test
   public void shouldLoadClassesInPath() throws ClassNotFoundException {
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+        getClass().getClassLoader(), resourceName -> false);
+
     assertThat(udfClassLoader.loadClass("org.damian.ksql.udf.ToString", true), not(nullValue()));
   }
 

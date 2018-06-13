@@ -34,7 +34,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
 
-  public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
+  public static final String STRING_TIMESTAMP_FORMAT = "ksql.timestamp.string.format";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -43,6 +43,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
+
+  public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
@@ -148,7 +150,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             defaultSchemaRegistryUrl,
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry, defaults to http://localhost:8081"
-        ).withClientSslSupport();
+        ).define(
+            KSQL_ENABLE_UDFS,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.MEDIUM,
+            "Whether or not custom UDF jars found in the ext dir should be loaded. Default is true "
+        )
+        .withClientSslSupport();
   }
 
   private static Map<String, Object> commonConfigs(Map<String, Object> props) {

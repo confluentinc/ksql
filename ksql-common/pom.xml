@@ -24,6 +24,12 @@
             <artifactId>guava</artifactId>
         </dependency>
 
+	<dependency>
+	    <groupId>io.confluent</groupId>
+	    <artifactId>kafka-connect-avro-converter</artifactId>
+	    <version>${confluent.version}</version>
+	</dependency>
+
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>

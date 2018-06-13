@@ -17,17 +17,19 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.apache.avro.Schema.create;
@@ -44,6 +46,18 @@ public class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
+  private static final Map<Type, Supplier<Schema>> typeToSchema
+      = ImmutableMap.<Type, Supplier<Schema>>builder()
+      .put(String.class, () -> Schema.OPTIONAL_STRING_SCHEMA)
+      .put(boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(Boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(Integer.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(int.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(Long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(Double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .put(double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .build();
 
   private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
       ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
@@ -82,6 +96,10 @@ public class SchemaUtil {
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
     }
+  }
+
+  public static Schema getSchemaFromType(final Type type) {
+    return typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
   }
 
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
@@ -200,40 +218,6 @@ public class SchemaUtil {
     }
 
     return sqlType;
-  }
-
-  public static String getSchemaFieldType(final Field field) {
-    if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
-          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.STRUCT) {
-      StringBuilder stringBuilder = new StringBuilder("STRUCT <");
-      stringBuilder.append(
-          field.schema().fields().stream()
-              .map(schemaField -> getSchemaFieldType(schemaField))
-              .collect(Collectors.joining(", ")));
-      stringBuilder.append(">");
-      return stringBuilder.toString();
-    } else {
-      return TYPE_MAP.get(field.schema().type().name());
-    }
-  }
-
-
-  //TODO: Improve the format with proper indentation.
-  public static String describeSchema(final Schema schema) {
-    if (schema.type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.MAP) {
-      return "MAP[" + describeSchema(schema.keySchema()) + ","
-          + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.STRUCT) {
-      return getStructString(schema);
-    } else {
-      return TYPE_MAP.get(schema.type().name());
-    }
   }
 
   public static String getJavaCastString(final Schema schema) {
@@ -436,13 +420,29 @@ public class SchemaUtil {
     );
   }
 
-  public static Schema resolveArithmeticType(final Schema.Type left,
-      final Schema.Type right) {
+  static Schema resolveArithmeticType(final Schema.Type left,
+                                      final Schema.Type right) {
 
     final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
     if (schema == null) {
       throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
     }
     return schema;
+  }
+
+
+  private static Schema handleParametrizedType(final Type type) {
+    if (type instanceof ParameterizedType) {
+      final ParameterizedType parameterizedType = (ParameterizedType) type;
+      if (parameterizedType.getRawType() == Map.class) {
+        return SchemaBuilder.map(getSchemaFromType(
+            parameterizedType.getActualTypeArguments()[0]),
+            getSchemaFromType(parameterizedType.getActualTypeArguments()[1]));
+      } else if (parameterizedType.getRawType() == List.class) {
+        return SchemaBuilder.array(getSchemaFromType(
+            parameterizedType.getActualTypeArguments()[0]));
+      }
+    }
+    throw new KsqlException("Type is not supported: " + type);
   }
 }

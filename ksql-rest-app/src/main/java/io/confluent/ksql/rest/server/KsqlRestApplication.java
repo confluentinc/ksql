@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -66,6 +67,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -233,6 +235,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // we should probably ony create one per application
     ObjectMapper jsonMapper = super.getJsonMapper();
     new SchemaMapper().registerToObjectMapper(jsonMapper);
+    jsonMapper.registerModule(new Jdk8Module());
     return jsonMapper;
   }
 
@@ -295,6 +298,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
+    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
 
     final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
 

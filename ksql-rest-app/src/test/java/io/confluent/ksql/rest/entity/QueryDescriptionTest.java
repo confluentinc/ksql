@@ -104,11 +104,11 @@ public class QueryDescriptionTest {
     assertThat(queryDescription.getStatementText(), equalTo("test statement"));
     assertThat(queryDescription.getTopology(), equalTo(topologyDescription.toString()));
     assertThat(
-        queryDescription.getSchema(),
+        queryDescription.getFields(),
         equalTo(
             Arrays.asList(
-                new FieldSchemaInfo("field1", "INTEGER"),
-                new FieldSchemaInfo("field2", "VARCHAR(STRING)"))));
+                new FieldInfo("field1", new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)),
+                new FieldInfo("field2", new SchemaInfo(SchemaInfo.Type.STRING, null, null)))));
   }
 
   @Test

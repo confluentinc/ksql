@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.test.TestUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,8 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfCompiler;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -64,7 +67,6 @@ import static org.hamcrest.Matchers.not;
 public class CodeGenRunnerTest {
 
     private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
     private static final int INT64_INDEX1 = 0;
     private static final int STRING_INDEX1 = 1;
     private static final int STRING_INDEX2 = 2;
@@ -84,9 +86,17 @@ public class CodeGenRunnerTest {
     private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
+
     @Before
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+        // load substring function
+        new UdfLoader(metaStore,
+            TestUtils.tempDirectory(),
+            getClass().getClassLoader(),
+            value -> false, new UdfCompiler(), true)
+            .load();
+
         final Schema schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)

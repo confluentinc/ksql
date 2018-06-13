@@ -11,10 +11,14 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfCompiler;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UdfLoaderTest;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
+import kafka.utils.TestUtils;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -26,12 +30,18 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
-  private InternalFunctionRegistry functionRegistry;
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    functionRegistry = new InternalFunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+    // load udfs that are not hardcoded
+    new UdfLoader(metaStore,
+        TestUtils.tempDir(),
+        UdfLoaderTest.class.getClassLoader(),
+        value -> false,
+        new UdfCompiler(), true).load();
+
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
         .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
@@ -39,7 +49,6 @@ public class SqlToJavaVisitorTest {
         .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
         .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
         .optional().build();
-
 
     schema = SchemaBuilder.struct()
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -73,7 +82,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldProcessArrayExpressionCorrectly() throws Exception {
+  public void shouldProcessArrayExpressionCorrectly() {
     String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -85,7 +94,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldProcessMapExpressionCorrectly() throws Exception {
+  public void shouldProcessMapExpressionCorrectly() {
     String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyzeQuery(simpleQuery);
 
@@ -96,7 +105,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldCreateCorrectCastJavaExpression() throws Exception {
+  public void shouldCreateCorrectCastJavaExpression() {
 
     String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
         + "varchar) FROM "

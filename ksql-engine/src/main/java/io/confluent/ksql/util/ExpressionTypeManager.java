@@ -191,8 +191,13 @@ public class ExpressionTypeManager
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
 
-    final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
-    if (udfFactory != null) {
+    if (functionRegistry.isAggregate(node.getName().getSuffix())) {
+      KsqlAggregateFunction ksqlAggregateFunction =
+          functionRegistry.getAggregate(
+              node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
+      expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
+    } else {
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
       List<Schema.Type> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
@@ -201,13 +206,6 @@ public class ExpressionTypeManager
       final Schema returnType = udfFactory.getFunction(argTypes)
           .getReturnType();
       expressionTypeContext.setSchema(returnType);
-    } else if (functionRegistry.isAggregate(node.getName().getSuffix())) {
-      KsqlAggregateFunction ksqlAggregateFunction =
-          functionRegistry.getAggregate(
-              node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
-      expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
-    } else {
-      throw new KsqlException("Unknown function: " + node.getName().toString());
     }
     return null;
   }

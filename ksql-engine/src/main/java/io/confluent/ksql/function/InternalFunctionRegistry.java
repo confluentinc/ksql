@@ -75,7 +75,11 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   public UdfFactory getUdfFactory(final String functionName) {
-    return ksqlFunctionMap.get(functionName.toUpperCase());
+    final UdfFactory udfFactory = ksqlFunctionMap.get(functionName.toUpperCase());
+    if (udfFactory == null) {
+      throw new KsqlException("Can't find any functions with the name " + functionName);
+    }
+    return udfFactory;
   }
 
   @SuppressWarnings("unchecked")

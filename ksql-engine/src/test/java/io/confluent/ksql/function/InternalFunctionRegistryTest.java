@@ -94,7 +94,12 @@ public class InternalFunctionRegistryTest {
 
     assertThat(copy.getUdfFactory("func").getFunction(Collections.emptyList()), equalTo(func));
     assertThat(copy.getUdfFactory("func2").getFunction(Collections.emptyList()), equalTo(func2));
-    assertThat(functionRegistry.getUdfFactory("func2"), nullValue());
+    try {
+      functionRegistry.getUdfFactory("func2");
+      fail("should have thrown when function doesn't exist");
+    } catch (final KsqlException e) {
+      // pass
+    }
   }
 
   @Test
@@ -175,5 +180,10 @@ public class InternalFunctionRegistryTest {
         .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA.type())), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.emptyList()), equalTo(func));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
+    functionRegistry.getUdfFactory("foo_bar");
   }
 }

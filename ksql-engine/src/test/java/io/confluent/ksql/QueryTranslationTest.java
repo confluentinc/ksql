@@ -16,15 +16,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.confluent.ksql.EndToEndEngineTest.findTests;
-import static io.confluent.ksql.EndToEndEngineTest.Query;
-import static io.confluent.ksql.EndToEndEngineTest.Record;
-import static io.confluent.ksql.EndToEndEngineTest.SerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.StringSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.Topic;
-import static io.confluent.ksql.EndToEndEngineTest.Window;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
 
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
@@ -45,7 +45,7 @@ public class QueryTranslationTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTest.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -56,7 +56,7 @@ public class QueryTranslationTest {
       final JsonNode tests;
       try {
         tests = objectMapper.readTree(
-            EndToEndEngineTest.class.getClassLoader().
+            EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(testPath));
       } catch (IOException e) {
         throw new RuntimeException("Unable to load test at path " + testPath);

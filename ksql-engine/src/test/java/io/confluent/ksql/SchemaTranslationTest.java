@@ -22,13 +22,13 @@ import java.util.stream.IntStream;
 
 import io.confluent.avro.random.generator.Generator;
 
-import static io.confluent.ksql.EndToEndEngineTest.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTest.findTests;
-import static io.confluent.ksql.EndToEndEngineTest.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.Query;
-import static io.confluent.ksql.EndToEndEngineTest.Record;
-import static io.confluent.ksql.EndToEndEngineTest.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTest.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 
 
 @RunWith(Parameterized.class)
@@ -48,7 +48,7 @@ public class SchemaTranslationTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTest.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -59,7 +59,7 @@ public class SchemaTranslationTest {
       final JsonNode tests;
       try {
         tests = objectMapper.readTree(
-            EndToEndEngineTest.class.getClassLoader().getResourceAsStream(
+            EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(
                 SCHEMA_VALIDATION_TEST_DIR + "/" + filename));
       } catch (IOException e) {
         throw new RuntimeException("Unable to load test at path " + filename);

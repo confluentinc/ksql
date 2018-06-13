@@ -21,7 +21,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -37,10 +36,6 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -61,7 +56,7 @@ import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 
-class EndToEndEngineTest {
+class EndToEndEngineTestUtil {
   protected interface SerdeSupplier<T> {
     Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient);
     Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient);
@@ -387,7 +382,8 @@ class EndToEndEngineTest {
     }
   }
 
-  private static TopologyTestDriver buildStreamsTopology(final Query query, final KsqlEngine ksqlEngine,
+  private static TopologyTestDriver buildStreamsTopology(final Query query,
+                                                         final KsqlEngine ksqlEngine,
                                                          final Properties streamsProperties) {
     final List<QueryMetadata> queries = new ArrayList<>();
     query.statements().forEach(
@@ -402,7 +398,7 @@ class EndToEndEngineTest {
     final List<String> tests = new ArrayList<>();
     try (final BufferedReader reader =
              new BufferedReader(
-                 new InputStreamReader(EndToEndEngineTest.class.getClassLoader().
+                 new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                      getResourceAsStream(dir)))) {
 
       String test;
@@ -415,10 +411,10 @@ class EndToEndEngineTest {
     return tests;
   }
 
-  static void shouldBuildAndExecuteQuery(Query query) {
+  static void shouldBuildAndExecuteQuery(final Query query) {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final Map<String, Object> config = new HashMap<String, Object>() {{
-      put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+      put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
       put("application.id", "KSQL-TEST");
       put("commit.interval.ms", 0);
       put("cache.max.bytes.buffering", 0);

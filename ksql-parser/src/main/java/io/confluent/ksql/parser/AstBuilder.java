@@ -811,7 +811,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     if (context.joinCriteria().ON() == null) {
       throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
                               + "column values. For example `... left JOIN right on left.col = "
-                              + "right.col ...`. ");
+                              + "right.col ...`. Tables can only be joined on the Table's key "
+                              + "column. KSQL will repartition streams if the column in the join "
+                              + "criteria is not the key column.");
     }
 
     JoinCriteria criteria =
@@ -830,8 +832,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       spanExpression = (SpanExpression) visitSpanExpression(
           context.joinWindow().spanExpression());
     }
-    Relation left = (Relation) visit(context.left);
-    Relation right = (Relation) visit(context.right);
+    AliasedRelation left = (AliasedRelation) visit(context.left);
+    AliasedRelation right = (AliasedRelation) visit(context.right);
     return new Join(getLocation(context), joinType, left, right, Optional.of(criteria),
                     Optional.ofNullable(spanExpression));
   }

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function;
 
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +33,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,12 +48,8 @@ public class UdfLoaderTest {
   private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
   private final UdfCompiler compiler = new UdfCompiler();
   private final ClassLoader parentClassLoader = UdfLoaderTest.class.getClassLoader();
-  private final UdfLoader pluginLoader = new UdfLoader(metaStore,
-      new File("src/test/resources"),
-      parentClassLoader,
-      value -> false,
-      compiler,
-      true);
+  private final Metrics metrics = new Metrics();
+  private final UdfLoader pluginLoader = createUdfLoader(metaStore, true, false);
 
   @Before
   public void before() {
@@ -119,13 +119,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldNotLoadUdfsInJarDirectoryIfLoadCustomerUdfsFalse() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    final UdfLoader pluginLoader = new UdfLoader(metaStore,
-        new File("src/test/resources"),
-        parentClassLoader,
-        value -> false,
-        compiler,
-        false);
-
+    final UdfLoader pluginLoader = createUdfLoader(metaStore, false, false);
     pluginLoader.load();
     // udf in ksql-engine
     final UdfFactory function = metaStore.getUdfFactory("substring");
@@ -135,6 +129,40 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
     assertThat(toString, nullValue());
     assertThat(toString, nullValue());
+  }
+
+  @Test
+  public void shouldCollectMetricsWhenMetricCollectionEnabled() {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final UdfLoader pluginLoader = createUdfLoader(metaStore, true, true);
+
+    pluginLoader.load();
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    final KsqlFunction function
+        = substring.getFunction(Arrays.asList(Schema.Type.STRING, Schema.Type.INT32));
+    final Kudf kudf = function.newInstance();
+    assertThat(kudf, instanceOf(UdfMetricProducer.class));
+    final Sensor sensor = metrics.getSensor("ksql-udf-substring");
+    assertThat(sensor, not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf-substring")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf-substring")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf-substring")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf-substring")),
+        not(nullValue()));
+  }
+
+  private UdfLoader createUdfLoader(final MetaStore metaStore,
+                                    final boolean loadCustomerUdfs,
+                                    final boolean collectMetrics) {
+    return new UdfLoader(metaStore,
+        new File("src/test/resources"),
+        parentClassLoader,
+        value -> false,
+        compiler,
+        metrics, loadCustomerUdfs, collectMetrics);
   }
 
 }

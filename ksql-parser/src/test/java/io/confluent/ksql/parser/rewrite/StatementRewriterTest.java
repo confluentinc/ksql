@@ -447,7 +447,7 @@ public class StatementRewriterTest {
     assertThat(createStreamAsSelect.getName().toString(), equalTo("BIGORDERS_JSON"));
     assertThat(createStreamAsSelect.getQuery().getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(4));
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(8));
     assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias(), equalTo("ORDERS"));
   }

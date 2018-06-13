@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
+import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -150,6 +151,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
   private DataSourceExtractor dataSourceExtractor;
+
+  private Stack<String> dotStack = new Stack<>();
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
@@ -1129,21 +1132,46 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitDereference(SqlBaseParser.DereferenceContext context) {
     String fieldName = getIdentifierText(context.identifier());
-    Expression baseExpression;
-    QualifiedName tableName = QualifiedName.of(
-        context.primaryExpression().getText().toUpperCase());
-    baseExpression = new QualifiedNameReference(
-        getLocation(context.primaryExpression()), tableName);
-    DereferenceExpression dereferenceExpression =
-        new DereferenceExpression(getLocation(context), baseExpression, fieldName);
-    return dereferenceExpression;
+    dotStack.push(fieldName);
+    Expression baseExpression = (Expression) visit(context.base);
+    dotStack.pop();
+    return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
   }
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
     String columnName = getIdentifierText(context.identifier());
+    String suffixFieldName = null;
+    if (!dotStack.empty()) {
+      suffixFieldName = dotStack.peek();
+    }
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
+      if (isAmbiguousColumnName(
+          columnName,
+          suffixFieldName,
+          dataSourceExtractor.getLeftName(),
+          dataSourceExtractor.getLeftAlias(),
+          dataSourceExtractor.getJoinLeftSchema())
+          || isAmbiguousColumnName(
+          columnName,
+          suffixFieldName,
+          dataSourceExtractor.getRightName(),
+          dataSourceExtractor.getRightAlias(),
+          dataSourceExtractor.getJoinRightSchema())) {
+        throw new KsqlException(String.format("Ambiguous column name %s. You have stream/table"
+            + " with the same name/alias. Use stream/table name or"
+            + " alias as prefix when there is a column with the same name.", columnName));
+      }
+      if (columnName.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getLeftName())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getRightName())) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      }
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
         throw new KsqlException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
@@ -1164,13 +1192,49 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
-      Expression baseExpression =
-          new QualifiedNameReference(
-              getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getFromAlias())
-          );
-      return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+      if (isAmbiguousColumnName(
+          columnName,
+          suffixFieldName,
+          dataSourceExtractor.getFromName(),
+          dataSourceExtractor.getFromAlias(),
+          dataSourceExtractor.getFromSchema())) {
+        throw new KsqlException(String.format("Ambiguous column name %s. You have stream/table"
+            + " with the same name/alias. Use stream/table name or"
+            + " alias as prefix when there is a column with the same name.", columnName));
+      }
+      if (columnName.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getFromName())) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      } else {
+        Expression baseExpression =
+            new QualifiedNameReference(
+                getLocation(context),
+                QualifiedName.of(dataSourceExtractor.getFromAlias())
+            );
+        return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+      }
     }
+  }
+
+  private boolean isAmbiguousColumnName(
+      final String columnName,
+      final String suffixName,
+      final String sourceName,
+      final String sourceAlias,
+      final Schema sourceSchema
+  ) {
+    boolean isASchemaColumn = sourceSchema.fields().stream()
+        .anyMatch(field -> columnName.equalsIgnoreCase(field.name()));
+    if (suffixName == null) {
+      return isASchemaColumn
+          && (columnName.equalsIgnoreCase(sourceName) || columnName.equalsIgnoreCase(sourceAlias));
+    }
+    return isASchemaColumn
+        && !columnName.equalsIgnoreCase(suffixName)
+        && (columnName.equalsIgnoreCase(sourceName) || columnName.equalsIgnoreCase(sourceAlias));
   }
 
   @Override

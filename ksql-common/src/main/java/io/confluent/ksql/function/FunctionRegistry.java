@@ -18,6 +18,8 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.List;
+
 public interface FunctionRegistry {
 
   UdfFactory getUdfFactory(String functionName);
@@ -32,4 +34,6 @@ public interface FunctionRegistry {
   void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory);
 
   FunctionRegistry copy();
+
+  List<UdfFactory> listFunctions();
 }

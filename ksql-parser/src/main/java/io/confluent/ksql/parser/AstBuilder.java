@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -658,6 +659,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
     return new ListQueries(
         Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
+  }
+
+  @Override
+  public Node visitListFunctions(final SqlBaseParser.ListFunctionsContext ctx) {
+    return new ShowFunctions(Optional.of(getLocation(ctx)));
   }
 
   @Override
@@ -1341,6 +1347,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new Explain(queryId, statement, false, Arrays.asList());
   }
+
 
   // ***************** helpers *****************
 

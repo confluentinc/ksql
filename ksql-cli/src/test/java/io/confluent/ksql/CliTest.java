@@ -530,4 +530,12 @@ public class CliTest extends TestRunner {
         terminal.getOutputString(),
         containsString("Minimum supported client version: 1.0"));
   }
+
+  @Test
+  public void shouldListFunctions() {
+    final List<List<String>> rows = new ArrayList<>();
+    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "VARCHAR", "[BIGINT, VARCHAR]"));
+    rows.add(Arrays.asList("SUBSTRING", "VARCHAR", "[VARCHAR, INT]"));
+    testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
+  }
 }

@@ -18,8 +18,10 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -66,5 +68,10 @@ public class TestFunctionRegistry implements FunctionRegistry {
   @Override
   public FunctionRegistry copy() {
     return this;
+  }
+
+  @Override
+  public List<UdfFactory> listFunctions() {
+    return new ArrayList<>(udfs.values());
   }
 }

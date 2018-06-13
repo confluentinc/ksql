@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
@@ -137,6 +138,11 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     return new InternalFunctionRegistry(
         new HashMap<>(ksqlFunctionMap),
         new HashMap<>(aggregateFunctionMap));
+  }
+
+  @Override
+  public List<UdfFactory> listFunctions() {
+    return new ArrayList<>(ksqlFunctionMap.values());
   }
 
   private void addStringFunctions() {

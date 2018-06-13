@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -42,6 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -104,6 +107,7 @@ import io.confluent.rest.RestConfig;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -351,6 +355,25 @@ public class KsqlResourceTest {
     List<RunningQuery> testQueries = queries.getQueries();
 
     assertEquals(0, testQueries.size());
+  }
+
+  @Test
+  public void shouldListFunctions() {
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+    final FunctionList functionList = makeSingleRequest(
+        testResource,
+        "LIST FUNCTIONS;",
+        Collections.emptyMap(),
+        FunctionList.class
+    );
+
+    // not going to check every function
+    assertThat(functionList.getFunctions(), hasItems(
+        new FunctionInfo("TIMESTAMPTOSTRING", Arrays.asList("BIGINT", "VARCHAR"), "VARCHAR"),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<INT>", "INT"), "BOOLEAN"),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("VARCHAR", "VARCHAR"), "BOOLEAN"),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<DOUBLE>", "DOUBLE"), "BOOLEAN"),
+        new FunctionInfo("CONCAT", Arrays.asList("VARCHAR", "VARCHAR"), "VARCHAR")));
   }
 
   @Test

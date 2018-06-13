@@ -41,6 +41,7 @@ statement
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
+    | (LIST | SHOW) FUNCTIONS                                            #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries

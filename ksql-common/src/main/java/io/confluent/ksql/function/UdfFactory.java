@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.udf.Kudf;
@@ -63,6 +64,14 @@ public class UdfFactory {
           + " as a function with the same name and argument types already exists "
           + functions.get(paramTypes));
     }
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void eachFunction(final Consumer<KsqlFunction> consumer) {
+    functions.values().forEach(consumer);
   }
 
   @Override

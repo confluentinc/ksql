@@ -54,6 +54,7 @@ import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -670,5 +671,9 @@ public class KsqlEngine implements Closeable {
         new HashMap<>(),
         metaStoreCopy
     );
+  }
+
+  public List<UdfFactory> listFunctions() {
+    return metaStore.listFunctions();
   }
 }

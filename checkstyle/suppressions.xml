@@ -20,7 +20,7 @@
     <suppress files="(KafkaConsumerGroupClientImpl.java)" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder).java"
+    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder|StatementRewriter).java"
               checks="ClassDataAbstractionCouplingCheck"/>
     <suppress
             files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand).java"

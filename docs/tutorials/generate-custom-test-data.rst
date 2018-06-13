@@ -27,76 +27,34 @@ messages from this Kafka cluster. KSQL is installed in the |cp| by default.
 Define a custom schema
 ----------------------
 
-In this example, you register a custom Avro schema to the |sr|. The schema is
-named `impressions.avro 
+In this example, you download a custom Avro schema and generate matching test
+data. The schema is named `impressions.avro 
 <https://github.com/apurvam/streams-prototyping/blob/master/src/main/resources/impressions.avro>`_, 
-and it represents ads delivered to users.
+and it represents advertisements delivered to users.
 
-#. Download ``impressions.avro`` and copy it to a convenient directory. It's used
-   by ``ksql-datagen`` when you start generating test data.
+Download ``impressions.avro`` and copy it to your root directory. It's used
+by ``ksql-datagen`` when you start generating test data.
 
-   .. code:: bash
+.. code:: bash
 
-      curl https://raw.githubusercontent.com/apurvam/streams-prototyping/master/src/main/resources/impressions.avro > impressions.avro
+   curl https://raw.githubusercontent.com/apurvam/streams-prototyping/master/src/main/resources/impressions.avro > impressions.avro
 
-#. Use the ``curl`` command to post the ``impressions-key`` schema to the |sr|.
-
-   .. code:: bash
-
-      curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-      --data '{"schema": "{\"namespace\":\"streams\",\"name\":\"impressions\",\"type\":\"string\"}"}' \
-      http://localhost:8081/subjects/impressions-key/versions
-
-   The return value is the identifier for the schema in the |sr|.
-   Your output should resemble:
-
-   .. code:: bash
-
-      {"id":1}
-
-#. Use the ``curl`` command to post the ``impressions-value`` schema to the |sr|.
-
-   .. code:: bash
-
-      curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-      --data '{"schema": "{\"namespace\":\"streams\",\"name\":\"impressions\",\"type\":\"record\",\"fields\":[{\"name\":\"impresssiontime\",\"type\":{\"type\":\"long\",\"format_as_time\":\"unix_long\",\"arg.properties\":{\"iteration\":{\"start\":1,\"step\":10}}}},{\"name\":\"impressionid\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\":\"impression_[1-9][0-9][0-9]\"}}},{\"name\":\"userid\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\":\"user_[1-9][0-9]?\"}}},{\"name\":\"adid\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\":\"ad_[1-9][0-9]?\"}}}]}"}' \
-      http://localhost:8081/subjects/impressions-value/versions
-
-   Your output should resemble:
-
-   .. code:: bash
-
-      {"id":1}
-
-#. Query the |sr| for the list of registered schemas:
-
-   .. code:: bash
-
-      curl -X GET http://localhost:8081/subjects
-
-   Your output should resemble:
-
-   .. code:: bash
-
-      ["impressions-value","impressions-key"]
-
-For more |sr| commands, see :ref:`_schemaregistry_intro`.
 
 Generate Test Data
 ------------------
 
 When you have a custom schema registered, you can generate test data that's
 made up of random values that satisfy the schema requirements. In the
-``impressions`` schema, ad identifiers are two-digit random numbers between
-10 and 99, as specified by the regular expression ``ad_[1-9][0-9]``.
+``impressions`` schema, advertisement identifiers are two-digit random numbers
+between 10 and 99, as specified by the regular expression ``ad_[1-9][0-9]``.
 
-Open a new command shell, and in the ``<path-to-confluent>/bin`` directory, start
-generating test values by using the ``ksql-datagen`` command. In this example,
-the schema file, ``impressions.avro``, is in the same directory as ``ksql-datagen``. 
+Open a new command shell, and in the ``<path-to-confluent>/bin`` directory,
+start generating test values by using the ``ksql-datagen`` command. In this
+example, the schema file, ``impressions.avro``, is in the root directory. 
 
 .. code:: bash
 
-    ./ksql-datagen schema=impressions.avro format=delimited topic=impressions key=impressionid propertiesFile=../etc/ksql/datagen.properties
+    ./ksql-datagen schema=~/impressions.avro format=delimited topic=impressions key=impressionid propertiesFile=../etc/ksql/datagen.properties
 
 After a few startup messages, your output should resemble:
 

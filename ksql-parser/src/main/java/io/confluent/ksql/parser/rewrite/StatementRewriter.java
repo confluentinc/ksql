@@ -104,10 +104,10 @@ import io.confluent.ksql.util.KsqlException;
 
 
 /**
- * This class will create a new AST given the input AST. The new AST is exactly the clone of the imput one.
- * If you want to rewrite a query by changing the AST you can inherit from this class and implemet the
- * changes for the nodes you need. The newly generated tree will include your changes and the rest of the
- * tree will remain the same.
+ * This class will create a new AST given the input AST. The new AST is exactly the clone of
+ * the imput one. If you want to rewrite a query by changing the AST you can inherit from this
+ * class and implemet the changes for the nodes you need. The newly generated tree will include
+ * your changes and the rest of the tree will remain the same.
  * 
  */
 public class StatementRewriter extends DefaultAstVisitor<Node, Object> {

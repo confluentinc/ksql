@@ -250,10 +250,9 @@ public final class SqlFormatter {
       process(node.getRight(), indent);
 
       JoinCriteria criteria = node.getCriteria().orElseThrow(() ->
-                                                                 new KsqlException("Join "
-                                                                                   + "criteria "
-                                                                                   + "is "
-                                                                                   + "missing"));
+          new KsqlException("Join criteria is missing")
+      );
+
       JoinOn on = (JoinOn) criteria;
       builder.append(" ON (")
           .append(ExpressionFormatter.formatExpression(on.getExpression()))

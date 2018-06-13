@@ -547,7 +547,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     );
   }
 
-  public Node visitSpanExpression(SqlBaseParser.SpanExpressionContext ctx) {
+  public Node visitSpanExpression(final SqlBaseParser.SpanExpressionContext ctx) {
     long before;
     long after;
     TimeUnit timeUnit;
@@ -833,7 +833,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     Relation left = (Relation) visit(context.left);
     Relation right = (Relation) visit(context.right);
     return new Join(getLocation(context), joinType, left, right, Optional.of(criteria),
-                    spanExpression);
+                    Optional.ofNullable(spanExpression));
   }
 
   @Override

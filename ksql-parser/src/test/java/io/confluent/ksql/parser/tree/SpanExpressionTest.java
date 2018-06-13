@@ -32,7 +32,7 @@ public class SpanExpressionTest {
 
   @Test
   public void shouldDisplayCorrectSTringWithBeforeAndAfter() {
-    SpanExpression expression =new SpanExpression(30, 40, TimeUnit.MINUTES);
+    SpanExpression expression = new SpanExpression(30, 40, TimeUnit.MINUTES);
     assertEquals(" SPAN (30, 40) MINUTES", expression.toString());
   }
 

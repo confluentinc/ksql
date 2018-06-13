@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -228,16 +230,15 @@ public class SchemaKStream {
     }
   }
 
-
   @SuppressWarnings("unchecked")
   public SchemaKStream leftJoin(
       final SchemaKTable schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
-      Serde<GenericRow> leftValueSerDe
+      final Serde<GenericRow> leftValueSerDe
   ) {
 
-    KStream joinedKStream =
+    final KStream joinedKStream =
         kstream.leftJoin(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
@@ -248,7 +249,7 @@ public class SchemaKStream {
         joinSchema,
         joinedKStream,
         joinKey,
-        Arrays.asList(this, schemaKTable),
+        ImmutableList.of(this, schemaKTable),
         Type.JOIN,
         functionRegistry,
         schemaRegistryClient
@@ -277,7 +278,7 @@ public class SchemaKStream {
         joinSchema,
         joinStream,
         joinKey,
-        Arrays.asList(this, otherSchemaKStream),
+        ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
         functionRegistry,
         schemaRegistryClient);
@@ -288,10 +289,10 @@ public class SchemaKStream {
       final SchemaKTable schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
-      Serde<GenericRow> joinSerDe
+      final Serde<GenericRow> joinSerDe
   ) {
 
-    KStream joinedKStream =
+    final KStream joinedKStream =
         kstream.join(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
@@ -302,7 +303,7 @@ public class SchemaKStream {
         joinSchema,
         joinedKStream,
         joinKey,
-        Arrays.asList(this, schemaKTable),
+        ImmutableList.of(this, schemaKTable),
         Type.JOIN,
         functionRegistry,
         schemaRegistryClient
@@ -358,7 +359,7 @@ public class SchemaKStream {
         joinSchema,
         joinStream,
         joinKey,
-        Arrays.asList(this, otherSchemaKStream),
+        ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
         functionRegistry,
         schemaRegistryClient);
@@ -532,7 +533,8 @@ public class SchemaKStream {
     return schemaRegistryClient;
   }
 
-  protected class KsqlValueJoiner implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
+  protected static class KsqlValueJoiner
+      implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
     private final Schema leftSchema;
     private final Schema rightSchema;
 

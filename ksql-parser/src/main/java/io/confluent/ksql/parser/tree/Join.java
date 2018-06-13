@@ -26,20 +26,20 @@ import static java.util.Objects.requireNonNull;
 public class Join
     extends Relation {
 
-  private final SpanExpression spanExpression;
+  private final Optional<SpanExpression> spanExpression;
 
   public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
     this(Optional.empty(), type, left, right, criteria, null);
   }
 
   public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria, SpanExpression spanExpression) {
+              Optional<JoinCriteria> criteria, Optional<SpanExpression> spanExpression) {
     this(Optional.of(location), type, left, right, criteria, spanExpression);
   }
 
   private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
                Optional<JoinCriteria> criteria,
-               SpanExpression spanExpression) {
+               Optional<SpanExpression> spanExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
@@ -78,8 +78,7 @@ public class Join
   }
 
   public Optional<SpanExpression> getSpanExpression() {
-    return spanExpression == null
-           ? Optional.empty() : Optional.of(spanExpression);
+    return spanExpression;
   }
 
   @Override

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -198,7 +200,7 @@ public class SchemaKTable extends SchemaKStream {
       final Field joinKey
   ) {
 
-    KTable joinedKTable =
+    final KTable joinedKTable =
         ktable.join(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
@@ -208,7 +210,7 @@ public class SchemaKTable extends SchemaKStream {
         joinSchema,
         joinedKTable,
         joinKey,
-        Arrays.asList(this, schemaKTable),
+        ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
         functionRegistry,
@@ -223,7 +225,7 @@ public class SchemaKTable extends SchemaKStream {
       final Field joinKey
   ) {
 
-    KTable joinedKTable =
+    final KTable joinedKTable =
         ktable.leftJoin(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
@@ -233,7 +235,7 @@ public class SchemaKTable extends SchemaKStream {
         joinSchema,
         joinedKTable,
         joinKey,
-        Arrays.asList(this, schemaKTable),
+        ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
         functionRegistry,
@@ -248,7 +250,7 @@ public class SchemaKTable extends SchemaKStream {
       final Field joinKey
   ) {
 
-    KTable joinedKTable =
+    final KTable joinedKTable =
         ktable.outerJoin(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
@@ -258,7 +260,7 @@ public class SchemaKTable extends SchemaKStream {
         joinSchema,
         joinedKTable,
         joinKey,
-        Arrays.asList(this, schemaKTable),
+        ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
         functionRegistry,

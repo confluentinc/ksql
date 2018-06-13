@@ -27,6 +27,7 @@ public class SpanExpression extends Node {
   private final long before;
   private final long after;
   private final TimeUnit timeUnit;
+  private final JoinWindows joinWindows;
 
   public SpanExpression(final long before, final long after, final TimeUnit timeUnit) {
     this(Optional.empty(), before, after, timeUnit);
@@ -39,11 +40,11 @@ public class SpanExpression extends Node {
     this.before = before;
     this.after = after;
     this.timeUnit = timeUnit;
+    this.joinWindows = createJoinWindows();
   }
 
   public JoinWindows joinWindow() {
-    final JoinWindows joinWindow = JoinWindows.of(timeUnit.toMillis(before));
-    return joinWindow.after(timeUnit.toMillis(after));
+    return joinWindows;
   }
 
   @Override
@@ -74,6 +75,11 @@ public class SpanExpression extends Node {
     SpanExpression spanExpression = (SpanExpression) o;
     return spanExpression.before == before && spanExpression.after == after
            && spanExpression.timeUnit == timeUnit;
+  }
+
+  private JoinWindows createJoinWindows() {
+    final JoinWindows joinWindow = JoinWindows.of(timeUnit.toMillis(before));
+    return joinWindow.after(timeUnit.toMillis(after));
   }
 
   // Visible for testing

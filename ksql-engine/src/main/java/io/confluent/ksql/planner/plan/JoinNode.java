@@ -208,8 +208,8 @@ public class JoinNode extends PlanNode {
         functionRegistry,
         joinTableProps, schemaRegistryClient);
     if (!(schemaKStream instanceof SchemaKTable)) {
-      throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
-          + getLeft() + "-" + getRight());
+      throw new KsqlException("Expected " + getSourceName(right) + " to be a table, but found a "
+                              + "stream instead.");
     }
 
     return (SchemaKTable) schemaKStream;
@@ -219,14 +219,23 @@ public class JoinNode extends PlanNode {
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {
     final int leftPartitions = left.getPartitions(kafkaTopicClient);
     final int rightPartitions = right.getPartitions(kafkaTopicClient);
+
     if (leftPartitions != rightPartitions) {
-      throw new KsqlException("Can't join " + leftType.getKqlType() + " with "
-                              + rightType.getKqlType() + " since the number of partitions don't "
-                              + "match. " + leftType.getKqlType() + " partitions = "
-                              + leftPartitions + "; " + rightType.getKqlType() + " partitions = "
+      throw new KsqlException("Can't join " + getSourceName(left) + " with "
+                              + getSourceName(right) + " since the number of partitions don't "
+                              + "match. " + getSourceName(left) + " partitions = "
+                              + leftPartitions + "; " + getSourceName(right) + " partitions = "
                               + rightPartitions + ". Please repartition either one so that the "
                               + "number of partitions match.");
     }
+  }
+
+  private String getSourceName(PlanNode node) {
+    if (!(node instanceof StructuredDataSourceNode)) {
+      throw new KsqlException("The source for a join must be a Stream or a Table.");
+    }
+    StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
+    return dataSource.getStructuredDataSource().getName();
   }
 
   private static class JoinerFactory {
@@ -256,7 +265,6 @@ public class JoinNode extends PlanNode {
 
     }
 
-
     public Joiner getJoiner(DataSource.DataSourceType leftType,
                             DataSource.DataSourceType rightType) {
 
@@ -274,10 +282,9 @@ public class JoinNode extends PlanNode {
                                 + leftType + ", right type: " + rightType);
       }
     }
-
   }
 
-  private static abstract class Joiner {
+  private abstract static class Joiner {
     protected final StreamsBuilder builder;
     protected final KsqlConfig ksqlConfig;
     protected final KafkaTopicClient kafkaTopicClient;
@@ -301,7 +308,6 @@ public class JoinNode extends PlanNode {
       this.props = props;
       this.schemaRegistryClient = schemaRegistryClient;
       this.joinNode = joinNode;
-
     }
 
 
@@ -343,8 +349,7 @@ public class JoinNode extends PlanNode {
                               targetKey).orElseThrow(() -> new KsqlException("couldn't find "
                                                                              + "key field: "
                                                                              + targetKey
-                                                                             + " in schema:"
-                                                                             + schema)
+                                                                             + " in schema")
           );
       return stream.selectKey(field, true);
     }
@@ -352,7 +357,7 @@ public class JoinNode extends PlanNode {
     protected Serde<GenericRow> getSerDeForNode(final PlanNode node) {
       if (!(node instanceof StructuredDataSourceNode)) {
         throw new KsqlException("The source for Join must be a primitive data source (Stream or "
-                                + "Table)");
+                                + "Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
       return dataSourceNode
@@ -480,7 +485,6 @@ public class JoinNode extends PlanNode {
                         final Map<String, Object> props,
                         final SchemaRegistryClient schemaRegistryClient,
                         final JoinNode joinNode) {
-
       super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
             joinNode);
     }
@@ -504,10 +508,6 @@ public class JoinNode extends PlanNode {
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
       }
-
-
     }
   }
-
-
 }

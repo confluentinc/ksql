@@ -141,7 +141,6 @@ public class UdfLoader {
         annotation.name(),
         collectMetrics ? UdfMetricProducer.class : PluggableUdf.class,
         () -> {
-
           final PluggableUdf theUdf
               = new PluggableUdf(udf, instantiateUdfClass(method, annotation));
           if (collectMetrics) {

@@ -145,7 +145,26 @@ builtin functions, for example, using the ``multiply`` example above:
     SELECT multiply(int1, int2), multiply(long1, long2) FROM number_stream;
 
 
-=================
+
+============
+Blacklisting
+============
+
+You can blacklist classes and packages such that they can't be used from a UDF. There is small
+blacklist that is found in the file ``resource-blacklist.txt`` that is in the ``ext`` directory.
+This file contains an entry per line, where each line is a class or package that should be blacklisted.
+The matching of the names is based on a regular expression, so if you have an entry, ``java.lang.Process``
+
+.. code:: txt
+
+    java.lang.Process
+
+This would match any paths that begin with java.lang.Process, i.e., java.lang.Process, java.lang.ProcessBuilder etc.
+
+Any blank lines or lines beginning with ``#`` are ignored. If the file is not present then all classes
+are blacklisted.
+
+
 Metric Collection
 =================
 

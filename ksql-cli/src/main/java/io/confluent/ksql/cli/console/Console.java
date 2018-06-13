@@ -64,7 +64,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -99,7 +98,6 @@ public abstract class Console implements Closeable {
     this.cliSpecificCommands = new LinkedHashMap<>();
 
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-    new SchemaMapper().registerToObjectMapper(objectMapper);
 
     registerDefaultCommands();
   }

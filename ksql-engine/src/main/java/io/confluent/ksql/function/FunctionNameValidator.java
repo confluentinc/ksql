@@ -18,8 +18,13 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.antlr.v4.runtime.Vocabulary;
+
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
+
+import io.confluent.ksql.parser.SqlBaseParser;
 
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word
@@ -38,52 +43,30 @@ class FunctionNameValidator implements Predicate<String> {
       .add("super").add("switch").add("synchronized").add("void").add("volatile").add("while")
       .build();
 
-  // This has been generated from SqlBase.tokens
-  private static final Set<String> KSQL_RESERVED_WORDS
-      = ImmutableSet.<String>builder()
-      .add("add").add("advance").add("all").add("alter").add("analyze").add("and").add("any")
-      .add("approximate").add("array").add("as").add("asc").add("asterisk").add("at")
-      .add("backquoted_identifier").add("beginning").add("bernoulli").add("between")
-      .add("binary_literal").add("bracketed_comment").add("by").add("call").add("case")
-      .add("cast").add("catalog").add("catalogs").add("coalesce").add("column")
-      .add("columns").add("commit").add("committed").add("confidence")
-      .add("constraint").add("create").add("cross").add("cube").add("current").add("current_date")
-      .add("current_time").add("current_timestamp").add("data").add("date").add("day").add("days")
-      .add("deallocate").add("decimal_value").add("delete").add("delimiter").add("desc")
-      .add("describe").add("digit_identifier").add("distinct").add("distributed").add("drop")
-      .add("else").add("end").add("eq").add("escape").add("except").add("execute").add("exists")
-      .add("explain").add("export").add("extended").add("extract").add("false").add("first")
-      .add("following").add("for").add("format").add("from").add("full").add("functions")
-      .add("grant").add("graphviz").add("group").add("grouping").add("gt").add("gte")
-      .add("having").add("hopping").add("hour").add("hours").add("identifier").add("if")
-      .add("in").add("inner").add("insert").add("integer").add("integer_value").add("intersect")
-      .add("interval").add("into").add("is").add("isolation").add("join").add("last")
-      .add("left").add("level").add("like").add("limit").add("list").add("load").add("localtime")
-      .add("localtimestamp").add("logical").add("lt").add("lte").add("map").add("millisecond")
-      .add("milliseconds").add("minus").add("minute").add("minutes").add("month").add("months")
-      .add("natural").add("neq").add("nfc").add("nfd").add("nfkc").add("nfkd").add("no")
-      .add("normalize").add("not").add("null").add("nullif").add("nulls").add("on")
-      .add("only").add("option").add("or").add("order").add("ordinality").add("outer")
-      .add("over").add("partition").add("partitions").add("percent").add("plus").add("poissonized")
-      .add("position").add("preceding").add("prepare").add("print").add("privileges")
-      .add("properties").add("public").add("queries").add("query").add("quoted_identifier")
-      .add("range").add("read").add("recursive").add("register").add("registered").add("rename")
-      .add("repeatable").add("replace").add("rescaled").add("reset").add("revoke")
-      .add("right").add("rollback").add("rollup").add("row").add("rows").add("run").add("sample")
-      .add("schemas").add("script").add("second").add("seconds").add("select").add("serializable")
-      .add("session").add("set").add("sets").add("show").add("simple_comment").add("size")
-      .add("slash").add("smallint").add("some").add("start").add("stratify").add("stream")
-      .add("streams").add("string").add("struct").add("system")
-      .add("table").add("tables").add("tablesample").add("terminate").add("text").add("then")
-      .add("time").add("timestamp").add("timestamp_with_time_zone").add("time_with_time_zone")
-      .add("tinyint").add("to").add("topic").add("topics").add("transaction").add("true")
-      .add("try").add("try_cast").add("tumbling")
-      .add("type").add("t__0").add("t__1").add("t__2").add("t__3").add("t__4").add("t__5")
-      .add("t__6").add("t__7").add("t__8").add("unbounded").add("uncommitted").add("union")
-      .add("unnest").add("unrecognized").add("unset").add("use").add("using").add("values")
-      .add("view").add("when").add("where").add("window").add("with").add("work")
-      .add("write").add("ws").add("year").add("years").add("zone")
-      .build();
+
+  // These are in the reserved words set, but we already use them for function names
+  private static final Set<String> ALLOWED_KSQL_WORDS
+      = ImmutableSet.copyOf(Arrays.asList("concat", "substring"));
+
+  private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
+
+
+  private static Set<String> createFromVocabulary() {
+    final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
+    final int tokens = vocabulary.getMaxTokenType();
+    final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
+    for (int i = 0; i < tokens; i++) {
+      final String symbolicName = vocabulary.getSymbolicName(i);
+      if (symbolicName != null) {
+        final String keyWord = symbolicName.toLowerCase();
+        if (!ALLOWED_KSQL_WORDS.contains(keyWord)) {
+          builder.add(keyWord);
+        }
+      }
+    }
+    return builder.build();
+  }
 
   @Override
   public boolean test(final String functionName) {
@@ -93,7 +76,6 @@ class FunctionNameValidator implements Predicate<String> {
         || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
       return false;
     }
-
     return isValidJavaIdentifier(functionName);
 
   }

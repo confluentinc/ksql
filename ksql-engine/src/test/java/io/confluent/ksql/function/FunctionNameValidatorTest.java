@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.function;
 
+import org.antlr.v4.runtime.Vocabulary;
 import org.junit.Test;
+
+import io.confluent.ksql.parser.SqlBaseParser;
 
 import static org.junit.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
@@ -42,18 +45,20 @@ public class FunctionNameValidatorTest {
   }
 
   @Test
-  public void shouldNotAllowKsqlReservedWords() {
-    assertFalse(validator.test("create"));
-    assertFalse(validator.test("stream"));
-    assertFalse(validator.test("table"));
-    assertFalse(validator.test("drop"));
-    assertFalse(validator.test("delete"));
-    assertFalse(validator.test("export"));
-    assertFalse(validator.test("run"));
-    assertFalse(validator.test("from"));
-    assertFalse(validator.test("as"));
-    assertFalse(validator.test("where"));
-    assertFalse(validator.test("when"));
+  public void shouldNotAllowKsqlReservedWordsExceptSubstringAndConcat() {
+    final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
+    final int maxTokenType = vocabulary.getMaxTokenType();
+    for(int i = 0; i < maxTokenType; i++) {
+      final String symbolicName = vocabulary.getSymbolicName(i);
+      if (symbolicName != null) {
+        if (symbolicName.equalsIgnoreCase("substring")
+            || symbolicName.equalsIgnoreCase("concat")) {
+          assertTrue(validator.test(symbolicName));
+        } else {
+          assertFalse(validator.test(symbolicName));
+        }
+      }
+    }
   }
 
   @Test
@@ -76,5 +81,4 @@ public class FunctionNameValidatorTest {
     assertTrue(validator.test("f1_b"));
     assertTrue(validator.test("__blah"));
   }
-
 }

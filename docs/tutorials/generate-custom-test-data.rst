@@ -120,6 +120,6 @@ In the KSQL query editor, create the ``impressions`` stream:
 
 In the KSQL query editor, create the persistent ``impressions2`` stream:
 
-    CREATE STREAM impressions2 as select * from impressions
+    CREATE STREAM impressions2 as select * from impressions;
 
 

@@ -25,6 +25,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
@@ -50,6 +52,22 @@ public class UdfCompiler {
       .put(Map.class, index -> typeConversionCode("Map", index))
       .put(List.class, index -> typeConversionCode("List", index))
       .build();
+
+  // Templates used to generate the UDF code
+  private static final String genericTemplate =
+      "#TYPE arg#INDEX;\n"
+          + "if(args[#INDEX] == null) arg#INDEX = null;\n"
+          + "else if (args[#INDEX] instanceof #TYPE) arg#INDEX = (#TYPE)args[#INDEX];\n"
+          + "else if (args[#INDEX] instanceof String) arg#INDEX = "
+          + "#TYPE.valueOf((String)args[#INDEX]);\n";
+
+  private static final String NUMBER_TEMPLATE =
+      "else if (args[#INDEX] instanceof Number) arg#INDEX = "
+          + "((Number)args[#INDEX]).#NUM_VALUE;\n";
+
+  private static final String THROWS_TEMPLATE =
+      "else throw new KsqlFunctionException(\"Type: \" + args[#INDEX].getClass() + \""
+          + " is not supported by KSQL UDFS\");";
 
 
   UdfInvoker compile(final Method method, final ClassLoader loader) {
@@ -87,26 +105,23 @@ public class UdfCompiler {
    */
 
   private static String generateCode(final Method method) {
-    final StringBuilder builder = new StringBuilder();
     final Class<?>[] params = method.getParameterTypes();
-    for (int i = 0; i < params.length; i++) {
+
+    final String prefix = IntStream.range(0, params.length).mapToObj(i -> {
       final Function<Integer, String> converter = typeConverters.get(params[i]);
       if (converter == null) {
         throw new KsqlException("Type " + params[i] + " is not supported in UDFs");
       }
-      builder.append(converter.apply(i)).append("\n");
-    }
+      return converter.apply(i);
+    }).collect(Collectors.joining("\n", "", "\nreturn (("
+        + method.getDeclaringClass().getSimpleName()
+        + ") thiz)." + method.getName() + "("
+    ));
 
-    builder.append("\nreturn ((").append(method.getDeclaringClass().getSimpleName())
-        .append(") thiz).").append(method.getName()).append("(");
+    final String code = IntStream.range(0, params.length).mapToObj(i -> "arg" + i)
+        .collect(Collectors.joining(",",
+            prefix, ");"));
 
-    for (int i = 0; i < params.length; i++) {
-      builder.append("arg").append(i).append(",");
-    }
-
-    builder.deleteCharAt(builder.length() - 1);
-    builder.append(");");
-    final String code = builder.toString();
     logger.debug("generated code for udf method = {}\n{}", method, code);
     return code;
   }
@@ -126,33 +141,23 @@ public class UdfCompiler {
     return scriptEvaluator;
   }
 
+
   private static String typeConversionCode(final String type, final int index) {
     if (type.equals("Map") || type.equals("List")) {
       return type + " arg" + index + " = (" + type + ")args[" + index + "];\n";
     }
-    final String argArrayVal = "args[" + index + "]";
-    final String argVarAssignment = "arg" + index + " = ";
-    final StringBuilder builder = new StringBuilder();
-    final String numericValue = type.equals("Integer") ? "intValue()" : type.toLowerCase()
-        + "Value()";
-    builder.append(type).append(" arg").append(index).append(";\n")
-        .append("if(").append(argArrayVal).append(" == null) ").append(argVarAssignment)
-        .append("null;\n")
-        .append("else if(").append(argArrayVal).append(" instanceof ").append(type).append(") ")
-        .append(argVarAssignment).append("(").append(type).append(")")
-        .append(argArrayVal).append(";\n")
-        .append("else if(").append(argArrayVal).append(" instanceof String) ")
-        .append(argVarAssignment).append(type).append(".valueOf((String)")
-        .append(argArrayVal).append(");\n");
-    if (!type.equals("String") && !type.equals("Boolean")) {
-      builder.append("else if(").append(argArrayVal).append(" instanceof Number) ")
-          .append(argVarAssignment)
-          .append("((Number)").append(argArrayVal).append(").").append(numericValue)
-          .append(";\n");
-    }
-    builder.append("else throw new KsqlFunctionException(\"Type: \" + ").append(argArrayVal)
-        .append(".getClass() + \"is not supported by KSQL UDFS\");");
 
+    final StringBuilder builder = new StringBuilder();
+    builder.append(genericTemplate.replaceAll("#TYPE", type)
+        .replaceAll("#INDEX", String.valueOf(index)));
+
+    if (!type.equals("String") && !type.equals("Boolean")) {
+      final String numericValue = type.equals("Integer") ? "intValue()" : type.toLowerCase()
+          + "Value()";
+      builder.append(NUMBER_TEMPLATE.replaceAll("#INDEX", String.valueOf(index))
+          .replaceAll("#NUM_VALUE", numericValue));
+    }
+    builder.append(THROWS_TEMPLATE.replaceAll("#INDEX", String.valueOf(index)));
     return builder.toString();
   }
 }

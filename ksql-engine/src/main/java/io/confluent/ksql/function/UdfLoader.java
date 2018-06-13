@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.base.Preconditions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,7 @@ import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 
 public class UdfLoader {
 
-  private static final Logger logger = LoggerFactory.getLogger(UdfLoader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
 
   private final MetaStore metaStore;
   private final File pluginDir;
@@ -75,7 +74,7 @@ public class UdfLoader {
             .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
             .forEach(this::loadUdfs);
       } catch (IOException e) {
-        logger.error("Failed to load UDFs from location {}", pluginDir, e);
+        LOGGER.error("Failed to load UDFs from location {}", pluginDir, e);
       }
     }
   }
@@ -101,7 +100,7 @@ public class UdfLoader {
                   if (parentClassLoader == loader) {
                     throw e;
                   } else {
-                    logger.warn("Failed to add UDF to the MetaStore. name={} method={}",
+                    LOGGER.warn("Failed to add UDF to the MetaStore. name={} method={}",
                         annotation.name(),
                         method,
                         e);
@@ -115,22 +114,27 @@ public class UdfLoader {
   private void addFunction(final UdfDescription annotation,
                            final Method method,
                            final UdfInvoker udf) {
+    // sanity check
+    instantiateUdfClass(method, annotation);
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
         annotation.name(),
         PluggableUdf.class,
-        () -> {
-          try {
-            return new PluggableUdf(udf, method.getDeclaringClass().newInstance());
-          } catch (Exception e) {
-            throw new KsqlException("Failed to create instance for UDF="
-                + annotation.name()
-                + ", method=" + method,
-                e);
-          }
-        }));
+        () -> new PluggableUdf(udf, instantiateUdfClass(method, annotation))));
+  }
+
+  private Object instantiateUdfClass(final Method method,
+                                     final UdfDescription annotation) {
+    try {
+      return method.getDeclaringClass().newInstance();
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to create instance for UDF="
+          + annotation.name()
+          + ", method=" + method,
+          e);
+    }
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
@@ -139,10 +143,6 @@ public class UdfLoader {
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
     final File pluginDir = new File(ksqlInstallDir, "ext");
-
-    Preconditions.checkArgument(!loadCustomerUdfs || pluginDir.isDirectory(),
-        pluginDir.getPath() + " must be a directory when " + KsqlConfig.KSQL_ENABLE_UDFS
-        + " is true");
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),

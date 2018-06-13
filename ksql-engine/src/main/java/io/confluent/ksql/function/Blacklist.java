@@ -26,31 +26,30 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Used to restrict the classes that can be loaded by user supplied UDFs
  */
 public class Blacklist implements Predicate<String> {
   private static final Logger logger = LoggerFactory.getLogger(Blacklist.class);
-  private static final String EMPTY_BLACKLIST = "^(?)\\.?.*$";
+  private static final String EMPTY_BLACKLIST = "^(?:)\\.?.*$";
 
-  private String blackList;
+  private String blackList = ".*";
 
   Blacklist(final File inputFile) {
     try {
-      final StringBuilder builder = new StringBuilder("^(?:");
-      Files.readLines(inputFile, Charset.forName(StandardCharsets.UTF_8.name()))
-          .forEach(item -> {
-            final String trimmed = item.trim();
-            if (!(trimmed.isEmpty() || trimmed.startsWith("#"))) {
-              builder.append(trimmed.replaceAll("\\.", "\\\\.")).append("|");
-            }
-          });
-      builder.deleteCharAt(builder.length() - 1);
-      builder.append(")\\.?.*$");
-      this.blackList = builder.toString().equals(EMPTY_BLACKLIST)
-          ? ""
-          : builder.toString();
+      this.blackList = Files.readLines(inputFile, Charset.forName(StandardCharsets.UTF_8.name()))
+          .stream()
+          .map(String::trim)
+          .filter(line -> !line.isEmpty())
+          .filter(line -> !line.startsWith("#"))
+          .map(line -> line.replaceAll("\\.", "\\\\."))
+          .collect(Collectors.joining("|", "^(?:",")\\.?.*$"));
+
+      if (this.blackList.equals(EMPTY_BLACKLIST)) {
+        this.blackList = "";
+      }
       logger.info("Setting UDF blacklisted classes to: " + blackList);
     } catch (IOException e) {
       logger.error("failed to load resource blacklist from " + inputFile
@@ -60,6 +59,6 @@ public class Blacklist implements Predicate<String> {
 
   @Override
   public boolean test(final String resourceName) {
-    return blackList == null || resourceName.matches(blackList);
+    return resourceName.matches(blackList);
   }
 }

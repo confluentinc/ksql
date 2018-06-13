@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -76,10 +77,9 @@ public class AvroUtil {
 
         String avroSchemaString = schemaMetadata.getSchema();
         streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
         AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
             abstractStreamCreateStatement,
-            schema,
+            AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
             schemaMetadata.getId()
         );
         return abstractStreamCreateStatementCopy;
@@ -203,5 +203,4 @@ public class AvroUtil {
       throw new KsqlException(errorMessage);
     }
   }
-
 }

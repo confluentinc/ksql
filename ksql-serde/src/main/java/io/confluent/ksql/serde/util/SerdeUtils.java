@@ -84,5 +84,4 @@ public class SerdeUtils {
     }
     throw new IllegalArgumentException("This Object doesn't represent a double");
   }
-
 }

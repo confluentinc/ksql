@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -41,7 +43,6 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -162,18 +163,11 @@ public class ConsoleTest {
     }
   }
 
-  private List<FieldSchemaInfo> buildTestSchema(int size) {
+  private List<FieldInfo> buildTestSchema(int size) {
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
     }
-
-    List<FieldSchemaInfo> res = new ArrayList<>();
-    List<Field> fields = dataSourceBuilder.build().fields();
-    for (Field field : fields) {
-      res.add(new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldType(field)));
-    }
-
-    return res;
+    return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
   }
 }

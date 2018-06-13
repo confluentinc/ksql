@@ -21,44 +21,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
-public class FieldSchemaInfo {
-
+public class FieldInfo {
   private final String name;
-  private final String type;
+  private final SchemaInfo schema;
 
   @JsonCreator
-  public FieldSchemaInfo(
-      @JsonProperty("name") String name,
-      @JsonProperty("type") String type
-  ) {
+  public FieldInfo(
+      @JsonProperty("name") final String name,
+      @JsonProperty("schema") final SchemaInfo schema) {
+    Objects.requireNonNull(name);
+    Objects.requireNonNull(schema);
     this.name = name;
-    this.type = type;
+    this.schema = schema;
   }
+
 
   public String getName() {
-    return name;
+    return this.name;
   }
 
-  public String getType() {
-    return type;
+  public SchemaInfo getSchema() {
+    return schema;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof FieldSchemaInfo)) {
-      return false;
-    }
-    FieldSchemaInfo that = (FieldSchemaInfo) o;
-    return Objects.equals(getName(), that.getName())
-        && Objects.equals(getType(), that.getType());
+  public boolean equals(Object other) {
+    return other instanceof FieldInfo
+        && Objects.equals(name, ((FieldInfo)other).name)
+        && Objects.equals(schema, ((FieldInfo)other).schema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getType());
+    return Objects.hash(name, schema);
   }
 }
-

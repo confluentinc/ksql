@@ -16,8 +16,12 @@
 
 package io.confluent.ksql.serde.util;
 
-import static org.junit.Assert.assertThat;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
@@ -137,6 +141,4 @@ public class SerdeUtilsTest {
   public void shouldFailWhenConvertingIncompatibleDouble() {
     Object i = SerdeUtils.toDouble(true);
   }
-
-
 }

@@ -17,7 +17,6 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -219,40 +218,6 @@ public class SchemaUtil {
     }
 
     return sqlType;
-  }
-
-  public static String getSchemaFieldType(final Field field) {
-    if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + getSchemaFieldType(field.schema().keySchema().fields().get(0)) + ","
-          + getSchemaFieldType(field.schema().valueSchema().fields().get(0)) + "]";
-    } else if (field.schema().type() == Schema.Type.STRUCT) {
-      StringBuilder stringBuilder = new StringBuilder("STRUCT <");
-      stringBuilder.append(
-          field.schema().fields().stream()
-              .map(schemaField -> getSchemaFieldType(schemaField))
-              .collect(Collectors.joining(", ")));
-      stringBuilder.append(">");
-      return stringBuilder.toString();
-    } else {
-      return TYPE_MAP.get(field.schema().type().name());
-    }
-  }
-
-
-  //TODO: Improve the format with proper indentation.
-  public static String describeSchema(final Schema schema) {
-    if (schema.type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.MAP) {
-      return "MAP[" + describeSchema(schema.keySchema()) + ","
-          + describeSchema(schema.valueSchema()) + "]";
-    } else if (schema.type() == Schema.Type.STRUCT) {
-      return getStructString(schema);
-    } else {
-      return TYPE_MAP.get(schema.type().name());
-    }
   }
 
   public static String getJavaCastString(final Schema schema) {
@@ -464,6 +429,7 @@ public class SchemaUtil {
     }
     return schema;
   }
+
 
   private static Schema handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {

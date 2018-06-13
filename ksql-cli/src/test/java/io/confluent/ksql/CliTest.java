@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -304,7 +305,20 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectStar() {
+  public void shouldPrintCorrectSchemaForDescribeStream() {
+    List<List<String>> rows = new ArrayList<>();
+    rows.add(Arrays.asList("ORDERTIME", "BIGINT"));
+    rows.add(Arrays.asList("ORDERID", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("ITEMID", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("ORDERUNITS", "DOUBLE"));
+    rows.add(Arrays.asList("TIMESTAMP", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("PRICEARRAY", "ARRAY<DOUBLE>"));
+    rows.add(Arrays.asList("KEYVALUEMAP", "MAP<STRING, DOUBLE>"));
+    test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
+  }
+
+  @Test
+  public void testSelectStar() throws Exception {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),

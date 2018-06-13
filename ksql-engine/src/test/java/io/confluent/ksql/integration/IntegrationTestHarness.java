@@ -1,6 +1,7 @@
 package io.confluent.ksql.integration;
 
 
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -32,8 +33,6 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
@@ -293,9 +292,9 @@ public class IntegrationTestHarness {
       case JSON:
         return new KsqlJsonSerializer(schema);
       case AVRO:
-        return new KsqlGenericRowAvroSerializer(schema,
-                                                this.schemaRegistryClient,
-                                                new KsqlConfig(Collections.emptyMap()));
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).serializer();
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
       default:
@@ -309,9 +308,9 @@ public class IntegrationTestHarness {
       case JSON:
         return new KsqlJsonDeserializer(schema, false);
       case AVRO:
-        return new KsqlGenericRowAvroDeserializer(schema,
-                                                  this.schemaRegistryClient,
-                                                  false);
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).deserializer();
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);
       default:

@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -234,6 +235,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // we should probably ony create one per application
     ObjectMapper jsonMapper = super.getJsonMapper();
     new SchemaMapper().registerToObjectMapper(jsonMapper);
+    jsonMapper.registerModule(new Jdk8Module());
     return jsonMapper;
   }
 

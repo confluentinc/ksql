@@ -119,7 +119,25 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfsInJarDirectoryIfLoadCustomerUdfsFalse() {
+  public void shouldLoadUdfsInKSQLIfLoadCustomerUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in ksql-engine will throw if not found
+    metaStore.getUdfFactory("substring");
+  }
+
+  @Test
+  public void shouldNotLoadCustomUDfsIfLoadCustomUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in udf-example.jar
+    try {
+      metaStore.getUdfFactory("tostring");
+      fail("Should have thrown as function doesn't exist");
+    } catch (final KsqlException e) {
+      // pass
+    }
+  }
+
+  private MetaStore loadKsqlUdfsOnly() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final UdfLoader pluginLoader = new UdfLoader(metaStore,
         new File("src/test/resources"),
@@ -129,18 +147,7 @@ public class UdfLoaderTest {
         false);
 
     pluginLoader.load();
-    // udf in ksql-engine
-    final UdfFactory function = metaStore.getUdfFactory("substring");
-    assertThat(function, not(nullValue()));
-
-    // udf in udf-example.jar
-    try {
-      metaStore.getUdfFactory("tostring");
-      fail("Should have thrown as function doesn't exist");
-    } catch (final KsqlException e) {
-      // pass
-    }
-
+    return metaStore;
   }
 
 }

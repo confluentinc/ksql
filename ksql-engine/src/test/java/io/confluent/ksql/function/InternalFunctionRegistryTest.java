@@ -18,7 +18,9 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +58,9 @@ public class InternalFunctionRegistryTest {
       Collections.emptyList(),
       "func",
       Func1.class);
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldAddFunction() {
@@ -182,8 +187,10 @@ public class InternalFunctionRegistryTest {
         .getFunction(Collections.emptyList()), equalTo(func));
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'foo_bar'");
     functionRegistry.getUdfFactory("foo_bar");
   }
 }

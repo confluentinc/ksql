@@ -192,13 +192,13 @@ public class ExpressionTypeManager
                                          final ExpressionTypeContext expressionTypeContext) {
 
     if (functionRegistry.isAggregate(node.getName().getSuffix())) {
-      KsqlAggregateFunction ksqlAggregateFunction =
+      final KsqlAggregateFunction ksqlAggregateFunction =
           functionRegistry.getAggregate(
               node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
-      List<Schema.Type> argTypes = new ArrayList<>();
+      final List<Schema.Type> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
         argTypes.add(expressionTypeContext.getSchema().type());

@@ -372,7 +372,6 @@ public class JoinNode extends PlanNode {
       return maybeRePartitionByKey(node.buildStream(builder, ksqlConfig, kafkaTopicClient,
                                                     functionRegistry, props,
                                                     schemaRegistryClient),
-                                   node.getKeyField(),
                                    keyFieldName);
     }
 
@@ -396,13 +395,7 @@ public class JoinNode extends PlanNode {
     }
 
     private SchemaKStream maybeRePartitionByKey(final SchemaKStream stream,
-                                                final Field currentKey,
                                                 final String targetKey) {
-      if (currentKey != null && currentKey.name().equals(targetKey)) {
-        // if the current key is defined and the name matches the column we are joining on, then
-        // don't repartition.
-        return stream;
-      }
       final Schema schema = stream.getSchema();
       final Field field =
           SchemaUtil

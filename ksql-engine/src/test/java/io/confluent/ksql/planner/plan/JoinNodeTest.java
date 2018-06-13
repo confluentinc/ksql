@@ -28,6 +28,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -123,7 +124,8 @@ public class JoinNodeTest {
     EasyMock.replay(topicClient);
   }
 
-  @Test
+
+  @Test @Ignore
   public void shouldBuildSourceNode() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
@@ -197,7 +199,7 @@ public class JoinNodeTest {
 
   }
 
-  @Test
+  @Test @Ignore
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();

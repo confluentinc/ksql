@@ -204,7 +204,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
     return new CreateTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -225,7 +225,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
     return new CreateStream(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -242,7 +242,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     return new CreateStreamAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
@@ -254,7 +254,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
     return new CreateTableAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
@@ -269,8 +269,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       partitionByColumn = Optional.of(new QualifiedNameReference(
           QualifiedName.of(getIdentifierText(context.identifier()))));
     }
-    return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
-                                   (Query) visitQuery(context.query()), partitionByColumn);
+    return new InsertInto(
+        Optional.of(getLocation(context)),
+        getQualifiedName(context.qualifiedName()),
+        (Query) visitQuery(context.query()),
+        partitionByColumn);
   }
 
   @Override
@@ -285,7 +288,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
     return new DropTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         context.EXISTS() != null,
         context.DELETE() != null

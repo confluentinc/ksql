@@ -813,7 +813,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldFailIfStreamColumnNameIsAmbiguis() {
+  public void shouldFailIfStreamColumnNameIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address FROM address a;";
     try {
@@ -825,7 +825,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldFailIfStreamColumnNameWithNoAliasIsAmbiguis() {
+  public void shouldFailIfStreamColumnNameWithNoAliasIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.city FROM address a;";
     try {
@@ -837,7 +837,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldPassIfStreamColumnNameWithAliasIsNotAmbiguis() {
+  public void shouldPassIfStreamColumnNameWithAliasIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address.city FROM address a;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
@@ -850,7 +850,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldPassIfStreamColumnNameIsNotAmbiguis() {
+  public void shouldPassIfStreamColumnNameIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.address.city FROM address a;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
@@ -863,7 +863,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldFailJoinQueryParseIfStreamColumnNameWithNoAliasIsAmbiguis() {
+  public void shouldFailJoinQueryParseIfStreamColumnNameWithNoAliasIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
     try {
@@ -875,7 +875,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldPassJoinQueryParseIfStreamColumnNameWithAliasIsNotAmbiguis() {
+  public void shouldPassJoinQueryParseIfStreamColumnNameWithAliasIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT itemid.itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);

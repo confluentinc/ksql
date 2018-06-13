@@ -1001,7 +1001,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return node.getLocation()
         .map(location ->
             new CreateStream(
-                node.getLocation().get(),
+                node.getLocation(),
                 node.getName(),
                 node.getElements().stream()
                     .map(tableElement -> (TableElement) process(tableElement, context))
@@ -1034,7 +1034,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return node.getLocation()
         .map(location ->
             new CreateStreamAsSelect(
-                node.getLocation().get(),
+                node.getLocation(),
                 node.getName(),
                 (Query) process(node.getQuery(), context),
                 node.isNotExists(),
@@ -1071,7 +1071,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitCreateTable(final CreateTable node, final Object context) {
     return node.getLocation()
         .map(location ->
-            new CreateTable(node.getLocation().get(),
+            new CreateTable(node.getLocation(),
                 node.getName(),
                 node.getElements().stream()
                     .map(tableElement -> (TableElement) process(tableElement, context))
@@ -1100,7 +1100,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
     return node.getLocation()
         .map(location ->
-            new CreateTableAsSelect(node.getLocation().get(),
+            new CreateTableAsSelect(node.getLocation(),
                 node.getName(),
                 (Query) process(node.getQuery(), context),
                 node.isNotExists(),
@@ -1125,7 +1125,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitInsertInto(final InsertInto node, final Object context) {
     return node.getLocation()
         .map(location ->
-            new InsertInto(node.getLocation().get(),
+            new InsertInto(node.getLocation(),
                 node.getTarget(),
                 (Query) process(node.getQuery(), context),
                 node.getPartitionByColumn().isPresent()
@@ -1147,7 +1147,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitDropTable(final DropTable node, final Object context) {
     return node.getLocation()
         .map(location ->
-            new DropTable(node.getLocation().get(),
+            new DropTable(node.getLocation(),
                 node.getTableName(),
                 node.getIfExists(),
                 node.isDeleteTopic())

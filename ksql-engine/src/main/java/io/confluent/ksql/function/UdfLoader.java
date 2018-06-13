@@ -17,6 +17,13 @@
 package io.confluent.ksql.function;
 
 
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.Count;
+import org.apache.kafka.common.metrics.stats.Max;
+import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.utils.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +33,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -33,6 +41,7 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -47,7 +56,9 @@ public class UdfLoader {
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
   private final UdfCompiler compiler;
+  private final Metrics metrics;
   private final boolean loadCustomerUdfs;
+  private final boolean collectMetrics;
 
 
   public UdfLoader(final MetaStore metaStore,
@@ -55,14 +66,18 @@ public class UdfLoader {
                    final ClassLoader parentClassLoader,
                    final Predicate<String> blacklist,
                    final UdfCompiler compiler,
-                   final boolean loadCustomerUdfs) {
+                   final Metrics metrics,
+                   final boolean loadCustomerUdfs,
+                   final boolean collectMetrics) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
     this.parentClassLoader = Objects.requireNonNull(parentClassLoader,
         "parentClassLoader can't be null");
     this.blacklist = Objects.requireNonNull(blacklist, "blacklist can't be null");
     this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
+    this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
+    this.collectMetrics = collectMetrics;
   }
 
   public void load() {
@@ -116,13 +131,26 @@ public class UdfLoader {
                            final UdfInvoker udf) {
     // sanity check
     instantiateUdfClass(method, annotation);
+    final String sensorName = "ksql-udf-" + annotation.name();
+    addSensor(sensorName, annotation.name());
+
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
         annotation.name(),
-        PluggableUdf.class,
-        () -> new PluggableUdf(udf, instantiateUdfClass(method, annotation))));
+        collectMetrics ? UdfMetricProducer.class : PluggableUdf.class,
+        () -> {
+
+          final PluggableUdf theUdf
+              = new PluggableUdf(udf, instantiateUdfClass(method, annotation));
+          if (collectMetrics) {
+            return new UdfMetricProducer(metrics.getSensor(sensorName),
+                theUdf,
+                new SystemTime());
+          }
+          return theUdf;
+        }));
   }
 
   private Object instantiateUdfClass(final Method method,
@@ -137,18 +165,40 @@ public class UdfLoader {
     }
   }
 
+  private void addSensor(final String sensorName, final String udfName) {
+    if (collectMetrics && metrics.getSensor(sensorName) == null) {
+      final Sensor sensor = metrics.sensor(sensorName);
+      sensor.add(metrics.metricName(sensorName + "-avg", sensorName,
+          "Average time for an invocation of " + udfName + " udf"),
+          new Avg());
+      sensor.add(metrics.metricName(sensorName + "-max", sensorName,
+          "Max time for an invocation of " + udfName + " udf"),
+          new Max());
+      sensor.add(metrics.metricName(sensorName + "-count", sensorName,
+          "Total number of invocations of " + udfName + " udf"),
+          new Count());
+      sensor.add(metrics.metricName(sensorName + "-rate", sensorName,
+          "The average number of occurrence of " + udfName + " operation per second "
+              + udfName + " udf"),
+          new Rate(TimeUnit.SECONDS, new Count()));
+    }
+  }
+
   public static UdfLoader newInstance(final KsqlConfig config,
                                       final MetaStore metaStore,
                                       final String ksqlInstallDir
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
+    final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
     final File pluginDir = new File(ksqlInstallDir, "ext");
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
         new UdfCompiler(),
-        loadCustomerUdfs);
+        MetricCollectors.getMetrics(),
+        loadCustomerUdfs,
+        collectMetrics);
   }
 
 }

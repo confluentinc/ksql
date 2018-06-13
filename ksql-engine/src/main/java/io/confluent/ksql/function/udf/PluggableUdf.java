@@ -25,7 +25,6 @@ import io.confluent.ksql.function.UdfInvoker;
  * This may change if we ever get rid of Kudf. As it stands we need
  * to do a conversion from custom UDF -> Kudf so we can support stong
  * typing etc.
- * Will eventually capture metrics.
  */
 public class PluggableUdf implements Kudf {
 

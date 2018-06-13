@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function;
 
+
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -50,10 +51,12 @@ import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
 
-  private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
-  private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
+  private final Map<String, UdfFactory> ksqlFunctionMap ;
+  private final Map<String, AggregateFunctionFactory> aggregateFunctionMap;
+  private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
 
   public InternalFunctionRegistry() {
+    this(new HashMap<>(), new HashMap<>());
     init();
   }
 
@@ -81,6 +84,12 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   @SuppressWarnings("unchecked")
   @Override
   public boolean addFunction(final KsqlFunction ksqlFunction) {
+    if (!functionNameValidator.test(ksqlFunction.getFunctionName())) {
+      throw new KsqlException(ksqlFunction.getFunctionName() + " is not a valid function name."
+          + " Function names must be valid java identifiers and not a KSQL reserved word"
+      );
+    }
+
     final String key = ksqlFunction.getFunctionName().toUpperCase();
     ksqlFunctionMap.compute(key, (s, udf) -> {
       if (udf == null) {
@@ -284,4 +293,5 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
     addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
   }
+
 }

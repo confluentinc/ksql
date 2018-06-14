@@ -260,6 +260,8 @@ public final class SqlFormatter {
 
       builder.append(")");
 
+      node.getSpanExpression().map((e) -> builder.append(' ').append(e.toString()));
+
       return null;
     }
 

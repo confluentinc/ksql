@@ -304,7 +304,7 @@ public class JoinNodeTest {
 
     final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
-    final SpanExpression spanExpression = new SpanExpression(10, 10, TimeUnit.SECONDS);
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
                                       eq(joinSchema),
@@ -359,7 +359,7 @@ public class JoinNodeTest {
 
     final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
-    final SpanExpression spanExpression = new SpanExpression(10, 10, TimeUnit.SECONDS);
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.join(eq(rightSchemaKStream),
                                   eq(joinSchema),
@@ -414,7 +414,7 @@ public class JoinNodeTest {
 
     final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
-    final SpanExpression spanExpression = new SpanExpression(10, 10, TimeUnit.SECONDS);
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.outerJoin(eq(rightSchemaKStream),
                                        eq(joinSchema),
@@ -518,7 +518,7 @@ public class JoinNodeTest {
 
     expectSourceName(left);
     expectSourceName(right);
-    final SpanExpression spanExpression = new SpanExpression(10, 10, TimeUnit.SECONDS);
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 

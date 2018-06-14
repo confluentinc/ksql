@@ -548,27 +548,35 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   public Node visitSpanExpression(final SqlBaseParser.SpanExpressionContext ctx) {
-    long before;
-    long after;
-    TimeUnit timeUnit;
+    Pair<Long, TimeUnit> beforeSize;
+    Pair<Long, TimeUnit> afterSize;
+
     if (ctx instanceof SqlBaseParser.SingleSpanContext) {
 
       final SqlBaseParser.SingleSpanContext singleSpan = (SqlBaseParser.SingleSpanContext) ctx;
-      before = Long.parseLong(singleSpan.number().getText());
-      after = before;
-      timeUnit = WindowExpression.getWindowUnit(singleSpan.windowUnit().getText().toUpperCase());
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(singleSpan.joinWindowSize());
+      afterSize = beforeSize;
     } else if (ctx instanceof SqlBaseParser.SpanWithBeforeAndAfterContext) {
       final SqlBaseParser.SpanWithBeforeAndAfterContext beforeAndAfterSpan
           = (SqlBaseParser.SpanWithBeforeAndAfterContext) ctx;
-      before = Long.parseLong(beforeAndAfterSpan.number(0).getText());
-      after = Long.parseLong(beforeAndAfterSpan.number(1).getText());
-      timeUnit = WindowExpression.getWindowUnit(
-          beforeAndAfterSpan.windowUnit().getText().toUpperCase());
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(0));
+      afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(1));
+
     } else {
       throw new KsqlException("Expecting either a single SPAN, ie \"SPAN 10 seconds\", or a span "
-                              + "with before and after specified, ie. \"SPAN (10, 20) seconds");
+                              + "with before and after specified, ie. \"SPAN (10 seconds, 20 "
+                              + "seconds)");
     }
-    return new SpanExpression(before, after, timeUnit);
+    return new SpanExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
+  }
+
+  private Pair<Long, TimeUnit> getSizeAndUnitFromJoinWindowSize(
+      SqlBaseParser.JoinWindowSizeContext joinWindowSize) {
+    return new Pair<>(Long.parseLong(joinWindowSize.number().getText()),
+                      WindowExpression.getWindowUnit(
+                          joinWindowSize.windowUnit().getText().toUpperCase()));
   }
 
   @Override

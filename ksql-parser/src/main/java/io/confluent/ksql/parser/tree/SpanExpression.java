@@ -26,20 +26,27 @@ public class SpanExpression extends Node {
 
   private final long before;
   private final long after;
-  private final TimeUnit timeUnit;
+  private final TimeUnit beforeTimeUnit;
+  private final TimeUnit afterTimeUnit;
   private final JoinWindows joinWindows;
 
-  public SpanExpression(final long before, final long after, final TimeUnit timeUnit) {
-    this(Optional.empty(), before, after, timeUnit);
+  public SpanExpression(final long size, final TimeUnit timeUnit) {
+    this(size, size, timeUnit, timeUnit);
+  }
+
+  public SpanExpression(final long before, final long after, final TimeUnit beforeTimeUnit,
+                        final TimeUnit afterTimeUnit) {
+    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit);
   }
 
 
   private SpanExpression(final Optional<NodeLocation> location, final long before, final long after,
-                         final TimeUnit timeUnit) {
+                         final TimeUnit beforeTimeUnit, final TimeUnit afterTimeUnit) {
     super(location);
     this.before = before;
     this.after = after;
-    this.timeUnit = timeUnit;
+    this.beforeTimeUnit = beforeTimeUnit;
+    this.afterTimeUnit = afterTimeUnit;
     this.joinWindows = createJoinWindows();
   }
 
@@ -52,16 +59,24 @@ public class SpanExpression extends Node {
     final StringBuilder builder = new StringBuilder();
     builder.append(" SPAN ");
     if (before == after) {
-      builder.append(before).append(' ').append(timeUnit);
+      builder.append(before).append(' ').append(beforeTimeUnit);
     } else {
-      builder.append('(').append(before).append(", ").append(after).append(") ").append(timeUnit);
+      builder.append('(')
+          .append(before)
+          .append(' ')
+          .append(beforeTimeUnit)
+          .append(", ")
+          .append(after)
+          .append(' ')
+          .append(afterTimeUnit)
+          .append(")");
     }
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(before, after, timeUnit);
+    return Objects.hash(before, after, beforeTimeUnit, afterTimeUnit);
   }
 
   @Override
@@ -74,12 +89,13 @@ public class SpanExpression extends Node {
     }
     SpanExpression spanExpression = (SpanExpression) o;
     return spanExpression.before == before && spanExpression.after == after
-           && spanExpression.timeUnit == timeUnit;
+           && spanExpression.beforeTimeUnit == beforeTimeUnit
+           && spanExpression.afterTimeUnit == afterTimeUnit;
   }
 
   private JoinWindows createJoinWindows() {
-    final JoinWindows joinWindow = JoinWindows.of(timeUnit.toMillis(before));
-    return joinWindow.after(timeUnit.toMillis(after));
+    final JoinWindows joinWindow = JoinWindows.of(beforeTimeUnit.toMillis(before));
+    return joinWindow.after(afterTimeUnit.toMillis(after));
   }
 
   // Visible for testing
@@ -93,8 +109,13 @@ public class SpanExpression extends Node {
   }
 
   // Visible for testing
-  public TimeUnit getTimeUnit() {
-    return timeUnit;
+  public TimeUnit getBeforeTimeUnit() {
+    return beforeTimeUnit;
+  }
+
+  // Visible For Testing
+  public TimeUnit getAfterTimeUnit() {
+    return afterTimeUnit;
   }
 
 

@@ -26,14 +26,14 @@ public class SpanExpressionTest {
 
   @Test
   public void shouldDisplayCorrectStringWithSingleSpan() {
-    SpanExpression expression = new SpanExpression(20, 20, TimeUnit.SECONDS);
+    SpanExpression expression = new SpanExpression(20, TimeUnit.SECONDS);
     assertEquals(" SPAN 20 SECONDS", expression.toString());
   }
 
   @Test
   public void shouldDisplayCorrectSTringWithBeforeAndAfter() {
-    SpanExpression expression = new SpanExpression(30, 40, TimeUnit.MINUTES);
-    assertEquals(" SPAN (30, 40) MINUTES", expression.toString());
+    SpanExpression expression = new SpanExpression(30, 40, TimeUnit.MINUTES, TimeUnit.HOURS);
+    assertEquals(" SPAN (30 MINUTES, 40 HOURS)", expression.toString());
   }
 
 }

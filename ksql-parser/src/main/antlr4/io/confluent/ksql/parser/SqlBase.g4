@@ -188,8 +188,12 @@ joinWindow
     ;
 
 spanExpression
-    : '(' number ',' number ')' windowUnit # spanWithBeforeAndAfter
-    | number windowUnit                 # singleSpan
+    : '(' joinWindowSize ',' joinWindowSize ')' # spanWithBeforeAndAfter
+    | joinWindowSize # singleSpan
+    ;
+
+joinWindowSize
+    : number windowUnit
     ;
 
 joinCriteria

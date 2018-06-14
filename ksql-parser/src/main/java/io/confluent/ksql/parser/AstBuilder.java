@@ -1144,7 +1144,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
     final String columnName = getIdentifierText(context.identifier());
-    final String suffixFieldName = dotStack.empty() ? null : dotStack.peek();
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
       boolean sameAsLeft = columnName.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
@@ -1152,7 +1151,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       boolean sameAsRight = columnName.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
           || columnName.equalsIgnoreCase(dataSourceExtractor.getRightName());
 
-      if (suffixFieldName != null
+      if (!dotStack.empty()
           && (sameAsLeft || sameAsRight)) {
         return new QualifiedNameReference(
             getLocation(context),
@@ -1179,7 +1178,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
-      if (suffixFieldName != null
+      if (!dotStack.empty()
           && (columnName.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
           || columnName.equalsIgnoreCase(dataSourceExtractor.getFromName()))) {
         return new QualifiedNameReference(

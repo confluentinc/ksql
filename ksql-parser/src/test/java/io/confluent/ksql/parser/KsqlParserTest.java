@@ -829,7 +829,7 @@ public class KsqlParserTest {
   @Test
   public void shouldNotAddPrefixIfStreamNameIsPrefix() {
     final String statementString =
-        "CREATE STREAM S AS SELECT address.city FROM address a;";
+        "CREATE STREAM S AS SELECT address.orderid FROM address a;";
     final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -837,7 +837,7 @@ public class KsqlParserTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
-        equalTo("ADDRESS.CITY CITY"));
+        equalTo("ADDRESS.ORDERID ORDERID"));
   }
 
   @Test

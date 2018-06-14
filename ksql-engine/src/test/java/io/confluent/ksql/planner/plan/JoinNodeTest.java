@@ -104,6 +104,12 @@ public class JoinNodeTest {
   private final String rightKeyFieldName = "COL1";
 
   private Map<String, Object> properties;
+  private StructuredDataSourceNode left;
+  private StructuredDataSourceNode right;
+  private SchemaKStream leftSchemaKStream;
+  private SchemaKStream rightSchemaKStream;
+  private SchemaKTable leftSchemaKTable;
+  private SchemaKTable rightSchemaKTable;
 
   @Before
   public void setUp() {
@@ -114,6 +120,14 @@ public class JoinNodeTest {
     mockSchemaRegistryClient = niceMock(SchemaRegistryClient.class);
 
     properties = new HashMap<>();
+
+    left = niceMock(StructuredDataSourceNode.class);
+    right = niceMock(StructuredDataSourceNode.class);
+    leftSchemaKStream = niceMock(SchemaKStream.class);
+    rightSchemaKStream = niceMock(SchemaKStream.class);
+    leftSchemaKTable = niceMock(SchemaKTable.class);
+    rightSchemaKTable = niceMock(SchemaKTable.class);
+
   }
 
   public void buildJoin() {
@@ -292,11 +306,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKStream rightSchemaKStream = niceMock(SchemaKStream.class);
-
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
@@ -347,11 +356,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKStream rightSchemaKStream = niceMock(SchemaKStream.class);
-
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
@@ -402,11 +406,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKStream rightSchemaKStream = niceMock(SchemaKStream.class);
-
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
@@ -457,11 +456,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKStream rightSchemaKStream = niceMock(SchemaKStream.class);
-
     setupStreamWithoutSerde(left, leftSchemaKStream, leftSchema, 2);
 
     setupStreamWithoutSerde(right, rightSchemaKStream, rightSchema, 2);
@@ -505,11 +499,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKStream rightSchemaKStream = niceMock(SchemaKStream.class);
-
     expect(left.getSchema()).andReturn(leftSchema);
     expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
 
@@ -559,11 +548,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableLeftJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
@@ -610,11 +594,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableInnerJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
@@ -661,11 +640,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldNotAllowStreamToTableOuterJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKStream leftSchemaKStream = niceMock(SchemaKStream.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupStreamWithoutSerde(left, leftSchemaKStream, leftSchema, 2);
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
@@ -709,11 +683,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableInnerJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKTable leftSchemaKTable = niceMock(SchemaKTable.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupTable(left, leftSchemaKTable, leftSchema, 2);
     expectKeyField(leftSchemaKTable, leftKeyFieldName);
 
@@ -759,11 +728,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableLeftJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKTable leftSchemaKTable = niceMock(SchemaKTable.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupTable(left, leftSchemaKTable, leftSchema, 2);
     expectKeyField(leftSchemaKTable, leftKeyFieldName);
 
@@ -809,11 +773,6 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableOuterJoin() {
-    final StructuredDataSourceNode left = niceMock(StructuredDataSourceNode.class);
-    final StructuredDataSourceNode right = niceMock(StructuredDataSourceNode.class);
-    SchemaKTable leftSchemaKTable = niceMock(SchemaKTable.class);
-    SchemaKTable rightSchemaKTable = niceMock(SchemaKTable.class);
-
     setupTable(left, leftSchemaKTable, leftSchema, 2);
     expectKeyField(leftSchemaKTable, leftKeyFieldName);
 

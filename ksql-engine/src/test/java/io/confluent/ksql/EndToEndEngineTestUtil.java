@@ -236,6 +236,14 @@ class EndToEndEngineTestUtil {
     public SerdeSupplier getSerdeSupplier() {
       return serdeSupplier;
     }
+
+    public Serializer getSerializer(SchemaRegistryClient schemaRegistryClient) {
+      return serdeSupplier.getSerializer(schemaRegistryClient);
+    }
+
+    public Deserializer getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+      return serdeSupplier.getDeserializer(schemaRegistryClient);
+    }
   }
 
   static class Window {
@@ -338,7 +346,7 @@ class EndToEndEngineTestUtil {
           r -> testDriver.pipeInput(
               new ConsumerRecordFactory<>(
                   Serdes.String().serializer(),
-                  r.topic.getSerdeSupplier().getSerializer(schemaRegistryClient)
+                  r.topic.getSerializer(schemaRegistryClient)
               ).create(r.topic.name, r.key, r.value, r.timestamp)
           )
       );
@@ -352,7 +360,7 @@ class EndToEndEngineTestUtil {
             r -> OutputVerifier.compareKeyValueTimestamp(
                 testDriver.readOutput(
                     r.topic.name, r.keyDeserializer(),
-                    r.topic.getSerdeSupplier().getDeserializer(schemaRegistryClient)
+                    r.topic.getDeserializer(schemaRegistryClient)
                 ),
                 r.key(),
                 r.value,

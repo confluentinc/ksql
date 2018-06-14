@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -139,6 +141,7 @@ class QueryEngine {
   List<QueryMetadata> buildPhysicalPlans(
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
@@ -157,12 +160,11 @@ class QueryEngine {
         }
         handleDdlStatement(
             statementPlanPair.getLeft(),
-            (DdlStatement) statement,
-            overriddenProperties
+            (DdlStatement) statement
         );
       } else {
         buildQueryPhysicalPlan(
-            physicalPlans, statementPlanPair,
+            physicalPlans, statementPlanPair, ksqlConfig,
             overriddenProperties, clientSupplier, updateMetastore
         );
       }
@@ -174,6 +176,7 @@ class QueryEngine {
   private void buildQueryPhysicalPlan(
       final List<QueryMetadata> physicalPlans,
       final Pair<String, PlanNode> statementPlanPair,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
@@ -184,7 +187,7 @@ class QueryEngine {
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
-        ksqlEngine.getKsqlConfig().cloneWithPropertyOverwrite(overriddenProperties),
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
         ksqlEngine.getTopicClient(),
         ksqlEngine.getFunctionRegistry(),
         overriddenProperties,
@@ -198,10 +201,7 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(
-      String sqlExpression, DdlStatement statement,
-      final Map<String, Object> overriddenProperties
-  ) {
+  DdlCommandResult handleDdlStatement(String sqlExpression, DdlStatement statement) {
 
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
@@ -214,7 +214,7 @@ class QueryEngine {
         sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
-    DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
+    DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 

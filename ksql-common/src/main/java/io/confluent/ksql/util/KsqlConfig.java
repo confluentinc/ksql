@@ -17,15 +17,22 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -88,29 +95,81 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
   public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
-  private final ImmutableMap<String, Object> ksqlStreamConfigProps;
-
-  private static final ConfigDef CONFIG_DEF;
-
   public static final String DEFAULT_EXT_DIR = "ext";
 
+  private static final Collection<CompatibiltyBreakingConfigDef> COMPATIBILTY_BREAKING_CONFIG_DEFS;
+
+  private static class CompatibiltyBreakingConfigDef {
+    private final String name;
+    private final ConfigDef.Type type;
+    private final Object defaultValueOld;
+    private final Object defaultValueCurrent;
+    private final ConfigDef.Importance importance;
+    private final String documentation;
+
+    CompatibiltyBreakingConfigDef(final String name,
+                                  final ConfigDef.Type type,
+                                  final Object defaultValueOld,
+                                  final Object defaultValueCurrent,
+                                  final ConfigDef.Importance importance,
+                                  final String documentation) {
+      this.name = name;
+      this.type = type;
+      this.defaultValueOld = defaultValueOld;
+      this.defaultValueCurrent = defaultValueCurrent;
+      this.importance = importance;
+      this.documentation = documentation;
+    }
+
+    public String getName() {
+      return this.name;
+    }
+
+    private void define(final ConfigDef configDef, final Object defaultValue) {
+      configDef.define(name, type, defaultValue, importance, documentation);
+    }
+
+    void defineOld(ConfigDef configDef) {
+      define(configDef, defaultValueOld);
+    }
+
+    void defineCurrent(ConfigDef configDef) {
+      define(configDef, defaultValueCurrent);
+    }
+  }
+
   static {
-    CONFIG_DEF = new ConfigDef()
+    COMPATIBILTY_BREAKING_CONFIG_DEFS = ImmutableList.of(
+        new CompatibiltyBreakingConfigDef(
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Second part of the prefix for persistent queries. For instance if "
+                + "the prefix is query_ the query name will be ksql_query_1."),
+        new CompatibiltyBreakingConfigDef(
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Suffix for state store names in Tables. For instance if the suffix is "
+                + "_ksql_statestore the state "
+                + "store name would be ksql_query_1_ksql_statestore _ksql_statestore ")
+    );
+  }
+
+  private static ConfigDef configDef(boolean current) {
+    final ConfigDef configDef = new ConfigDef()
         .define(
             KSQL_SERVICE_ID_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Indicates the ID of the ksql service. It will be used as prefix for "
-            + "all KSQL queries in this service."
-        ).define(
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
-            ConfigDef.Type.STRING,
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
-            ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for persistent queries. For instance if "
-            + "the prefix is query_ the query name will be ksql_query_1."
-        ).define(
+        )
+        .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -120,14 +179,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
             + " and '_transient' is the second part of the prefix for the query id the third and "
             + "4th parts are a random long value and the current timestamp. "
-        ).define(
-            KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-            ConfigDef.Type.STRING,
-            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-            ConfigDef.Importance.MEDIUM,
-            "Suffix for state store names in Tables. For instance if the suffix is "
-            + "_ksql_statestore the state "
-            + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
         ).define(
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
@@ -189,115 +240,208 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Enable the security manager for UDFs. Default is true and will stop UDFs from"
                + " calling System.exit or executing processes"
         )
-
         .withClientSslSupport();
-  }
-
-  private static void applyPrefixedConfig(final Map<String, Object> props,
-                                          final String prefix,
-                                          final String key,
-                                          final Object value) {
-    props.put(
-        key.startsWith(prefix) ? key.substring(prefix.length()) : key,
-        value
-    );
-  }
-
-  private static boolean streamsConfigFilter(final String config) {
-    if (config.startsWith(KSQL_STREAMS_PREFIX)) {
-      return true;
+    for (CompatibiltyBreakingConfigDef compatiblityConfigDef : COMPATIBILTY_BREAKING_CONFIG_DEFS) {
+      if (current) {
+        compatiblityConfigDef.defineCurrent(configDef);
+      } else {
+        compatiblityConfigDef.defineOld(configDef);
+      }
     }
-    return StreamsConfig.configDef().names().contains(config)
-        || ConsumerConfig.configNames().contains(config)
-        || ProducerConfig.configNames().contains(config)
-        || AdminClientConfig.configNames().contains(config);
+    return configDef;
   }
 
-  private static void applyStreamsConfig(final Map<String, Object> props,
-                                         final Map<String, Object> streamsConfigProps) {
+  private static class ResolvedConfig {
+    final ConfigDef.Type type;
+    final String key;
+    final Object value;
+
+    private ResolvedConfig(final ConfigDef.Type type, final String key, final Object value) {
+      this.type = type;
+      this.key = key;
+      this.value = value;
+    }
+  }
+
+  private static Optional<ResolvedConfig> resolveConfig(final String prefix,
+                                                        final AbstractConfig abstractConfig,
+                                                        final String key,
+                                                        final Object value) {
+    if (!key.startsWith(prefix)) {
+      return Optional.empty();
+    }
+    final String keyNoPrefix = key.substring(prefix.length());
+    if (abstractConfig.values().containsKey(keyNoPrefix)) {
+      final ConfigDef.Type type = abstractConfig.typeOf(keyNoPrefix);
+      return Optional.of(
+          new ResolvedConfig(
+              type, key, ConfigDef.parseType(keyNoPrefix, value, type)));
+    }
+    return Optional.empty();
+  }
+
+  private static final AbstractConfig CONSUMER_ABSTRACT_CONFIG = new ConsumerConfig(
+      ImmutableMap.of(
+          ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
+          ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class
+      )
+  );
+
+  private static final AbstractConfig PRODUCER_ABSTRACT_CONFIG = new ProducerConfig(
+      ImmutableMap.of(
+          ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+          ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class
+      )
+  );
+
+  private static final AbstractConfig STREAMS_ABSTRACT_CONFIG = new StreamsConfig(
+      ImmutableMap.of(
+          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "",
+          StreamsConfig.APPLICATION_ID_CONFIG, ""
+      )
+  );
+
+  private static Optional<ResolvedConfig> resolveStreamsConfig(String key, final Object value) {
+    if (key.startsWith(KSQL_STREAMS_PREFIX)) {
+      key = key.substring(KSQL_STREAMS_PREFIX.length());
+    }
+    List<Pair<String, AbstractConfig>> configSpecsToTry = ImmutableList.of(
+        new Pair<>(StreamsConfig.CONSUMER_PREFIX, CONSUMER_ABSTRACT_CONFIG),
+        new Pair<>(StreamsConfig.PRODUCER_PREFIX, PRODUCER_ABSTRACT_CONFIG),
+        new Pair<>("", CONSUMER_ABSTRACT_CONFIG),
+        new Pair<>("", PRODUCER_ABSTRACT_CONFIG),
+        new Pair<>("", STREAMS_ABSTRACT_CONFIG)
+    );
+    for (Pair<String, AbstractConfig> spec : configSpecsToTry) {
+      final Optional<ResolvedConfig> resolvedConfig
+          = resolveConfig(spec.getLeft(), spec.getRight(), key, value);
+      if (resolvedConfig.isPresent()) {
+        return resolvedConfig;
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static void applyStreamsConfig(
+      final Map<String, ?> props,
+      final Map<String, ResolvedConfig> streamsConfigProps) {
     props.entrySet()
         .stream()
-        .map(Map.Entry::getKey)
-        .filter(KsqlConfig::streamsConfigFilter)
+        .map(e -> resolveStreamsConfig(e.getKey(), e.getValue()))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
         .forEach(
-            k -> applyPrefixedConfig(streamsConfigProps, KSQL_STREAMS_PREFIX, k, props.get(k)));
+            c -> streamsConfigProps.put(c.key, c));
   }
 
+  private final ImmutableMap<String, ResolvedConfig> ksqlStreamConfigProps;
+
   public KsqlConfig(final Map<?, ?> props) {
-    super(CONFIG_DEF, props);
+    this(true, props);
+  }
 
-    final Map<String, Object> streamsConfigOverlay = new HashMap<>();
+  public KsqlConfig(boolean current, final Map<?, ?> props) {
+    super(configDef(current), props);
 
-    streamsConfigOverlay.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
+    final Map<String, Object> streamsConfigDefaults = new HashMap<>();
+    streamsConfigDefaults.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
         .defaultAutoOffsetRestConfig);
-    streamsConfigOverlay.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
+    streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
-    streamsConfigOverlay.put(
+    streamsConfigDefaults.put(
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
             .defaultCacheMaxBytesBufferingConfig);
-    streamsConfigOverlay.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
+    streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
-
     final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
-      streamsConfigOverlay.put(
+      streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
-
-    applyStreamsConfig(originals(), streamsConfigOverlay);
-    this.ksqlStreamConfigProps = ImmutableMap.copyOf(streamsConfigOverlay);
+    final Map<String, ResolvedConfig> streamConfigProps = new HashMap<>();
+    applyStreamsConfig(streamsConfigDefaults, streamConfigProps);
+    applyStreamsConfig(originals(), streamConfigProps);
+    this.ksqlStreamConfigProps = ImmutableMap.copyOf(streamConfigProps);
   }
 
-  private KsqlConfig(final Map<String, ?> values,
-                     final ImmutableMap<String, Object> ksqlStreamConfigProps) {
-    super(CONFIG_DEF, values);
+  private KsqlConfig(final boolean current,
+                     final Map<String, ?> values,
+                     final ImmutableMap<String, ResolvedConfig> ksqlStreamConfigProps) {
+    super(configDef(current), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  public ImmutableMap<String, Object> getKsqlStreamConfigProps() {
-    return ksqlStreamConfigProps;
+  public Map<String, Object> getKsqlStreamConfigProps() {
+    final Map<String, Object> props = new HashMap<>();
+    for (ResolvedConfig config : ksqlStreamConfigProps.values()) {
+      props.put(config.key, config.value);
+    }
+    return Collections.unmodifiableMap(props);
   }
 
-  public ImmutableMap<String, Object> getKsqlAdminClientConfigProps() {
-    return ksqlStreamConfigProps.entrySet().stream()
-        .map(Map.Entry::getKey)
-        .filter(AdminClientConfig.configNames()::contains)
-        .collect(
-            ImmutableMap.toImmutableMap(name -> name, ksqlStreamConfigProps::get)
-        );
+  public Map<String, Object> getKsqlAdminClientConfigProps() {
+    final Map<String, Object> props = new HashMap<>();
+    ksqlStreamConfigProps.values().stream()
+        .filter(resolvedConfig -> AdminClientConfig.configNames().contains(resolvedConfig.key))
+        .forEach(
+            resolvedConfig -> props.put(resolvedConfig.key, resolvedConfig.value));
+    return Collections.unmodifiableMap(props);
   }
 
-  public ImmutableMap<String, Object> getAllProps() {
-    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
-    builder.putAll(values().entrySet().stream()
-        .filter(e -> e.getValue() != null)
-        .collect(
-            Collectors.toMap(
-                Map.Entry::getKey,
-                Map.Entry::getValue))
+  public Map<String, String> getKsqlConfigPropsCleaned() {
+    final Map<String, String> props = new HashMap<>();
+    configDef(true).names().stream().forEach(
+        key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
     );
-    builder.putAll(ksqlStreamConfigProps.entrySet().stream()
-        .filter(e -> e.getValue() != null)
-        .collect(
+    return Collections.unmodifiableMap(props);
+  }
+
+  public Map<String, String> getKsqlStreamConfigPropsCleaned() {
+    final Map<String, String> props = new HashMap<>();
+    ksqlStreamConfigProps.values().forEach(
+        resolvedConfig -> props.put(
+            resolvedConfig.key,
+            ConfigDef.convertToString(resolvedConfig.value, resolvedConfig.type))
+    );
+    return Collections.unmodifiableMap(props);
+  }
+
+  public Map<String, String> getAllConfigPropsCleaned() {
+    final Map<String, String> allPropsCleaned = new HashMap<>();
+    allPropsCleaned.putAll(getKsqlConfigPropsCleaned());
+    allPropsCleaned.putAll(
+        getKsqlStreamConfigPropsCleaned().entrySet().stream().collect(
             Collectors.toMap(
-                e -> KSQL_STREAMS_PREFIX + e.getKey(),
-                Map.Entry::getValue)));
-    return builder.build();
+                e -> KSQL_STREAMS_PREFIX + e.getKey(), Map.Entry::getValue
+            )
+        )
+    );
+    return Collections.unmodifiableMap(allPropsCleaned);
   }
 
   public KsqlConfig clone() {
-    return new KsqlConfig(values(), ksqlStreamConfigProps);
+    return new KsqlConfig(true, values(), ksqlStreamConfigProps);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
     final Map<String, Object> cloneProps = new HashMap<>(values());
     cloneProps.putAll(props);
-    final Map<String, Object> streamsConfigOverlay = new HashMap<>();
-    applyStreamsConfig(ksqlStreamConfigProps, streamsConfigOverlay);
-    applyStreamsConfig(props, streamsConfigOverlay);
-    return new KsqlConfig(cloneProps, ImmutableMap.copyOf(streamsConfigOverlay));
+    final Map<String, ResolvedConfig> streamConfigProps = new HashMap<>();
+    applyStreamsConfig(getKsqlStreamConfigProps(), streamConfigProps);
+    applyStreamsConfig(props, streamConfigProps);
+    return new KsqlConfig(true, cloneProps, ImmutableMap.copyOf(streamConfigProps));
+  }
+
+  public KsqlConfig mergeWithOriginalConfig(final Map<String, String> props) {
+    final KsqlConfig originalConfig = new KsqlConfig(false, props);
+    final Map<String, Object> mergedProperties = new HashMap<>(values());
+    COMPATIBILTY_BREAKING_CONFIG_DEFS.stream()
+        .map(CompatibiltyBreakingConfigDef::getName)
+        .forEach(
+            k -> mergedProperties.put(k, originalConfig.get(k)));
+    return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
   }
 
   /* 6/19/2018: Temporary hack to pass around the timestamp column for a query */

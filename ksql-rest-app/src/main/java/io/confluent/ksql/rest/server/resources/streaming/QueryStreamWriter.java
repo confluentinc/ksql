@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,14 +55,16 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
+      final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final long disconnectCheckInterval,
       final String queryString,
       final Map<String, Object> overriddenProperties,
       final ObjectMapper objectMapper
   ) throws Exception {
-    final QueryMetadata queryMetadata =
-        ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
+    QueryMetadata queryMetadata =
+        ksqlEngine.buildMultipleQueries(
+            queryString, ksqlConfig, overriddenProperties).get(0);
     this.objectMapper = objectMapper;
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

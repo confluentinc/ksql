@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
@@ -43,11 +42,11 @@ public class CommandFactories implements DdlCommandFactory {
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement, properties) ->
+        (sqlExpression, ddlStatement) ->
             new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
+        (sqlExpression, ddlStatement) -> new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
             topicClient,
@@ -56,7 +55,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         CreateTable.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
+        (sqlExpression, ddlStatement) -> new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
             topicClient,
@@ -65,7 +64,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropStream.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement) -> new DropSourceCommand(
             (DropStream) ddlStatement,
             DataSource.DataSourceType.KSTREAM,
             topicClient,
@@ -75,7 +74,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropTable.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement) -> new DropSourceCommand(
             (DropTable) ddlStatement,
             DataSource.DataSourceType.KTABLE,
             topicClient,
@@ -84,18 +83,14 @@ public class CommandFactories implements DdlCommandFactory {
         )
     );
     factories.put(
-        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
+        DropTopic.class, (sqlExpression, ddlStatement) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));
-    factories.put(
-        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
-            new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }
 
   @Override
   public DdlCommand create(
       String sqlExpression,
-      final DdlStatement ddlStatement,
-      final Map<String, Object> properties
+      final DdlStatement ddlStatement
   ) {
     if (!factories.containsKey(ddlStatement.getClass())) {
       throw new KsqlException(
@@ -105,6 +100,6 @@ public class CommandFactories implements DdlCommandFactory {
           + factories.keySet()
       );
     }
-    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement, properties);
+    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement);
   }
 }

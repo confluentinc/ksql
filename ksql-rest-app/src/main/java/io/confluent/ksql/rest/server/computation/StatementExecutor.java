@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -58,15 +59,18 @@ public class StatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Map<CommandId, CommandStatusFuture> statusFutures;
 
   public StatementExecutor(
-      KsqlEngine ksqlEngine,
-      StatementParser statementParser
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final StatementParser statementParser
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
 
@@ -74,7 +78,7 @@ public class StatementExecutor {
     this.statusFutures = new HashMap<>();
   }
 
-  void handleRestoration(final RestoreCommands restoreCommands) throws Exception {
+  void handleRestoration(final RestoreCommands restoreCommands) {
     restoreCommands.forEach(
         (commandId, command, terminatedQueries, wasDropped) -> {
           log.info("Executing prior statement: '{}'", command);
@@ -100,12 +104,11 @@ public class StatementExecutor {
    *
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
-   * @throws Exception TODO: Refine this.
    */
   void handleStatement(
       Command command,
       CommandId commandId
-  ) throws Exception {
+  ) {
     handleStatementWithTerminatedQueries(command,
                                          commandId,
                                          null,
@@ -182,14 +185,13 @@ public class StatementExecutor {
    * @param terminatedQueries An optional map from terminated query IDs to the commands that
    *     requested their termination
    * @param wasDropped was this table/stream subsequently dropped
-   * @throws Exception TODO: Refine this.
    */
   private void handleStatementWithTerminatedQueries(
       Command command,
       CommandId commandId,
       Map<QueryId, CommandId> terminatedQueries,
       boolean wasDropped
-  ) throws Exception {
+  ) {
     try {
       String statementString = command.getStatement();
       statusStore.put(
@@ -227,12 +229,7 @@ public class StatementExecutor {
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement instanceof DdlStatement) {
-      result =
-          ksqlEngine.executeDdlStatement(
-              statementStr,
-              (DdlStatement) statement,
-              command.getKsqlProperties()
-          );
+      result = ksqlEngine.executeDdlStatement(statementStr, (DdlStatement) statement);
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect(
           (CreateAsSelect)
@@ -276,14 +273,16 @@ public class StatementExecutor {
     completeStatusFuture(commandId, successStatus);
   }
 
-  private void handleRunScript(Command command) throws Exception {
+  private void handleRunScript(Command command) {
 
-    if (command.getKsqlProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+    if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queries =
-          (String) command.getKsqlProperties().get(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
+          (String) command.getOverwriteProperties().get(
+              KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          command.getKsqlProperties()
+          ksqlConfig.mergeWithOriginalConfig(command.getOriginalProperties()),
+          command.getOverwriteProperties()
       );
       for (QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -372,7 +371,8 @@ public class StatementExecutor {
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        command.getKsqlProperties()
+        ksqlConfig.mergeWithOriginalConfig(command.getOriginalProperties()),
+        command.getOverwriteProperties()
     ).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {

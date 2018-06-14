@@ -16,12 +16,20 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
+
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -68,9 +76,54 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldSetStreamsConfigProperties() {
+  public void shouldSetStreamsConfigConsumerUnprefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
     Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigConsumerPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigProducerUnprefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    Object result = ksqlConfig.getKsqlStreamConfigProps().get(
+        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigProducerPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
+        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG);
+    assertThat(result, equalTo(1024L));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigAdminClientProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(AdminClientConfig.RETRIES_CONFIG, 3));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
+        AdminClientConfig.RETRIES_CONFIG);
+    assertThat(result, equalTo(3));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("100"));
   }
 
@@ -78,8 +131,24 @@ public class KsqlConfigTest {
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    final Object result
+        = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldCleanStreamsProperties() {
+    final String password = "super-secret-password";
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        SslConfigs.SSL_KEY_PASSWORD_CONFIG, password
+    ));
+    final Password passwordConfig
+        = (Password) ksqlConfig.getKsqlStreamConfigProps().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+    assertThat(passwordConfig.value(), equalTo(password));
+    assertThat(
+        ksqlConfig.getKsqlConfigPropsCleaned().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
+        not(equalTo(password))
+    );
   }
 
   @Test
@@ -113,5 +182,24 @@ public class KsqlConfigTest {
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
     Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("200"));
+  }
+
+  @Test
+  public void shouldPreserveOriginalCompatibilitySensitiveConfigs() {
+    Map<String, String> originalProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "not_the_default");
+    KsqlConfig currentConfig = new KsqlConfig(Collections.emptyMap());
+    KsqlConfig compatibleConfig = currentConfig.mergeWithOriginalConfig(originalProperties);
+    assertThat(
+        compatibleConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG),
+        equalTo("not_the_default"));
+  }
+
+  @Test
+  public void shouldUseCurrentValueForCompatibilityInsensitiveConfigs() {
+    Map<String, String> originalProperties = Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, "false");
+    KsqlConfig currentConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, true));
+    KsqlConfig compatibleConfig = currentConfig.mergeWithOriginalConfig(originalProperties);
+    assertThat(compatibleConfig.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS), is(true));
   }
 }

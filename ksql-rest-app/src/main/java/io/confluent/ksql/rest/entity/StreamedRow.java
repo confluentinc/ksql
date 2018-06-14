@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 
@@ -59,6 +60,7 @@ public class StreamedRow {
     this.row = row;
     this.errorMessage = errorMessage;
     this.finalMessage = finalMessage;
+    ImmutableList l;
   }
 
   public GenericRow getRow() {

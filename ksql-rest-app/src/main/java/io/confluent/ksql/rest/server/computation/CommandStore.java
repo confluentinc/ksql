@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -87,19 +88,20 @@ public class CommandStore implements Closeable {
    *
    * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
-   * @param streamsProperties Any command-specific Streams properties to use.
+   * @param overwriteProperties Any command-specific Streams properties to use.
    * @return The ID assigned to the statement
    */
   public CommandId distributeStatement(
       String statementString,
       Statement statement,
-      Map<String, Object> streamsProperties
+      KsqlConfig ksqlConfig,
+      Map<String, Object> overwriteProperties
   ) throws KsqlException {
     final CommandId commandId = commandIdAssigner.getCommandId(statement);
     final Command command = new Command(
         statementString,
-        streamsProperties
-    );
+        overwriteProperties,
+        ksqlConfig.getAllConfigPropsCleaned());
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (Exception e) {

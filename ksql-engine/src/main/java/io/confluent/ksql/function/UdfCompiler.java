@@ -58,12 +58,22 @@ public class UdfCompiler {
       "#TYPE arg#INDEX;\n"
           + "if(args[#INDEX] == null) arg#INDEX = null;\n"
           + "else if (args[#INDEX] instanceof #TYPE) arg#INDEX = (#TYPE)args[#INDEX];\n"
-          + "else if (args[#INDEX] instanceof String) arg#INDEX = "
-          + "#TYPE.valueOf((String)args[#INDEX]);\n";
+          + "else if (args[#INDEX] instanceof String) \n"
+          + "   try {\n"
+          + "       arg#INDEX = #TYPE.valueOf((String)args[#INDEX]);\n"
+          + "   } catch (Exception e) {\n"
+          + "     throw new KsqlFunctionException(\"Couldn't coerce string argument'\" "
+          + "+ args[#INDEX] + \"' to expected type  #TYPE\");\n"
+          + "   }\n";
+
+
+  private static final String INTEGER_NUMBER_TEMPLATE =
+      "else if (args[#INDEX] instanceof Number) arg#INDEX = "
+          + "((Number)args[#INDEX]).intValue();\n";
 
   private static final String NUMBER_TEMPLATE =
       "else if (args[#INDEX] instanceof Number) arg#INDEX = "
-          + "((Number)args[#INDEX]).#NUM_VALUE;\n";
+          + "((Number)args[#INDEX]).#LC_TYPEValue();\n";
 
   private static final String THROWS_TEMPLATE =
       "else throw new KsqlFunctionException(\"Type: \" + args[#INDEX].getClass() + \""
@@ -148,16 +158,16 @@ public class UdfCompiler {
     }
 
     final StringBuilder builder = new StringBuilder();
-    builder.append(genericTemplate.replaceAll("#TYPE", type)
-        .replaceAll("#INDEX", String.valueOf(index)));
-
-    if (!type.equals("String") && !type.equals("Boolean")) {
-      final String numericValue = type.equals("Integer") ? "intValue()" : type.toLowerCase()
-          + "Value()";
-      builder.append(NUMBER_TEMPLATE.replaceAll("#INDEX", String.valueOf(index))
-          .replaceAll("#NUM_VALUE", numericValue));
+    builder.append(genericTemplate);
+    if (type.equals("Integer")) {
+      builder.append(INTEGER_NUMBER_TEMPLATE);
+    } else if (!type.equals("String") && !type.equals("Boolean")) {
+      builder.append(NUMBER_TEMPLATE);
     }
-    builder.append(THROWS_TEMPLATE.replaceAll("#INDEX", String.valueOf(index)));
-    return builder.toString();
+    builder.append(THROWS_TEMPLATE);
+    return builder.toString()
+        .replaceAll("#TYPE", type)
+        .replaceAll("#LC_TYPE", type.toLowerCase())
+        .replaceAll("#INDEX", String.valueOf(index));
   }
 }

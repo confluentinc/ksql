@@ -152,7 +152,7 @@ public class UdfLoader {
         }));
   }
 
-  private Object instantiateUdfClass(final Method method,
+  private static Object instantiateUdfClass(final Method method,
                                      final UdfDescription annotation) {
     try {
       return method.getDeclaringClass().newInstance();

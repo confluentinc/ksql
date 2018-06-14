@@ -326,7 +326,7 @@ public class JoinNode extends PlanNode {
           joinTableProps, schemaRegistryClient);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
-        throw new KsqlException("Expected to find a Table, found a stream instead");
+        throw new KsqlException("Expected to find a Table, found a stream instead.");
       }
 
       return (SchemaKTable) schemaKStream;

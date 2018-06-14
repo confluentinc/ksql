@@ -102,7 +102,12 @@ public class UdfLoader {
         // if we are loading from the parent classloader then restrict the name space to only
         // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
         .filterClasspathElements(
-            name -> parentClassLoader != loader || name.contains("ksql-engine"))
+            name -> {
+              if (parentClassLoader != loader) {
+                return true;
+              }
+              return name.contains("ksql-engine");
+            })
         .matchClassesWithMethodAnnotation(Udf.class,
             (theClass, executable) -> {
               final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
@@ -134,7 +139,7 @@ public class UdfLoader {
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
     addSensor(sensorName, classLevelAnnotaion.name());
-
+    LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())

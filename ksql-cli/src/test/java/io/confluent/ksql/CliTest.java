@@ -535,10 +535,8 @@ public class CliTest extends TestRunner {
   public void shouldListFunctions() {
     final List<List<String>> rows = new ArrayList<>();
     rows.add(Arrays.asList("TIMESTAMPTOSTRING", "VARCHAR", "[BIGINT, VARCHAR]", ""));
-    rows.add(Arrays.asList("SUBSTRING", "VARCHAR", "[VARCHAR, INT]",
-        "Returns a string that is a substring of this string. "
-            + "The substring begins with the character at the specified startIndex "
-            + "and extends to the end of this string."));
+    rows.add(Arrays.asList("EXTRACTJSONFIELD", "VARCHAR", "[VARCHAR, VARCHAR]", ""));
+    rows.add(Arrays.asList("CONCAT", "VARCHAR", "[VARCHAR, VARCHAR]", ""));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 }

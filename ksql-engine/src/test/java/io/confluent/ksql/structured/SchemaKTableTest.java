@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -35,15 +36,19 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +67,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.testng.Assert.assertEquals;
 
 public class SchemaKTableTest {
 
@@ -70,6 +76,8 @@ public class SchemaKTableTest {
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KTable kTable;
   private KsqlTable ksqlTable;
+  private KTable secondKTable;
+  private KsqlTable secondKsqlTable;
   private InternalFunctionRegistry functionRegistry;
 
 
@@ -78,12 +86,24 @@ public class SchemaKTableTest {
     functionRegistry = new InternalFunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
-    kTable = builder
-            .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-                , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema(), new
-                    KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClient())));
+    kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                           Consumed.with(Serdes.String(),
+                                         getRowSerde(ksqlTable.getKsqlTopic(),
+                                                     ksqlTable.getSchema())));
 
+    secondKsqlTable = (KsqlTable) metaStore.getSource("TEST3");
+    secondKTable = builder.table(secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
+                                 Consumed.with(Serdes.String(),
+                                               getRowSerde(secondKsqlTable.getKsqlTopic(),
+                                                           secondKsqlTable.getSchema())));
   }
+
+  private Serde<GenericRow> getRowSerde(KsqlTopic topic, Schema schema) {
+    return topic.getKsqlTopicSerDe().getGenericRowSerde(schema,
+                                                        new KsqlConfig(Collections.emptyMap()),
+                                                        false, new MockSchemaRegistryClient());
+  }
+
 
   @Test
   public void testSelectSchemaKStream() throws Exception {
@@ -254,5 +274,135 @@ public class SchemaKTableTest {
     assertThat(keyValue.value, equalTo(value));
   }
 
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformTableToTableLeftJoin() {
+
+    final KTable mockKTable= EasyMock.niceMock(KTable.class);
+    expect(mockKTable.leftJoin(anyObject(KTable.class),
+                            anyObject(SchemaKStream.KsqlValueJoiner.class)))
+        .andReturn(EasyMock.niceMock(KTable.class));
+
+    replay(mockKTable);
+    initialSchemaKTable= new SchemaKTable(ksqlTable.getSchema(), mockKTable,
+                                           ksqlTable.getKeyField(), new ArrayList<>(),
+                                           false, SchemaKStream.Type.SOURCE, functionRegistry,
+                                           new MockSchemaRegistryClient());
+
+    final SchemaKTable schemaKTable
+        = new SchemaKTable(secondKsqlTable.getSchema(), secondKTable,
+                           secondKsqlTable.getKeyField(), new ArrayList<>(), false,
+                           SchemaKStream.Type.SOURCE, functionRegistry,
+                           new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(ksqlTable.getSchema(),
+                                            secondKsqlTable.getSchema());
+
+    final SchemaKStream joinedKStream = initialSchemaKTable
+        .leftJoin(schemaKTable, joinSchema, joinSchema.fields().get(0));
+
+    verify(mockKTable);
+
+    assertThat(joinedKStream, instanceOf(SchemaKTable.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKTable, schemaKTable));
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformTableToTableInnerJoin() {
+
+    final KTable mockKTable= EasyMock.niceMock(KTable.class);
+    expect(mockKTable.join(anyObject(KTable.class),
+                           anyObject(SchemaKStream.KsqlValueJoiner.class)))
+        .andReturn(EasyMock.niceMock(KTable.class));
+
+    replay(mockKTable);
+    initialSchemaKTable= new SchemaKTable(ksqlTable.getSchema(), mockKTable,
+                                          ksqlTable.getKeyField(), new ArrayList<>(),
+                                          false, SchemaKStream.Type.SOURCE, functionRegistry,
+                                          new MockSchemaRegistryClient());
+
+    final SchemaKTable schemaKTable
+        = new SchemaKTable(secondKsqlTable.getSchema(), secondKTable,
+                           secondKsqlTable.getKeyField(), new ArrayList<>(), false,
+                           SchemaKStream.Type.SOURCE, functionRegistry,
+                           new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(ksqlTable.getSchema(),
+                                            secondKsqlTable.getSchema());
+
+    final SchemaKStream joinedKStream = initialSchemaKTable
+        .join(schemaKTable, joinSchema, joinSchema.fields().get(0));
+
+    verify(mockKTable);
+
+    assertThat(joinedKStream, instanceOf(SchemaKTable.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKTable, schemaKTable));
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformTableToTableOuterJoin() {
+
+    final KTable mockKTable= EasyMock.niceMock(KTable.class);
+    expect(mockKTable.outerJoin(anyObject(KTable.class),
+                                anyObject(SchemaKStream.KsqlValueJoiner.class)))
+        .andReturn(EasyMock.niceMock(KTable.class));
+
+    replay(mockKTable);
+    initialSchemaKTable= new SchemaKTable(ksqlTable.getSchema(), mockKTable,
+                                          ksqlTable.getKeyField(), new ArrayList<>(),
+                                          false, SchemaKStream.Type.SOURCE, functionRegistry,
+                                          new MockSchemaRegistryClient());
+
+    final SchemaKTable schemaKTable
+        = new SchemaKTable(secondKsqlTable.getSchema(), secondKTable,
+                           secondKsqlTable.getKeyField(), new ArrayList<>(), false,
+                           SchemaKStream.Type.SOURCE, functionRegistry,
+                           new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(ksqlTable.getSchema(),
+                                            secondKsqlTable.getSchema());
+
+    final SchemaKStream joinedKStream = initialSchemaKTable
+        .outerJoin(schemaKTable, joinSchema, joinSchema.fields().get(0));
+
+    verify(mockKTable);
+
+    assertThat(joinedKStream, instanceOf(SchemaKTable.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKTable, schemaKTable));
+
+  }
+
+  Schema getJoinSchema(Schema leftSchema, Schema rightSchema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    String leftAlias = "left";
+    String rightAlias = "right";
+    for (Field field : leftSchema.fields()) {
+      String fieldName = leftAlias + "." + field.name();
+      schemaBuilder.field(fieldName, field.schema());
+    }
+
+    for (Field field : rightSchema.fields()) {
+      String fieldName = rightAlias + "." + field.name();
+      schemaBuilder.field(fieldName, field.schema());
+    }
+    return schemaBuilder.build();
+  }
 
 }

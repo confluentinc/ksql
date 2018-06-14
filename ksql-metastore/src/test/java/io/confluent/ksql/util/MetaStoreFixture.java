@@ -120,10 +120,10 @@ public class MetaStoreFixture {
     KsqlTable ksqlTable3 = new KsqlTable(
         "sqlexpression",
         "TEST3",
-        schemaBuilder2,
-        schemaBuilder2.field("COL0"),
+        schemaBuilderTestTable3,
+        schemaBuilderTestTable3.field("COL0"),
         timestampExtractionPolicy,
-        ksqlTopic2,
+        ksqlTopic3,
         "TEST3",
         false);
 

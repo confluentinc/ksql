@@ -31,6 +31,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -38,6 +39,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.testng.Assert.fail;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -117,18 +119,29 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfsInJarDirectoryIfLoadCustomerUdfsFalse() {
+  public void shouldLoadUdfsInKSQLIfLoadCustomerUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in ksql-engine will throw if not found
+    metaStore.getUdfFactory("substring");
+  }
+
+  @Test
+  public void shouldNotLoadCustomUDfsIfLoadCustomUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in udf-example.jar
+    try {
+      metaStore.getUdfFactory("tostring");
+      fail("Should have thrown as function doesn't exist");
+    } catch (final KsqlException e) {
+      // pass
+    }
+  }
+
+  private MetaStore loadKsqlUdfsOnly() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final UdfLoader pluginLoader = createUdfLoader(metaStore, false, false);
     pluginLoader.load();
-    // udf in ksql-engine
-    final UdfFactory function = metaStore.getUdfFactory("substring");
-    // udf in udf-example.jar
-    final UdfFactory toString = metaStore.getUdfFactory("tostring");
-
-    assertThat(function, not(nullValue()));
-    assertThat(toString, nullValue());
-    assertThat(toString, nullValue());
+    return metaStore;
   }
 
   @Test

@@ -60,11 +60,13 @@ public class FunctionInfo {
       return false;
     }
     final FunctionInfo that = (FunctionInfo) o;
-    return Objects.equals(name, that.name);
+    return Objects.equals(name, that.name) &&
+        Objects.equals(argumentTypes, that.argumentTypes) &&
+        Objects.equals(returnType, that.returnType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name);
+    return Objects.hash(name, argumentTypes, returnType);
   }
 }

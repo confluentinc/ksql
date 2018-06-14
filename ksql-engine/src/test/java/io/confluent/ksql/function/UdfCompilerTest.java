@@ -22,6 +22,9 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -104,6 +107,17 @@ public class UdfCompilerTest {
         classLoader);
 
     assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfUnsupportedArgumentType() throws NoSuchMethodException {
+    udfCompiler.compile(
+        getClass().getMethod("udf", Set.class),
+        classLoader);
+  }
+
+  public String udf(final Set val) {
+    return val.toString();
   }
 
   public String udf(final Map<String, Integer> map) {

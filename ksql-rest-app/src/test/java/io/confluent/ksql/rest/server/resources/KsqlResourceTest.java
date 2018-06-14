@@ -625,7 +625,6 @@ public class KsqlResourceTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateTableWithInference() {
-    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
         + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
     final String ksqlStringWithSchema =

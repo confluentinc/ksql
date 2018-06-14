@@ -88,7 +88,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
   public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
-  private final Map<String, Object> ksqlConfigProps;
   private final Map<String, Object> ksqlStreamConfigProps;
 
   private static final ConfigDef CONFIG_DEF;
@@ -247,10 +246,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
 
     applyStreamsConfig(originals());
-  }
-
-  public Map<String, Object> getKsqlConfigProps() {
-    return Collections.unmodifiableMap(values());
   }
 
   public Map<String, Object> getKsqlStreamConfigProps() {

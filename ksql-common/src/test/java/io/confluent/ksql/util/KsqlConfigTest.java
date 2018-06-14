@@ -89,7 +89,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
             KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-2"));
-    Object result = ksqlConfigClone.getKsqlConfigProps().get(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    String result = ksqlConfigClone.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     assertThat(result, equalTo("test-2"));
   }
 

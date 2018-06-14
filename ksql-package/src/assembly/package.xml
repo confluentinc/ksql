@@ -38,6 +38,13 @@
                 <include>*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.parent.basedir}/ext</directory>
+            <outputDirectory>ext</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>

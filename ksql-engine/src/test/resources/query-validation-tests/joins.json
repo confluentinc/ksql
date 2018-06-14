@@ -66,7 +66,7 @@
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt on t.id = tt.id SPAN (5 seconds, 10 seconds);"
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt on t.id = tt.id SPAN (11 seconds, 10 seconds);"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},

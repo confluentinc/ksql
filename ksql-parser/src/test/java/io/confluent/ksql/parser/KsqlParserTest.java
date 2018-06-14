@@ -58,6 +58,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -812,28 +813,18 @@ public class KsqlParserTest {
     Assert.assertThat(listQueries.getShowExtended(), is(true));
   }
 
-  @Test
+  @Test(expected = KsqlException.class)
   public void shouldFailIfStreamColumnNameIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address FROM address a;";
-    try {
-      final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
-      Assert.fail();
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Ambiguous column name ADDRESS. You have stream/table with the same name/alias. Use stream/table name or alias as prefix when there is a column with the same name."));
-    }
+    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
   }
 
-  @Test
+  @Test(expected = KsqlException.class)
   public void shouldFailIfStreamColumnNameWithNoAliasIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.city FROM address a;";
-    try {
-      final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
-      Assert.fail();
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Ambiguous column name ADDRESS. You have stream/table with the same name/alias. Use stream/table name or alias as prefix when there is a column with the same name."));
-    }
+    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
   }
 
   @Test
@@ -862,16 +853,11 @@ public class KsqlParserTest {
         equalTo("ADDRESS.ADDRESS.CITY CITY"));
   }
 
-  @Test
+  @Test(expected = KsqlException.class)
   public void shouldFailJoinQueryParseIfStreamColumnNameWithNoAliasIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
-    try {
-      final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
-      Assert.fail();
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Ambiguous column name ITEMID. You have stream/table with the same name/alias. Use stream/table name or alias as prefix when there is a column with the same name."));
-    }
+    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
   }
 
   @Test

@@ -19,6 +19,8 @@ package io.confluent.ksql.function;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.utils.Time;
 
+import java.util.Objects;
+
 import io.confluent.ksql.function.udf.Kudf;
 
 /**
@@ -32,9 +34,9 @@ class UdfMetricProducer implements Kudf {
   public UdfMetricProducer(final Sensor sensor,
                            final Kudf kudf,
                            final Time time) {
-    this.sensor = sensor;
-    this.kudf = kudf;
-    this.time = time;
+    this.sensor = Objects.requireNonNull(sensor, "sensor can't be null");
+    this.kudf = Objects.requireNonNull(kudf, "kudf can't be null");
+    this.time = Objects.requireNonNull(time, "time can't be null");
   }
 
   @Override

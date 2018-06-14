@@ -152,10 +152,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addFunction(ucase);
 
 
-    KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
-                                                                           Schema.STRING_SCHEMA),
-                                         "CONCAT", ConcatKudf.class);
-
+    KsqlFunction concat = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA),
+        "CONCAT", ConcatKudf.class);
     addFunction(concat);
 
     KsqlFunction trim = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,

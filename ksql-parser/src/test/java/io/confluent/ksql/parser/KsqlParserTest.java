@@ -813,18 +813,31 @@ public class KsqlParserTest {
     Assert.assertThat(listQueries.getShowExtended(), is(true));
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldFailIfStreamColumnNameIsAmbiguous() {
+  @Test
+  public void shouldAddPrefixEvenIfColumnNameIsTheSameAsStream() {
     final String statementString =
         "CREATE STREAM S AS SELECT address FROM address a;";
-    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("A.ADDRESS ADDRESS"));
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldFailIfStreamColumnNameWithNoAliasIsAmbiguous() {
+  @Test
+  public void shouldNotAddPrefixIfStreamNameIsPrefix() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.city FROM address a;";
     final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("ADDRESS.CITY CITY"));
   }
 
   @Test

@@ -126,30 +126,31 @@ public class UdfLoader {
         .scan();
   }
 
-  private void addFunction(final UdfDescription annotation,
+  private void addFunction(final UdfDescription classLevelAnnotaion,
                            final Method method,
                            final UdfInvoker udf) {
     // sanity check
-    instantiateUdfClass(method, annotation);
-    final String sensorName = "ksql-udf-" + annotation.name();
-    addSensor(sensorName, annotation.name());
+    instantiateUdfClass(method, classLevelAnnotaion);
+    final Udf udfAnnotation = method.getAnnotation(Udf.class);
+    final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
+    addSensor(sensorName, classLevelAnnotaion.name());
 
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
-        annotation.name(),
+        classLevelAnnotaion.name(),
         collectMetrics ? UdfMetricProducer.class : PluggableUdf.class,
         () -> {
           final PluggableUdf theUdf
-              = new PluggableUdf(udf, instantiateUdfClass(method, annotation));
+              = new PluggableUdf(udf, instantiateUdfClass(method, classLevelAnnotaion));
           if (collectMetrics) {
             return new UdfMetricProducer(metrics.getSensor(sensorName),
                 theUdf,
                 new SystemTime());
           }
           return theUdf;
-        }));
+        }, udfAnnotation.description()));
   }
 
   private static Object instantiateUdfClass(final Method method,

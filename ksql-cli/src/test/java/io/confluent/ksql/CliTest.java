@@ -534,8 +534,11 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldListFunctions() {
     final List<List<String>> rows = new ArrayList<>();
-    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "VARCHAR", "[BIGINT, VARCHAR]"));
-    rows.add(Arrays.asList("SUBSTRING", "VARCHAR", "[VARCHAR, INT]"));
+    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "VARCHAR", "[BIGINT, VARCHAR]", ""));
+    rows.add(Arrays.asList("SUBSTRING", "VARCHAR", "[VARCHAR, INT]",
+        "Returns a string that is a substring of this string. "
+            + "The substring begins with the character at the specified startIndex "
+            + "and extends to the end of this string."));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 }

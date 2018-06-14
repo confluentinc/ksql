@@ -503,7 +503,8 @@ public class KsqlResource {
                   function.getArguments()
                       .stream()
                       .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
-                  SchemaUtil.getSqlTypeName(function.getReturnType()))));
+                  SchemaUtil.getSqlTypeName(function.getReturnType()),
+                      function.getDescription())));
               return info.stream();
             })
             .collect(Collectors.toList())

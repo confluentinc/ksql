@@ -460,13 +460,17 @@ public abstract class Console implements Closeable {
       tableBuilder.withColumnHeaders("Execution Plan");
       tableBuilder.withRow(executionPlan.getExecutionPlan());
     } else if (ksqlEntity instanceof FunctionList) {
-      tableBuilder.withColumnHeaders("Function Name", "Return Type", "Argument Types");
+      tableBuilder.withColumnHeaders("Function Name",
+          "Return Type",
+          "Argument Types",
+          "Description");
       ((FunctionList) ksqlEntity)
           .getFunctions()
           .forEach(function -> tableBuilder.withRow(
               function.getName(),
               function.getReturnType(),
-              function.getArgumentTypes().toString()));
+              function.getArgumentTypes().toString(),
+              function.getDescription()));
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",

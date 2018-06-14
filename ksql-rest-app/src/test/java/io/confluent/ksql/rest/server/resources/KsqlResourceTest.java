@@ -369,11 +369,11 @@ public class KsqlResourceTest {
 
     // not going to check every function
     assertThat(functionList.getFunctions(), hasItems(
-        new FunctionInfo("TIMESTAMPTOSTRING", Arrays.asList("BIGINT", "VARCHAR"), "VARCHAR"),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<INT>", "INT"), "BOOLEAN"),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("VARCHAR", "VARCHAR"), "BOOLEAN"),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<DOUBLE>", "DOUBLE"), "BOOLEAN"),
-        new FunctionInfo("CONCAT", Arrays.asList("VARCHAR", "VARCHAR"), "VARCHAR")));
+        new FunctionInfo("TIMESTAMPTOSTRING", Arrays.asList("BIGINT", "VARCHAR"), "VARCHAR", ""),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<INT>", "INT"), "BOOLEAN", ""),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("VARCHAR", "VARCHAR"), "BOOLEAN", ""),
+        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<DOUBLE>", "DOUBLE"), "BOOLEAN", ""),
+        new FunctionInfo("CONCAT", Arrays.asList("VARCHAR", "VARCHAR"), "VARCHAR", "")));
   }
 
   @Test

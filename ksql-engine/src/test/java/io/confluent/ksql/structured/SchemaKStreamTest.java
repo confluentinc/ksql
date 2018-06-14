@@ -47,7 +47,6 @@ import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +83,14 @@ public class SchemaKStreamTest {
   private KTable kTable;
   private KsqlTable ksqlTable;
   private InternalFunctionRegistry functionRegistry;
+  private KStream mockKStream;
+  private SchemaKStream firstSchemaKStream;
+  private SchemaKStream secondSchemaKStream;
+  private SchemaKTable schemaKTable;
+  private Serde<GenericRow> leftSerde;
+  private Serde<GenericRow> rightSerde;
+  private Schema joinSchema;
+
 
   @Before
   public void init() {
@@ -106,6 +113,34 @@ public class SchemaKStreamTest {
                            Consumed.with(Serdes.String(),
                                          getRowSerde(ksqlTable.getKsqlTopic(),
                                                      ksqlTable.getSchema())));
+
+
+    mockKStream = niceMock(KStream.class);
+
+    firstSchemaKStream =  new SchemaKStream(ksqlStream.getSchema(), mockKStream,
+                                            ksqlStream.getKeyField(), new ArrayList<>(),
+                                            SchemaKStream.Type.SOURCE, functionRegistry,
+                                            new MockSchemaRegistryClient());
+
+
+    secondSchemaKStream  = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
+                                             secondKsqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+
+    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
+                                                    ksqlStream.getSchema());
+    rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(),
+                                                     secondKsqlStream.getSchema());
+
+
+    schemaKTable = new SchemaKTable(ksqlTable.getSchema(), kTable,
+                                    ksqlTable.getKeyField(), new ArrayList<>(), false,
+                                    SchemaKStream.Type.SOURCE, functionRegistry,
+                                    new MockSchemaRegistryClient());
+
+    joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
   }
 
   private Serde<GenericRow> getRowSerde(KsqlTopic topic, Schema schema) {
@@ -299,35 +334,16 @@ public class SchemaKStreamTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
-    final SchemaKStream secondSchemaKStream
-        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
-                            secondKsqlStream.getKeyField(), new ArrayList<>(),
-                            SchemaKStream.Type.SOURCE, functionRegistry,
-                            new MockSchemaRegistryClient());
-
-    final Serde<GenericRow> leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
-    final Serde<GenericRow> rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(),
-                                                     secondKsqlStream.getSchema());
-
     final JoinWindows joinWindow = JoinWindows.of(10);
-    final Schema joinSchema = getJoinSchema(ksqlStream.getSchema(),
-                                            secondKsqlStream.getSchema());
-
-    KStream mockKstream = EasyMock.niceMock(KStream.class);
-    expect(mockKstream.leftJoin(anyObject(KStream.class),
+    expect(mockKStream.leftJoin(eq(secondSchemaKStream.kstream),
                                 anyObject(SchemaKStream.KsqlValueJoiner.class),
                                 eq(joinWindow),
                                 anyObject(Joined.class)))
-        .andReturn(niceMock(KStream.class));
+        .andReturn(mockKStream);
 
-    replay(mockKstream);
-    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), mockKstream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry,
-                                             new MockSchemaRegistryClient());
+    replay(mockKStream);
 
-    final SchemaKStream joinedKStream = initialSchemaKStream
+    final SchemaKStream joinedKStream = firstSchemaKStream
         .leftJoin(secondSchemaKStream,
                   joinSchema,
                   joinSchema.fields().get(0),
@@ -335,48 +351,28 @@ public class SchemaKStreamTest {
                   leftSerde,
                   rightSerde);
 
-    verify(mockKstream);
+    verify(mockKStream);
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
-    assertEquals(joinedKStream.schema, joinSchema);
-    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
-    assertEquals(joinedKStream.sourceSchemaKStreams,
-                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
+    assertEquals(joinSchema, joinedKStream.schema);
+    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Arrays.asList(firstSchemaKStream, secondSchemaKStream),
+                 joinedKStream.sourceSchemaKStreams);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
-
-    final SchemaKStream secondSchemaKStream
-        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
-                            secondKsqlStream.getKeyField(), new ArrayList<>(),
-                            SchemaKStream.Type.SOURCE, functionRegistry,
-                            new MockSchemaRegistryClient());
-
-    final Serde<GenericRow> leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
-    final Serde<GenericRow> rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(),
-                                                     secondKsqlStream.getSchema());
-
     final JoinWindows joinWindow = JoinWindows.of(10);
-    final Schema joinSchema = getJoinSchema(ksqlStream.getSchema(),
-                                            secondKsqlStream.getSchema());
-
-    final KStream mockKstream = EasyMock.niceMock(KStream.class);
-    expect(mockKstream.join(anyObject(KStream.class),
+    expect(mockKStream.join(eq(secondSchemaKStream.kstream),
                             anyObject(SchemaKStream.KsqlValueJoiner.class),
                             eq(joinWindow),
                             anyObject(Joined.class)))
-        .andReturn(niceMock(KStream.class));
+        .andReturn(mockKStream);
 
-    replay(mockKstream);
+    replay(mockKStream);
 
-    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), mockKstream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry,
-                                             new MockSchemaRegistryClient());
-   final SchemaKStream joinedKStream = initialSchemaKStream
+    final SchemaKStream joinedKStream = firstSchemaKStream
         .join(secondSchemaKStream,
               joinSchema,
               joinSchema.fields().get(0),
@@ -384,51 +380,28 @@ public class SchemaKStreamTest {
               leftSerde,
               rightSerde);
 
-    verify(mockKstream);
+    verify(mockKStream);
 
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
-    assertEquals(joinedKStream.schema, joinSchema);
-    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
-    assertEquals(joinedKStream.sourceSchemaKStreams,
-                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
+    assertEquals(joinSchema, joinedKStream.schema);
+    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Arrays.asList(firstSchemaKStream, secondSchemaKStream),
+                 joinedKStream.sourceSchemaKStreams);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
-
-    final SchemaKStream secondSchemaKStream
-        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
-                            secondKsqlStream.getKeyField(), new ArrayList<>(),
-                            SchemaKStream.Type.SOURCE, functionRegistry,
-                            new MockSchemaRegistryClient());
-
-    final Serde<GenericRow> leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
-    final Serde<GenericRow> rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(),
-                                                     secondKsqlStream.getSchema());
-
     final JoinWindows joinWindow = JoinWindows.of(10);
-    final Schema joinSchema = getJoinSchema(ksqlStream.getSchema(),
-                                            secondKsqlStream.getSchema());
-
-    final KStream mockKstream = EasyMock.niceMock(KStream.class);
-    expect(mockKstream.outerJoin(anyObject(KStream.class),
+    expect(mockKStream.outerJoin(eq(secondSchemaKStream.kstream),
                                  anyObject(SchemaKStream.KsqlValueJoiner.class),
                                  eq(joinWindow),
                                  anyObject(Joined.class)))
-        .andReturn(niceMock(KStream.class));
+        .andReturn(mockKStream);
+    replay(mockKStream);
 
-    replay(mockKstream);
-
-    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), mockKstream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry,
-                                             new MockSchemaRegistryClient());
-
-
-    final SchemaKStream joinedKStream = initialSchemaKStream
+    final SchemaKStream joinedKStream = firstSchemaKStream
         .outerJoin(secondSchemaKStream,
                    joinSchema,
                    joinSchema.fields().get(0),
@@ -436,95 +409,60 @@ public class SchemaKStreamTest {
                    leftSerde,
                    rightSerde);
 
-    verify(mockKstream);
+    verify(mockKStream);
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
-    assertEquals(joinedKStream.schema, joinSchema);
-    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
-    assertEquals(joinedKStream.sourceSchemaKStreams,
-                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
+    assertEquals(joinSchema, joinedKStream.schema);
+    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Arrays.asList(firstSchemaKStream, secondSchemaKStream),
+                 joinedKStream.sourceSchemaKStreams);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableLeftJoin() {
-
-    final KStream mockKstream = EasyMock.niceMock(KStream.class);
-    expect(mockKstream.leftJoin(anyObject(KTable.class),
+    expect(mockKStream.leftJoin(eq(schemaKTable.getKtable()),
                                 anyObject(SchemaKStream.KsqlValueJoiner.class),
                                 anyObject(Joined.class)))
-        .andReturn(niceMock(KStream.class));
+        .andReturn(mockKStream);
 
-    replay(mockKstream);
-    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), mockKstream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry,
-                                             new MockSchemaRegistryClient());
+    replay(mockKStream);
 
-    final SchemaKTable schemaKTable
-        = new SchemaKTable(ksqlTable.getSchema(), kTable,
-                           ksqlTable.getKeyField(), new ArrayList<>(), false,
-                           SchemaKStream.Type.SOURCE, functionRegistry,
-                           new MockSchemaRegistryClient());
-
-    final Serde<GenericRow> leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
-
-    final Schema joinSchema = getJoinSchema(ksqlStream.getSchema(),
-                                            secondKsqlStream.getSchema());
-
-    final SchemaKStream joinedKStream = initialSchemaKStream
+    final SchemaKStream joinedKStream = firstSchemaKStream
         .leftJoin(schemaKTable, joinSchema, joinSchema.fields().get(0), leftSerde);
 
-    verify(mockKstream);
+    verify(mockKStream);
 
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
-    assertEquals(joinedKStream.schema, joinSchema);
-    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
-    assertEquals(joinedKStream.sourceSchemaKStreams,
-                 Arrays.asList(initialSchemaKStream, schemaKTable));
+    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
+    assertEquals(joinSchema, joinedKStream.schema);
+    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Arrays.asList(firstSchemaKStream, schemaKTable),
+                 joinedKStream.sourceSchemaKStreams);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableInnerJoin() {
 
-    final KStream mockKstream = EasyMock.niceMock(KStream.class);
-    expect(mockKstream.join(anyObject(KTable.class),
+    expect(mockKStream.join(eq(schemaKTable.getKtable()),
                             anyObject(SchemaKStream.KsqlValueJoiner.class),
                             anyObject(Joined.class)))
-        .andReturn(niceMock(KStream.class));
+        .andReturn(mockKStream);
 
-    replay(mockKstream);
-    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), mockKstream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry,
-                                             new MockSchemaRegistryClient());
+    replay(mockKStream);
 
-    final SchemaKTable schemaKTable
-        = new SchemaKTable(ksqlTable.getSchema(), kTable,
-                           ksqlTable.getKeyField(), new ArrayList<>(), false,
-                           SchemaKStream.Type.SOURCE, functionRegistry,
-                           new MockSchemaRegistryClient());
-
-    final Serde<GenericRow> leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
-
-    final Schema joinSchema = getJoinSchema(ksqlStream.getSchema(),
-                                            secondKsqlStream.getSchema());
-
-    final SchemaKStream joinedKStream = initialSchemaKStream
+    final SchemaKStream joinedKStream = firstSchemaKStream
         .join(schemaKTable, joinSchema, joinSchema.fields().get(0), leftSerde);
 
-    verify(mockKstream);
+    verify(mockKStream);
 
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
-    assertEquals(joinedKStream.schema, joinSchema);
-    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
-    assertEquals(joinedKStream.sourceSchemaKStreams,
-                 Arrays.asList(initialSchemaKStream, schemaKTable));
+    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
+    assertEquals(joinSchema, joinedKStream.schema);
+    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Arrays.asList(firstSchemaKStream, schemaKTable),
+                 joinedKStream.sourceSchemaKStreams);
   }
 
   Schema getJoinSchema(Schema leftSchema, Schema rightSchema) {

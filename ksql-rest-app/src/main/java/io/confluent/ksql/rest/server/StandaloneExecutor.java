@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -54,9 +55,9 @@ public class StandaloneExecutor implements Executable {
   StandaloneExecutor(final KsqlEngine ksqlEngine,
                      final String queriesFile,
                      final UdfLoader udfLoader) {
-    this.ksqlEngine = ksqlEngine;
-    this.queriesFile = queriesFile;
-    this.udfLoader = udfLoader;
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
+    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
+    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
   }
 
   public void start() {

@@ -20,6 +20,8 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -38,9 +40,12 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,9 +57,11 @@ import java.util.List;
 
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.not;
+import static org.testng.Assert.assertEquals;
 
 
 public class SchemaKStreamTest {
@@ -65,6 +72,10 @@ public class SchemaKStreamTest {
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KStream kStream;
   private KsqlStream ksqlStream;
+  private KStream secondKStream;
+  private KsqlStream secondKsqlStream;
+  private KTable kTable;
+  private KsqlTable ksqlTable;
   private InternalFunctionRegistry functionRegistry;
 
   @Before
@@ -73,11 +84,28 @@ public class SchemaKStreamTest {
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
-        Consumed.with(Serdes.String(), ksqlStream.getKsqlTopic()
-            .getKsqlTopicSerDe().getGenericRowSerde(ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap())
-                , false, new MockSchemaRegistryClient())));
+                             Consumed.with(Serdes.String(),
+                                           getRowSerde(ksqlStream.getKsqlTopic(),
+                                                       ksqlStream.getSchema())));
+
+    secondKsqlStream = (KsqlStream) metaStore.getSource("ORDERS");
+    secondKStream = builder.stream(secondKsqlStream.getKsqlTopic().getKafkaTopicName(),
+                                   Consumed.with(Serdes.String(),
+                                                 getRowSerde(secondKsqlStream.getKsqlTopic(),
+                                                             secondKsqlStream.getSchema())));
+
+    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                           Consumed.with(Serdes.String(),
+                                         getRowSerde(ksqlTable.getKsqlTopic(),
+                                                     ksqlTable.getSchema())));
   }
 
+  private Serde<GenericRow> getRowSerde(KsqlTopic topic, Schema schema) {
+    return topic.getKsqlTopicSerDe().getGenericRowSerde(schema,
+                                                        new KsqlConfig(Collections.emptyMap()),
+                                                        false, new MockSchemaRegistryClient());
+  }
 
   @Test
   public void testSelectSchemaKStream() {
@@ -260,4 +288,184 @@ public class SchemaKStreamTest {
 
     Assert.assertEquals(groupedSchemaKStream.getKeyField().name(), "TEST1.COL1|+|TEST1.COL0");
   }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformStreamToStreamLeftJoin() {
+
+    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+    final SchemaKStream secondSchemaKStream
+        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
+                            secondKsqlStream.getKeyField(), new ArrayList<>(),
+                            SchemaKStream.Type.SOURCE, functionRegistry,
+                            new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(initialSchemaKStream.getSchema(),
+                                            secondSchemaKStream.getSchema());
+    final SchemaKStream joinedKStream = initialSchemaKStream
+        .leftJoin(secondSchemaKStream,
+                  joinSchema,
+                  joinSchema.fields().get(0),
+                  JoinWindows.of(10),
+                  getRowSerde(ksqlStream.getKsqlTopic(),
+                              ksqlStream.getSchema()),
+                  getRowSerde(secondKsqlStream.getKsqlTopic(),
+                              secondKsqlStream.getSchema()));
+
+    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformStreamToStreamInnerJoin() {
+
+    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+    final SchemaKStream secondSchemaKStream
+        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
+                            secondKsqlStream.getKeyField(), new ArrayList<>(),
+                            SchemaKStream.Type.SOURCE, functionRegistry,
+                            new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(initialSchemaKStream.getSchema(),
+                                            secondSchemaKStream.getSchema());
+    final SchemaKStream joinedKStream = initialSchemaKStream
+        .join(secondSchemaKStream,
+              joinSchema,
+              joinSchema.fields().get(0),
+              JoinWindows.of(10),
+              getRowSerde(ksqlStream.getKsqlTopic(),
+                          ksqlStream.getSchema()),
+              getRowSerde(secondKsqlStream.getKsqlTopic(),
+                          secondKsqlStream.getSchema()));
+
+    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformStreamToStreamOuterJoin() {
+
+    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+    final SchemaKStream secondSchemaKStream
+        = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
+                            secondKsqlStream.getKeyField(), new ArrayList<>(),
+                            SchemaKStream.Type.SOURCE, functionRegistry,
+                            new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(initialSchemaKStream.getSchema(),
+                                            secondSchemaKStream.getSchema());
+    final SchemaKStream joinedKStream = initialSchemaKStream
+        .outerJoin(secondSchemaKStream,
+                   joinSchema,
+                   joinSchema.fields().get(0),
+                   JoinWindows.of(10),
+                   getRowSerde(ksqlStream.getKsqlTopic(),
+                               ksqlStream.getSchema()),
+                   getRowSerde(secondKsqlStream.getKsqlTopic(),
+                               secondKsqlStream.getSchema()));
+
+    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKStream, secondSchemaKStream));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformStreamToTableLeftJoin() {
+
+    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+    final SchemaKTable schemaKTable
+        = new SchemaKTable(ksqlTable.getSchema(), kTable,
+                           ksqlTable.getKeyField(), new ArrayList<>(), false,
+                           SchemaKStream.Type.SOURCE, functionRegistry,
+                           new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(initialSchemaKStream.getSchema(),
+                                            schemaKTable.getSchema());
+    final SchemaKStream joinedKStream = initialSchemaKStream
+        .leftJoin(schemaKTable, joinSchema, joinSchema.fields().get(0),
+                  getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema()));
+
+    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKStream, schemaKTable));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPerformStreamToTableInnerJoin() {
+
+    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient());
+
+    final SchemaKTable schemaKTable
+        = new SchemaKTable(ksqlTable.getSchema(), kTable,
+                           ksqlTable.getKeyField(), new ArrayList<>(), false,
+                           SchemaKStream.Type.SOURCE, functionRegistry,
+                           new MockSchemaRegistryClient());
+
+    final Schema joinSchema = getJoinSchema(initialSchemaKStream.getSchema(),
+                                            schemaKTable.getSchema());
+    final SchemaKStream joinedKStream = initialSchemaKStream
+        .join(schemaKTable, joinSchema, joinSchema.fields().get(0),
+              getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema()));
+
+    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
+    assertEquals(joinedKStream.type, SchemaKStream.Type.JOIN);
+    assertEquals(joinedKStream.schema, joinSchema);
+    assertEquals(joinedKStream.keyField, joinSchema.fields().get(0));
+    assertEquals(joinedKStream.sourceSchemaKStreams,
+                 Arrays.asList(initialSchemaKStream, schemaKTable));
+  }
+
+  Schema getJoinSchema(Schema leftSchema, Schema rightSchema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    String leftAlias = "left";
+    String rightAlias = "right";
+    for (Field field : leftSchema.fields()) {
+      String fieldName = leftAlias + "." + field.name();
+      schemaBuilder.field(fieldName, field.schema());
+    }
+
+    for (Field field : rightSchema.fields()) {
+      String fieldName = rightAlias + "." + field.name();
+      schemaBuilder.field(fieldName, field.schema());
+    }
+    return schemaBuilder.build();
+  }
+
 }

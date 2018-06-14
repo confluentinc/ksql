@@ -49,7 +49,6 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class JoinNode extends PlanNode {
 
-
   public enum JoinType {
     INNER, LEFT, OUTER
   }
@@ -76,7 +75,7 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
                   @JsonProperty("leftAlias") final String leftAlias,
                   @JsonProperty("rightAlias") final String rightAlias,
-                  @JsonProperty("slidingWindow") final SpanExpression spanExpression,
+                  @JsonProperty("span") final SpanExpression spanExpression,
                   @JsonProperty("leftType") final DataSource.DataSourceType leftType,
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
 
@@ -375,7 +374,6 @@ public class JoinNode extends PlanNode {
                          final Map<String, Object> props,
                          final SchemaRegistryClient schemaRegistryClient,
                          final JoinNode joinNode) {
-
       super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
             joinNode);
     }
@@ -427,6 +425,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static class StreamToTableJoiner extends Joiner {
+
     StreamToTableJoiner(final StreamsBuilder builder,
                         final KsqlConfig ksqlConfig,
                         final KafkaTopicClient kafkaTopicClient,
@@ -434,7 +433,6 @@ public class JoinNode extends PlanNode {
                         final Map<String, Object> props,
                         final SchemaRegistryClient schemaRegistryClient,
                         final JoinNode joinNode) {
-
       super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
             joinNode);
     }

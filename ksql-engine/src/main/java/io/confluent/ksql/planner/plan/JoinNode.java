@@ -439,9 +439,9 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream join() {
+      final SchemaKTable rightTable = buildTable(joinNode.getRight());
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
                                                    joinNode.getLeftKeyFieldName());
-      final SchemaKTable rightTable = buildTable(joinNode.getRight());
 
       switch (joinNode.joinType) {
         case LEFT:

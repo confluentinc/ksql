@@ -31,7 +31,6 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -110,6 +109,7 @@ public class JoinNodeTest {
   private SchemaKStream rightSchemaKStream;
   private SchemaKTable leftSchemaKTable;
   private SchemaKTable rightSchemaKTable;
+  private Field joinKey;
 
   @Before
   public void setUp() {
@@ -128,6 +128,8 @@ public class JoinNodeTest {
     leftSchemaKTable = niceMock(SchemaKTable.class);
     rightSchemaKTable = niceMock(SchemaKTable.class);
 
+    joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
+
   }
 
   public void buildJoin() {
@@ -141,7 +143,10 @@ public class JoinNodeTest {
   }
 
   private void buildJoinNode(String queryString) {
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry())).buildLogicalPlan(queryString);
+    final KsqlBareOutputNode planNode =
+        (KsqlBareOutputNode) new LogicalPlanBuilder(
+            MetaStoreFixture.getNewMetaStore(
+                new InternalFunctionRegistry())).buildLogicalPlan(queryString);
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
   }
 
@@ -182,11 +187,11 @@ public class JoinNodeTest {
     replay(topicClient);
   }
 
-
-  @Test @Ignore
+  @Test
   public void shouldBuildSourceNode() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
+    Topology topology = builder.build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -257,7 +262,7 @@ public class JoinNodeTest {
 
   }
 
-  @Test @Ignore
+  @Test
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
@@ -311,8 +316,6 @@ public class JoinNodeTest {
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
 
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
     final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
@@ -361,8 +364,6 @@ public class JoinNodeTest {
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
 
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
     final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.join(eq(rightSchemaKStream),
@@ -410,8 +411,6 @@ public class JoinNodeTest {
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
-
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
     final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
 
@@ -553,8 +552,6 @@ public class JoinNodeTest {
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
 
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKTable),
                                       eq(joinSchema),
                                       eq(joinKey),
@@ -598,8 +595,6 @@ public class JoinNodeTest {
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
-
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
     expect(leftSchemaKStream.join(eq(rightSchemaKTable),
                                   eq(joinSchema),
@@ -688,8 +683,6 @@ public class JoinNodeTest {
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
 
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
     expect(leftSchemaKTable.join(eq(rightSchemaKTable),
                                  eq(joinSchema),
                                  eq(joinKey)))
@@ -733,8 +726,6 @@ public class JoinNodeTest {
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
 
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
     expect(leftSchemaKTable.leftJoin(eq(rightSchemaKTable),
                                      eq(joinSchema),
                                      eq(joinKey)))
@@ -777,8 +768,6 @@ public class JoinNodeTest {
     expectKeyField(leftSchemaKTable, leftKeyFieldName);
 
     setupTable(right, rightSchemaKTable, rightSchema, 2);
-
-    final Field joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
     expect(leftSchemaKTable.outerJoin(eq(rightSchemaKTable),
                                       eq(joinSchema),

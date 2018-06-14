@@ -105,6 +105,32 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
+    SchemaBuilder schemaBuilderTestTable3 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
+
+    KsqlTopic
+        ksqlTopic3 =
+        new KsqlTopic("TEST3", "test3", new KsqlJsonTopicSerDe());
+    KsqlTable ksqlTable3 = new KsqlTable(
+        "sqlexpression",
+        "TEST3",
+        schemaBuilder2,
+        schemaBuilder2.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic2,
+        "TEST3",
+        false);
+
+    metaStore.putTopic(ksqlTopic3);
+    metaStore.putSource(ksqlTable3);
+
+
     return metaStore;
   }
 }

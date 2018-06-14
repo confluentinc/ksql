@@ -253,4 +253,6 @@ public class SchemaKTableTest {
     assertThat(keyValue.key, equalTo("bar|+|foo"));
     assertThat(keyValue.value, equalTo(value));
   }
+
+
 }

@@ -191,7 +191,6 @@ public class JoinNodeTest {
   public void shouldBuildSourceNode() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
-    Topology topology = builder.build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));

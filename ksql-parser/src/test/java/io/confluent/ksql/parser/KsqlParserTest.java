@@ -855,8 +855,8 @@ public class KsqlParserTest {
 
   @Test
   public void shouldHaveOuterJoinType() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 OUTER JOIN TEST2 "
-                                   + "ON TEST1.col1 = TEST2.col1;";
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
 
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
 
@@ -877,7 +877,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldHaveOuterJoinTypeWhenFullKeywordIsSpecified() {
+  public void shouldHaveOuterJoinTypeWhenOuterKeywordIsSpecified() {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL OUTER JOIN "
                                    + "TEST2 ON TEST1.col1 = TEST2.col1;";
 

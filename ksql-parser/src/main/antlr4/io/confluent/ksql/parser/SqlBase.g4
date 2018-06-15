@@ -43,6 +43,7 @@ statement
     | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
     | (LIST | SHOW) FUNCTIONS                                            #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
+    | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
     | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
@@ -383,7 +384,7 @@ number
     ;
 
 nonReserved
-    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
+    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SCHEMAS | CATALOGS | SESSION
     | ADD
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | STRUCT | MAP | ARRAY
     | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
@@ -559,6 +560,7 @@ COLUMN: 'COLUMN';
 USE: 'USE';
 PARTITIONS: 'PARTITIONS';
 FUNCTIONS: 'FUNCTIONS';
+FUNCTION: 'FUNCTION';
 DROP: 'DROP';
 UNION: 'UNION';
 EXCEPT: 'EXCEPT';

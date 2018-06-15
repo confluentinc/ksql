@@ -61,6 +61,7 @@ import kafka.security.auth.Acl;
 import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DELETE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
@@ -177,80 +178,13 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithWildcardAcls() throws Exception {
-    // Given:
-    givenAllowAcl(NORMAL_USER,
-                  resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS, CREATE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, Acl.WildCardResource()),
-                  ops(DESCRIBE, READ, WRITE, DELETE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(GROUP, Acl.WildCardResource()),
-                  ops(DESCRIBE, READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAcls() throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_2";
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS, CREATE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, INPUT_TOPIC),
-                  ops(DESCRIBE, READ));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, outputTopic),
-                  ops(DESCRIBE, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-"
-                                  + "KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition"),
-                  ops(DESCRIBE, READ, WRITE, DELETE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-"
-                                  + "KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog"),
-                  ops(DESCRIBE, /* READ for recovery, */ WRITE, DELETE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0"),
-                  ops(DESCRIBE, READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsWhereTopicsPreexist()
+  public void shouldRunQueriesRequiringChangeLogsAndRepartitionTopicsWithMinimalPrefixedAcls()
       throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_3";
 
-    final String repartitionTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-        + "-repartition";
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
 
-    final String changeLogTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-        + "-changelog";
-
-    SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
-    SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
-    SECURE_CLUSTER.createTopic(changeLogTopic, 1, 1);
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, serviceId);
 
     givenAllowAcl(NORMAL_USER,
                   resource(CLUSTER, "kafka-cluster"),
@@ -258,64 +192,20 @@ public class SecureIntegrationTest {
 
     givenAllowAcl(NORMAL_USER,
                   resource(TOPIC, INPUT_TOPIC),
-                  ops(DESCRIBE, READ));
+                  ops(READ));
 
     givenAllowAcl(NORMAL_USER,
                   resource(TOPIC, outputTopic),
-                  ops(DESCRIBE, WRITE));
+                  ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
 
     givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, repartitionTopic),
-                  ops(DESCRIBE, READ, WRITE));
+                  prefixedResource(TOPIC, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
 
     givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, changeLogTopic),
-                  ops(DESCRIBE, /* READ for recovery, */ WRITE));
+                  prefixedResource(GROUP, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
 
-    givenAllowAcl(NORMAL_USER,
-                  resource(GROUP, "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0"),
-                  ops(DESCRIBE, READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsAndCustomPrefixed()
-      throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_4";
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS, CREATE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, INPUT_TOPIC),
-                  ops(DESCRIBE, READ));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, outputTopic),
-                  ops(DESCRIBE, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-"
-                                  + "KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition"),
-                  ops(DESCRIBE, READ, WRITE, DELETE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-"
-                                  + "KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog"),
-                  ops(DESCRIBE, /* READ for recovery, */ WRITE, DELETE));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0"),
-                  ops(DESCRIBE, READ));
-
-    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "t4_");
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
@@ -324,6 +214,7 @@ public class SecureIntegrationTest {
 
   // Requires correctly configured schema-registry running
   //@Test
+  @SuppressWarnings("unused")
   public void shouldRunQueryAgainstSecureSchemaRegistry() throws Exception {
     // Given:
     final HostnameVerifier existing = HttpsURLConnection.getDefaultHostnameVerifier();
@@ -366,7 +257,7 @@ public class SecureIntegrationTest {
     return new ResourcePattern(resourceType, resourceName, ResourceNameType.PREFIXED);
   }
 
-  private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
+  private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
     ksqlEngine = new KsqlEngine(ksqlConfig);
 
@@ -424,7 +315,7 @@ public class SecureIntegrationTest {
 
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
-    awaitAsyncTopicCreation(INPUT_TOPIC);
+    awaitAsyncInputTopicCreation();
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
@@ -432,8 +323,8 @@ public class SecureIntegrationTest {
         .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
   }
 
-  private void awaitAsyncTopicCreation(final String topicName) {
-    assertThatEventually(() -> topicClient.isTopicExists(topicName), is(true));
+  private void awaitAsyncInputTopicCreation() {
+    assertThatEventually(() -> topicClient.isTopicExists(INPUT_TOPIC), is(true));
   }
 
   private void execInitCreateStreamQueries() {

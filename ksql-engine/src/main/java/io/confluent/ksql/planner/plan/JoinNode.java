@@ -192,33 +192,6 @@ public class JoinNode extends PlanNode {
     return right.getPartitions(kafkaTopicClient);
   }
 
-  // package private for test
-  SchemaKTable tableForJoin(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
-      final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final SchemaRegistryClient schemaRegistryClient) {
-
-    Map<String, Object> joinTableProps = new HashMap<>(props);
-    joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-    final SchemaKStream schemaKStream = right.buildStream(
-        builder,
-        ksqlConfig,
-        kafkaTopicClient,
-        functionRegistry,
-        joinTableProps, schemaRegistryClient);
-    if (!(schemaKStream instanceof SchemaKTable)) {
-      throw new KsqlException("Expected " + getSourceName(right) + " to be a table, but found a "
-                              + "stream instead.");
-    }
-
-    return (SchemaKTable) schemaKStream;
-  }
-
-
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {
     final int leftPartitions = left.getPartitions(kafkaTopicClient);
     final int rightPartitions = right.getPartitions(kafkaTopicClient);

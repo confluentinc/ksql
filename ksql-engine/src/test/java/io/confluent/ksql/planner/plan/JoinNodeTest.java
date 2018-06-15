@@ -200,69 +200,6 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
-    setupTopicClientExpectations(1, 1);
-    buildJoin();
-    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-    KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
-    InternalFunctionRegistry functionRegistry = mock(InternalFunctionRegistry.class);
-
-    class RightTable extends PlanNode {
-      final Schema schema;
-
-      public RightTable(final PlanNodeId id, Schema schema) {
-        super(id);
-        this.schema = schema;
-      }
-      @Override
-      public Schema getSchema() {
-        return schema;
-      }
-
-      @Override
-      public Field getKeyField() {
-        return null;
-      }
-
-      @Override
-      public List<PlanNode> getSources() {
-        return null;
-      }
-
-      @Override
-      public SchemaKStream buildStream(StreamsBuilder builder, KsqlConfig ksqlConfig,
-                                       KafkaTopicClient kafkaTopicClient,
-                                       FunctionRegistry functionRegistry,
-                                       Map<String, Object> props,
-                                       SchemaRegistryClient schemaRegistryClient) {
-        if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) &&
-            props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString().equalsIgnoreCase
-                ("EARLIEST")) {
-          return mock(SchemaKTable.class);
-        } else {
-          throw new KsqlException("auto.offset.reset should be set to EARLIEST.");
-        }
-      }
-
-      @Override
-      protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
-        return 1;
-      }
-    }
-
-    RightTable rightTable = new RightTable(new PlanNodeId("1"), joinNode.getRight().getSchema());
-
-    JoinNode testJoinNode = new JoinNode(joinNode.getId(), joinNode.getJoinType(), joinNode.getLeft()
-        , rightTable, joinNode.getLeftKeyFieldName(), joinNode.getRightKeyFieldName(), joinNode
-                                             .getLeftAlias(), joinNode.getRightAlias(), null,
-                                         DataSource.DataSourceType.KSTREAM,
-                                         DataSource.DataSourceType.KTABLE);
-    testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                          new HashMap<>(), new MockSchemaRegistryClient());
-
-  }
-
-  @Test
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
@@ -907,8 +844,8 @@ public class JoinNodeTest {
   }
 
 
-  private void setupTable(StructuredDataSourceNode node, SchemaKTable table, Schema schema,
-                          int partitions) {
+  private void setupTable(final StructuredDataSourceNode node, final SchemaKTable table,
+                          final Schema schema, final int partitions) {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
     properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -922,72 +859,72 @@ public class JoinNodeTest {
         .andReturn(table);
   }
 
-  private void expectSourceName(StructuredDataSourceNode node) {
-    StructuredDataSource dataSource = niceMock(StructuredDataSource.class);
+  private void expectSourceName(final StructuredDataSourceNode node) {
+    final StructuredDataSource dataSource = niceMock(StructuredDataSource.class);
     expect(node.getStructuredDataSource()).andReturn(dataSource).anyTimes();
 
     expect(dataSource.getName()).andReturn("Foobar").anyTimes();
     replay(dataSource);
   }
 
-  private void setupStream(StructuredDataSourceNode node,
-                           SchemaKStream stream, Schema schema, int partitions) {
+  private void setupStream(final StructuredDataSourceNode node,
+                           final SchemaKStream stream, final Schema schema, final int partitions) {
     setupStreamWithoutSerde(node, stream, schema, partitions);
     expectGetSerde(node, schema);
   }
 
-  private void setupStreamWithoutSerde(StructuredDataSourceNode node,
-                                       SchemaKStream stream, Schema schema, int partitions) {
+  private void setupStreamWithoutSerde(final StructuredDataSourceNode node,
+                                       final SchemaKStream stream, final Schema schema,
+                                       final int partitions) {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
     expectBuildStream(node, stream, schema, properties);
   }
 
 
-  private void expectKeyField(SchemaKStream stream, String keyFieldName) {
-    Field field = niceMock(Field.class);
+  private void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
+    final Field field = niceMock(Field.class);
     expect(stream.getKeyField()).andReturn(field);
     expect(field.name()).andReturn(keyFieldName);
     replay(field);
   }
 
   private Schema joinSchema() {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (Field field : leftSchema.fields()) {
-      String fieldName = leftAlias + "." + field.name();
+    for (final Field field : leftSchema.fields()) {
+      final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (Field field : rightSchema.fields()) {
-      String fieldName = rightAlias + "." + field.name();
+    for (final Field field : rightSchema.fields()) {
+      final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
   }
 
   @SuppressWarnings("unchecked")
-  private Serde<GenericRow> expectGetSerde(StructuredDataSourceNode node, Schema schema) {
-    StructuredDataSource structuredDataSource = niceMock(StructuredDataSource.class);
+  private void expectGetSerde(final StructuredDataSourceNode node,
+                              final Schema schema) {
+    final StructuredDataSource structuredDataSource = niceMock(StructuredDataSource.class);
     expect(node.getStructuredDataSource()).andReturn(structuredDataSource);
 
-    KsqlTopic ksqlTopic = niceMock(KsqlTopic.class);
+    final KsqlTopic ksqlTopic = niceMock(KsqlTopic.class);
     expect(structuredDataSource.getKsqlTopic()).andReturn(ksqlTopic);
 
-    KsqlTopicSerDe ksqlTopicSerde = niceMock(KsqlTopicSerDe.class);
+    final KsqlTopicSerDe ksqlTopicSerde = niceMock(KsqlTopicSerDe.class);
     expect(ksqlTopic.getKsqlTopicSerDe()).andReturn(ksqlTopicSerde);
 
-    Serde<GenericRow> serde = niceMock(Serde.class);
+    final Serde<GenericRow> serde = niceMock(Serde.class);
     expect(node.getSchema()).andReturn(schema);
     expect(ksqlTopicSerde.getGenericRowSerde(schema, ksqlConfig, false, mockSchemaRegistryClient))
         .andReturn(serde);
     replay(structuredDataSource, ksqlTopic, ksqlTopicSerde);
-
-    return serde;
   }
 
-  private void expectBuildStream(StructuredDataSourceNode node, SchemaKStream result, Schema schema,
-                                 Map<String, Object> properties) {
+  private void expectBuildStream(final StructuredDataSourceNode node, final SchemaKStream result,
+                                 final Schema schema, final Map<String, Object> properties) {
     expect(node.buildStream(mockStreamsBuilder,
                             mockKsqlConfig,
                             mockKafkaTopicClient,
@@ -1002,7 +939,7 @@ public class JoinNodeTest {
   }
 
   private Schema createSchema() {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct()
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)

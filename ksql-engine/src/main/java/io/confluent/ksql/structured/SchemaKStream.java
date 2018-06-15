@@ -538,8 +538,7 @@ public class SchemaKStream {
     private final Schema leftSchema;
     private final Schema rightSchema;
 
-    KsqlValueJoiner(final Schema leftSchema, final Schema
-        rightSchema) {
+    KsqlValueJoiner(final Schema leftSchema, final Schema rightSchema) {
       this.leftSchema = leftSchema;
       this.rightSchema = rightSchema;
     }

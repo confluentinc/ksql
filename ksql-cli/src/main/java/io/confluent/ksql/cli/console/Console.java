@@ -19,7 +19,7 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.FunctionList;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -459,18 +459,11 @@ public abstract class Console implements Closeable {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
       tableBuilder.withColumnHeaders("Execution Plan");
       tableBuilder.withRow(executionPlan.getExecutionPlan());
-    } else if (ksqlEntity instanceof FunctionList) {
-      tableBuilder.withColumnHeaders("Function Name",
-          "Return Type",
-          "Argument Types",
-          "Description");
-      ((FunctionList) ksqlEntity)
-          .getFunctions()
-          .forEach(function -> tableBuilder.withRow(
-              function.getName(),
-              function.getReturnType(),
-              function.getArgumentTypes().toString(),
-              function.getDescription()));
+    } else if (ksqlEntity instanceof FunctionNameList) {
+      tableBuilder.withColumnHeaders("Function Name");
+      ((FunctionNameList) ksqlEntity)
+          .getFunctionNames()
+          .forEach(tableBuilder::withRow);
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",

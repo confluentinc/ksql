@@ -37,7 +37,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = ExecutionPlan.class, name = "executionPlan"),
     @JsonSubTypes.Type(value = SourceDescriptionList.class, name = "source_descriptions"),
     @JsonSubTypes.Type(value = QueryDescriptionList.class, name = "query_descriptions"),
-    @JsonSubTypes.Type(value = FunctionList.class, name = "functions")
+    @JsonSubTypes.Type(value = DescribeFunctionList.class, name = "describe_function"),
+    @JsonSubTypes.Type(value = FunctionNameList.class, name = "function_names")
 })
 public abstract class KsqlEntity {
   private final String statementText;

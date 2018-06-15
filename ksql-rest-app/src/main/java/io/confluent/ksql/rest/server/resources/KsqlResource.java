@@ -21,8 +21,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.rest.entity.EntityQueryId;
-import io.confluent.ksql.rest.entity.FunctionInfo;
-import io.confluent.ksql.rest.entity.FunctionList;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -120,7 +119,6 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
@@ -493,20 +491,10 @@ public class KsqlResource {
 
   private KsqlEntity listFunctions(final String statementText) {
     final List<UdfFactory> udfFactories = ksqlEngine.listFunctions();
-    return new FunctionList(statementText,
+    return new FunctionNameList(statementText,
         udfFactories
             .stream()
-            .flatMap(factory -> {
-              final List<FunctionInfo> info = new ArrayList<>();
-              factory.eachFunction(function ->
-                  info.add(new FunctionInfo(factory.getName(),
-                  function.getArguments()
-                      .stream()
-                      .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
-                  SchemaUtil.getSqlTypeName(function.getReturnType()),
-                      function.getDescription())));
-              return info.stream();
-            })
+            .map(UdfFactory::getName)
             .collect(Collectors.toList())
     );
   }

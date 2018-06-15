@@ -18,15 +18,13 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.FunctionInfo;
-import io.confluent.ksql.rest.entity.FunctionList;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -44,7 +42,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -360,20 +357,19 @@ public class KsqlResourceTest {
   @Test
   public void shouldListFunctions() {
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
-    final FunctionList functionList = makeSingleRequest(
+    final FunctionNameList functionList = makeSingleRequest(
         testResource,
         "LIST FUNCTIONS;",
         Collections.emptyMap(),
-        FunctionList.class
+        FunctionNameList.class
     );
 
     // not going to check every function
-    assertThat(functionList.getFunctions(), hasItems(
-        new FunctionInfo("TIMESTAMPTOSTRING", Arrays.asList("BIGINT", "VARCHAR"), "VARCHAR", ""),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<INT>", "INT"), "BOOLEAN", ""),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("VARCHAR", "VARCHAR"), "BOOLEAN", ""),
-        new FunctionInfo("ARRAYCONTAINS", Arrays.asList("ARRAY<DOUBLE>", "DOUBLE"), "BOOLEAN", ""),
-        new FunctionInfo("CONCAT", Arrays.asList("VARCHAR", "VARCHAR"), "VARCHAR", "")));
+    assertThat(functionList.getFunctionNames(), hasItems(
+        "TIMESTAMPTOSTRING",
+        "ARRAYCONTAINS",
+        "ARRAYCONTAINS",
+        "CONCAT"));
   }
 
   @Test

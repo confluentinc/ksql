@@ -534,9 +534,9 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldListFunctions() {
     final List<List<String>> rows = new ArrayList<>();
-    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "VARCHAR", "[BIGINT, VARCHAR]", ""));
-    rows.add(Arrays.asList("EXTRACTJSONFIELD", "VARCHAR", "[VARCHAR, VARCHAR]", ""));
-    rows.add(Arrays.asList("CONCAT", "VARCHAR", "[VARCHAR, VARCHAR]", ""));
+    rows.add(Collections.singletonList("TIMESTAMPTOSTRING"));
+    rows.add(Collections.singletonList("EXTRACTJSONFIELD"));
+    rows.add(Collections.singletonList("CONCAT"));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 }

@@ -22,19 +22,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
-public class FunctionList extends KsqlEntity {
+public class FunctionNameList extends KsqlEntity {
 
-  private final Collection<FunctionInfo> functions;
+  private final Collection<String> functionNames;
 
-  public FunctionList(
+  public FunctionNameList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("functions") final Collection<FunctionInfo> functions) {
+      @JsonProperty("functionNames") final Collection<String> functions) {
     super(statementText);
-    this.functions = Objects.requireNonNull(functions, "functions can't be null");
+    this.functionNames = Objects.requireNonNull(functions, "functionNames can't be null");
   }
 
-  public Collection<FunctionInfo> getFunctions() {
-    return Collections.unmodifiableCollection(functions);
+  public Collection<String> getFunctionNames() {
+    return Collections.unmodifiableCollection(functionNames);
   }
 
   @Override
@@ -45,12 +45,12 @@ public class FunctionList extends KsqlEntity {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final FunctionList that = (FunctionList) o;
-    return Objects.equals(functions, that.functions);
+    final FunctionNameList that = (FunctionNameList) o;
+    return Objects.equals(functionNames, that.functionNames);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functions);
+    return Objects.hash(functionNames);
   }
 }

@@ -266,7 +266,7 @@ public abstract class DefaultAstVisitor<R, C>
     return visitQueryBody(node, context);
   }
 
-  protected R visitRow(Row node, C context) {
+  protected R visitStruct(Struct node, C context) {
     return visitNode(node, context);
   }
 
@@ -302,6 +302,22 @@ public abstract class DefaultAstVisitor<R, C>
     return visitNode(node, context);
   }
 
+  protected R visitWindowExpression(WindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitTumblingWindowExpression(TumblingWindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitHoppingWindowExpression(HoppingWindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitSessionWindowExpression(SessionWindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
   protected R visitWindowFrame(WindowFrame node, C context) {
     return visitNode(node, context);
   }
@@ -327,6 +343,18 @@ public abstract class DefaultAstVisitor<R, C>
   }
 
   protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitInsertInto(InsertInto node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitDropTopic(DropTopic node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitDropStream(DropStream node, C context) {
     return visitStatement(node, context);
   }
 

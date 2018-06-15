@@ -21,31 +21,47 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-public class DropTable extends AbstractStreamDropStatement implements DDLStatement {
+public class DropTable extends AbstractStreamDropStatement implements DdlStatement {
 
   private final QualifiedName tableName;
-  private final boolean exists;
+  private final boolean ifExists;
+  private final boolean deleteTopic;
 
-  public DropTable(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
+  public DropTable(QualifiedName tableName, boolean ifExists, boolean deleteTopic) {
+    this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropTable(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
+  public DropTable(NodeLocation location,
+                   QualifiedName tableName,
+                   boolean ifExists,
+                   boolean deleteTopic) {
+    this(Optional.of(location), tableName, ifExists, deleteTopic);
   }
 
-  private DropTable(Optional<NodeLocation> location, QualifiedName tableName, boolean exists) {
+  private DropTable(Optional<NodeLocation> location,
+                    QualifiedName tableName,
+                    boolean ifExists,
+                    boolean deleteTopic) {
     super(location);
     this.tableName = tableName;
-    this.exists = exists;
+    this.ifExists = ifExists;
+    this.deleteTopic = deleteTopic;
   }
 
   public QualifiedName getName() {
     return tableName;
   }
 
-  public boolean isExists() {
-    return exists;
+  public boolean getIfExists() {
+    return ifExists;
+  }
+
+  public QualifiedName getTableName() {
+    return tableName;
+  }
+
+  public boolean isDeleteTopic() {
+    return deleteTopic;
   }
 
   @Override
@@ -55,7 +71,7 @@ public class DropTable extends AbstractStreamDropStatement implements DDLStateme
 
   @Override
   public int hashCode() {
-    return Objects.hash(tableName, exists);
+    return Objects.hash(tableName, ifExists);
   }
 
   @Override
@@ -68,14 +84,16 @@ public class DropTable extends AbstractStreamDropStatement implements DDLStateme
     }
     DropTable o = (DropTable) obj;
     return Objects.equals(tableName, o.tableName)
-           && (exists == o.exists);
+           && (ifExists == o.ifExists)
+           && (deleteTopic == o.deleteTopic);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("tableName", tableName)
-        .add("exists", exists)
+        .add("ifExists", ifExists)
+        .add("deleteTopic", deleteTopic)
         .toString();
   }
 }

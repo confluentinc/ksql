@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -34,6 +35,7 @@ import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExplainOption;
 import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -64,7 +66,11 @@ import io.confluent.ksql.parser.tree.Values;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
@@ -75,8 +81,25 @@ public final class SqlFormatter {
 
   private static final String INDENT = "   ";
   private static final Pattern NAME_PATTERN = Pattern.compile("[a-z_][a-z0-9_]*");
+  private static final Set<String> LITERALS_SET = ImmutableSet.copyOf(
+          IntStream.range(0, SqlBaseLexer.VOCABULARY.getMaxTokenType())
+                  .mapToObj(SqlBaseLexer.VOCABULARY::getLiteralName)
+                  .filter(Objects::nonNull)
+                  // literals start and end with ' - remove them
+                  .map(l -> l.substring(1, l.length() - 1))
+                  .map(String::toUpperCase)
+                  .collect(Collectors.toSet())
+  );
 
   private SqlFormatter() {
+  }
+
+  private static boolean isLiteral(String name) {
+    return LITERALS_SET.contains(name.toUpperCase());
+  }
+
+  private static String escapeIfLiteral(String name) {
+    return isLiteral(name) ? "`" + name + "`" : name;
   }
 
   public static String formatSql(Node root) {
@@ -342,7 +365,7 @@ public final class SqlFormatter {
           } else {
             addComma = true;
           }
-          builder.append(tableElement.getName())
+          builder.append(escapeIfLiteral(tableElement.getName()))
               .append(" ")
               .append(tableElement.getType());
         }
@@ -379,7 +402,7 @@ public final class SqlFormatter {
           } else {
             addComma = true;
           }
-          builder.append(tableElement.getName())
+          builder.append(escapeIfLiteral(tableElement.getName()))
               .append(" ")
               .append(tableElement.getType());
         }
@@ -575,6 +598,7 @@ public final class SqlFormatter {
     }
 
 
+
     private static String formatName(String name) {
       if (NAME_PATTERN.matcher(name).matches()) {
         return name;
@@ -589,9 +613,17 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitInsertInto(InsertInto node, Integer indent) {
+      builder.append("INSERT INTO ");
+      builder.append(node.getTarget());
+      process(node.getQuery(), indent);
+      return null;
+    }
+
+    @Override
     protected Void visitDropTable(DropTable node, Integer context) {
       builder.append("DROP TABLE ");
-      if (node.isExists()) {
+      if (node.getIfExists()) {
         builder.append("IF EXISTS ");
       }
       builder.append(node.getName());

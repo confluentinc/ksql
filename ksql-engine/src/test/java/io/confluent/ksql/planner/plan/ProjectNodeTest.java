@@ -29,8 +29,7 @@ import java.util.HashMap;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -49,8 +48,7 @@ public class ProjectNodeTest {
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final FakeKafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-  private final MetastoreUtil metastoreUtil = new MetastoreUtil();
-  private final FunctionRegistry functionRegistry = new FunctionRegistry();
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final HashMap<String, Object> props = new HashMap<>();
 
   @Test(expected = KsqlException.class)
@@ -62,8 +60,8 @@ public class ProjectNodeTest {
     final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
         source,
         SchemaBuilder.struct()
-            .field("field1", Schema.STRING_SCHEMA)
-            .field("field2", Schema.STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
             .build(),
         Collections.singletonList(new BooleanLiteral("true")));
 
@@ -71,7 +69,6 @@ public class ProjectNodeTest {
     node.buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props, new MockSchemaRegistryClient());
   }
@@ -91,15 +88,14 @@ public class ProjectNodeTest {
     final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
         source,
         SchemaBuilder.struct()
-            .field("field1", Schema.STRING_SCHEMA)
-            .field("field2", Schema.STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
             .build(),
         Arrays.asList(trueExpression, falseExpression));
 
     node.buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props, new MockSchemaRegistryClient());
 
@@ -107,12 +103,11 @@ public class ProjectNodeTest {
   }
 
   private void mockSourceNode() {
-    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.STRING_SCHEMA));
+    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
     EasyMock.expect(source.buildStream(anyObject(StreamsBuilder.class),
         anyObject(KsqlConfig.class),
         anyObject(KafkaTopicClient.class),
-        anyObject(MetastoreUtil.class),
-        anyObject(FunctionRegistry.class),
+        anyObject(InternalFunctionRegistry.class),
         eq(props), anyObject(SchemaRegistryClient.class))).andReturn(stream);
   }
 

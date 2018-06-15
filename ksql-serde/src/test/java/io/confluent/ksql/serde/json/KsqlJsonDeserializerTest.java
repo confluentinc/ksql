@@ -36,18 +36,18 @@ import io.confluent.ksql.GenericRow;
 
 public class KsqlJsonDeserializerTest {
 
-  Schema orderSchema;
+  private Schema orderSchema;
 
   @Before
   public void before() {
 
     orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
-        .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
-        .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA, org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA, org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
   }
 
@@ -64,7 +64,7 @@ public class KsqlJsonDeserializerTest {
 
     byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema);
+    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
@@ -89,12 +89,12 @@ public class KsqlJsonDeserializerTest {
     byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
     Schema newOrderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema);
+    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema, false);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(4));
@@ -116,7 +116,7 @@ public class KsqlJsonDeserializerTest {
 
     byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema);
+    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
@@ -131,7 +131,7 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldTreatNullAsNull() throws JsonProcessingException {
     final ObjectMapper objectMapper = new ObjectMapper();
-    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema);
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema, false);
     Map<String, Object> row = new HashMap<>();
     row.put("ordertime", null);
     row.put("@orderid", null);

@@ -20,6 +20,7 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.function.TestFunctionRegistry;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +32,7 @@ public class MetastoreTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
   }
 
 
@@ -64,7 +65,7 @@ public class MetastoreTest {
     StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
-                                                               structuredDataSource1.getTimestampField(),
+                                                               structuredDataSource1.getTimestampExtractionPolicy(),
                                                                structuredDataSource1.getKsqlTopic());
 
     metaStore.putSource(structuredDataSource2);

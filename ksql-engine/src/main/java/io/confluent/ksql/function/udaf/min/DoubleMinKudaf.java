@@ -19,27 +19,26 @@ package io.confluent.ksql.function.udaf.min;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
-public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
+public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
-  DoubleMinKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, () -> Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
-          Arrays.asList(Schema.FLOAT64_SCHEMA)
+  DoubleMinKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
     );
   }
 
   @Override
-  public Double aggregate(Double currentVal, Double currentAggVal) {
-    if (currentVal < currentAggVal) {
-      return currentVal;
+  public Double aggregate(Double currentValue, Double aggregateValue) {
+    if (currentValue < aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override
@@ -53,9 +52,8 @@ public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleMinKudaf(udafIndex);
+  public KsqlAggregateFunction<Double, Double> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new DoubleMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

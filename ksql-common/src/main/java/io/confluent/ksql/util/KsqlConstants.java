@@ -18,10 +18,16 @@ package io.confluent.ksql.util;
 
 public class KsqlConstants {
 
+  public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+  public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
+
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
 
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
+
+  public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+  public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
   public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
@@ -36,4 +42,5 @@ public class KsqlConstants {
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
 
+  public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
 }

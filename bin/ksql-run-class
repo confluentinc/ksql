@@ -3,20 +3,16 @@
 
 # Use shellcheck to lint this file
 
-set -ue
-
-#cd -P deals with symlink from /bin to /usr/bin
 base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 
 # Log directory to use
-if [ -z "${LOG_DIR:-}" ]; then
-  LOG_DIR="/tmp/ksql-logs"
+if [ "x$LOG_DIR" = "x" ]; then
+  LOG_DIR="$base_dir/logs"
 fi
 
 # create logs directory
-if [[ -n $LOG_DIR ]]; then
-    [[ -d $LOG_DIR ]] || mkdir -p "$LOG_DIR"
-    KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
+if [ ! -d "$LOG_DIR" ]; then
+  mkdir -p "$LOG_DIR"
 fi
 
 : "${KSQL_CLASSPATH:=""}"
@@ -39,7 +35,7 @@ for project in ksql-engine ksql-examples ksql-rest-app ksql-cli; do
 done
 
 # Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
-for library in "confluent-common" "rest-utils" "ksql-engine" "ksql-rest-app" "ksql-cli" "ksql"; do
+for library in "confluent-common" "ksql-examples" "rest-utils" "ksql-engine" "ksql-rest-app" "ksql-cli" "ksql" "monitoring-interceptors"; do
   DIR="$base_dir/share/java/$library"
   if [ -d "$DIR" ]; then
     KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
@@ -58,6 +54,8 @@ if [ -z "$KSQL_LOG4J_OPTS" ]; then
     KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j.properties"
   fi
 fi
+
+ KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 
 # JMX settings
 if [ -z "$KSQL_JMX_OPTS" ]; then
@@ -88,7 +86,7 @@ fi
 
 # JVM performance options
 if [ -z "$KSQL_JVM_PERFORMANCE_OPTS" ]; then
-  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC -Djava.awt.headless=true"
+  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:NewRatio=1 -Djava.awt.headless=true"
 fi
 
 usage() {
@@ -140,9 +138,15 @@ GC_LOG_FILE_NAME=''
 KSQL_GC_LOG_OPTS=""
 if [ "x$GC_LOG_ENABLED" = "xtrue" ]; then
   GC_LOG_FILE_NAME=$DAEMON_NAME$GC_FILE_SUFFIX
-  # the first segment of the version number, which is '1' for releases before Java 9
+  # The first segment of the version number, which is '1' for releases before Java 9
   # it then becomes '9', '10', ...
-  JAVA_MAJOR_VERSION=$($JAVA -version 2>&1 | sed -E -n 's/.* version "([^.-]*).*"/\1/p')
+  # Some examples of the first line of `java --version`:
+  # 8 -> java version "1.8.0_152"
+  # 9.0.4 -> java version "9.0.4"
+  # 10 -> java version "10" 2018-03-20
+  # 10.0.1 -> java version "10.0.1" 2018-04-17
+  # We need to match to the end of the line to prevent sed from printing the characters that do not match
+  JAVA_MAJOR_VERSION=$($JAVA -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
   if [[ "$JAVA_MAJOR_VERSION" -ge "9" ]] ; then
     KSQL_GC_LOG_OPTS="-Xlog:gc*:file=$LOG_DIR/$GC_LOG_FILE_NAME:time,tags:filecount=10,filesize=102400"
   else

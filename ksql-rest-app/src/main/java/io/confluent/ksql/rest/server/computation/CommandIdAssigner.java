@@ -16,57 +16,69 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 
 public class CommandIdAssigner {
 
+  interface CommandIdSupplier {
+    CommandId apply(final Statement command);
+  }
+
   private final MetaStore metaStore;
+  private final Map<Class<? extends Statement>, CommandIdSupplier> suppliers = new HashMap<>();
 
   public CommandIdAssigner(MetaStore metaStore) {
     this.metaStore = metaStore;
+    suppliers.put(RegisterTopic.class,
+        command -> getTopicCommandId((RegisterTopic) command));
+    suppliers.put(CreateStream.class,
+        command -> getTopicStreamCommandId((CreateStream) command));
+    suppliers.put(CreateTable.class,
+        command -> getTopicTableCommandId((CreateTable) command));
+    suppliers.put(CreateStreamAsSelect.class,
+        command -> getSelectStreamCommandId((CreateStreamAsSelect) command));
+    suppliers.put(CreateTableAsSelect.class,
+        command -> getSelectTableCommandId((CreateTableAsSelect) command));
+    suppliers.put(InsertInto.class, command -> getInsertIntoCommandId((InsertInto) command));
+    suppliers.put(TerminateQuery.class,
+        command -> getTerminateCommandId((TerminateQuery) command));
+    suppliers.put(DropTopic.class,
+        command -> getDropTopicCommandId((DropTopic) command));
+    suppliers.put(DropStream.class,
+        command -> getDropStreamCommandId((DropStream) command));
+    suppliers.put(DropTable.class,
+        command -> getDropTableCommandId((DropTable) command));
+    suppliers.put(RunScript.class,
+        command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
   }
 
   public CommandId getCommandId(Statement command) {
-    if (command instanceof RegisterTopic) {
-      return getTopicCommandId((RegisterTopic) command);
-    } else if (command instanceof CreateStream) {
-      return getTopicStreamCommandId((CreateStream) command);
-    } else if (command instanceof CreateTable) {
-      return getTopicTableCommandId((CreateTable) command);
-    } else if (command instanceof CreateStreamAsSelect) {
-      return getSelectStreamCommandId((CreateStreamAsSelect) command);
-    } else if (command instanceof CreateTableAsSelect) {
-      return getSelectTableCommandId((CreateTableAsSelect) command);
-    } else if (command instanceof TerminateQuery) {
-      return getTerminateCommandId((TerminateQuery) command);
-    } else if (command instanceof DropTopic) {
-      return getDropTopicCommandId((DropTopic) command);
-    } else if (command instanceof DropStream) {
-      return getDropStreamCommandId((DropStream) command);
-    } else if (command instanceof DropTable) {
-      return getDropTableCommandId((DropTable) command);
-    } else if (command instanceof RunScript) {
-      return new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE);
-    } else {
+    final CommandIdSupplier supplier = suppliers.get(command.getClass());
+    if (supplier == null) {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",
           command.getClass().getCanonicalName()
       ));
     }
+    return supplier.apply(command);
   }
 
-  public CommandId getTopicCommandId(RegisterTopic registerTopic) {
+  private CommandId getTopicCommandId(RegisterTopic registerTopic) {
     String topicName = registerTopic.getName().toString();
     if (metaStore.getAllTopicNames().contains(topicName)) {
       throw new RuntimeException(String.format("Topic %s already exists", topicName));
@@ -90,7 +102,12 @@ public class CommandIdAssigner {
     return getTableCommandId(createTableAsSelect.getName().toString());
   }
 
-  public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
+  private CommandId getInsertIntoCommandId(InsertInto insertInto) {
+    return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(), CommandId.Action
+        .CREATE);
+  }
+
+  private CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
         terminateQuery.getQueryId().toString(),
@@ -98,7 +115,7 @@ public class CommandIdAssigner {
     );
   }
 
-  public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
+  private CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
     return new CommandId(
         CommandId.Type.TOPIC,
         dropTopicQuery.getTopicName().getSuffix(),

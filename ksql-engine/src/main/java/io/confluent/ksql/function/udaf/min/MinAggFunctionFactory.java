@@ -26,9 +26,14 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
 public class MinAggFunctionFactory extends AggregateFunctionFactory {
+  private static final String FUNCTION_NAME = "MIN";
 
   public MinAggFunctionFactory() {
-    super("MIN", Arrays.asList(new DoubleMinKudaf(-1), new LongMinKudaf(-1)));
+    super(
+        FUNCTION_NAME,
+        Arrays.asList(
+            new DoubleMinKudaf(FUNCTION_NAME, -1), new LongMinKudaf(FUNCTION_NAME, -1),
+            new IntegerMinKudaf(FUNCTION_NAME, -1)));
   }
 
   @Override

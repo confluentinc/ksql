@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>4.1.0-SNAPSHOT</version>
+        <version>5.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-examples</artifactId>
@@ -18,6 +18,7 @@
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>false</docker.skip-build>
+        <arg.version>0.2.0</arg.version>
     </properties>
 
     <dependencies>
@@ -32,18 +33,16 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.mifmif</groupId>
-            <artifactId>generex</artifactId>
-            <version>${generext.version}</version>
+            <groupId>io.confluent.avro</groupId>
+            <artifactId>avro-random-generator</artifactId>
+            <version>${arg.version}</version>
         </dependency>
-
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>

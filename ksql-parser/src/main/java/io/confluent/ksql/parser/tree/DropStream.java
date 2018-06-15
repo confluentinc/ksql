@@ -22,31 +22,47 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropStream
-    extends AbstractStreamDropStatement implements DDLStatement {
+    extends AbstractStreamDropStatement implements DdlStatement {
 
   private final QualifiedName streamName;
-  private final boolean exists;
+  private final boolean ifExists;
+  private final boolean deleteTopic;
 
-  public DropStream(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
+  public DropStream(QualifiedName tableName, boolean ifExists, boolean deleteTopic) {
+    this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropStream(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
+  public DropStream(NodeLocation location,
+                    QualifiedName tableName,
+                    boolean ifExists,
+                    boolean deleteTopic) {
+    this(Optional.of(location), tableName, ifExists, deleteTopic);
   }
 
-  private DropStream(Optional<NodeLocation> location, QualifiedName streamName, boolean exists) {
+  private DropStream(Optional<NodeLocation> location,
+                     QualifiedName streamName,
+                     boolean ifExists,
+                     boolean deleteTopic) {
     super(location);
     this.streamName = streamName;
-    this.exists = exists;
+    this.ifExists = ifExists;
+    this.deleteTopic = deleteTopic;
   }
 
   public QualifiedName getName() {
     return streamName;
   }
 
-  public boolean isExists() {
-    return exists;
+  public boolean getIfExists() {
+    return ifExists;
+  }
+
+  public QualifiedName getStreamName() {
+    return streamName;
+  }
+
+  public boolean isDeleteTopic() {
+    return deleteTopic;
   }
 
   @Override
@@ -56,7 +72,7 @@ public class DropStream
 
   @Override
   public int hashCode() {
-    return Objects.hash(streamName, exists);
+    return Objects.hash(streamName, ifExists);
   }
 
   @Override
@@ -69,14 +85,16 @@ public class DropStream
     }
     DropStream o = (DropStream) obj;
     return Objects.equals(streamName, o.streamName)
-           && (exists == o.exists);
+           && (ifExists == o.ifExists)
+           && (deleteTopic == o.deleteTopic);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("tableName", streamName)
-        .add("exists", exists)
+        .add("ifExists", ifExists)
+        .add("deleteTopic", deleteTopic)
         .toString();
   }
 }

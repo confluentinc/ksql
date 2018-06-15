@@ -7,28 +7,26 @@
 <suppressions>
 
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
-    <suppress files="(KsqlEntity|Cli|Ksql|AbstractCliCommands|CommandStore).java" checks="IndentationCheck"/>
+    <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
 
-    <!-- can't work out how to resolve the issue with the do {..} while -->
-    <suppress files="CommandStore.java" checks="RightCurly"/>
+    <!-- TODO: Fix Me!-->
+    <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
+    <suppress files="(PersistentQueryMetadata|SourceDescription).java" checks="ParameterNumber"/>
+    <suppress files="(Console|Main|Generator|KsqlResource).java" checks="JavaNCSSCheck"/>
+    <suppress files="Generator.java" checks="NPathComplexity"/>
+    <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress
+            files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer|AggregateNode).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(KafkaConsumerGroupClientImpl|UdfLoader).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder|StatementRewriter).java"
+              checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress
+            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand).java"
+              checks="CyclomaticComplexityCheck"/>
 
-    <!-- Suppress some checks on all files -->
-    <suppress files="." checks="ExplicitInitializationCheck"/>
-    <suppress files="." checks="FinalClassCheck"/>
-    <suppress files="." checks="AbbreviationAsWordInName"/>
-    <suppress files="." checks="WhitespaceAround"/>
-    <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
-
-    <!-- Semantics may not be well checked by rules -->
-    <suppress files="." checks="ParameterNumber"/>
-    <suppress files="." checks="BooleanExpressionComplexityCheck"/>
-    <suppress files="." checks="NPathComplexity"/>
-    <suppress files="." checks="JavaNCSSCheck"/>
-    <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="." checks="CyclomaticComplexityCheck"/>
-
-    <!-- These checks may be included in the future -->
-    <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
-    <suppress files="." checks="EmptyLineSeparator"/>
+    <!-- EXAMPLES! -->
+    <suppress files="(DataGenProducer|DataGen|Main|Generator).java" checks="CyclomaticComplexityCheck"/>
 
 </suppressions>

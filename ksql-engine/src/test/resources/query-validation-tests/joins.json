@@ -1,0 +1,36 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "left join",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": "10,100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,foo,100", "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": "0,bar,99", "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": "90,ninety,90", "timestamp": 15000}
+
+      ],
+      "outputs": [
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,blah,50,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,foo,100,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 15000},
+        {"topic": "LEFT_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 15000}
+      ]
+    }
+  ]
+}

@@ -61,10 +61,13 @@ public class DataGen {
     switch (arguments.format) {
       case AVRO:
         dataProducer = new AvroProducer(
-            new KsqlConfig(Collections.singletonMap(
-                KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                arguments.schemaRegistryUrl
-            )));
+            new KsqlConfig(
+                Collections.singletonMap(
+                  KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+                  arguments.schemaRegistryUrl
+                )
+            )
+        );
         break;
       case JSON:
         dataProducer = new JsonProducer();
@@ -94,8 +97,13 @@ public class DataGen {
       return;
     }
 
-    dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
-                               arguments.iterations, arguments.maxInterval
+    dataProducer.populateTopic(
+        props,
+        generator,
+        arguments.topicName,
+        arguments.keyName,
+        arguments.iterations,
+        arguments.maxInterval
     );
   }
 
@@ -107,6 +115,7 @@ public class DataGen {
         + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
         + "'pageviews')] "
         + "schema=<avro schema file> "
+        + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
         + "topic=<kafka topic name> "
         + "key=<name of key column> "
@@ -123,7 +132,7 @@ public class DataGen {
 
   private static class Arguments {
 
-    public enum Format {AVRO, JSON, DELIMITED}
+    public enum Format { AVRO, JSON, DELIMITED }
 
     public final boolean help;
     public final String bootstrapServer;
@@ -276,7 +285,6 @@ public class DataGen {
       }
 
       public Builder parseArg(String arg) throws IOException {
-
         if ("help".equals(arg)) {
           help = true;
           return this;

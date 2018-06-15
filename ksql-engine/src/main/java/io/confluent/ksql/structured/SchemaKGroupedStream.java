@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.KudafAggregator;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -28,22 +31,22 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.List;
+import java.util.Map;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 
 public class SchemaKGroupedStream {
 
-  private final Schema schema;
-  private final KGroupedStream kgroupedStream;
-  private final Field keyField;
-  private final List<SchemaKStream> sourceSchemaKStreams;
-  private final FunctionRegistry functionRegistry;
-  private final SchemaRegistryClient schemaRegistryClient;
+  final Schema schema;
+  final KGroupedStream kgroupedStream;
+  final Field keyField;
+  final List<SchemaKStream> sourceSchemaKStreams;
+  final FunctionRegistry functionRegistry;
+  final SchemaRegistryClient schemaRegistryClient;
 
   SchemaKGroupedStream(
       final Schema schema, final KGroupedStream kgroupedStream,
@@ -67,17 +70,17 @@ public class SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(
       final Initializer initializer,
-      final UdafAggregator aggregator,
+      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
-      final Serde<GenericRow> topicValueSerDe,
-      final String storeName
-  ) {
+      final Serde<GenericRow> topicValueSerDe) {
     final KTable aggKtable;
+    final UdafAggregator aggregator = new KudafAggregator(
+        aggValToFunctionMap, aggValToValColumnMap);
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
-          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>as(storeName)
-          .withKeySerde(Serdes.String())
-          .withValueSerde(topicValueSerDe);
+          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
+              Serdes.String(), topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
       aggKtable = ksqlWindowExpression.applyAggregate(

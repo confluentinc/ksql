@@ -22,9 +22,15 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ListTables extends Statement {
+  boolean showExtended;
 
-  public ListTables(Optional<NodeLocation> location) {
+  public ListTables(Optional<NodeLocation> location, boolean showExtended) {
     super(location);
+    this.showExtended = showExtended;
+  }
+
+  public boolean getShowExtended() {
+    return showExtended;
   }
 
   @Override

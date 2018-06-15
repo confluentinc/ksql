@@ -1,7 +1,7 @@
 .. _ksql-security:
 
 Configuring Security for KSQL
-=============
+=============================
 
 KSQL supports many of the security features of both Apache Kafka and the |sr|.
 
@@ -94,6 +94,7 @@ Configuring Kafka Encrypted Communication
 This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
 
 .. code:: bash
+
     security.protocol=SSL
     ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
     ssl.truststore.password=confluent
@@ -132,11 +133,122 @@ Configuring Authorization of KSQL with Kafka ACLs
 Kafka clusters can use ACLs to control access to resources. Such clusters require each client to authenticate as a particular user.
 To work with such clusters, KSQL must be configured to :ref:`authenticate with the Kafka cluster <config-security-ssl-sasl>`,
 and certain ACLs must be defined in the Kafka cluster to allow the user KSQL is authenticating as access to resources.
-The list of ACLs that must be defined depends on whether the KSQL cluster is configured for
-:ref:`interactive <config-security-ksql-acl-interactive>` or :ref:`non-interactive (headless) <config-security-ksql-acl-headless>`.
+The list of ACLs that must be defined depends on the version of the Kafka cluster.
 
-This section uses the terminology used by the :ref:`Kafka Authorizer <kafka_authorization>` (``SimpleAclAuthorizer``)
-to describe the required ACLs. Each ACL is made up of these parts:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Kafka Cluster v2.0 and above
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Kafka 2.0 saw some enhancements that drastic simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs.
+(See KIP-277 and KIP-290 for details). It is highly recommended to use Kafka versions of 2.0 or above for secure clusters.
+
+ACL definition
+^^^^^^^^^^^^^^
+
+Kafka ACLs are defined in the general format of "Principal P is [Allowed/Denied] Operation O From Host H on any Resource R matching ResourcePattern RP".
+
+Principal
+    An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``.
+
+Permission
+    Defines if the ACL allows (``ALLOW``) or denies (``DENY``) access to the resource.
+
+Operation
+    The operation that is performed on the resource, for example ``READ``.
+
+Resource
+    A resource is comprised of a resource type and resource name:
+
+    - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
+    - Resource name, e.g. the name of a topic or a consumer-group.
+
+ResourcePattern
+    A resource pattern matches zero or more Resources and is comprised of a resource type, a resource name and a pattern type.
+
+    - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``. The pattern will only match resources of the same resource type.
+    - Resource name. How the pattern uses the name to match Resources is dependant on the pattern type.
+    - ``PATTERN_TYPE``, controls how the pattern matches a Resource's name to the patterns. Valid values are:
+
+        - ``LITERAL`` pattern types match the name of a resource exactly, or, in the case of the special wildcard resource name `*`, resources of any name.
+        - ``PREFIXED`` pattern types match when the resource's name is prefixed with the pattern's name.
+
+    The ``CLUSTER`` resource type is implicitly a literal pattern with a constant name because it refers to the entire Kafka cluster.
+
+An literal example might be ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` with the ``LITERAL`` name ``users``.
+
+An prefixed example might be ``ALLOW`` ``user Fred`` to ``READ`` any ``TOPIC`` whose name is ``PREFIXED`` with ``fraud-``.
+
+The ACLs described below list a ``RESOURCE_TYPE``, resource name, ``PATTERN_TYPE``, and ``OPERATION``.
+All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL server has authenticated as,
+with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
+
+.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
+non-interactive queries, see :ref:`restrict-ksql-interactive`.
+
+Required ACLs
+^^^^^^^^^^^^^
+
+The ACLs required are the same for both :ref:`Interactive and non-interactive (headless) KSQL clusters <restrict-ksql-interactive>`:
+
+KSQL require these ACLs:
+
+- The ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
+- The ``READ`` operation on any input topics.
+- The ``WRITE`` operation on any output topics.
+- The ``CREATE`` operation on any output topics that do not already exist.
+- The ``ALL`` operation on all internal ``TOPIC``s ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+- The ``ALL`` operation on all internal ``GROUP``s ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+
+KSQL prefixes all internally created topics and consumer groups with ``_confluent-ksql-<ksql.service.id>``,
+where ``<ksql.service.id>`` is the KSQL service id, as defined in the clusters configuration, and defaulting to ``default_``.
+
+How you define ACLs to allow KSQL access to the input and output topics will depend on your use case and
+whether the KSQL cluster is configured for
+:ref:`interactive <config-security-ksql-acl-interactive_post_ak_2_0>` or :ref:`non-interactive (headless) <config-security-ksql-acl-headless_post_ak_2_0>`
+
+.. _config-security-ksql-acl-headless_post_ak_2_0:
+
+Non-Interactive (headless) KSQL clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>` run a known set of SQL statements, meaning the set
+of input and output topics is well defined. Add the ACLs required to allow KSQL access to these topics.
+
+.. config-security-ksql-acl-interactive_post_ak_2_0
+
+Interactive KSQL clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`Interactive KSQL clusters <restrict-ksql-interactive>` accept SQL statements from users and hence may require access
+to a wide variety of input and output topics. Add ACLs to appropriate literal and prefixed resource patterns to allow KSQL
+access to the input and output topics, as required.
+
+As the set of output topics may not be known up front, it is common to to add an ACL to allow ``ALL`` operations
+on ``TOPIC``s ``PREFIXED`` with some chosen prefix, which will be used for all output topics in the cluster.
+Thereby allowing users to create output topics as required.
+The ``ALL`` operations allows topics to be created on-demand and to be used as input topics for subsequent statements.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Kafka Cluser versions below v2.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Versions of Kafka below v2.0 do not benefit from the enhancements found in later version of Kafka that simplify the ACLs required to run
+KSQL against a Kafka cluster secured with ACLs.
+The list of ACLs that must be defined depends on whether the KSQL cluster is configured for
+:ref:`interactive <config-security-ksql-acl-interactive_pre_ak_2_0>` or :ref:`non-interactive (headless) <config-security-ksql-acl-headless_pre_ak_2_0>`.
+
+ACL definition
+^^^^^^^^^^^^^^
+
+Kafka acls are defined in the general format of "Principal P is [Allowed/Denied] Operation O From Host H on Resource R".
+
+Principal
+    An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``.
+
+Permission
+    Defines if the ACL allows (``ALLOW``) or denies (``DENY``) access to the resource.
+
+Operation
+    The operation that is performed on the resource, for example ``READ``.
 
 Resource
     A resource is comprised of a resource type and resource name:
@@ -145,15 +257,6 @@ Resource
     - Resource name, where the name is either specific, e.g. ``users``, or the wildcard ``*``, meaning all resources of this type.
 
     The ``CLUSTER`` resource type does not require a resource name because it refers to the entire Kafka cluster.
-
-Operation
-    The operation that is performed on the resource, for example ``READ``.
-
-Permission
-    Defines if the ACL allows (``ALLOW``) or denies (``DENY``) access to the resource.
-
-Principal
-    An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``. 
 
 An example ACL might ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` named ``users``.
 
@@ -164,9 +267,8 @@ that includes the authenticated KSQL user.
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
 non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
-.. _config-security-ksql-acl-interactive:
+.. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^
 Interactive KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -183,9 +285,8 @@ Interactive KSQL clusters require these ACLs:
 It is still possible to restrict the authenticated KSQL user from accessing specific resources using ``DENY`` ACLs. For
 example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic that contains sensitive data.
 
-.. _config-security-ksql-acl-headless:
+.. _config-security-ksql-acl-headless_pre_ak_2_0:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Non-Interactive (headless) KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

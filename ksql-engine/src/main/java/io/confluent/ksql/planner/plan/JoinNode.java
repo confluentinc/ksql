@@ -235,7 +235,7 @@ public class JoinNode extends PlanNode {
 
   private String getSourceName(PlanNode node) {
     if (!(node instanceof StructuredDataSourceNode)) {
-      throw new KsqlException("The source for a join must be a Stream or a Table.");
+      throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
     StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
     return dataSource.getStructuredDataSource().getName();

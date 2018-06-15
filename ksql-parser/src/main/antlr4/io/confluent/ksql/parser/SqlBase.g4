@@ -173,14 +173,14 @@ selectItem
 
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinCriteria joinWindow #joinRelation
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinCriteria joinWindow? #joinRelation
     | aliasedRelation #relationDefault
     ;
 
 joinType
-    : INNER?
-    | OUTER?
-    | LEFT?
+    : INNER? #innerJoin
+    | FULL OUTER? #outerJoin
+    | LEFT OUTER? #leftJoin
     ;
 
 joinWindow
@@ -497,6 +497,7 @@ THEN: 'THEN';
 ELSE: 'ELSE';
 END: 'END';
 JOIN: 'JOIN';
+FULL: 'FULL';
 OUTER: 'OUTER';
 INNER: 'INNER';
 LEFT: 'LEFT';

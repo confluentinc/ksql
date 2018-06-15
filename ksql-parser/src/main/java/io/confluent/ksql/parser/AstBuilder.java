@@ -827,9 +827,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     JoinCriteria criteria =
         new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
     Join.Type joinType;
-    if (context.joinType().LEFT() != null) {
+    SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
+    if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
       joinType = Join.Type.LEFT;
-    } else if (context.joinType().OUTER() != null) {
+    } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
       joinType = Join.Type.OUTER;
     } else {
       joinType = Join.Type.INNER;

@@ -31,7 +31,7 @@ public class Version {
     try {
       Properties props = new Properties();
       try (InputStream resourceAsStream = Version.class.getResourceAsStream(
-          "/ksql-version.properties")) {
+          "/version.properties")) {
         props.load(resourceAsStream);
       }
       version = props.getProperty("version", version).trim();

@@ -28,7 +28,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class CreateTable
-    extends AbstractStreamCreateStatement implements DDLStatement {
+    extends AbstractStreamCreateStatement implements DdlStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;

@@ -16,7 +16,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    $ git clone git@github.com:confluentinc/ksql.git
+    $ git clone https://github.com/confluentinc/ksql.git
     ```
 
 1.  Change directory to the `ksql` directory and compile the KSQL code.
@@ -214,7 +214,7 @@ These steps will guide you through how to setup your environment and run the cli
     1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
     1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
     1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    LIMIT reached for the partition.
+    LIMIT reached
     Query terminated
     ```
     
@@ -232,7 +232,7 @@ These steps will guide you through how to setup your environment and run the cli
     1503585450000 | 8^�8 | 1503585450000 | 8 | 35
     1503585450000 | 36^�8 | 1503585450000 | 36 | 14
     1503585450000 | 24^�8 | 1503585450000 | 24 | 22
-    LIMIT reached for the partition.
+    LIMIT reached
     Query terminated
     ```
 
@@ -250,7 +250,7 @@ These steps will guide you through how to setup your environment and run the cli
     1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
     1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
     1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
-    LIMIT reached for the partition.
+    LIMIT reached
     Query terminated    
     ```
 

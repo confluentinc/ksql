@@ -24,7 +24,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
@@ -61,28 +61,26 @@ public class SqlPredicate {
     this.isWindowedKey = isWindowedKey;
     this.functionRegistry = functionRegistry;
 
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(filterExpression);
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    final Set<CodeGenRunner.ParameterType> parameters
+        = codeGenRunner.getParameterInfo(filterExpression);
 
-    String[] parameterNames = new String[parameterMap.size()];
-    Class[] parameterTypes = new Class[parameterMap.size()];
-    columnIndexes = new int[parameterMap.size()];
-
+    final String[] parameterNames = new String[parameters.size()];
+    final Class[] parameterTypes = new Class[parameters.size()];
+    columnIndexes = new int[parameters.size()];
     int index = 0;
-    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
-      parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue();
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
+    for (final CodeGenRunner.ParameterType param : parameters) {
+      parameterNames[index] = param.getName();
+      parameterTypes[index] = param.getType();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, param.getName());
       index++;
     }
 
     try {
       ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
-      // The expression will have two "int" parameters: "a" and "b".
       ee.setParameters(parameterNames, parameterTypes);
 
-      // And the expression (i.e. "result") type is also "int".
       ee.setExpressionType(boolean.class);
 
       String expressionStr = new SqlToJavaVisitor(
@@ -90,7 +88,6 @@ public class SqlPredicate {
           functionRegistry
       ).process(filterExpression);
 
-      // And now we "cook" (scan, parse, compile and load) the fabulous expression.
       ee.cook(expressionStr);
     } catch (Exception e) {
       throw new KsqlException(

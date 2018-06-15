@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.physical;
 
 import org.apache.kafka.streams.kstream.ValueTransformer;
@@ -40,13 +41,7 @@ public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, 
       }
 
       @Override
-      public GenericRow punctuate(long l) {
-        return null;
-      }
-
-      @Override
       public void close() {
-
       }
     };
   }

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
@@ -40,6 +41,7 @@ import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -47,16 +49,18 @@ import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
@@ -95,10 +99,27 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitRow(Row node, Boolean unmangleNames) {
-      return "ROW (" + Joiner.on(", ").join(node.getItems().stream()
-              .map((child) -> process(child, unmangleNames))
-              .collect(toList())) + ")";
+    protected String visitPrimitiveType(PrimitiveType node, Boolean unmangleNames) {
+      return node.getKsqlType().toString();
+    }
+
+    @Override
+    protected String visitArray(Array node, Boolean unmangleNames) {
+      return "ARRAY<" + process(node.getItemType(), unmangleNames) + ">";
+    }
+
+    @Override
+    protected String visitMap(Map node, Boolean unmangleNames) {
+      return "MAP<VARCHAR, " + process(node.getValueType(), unmangleNames) + ">";
+    }
+
+    @Override
+    protected String visitStruct(Struct node, Boolean unmangleNames) {
+      return "STRUCT<" + Joiner.on(", ").join(node.getItems().stream()
+                                                .map((child) ->
+                                                         child.getLeft()
+                                                         + process(child.getRight(), unmangleNames))
+                                                .collect(toList())) + ">";
     }
 
     @Override
@@ -138,6 +159,11 @@ public final class ExpressionFormatter {
     @Override
     protected String visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
       return Long.toString(node.getValue());
+    }
+
+    @Override
+    protected String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
+      return Integer.toString(node.getValue());
     }
 
     @Override

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -31,7 +32,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -42,7 +42,7 @@ public class AvroUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
 
-  public Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(
+  public static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Map<String, Object> streamsProperties,
       final SchemaRegistryClient schemaRegistryClient
@@ -60,7 +60,7 @@ public class AvroUtil {
         ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
     );
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-      return new Pair<>(abstractStreamCreateStatement, null);
+      return abstractStreamCreateStatement;
     }
 
     String kafkaTopicName = StringUtil.cleanQuotes(
@@ -77,29 +77,25 @@ public class AvroUtil {
 
         String avroSchemaString = schemaMetadata.getSchema();
         streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
         AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
             abstractStreamCreateStatement,
-            schema,
+            AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
             schemaMetadata.getId()
         );
-        return new Pair<>(
-            abstractStreamCreateStatementCopy,
-            SqlFormatter.formatSql(abstractStreamCreateStatementCopy)
-        );
+        return abstractStreamCreateStatementCopy;
       } else {
-        return new Pair<>(abstractStreamCreateStatement, null);
+        return abstractStreamCreateStatement;
       }
     } catch (Exception e) {
       String errorMessage = String.format(
-          " Could not fetch the AVRO schema from schema registry. %s ",
+          " Unable to verify the AVRO schema is compatible with KSQL. %s ",
           e.getMessage()
       );
       throw new KsqlException(errorMessage);
     }
   }
 
-  private SchemaMetadata fetchSchemaMetadata(
+  private static SchemaMetadata fetchSchemaMetadata(
       AbstractStreamCreateStatement abstractStreamCreateStatement,
       SchemaRegistryClient schemaRegistryClient,
       String kafkaTopicName
@@ -136,15 +132,15 @@ public class AvroUtil {
     }
   }
 
-  private AbstractStreamCreateStatement addAvroFields(
+  private static AbstractStreamCreateStatement addAvroFields(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Schema schema,
       int schemaId
   ) {
     List<TableElement> elements = new ArrayList<>();
     for (Field field : schema.fields()) {
-      TableElement tableElement = new TableElement(field.name().toUpperCase(), SchemaUtil
-          .getSQLTypeName(field.schema()));
+      TableElement tableElement = new TableElement(field.name().toUpperCase(),
+                                                   TypeUtil.getKsqlType(field.schema()));
       elements.add(tableElement);
     }
     StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
@@ -158,7 +154,7 @@ public class AvroUtil {
   }
 
 
-  public void validatePersistentQueryResults(
+  public static void validatePersistentQueryResults(
       final PersistentQueryMetadata persistentQueryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -183,7 +179,7 @@ public class AvroUtil {
   }
 
 
-  private boolean isValidAvroSchemaForTopic(
+  private static boolean isValidAvroSchemaForTopic(
       final String topicName,
       final String avroSchemaString,
       final SchemaRegistryClient schemaRegistryClient
@@ -207,5 +203,4 @@ public class AvroUtil {
       throw new KsqlException(errorMessage);
     }
   }
-
 }

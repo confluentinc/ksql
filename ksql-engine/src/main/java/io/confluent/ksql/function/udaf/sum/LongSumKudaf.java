@@ -16,26 +16,27 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
-public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
+import io.confluent.ksql.function.KsqlAggregateFunction;
 
-  LongSumKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA));
+public class LongSumKudaf
+    extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
+
+  LongSumKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    return currentVal + currentAggVal;
+  public Long aggregate(Long currentValue, Long aggregateValue) {
+    return currentValue + aggregateValue;
   }
 
   @Override
@@ -44,9 +45,13 @@ public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
-                                                       List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongSumKudaf(udafIndex);
+  public Long undo(Long valueToUndo, Long aggregateValue) {
+    return aggregateValue - valueToUndo;
+  }
+
+  @Override
+  public KsqlAggregateFunction<Long, Long> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new LongSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

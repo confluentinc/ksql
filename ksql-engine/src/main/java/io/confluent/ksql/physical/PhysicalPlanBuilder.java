@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -34,7 +35,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -49,85 +49,63 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
+import io.confluent.ksql.util.SchemaUtil;
+
+
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public class PhysicalPlanBuilder {
 
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
-  private final MetastoreUtil metastoreUtil;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
   private final SchemaRegistryClient schemaRegistryClient;
+  private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
       final MetaStore metaStore,
       final SchemaRegistryClient schemaRegistryClient,
+      final QueryIdGenerator queryIdGenerator,
       final KafkaStreamsBuilder kafkaStreamsBuilder
   ) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
     this.functionRegistry = functionRegistry;
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.queryIdGenerator = queryIdGenerator;
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
   }
 
-  public PhysicalPlanBuilder(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
-      final FunctionRegistry functionRegistry,
-      final Map<String, Object> overriddenStreamsProperties,
-      final boolean updateMetastore,
-      final MetaStore metaStore,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
-    this(
-        builder,
-        ksqlConfig,
-        kafkaTopicClient,
-        metastoreUtil,
-        functionRegistry,
-        overriddenStreamsProperties,
-        updateMetastore,
-        metaStore,
-        schemaRegistryClient,
-        new KafkaStreamsBuilderImpl()
-    );
-  }
-
-
-  public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair)
-      throws Exception {
+  public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) {
     final SchemaKStream resultStream = statementPlanPair
         .getRight()
         .buildStream(
             builder,
             ksqlConfig,
             kafkaTopicClient,
-            metastoreUtil,
             functionRegistry,
             overriddenStreamsProperties,
             schemaRegistryClient
@@ -139,23 +117,20 @@ public class PhysicalPlanBuilder {
     // important to do this BEFORE actually starting up
     // the corresponding Kafka Streams job
     if (isBareQuery && !(resultStream instanceof QueuedSchemaKStream)) {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Mismatch between logical and physical output; "
           + "expected a QueuedSchemaKStream based on logical "
           + "KsqlBareOutputNode, found a %s instead",
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
-    String
-        persistanceQueryPrefix =
+    String serviceId = getServiceId();
+    String persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
-    String
-        transientQueryPrefix =
+    String transientQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
 
     if (isBareQuery) {
-
       return buildPlanForBareQuery(
           (QueuedSchemaKStream) resultStream,
           (KsqlBareOutputNode) outputNode,
@@ -166,14 +141,19 @@ public class PhysicalPlanBuilder {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
 
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
+          (KsqlStructuredDataOutputNode) outputNode;
+      ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
+          ((KsqlStructuredDataOutputNode) statementPlanPair.getRight()).isDoCreateInto()
+      );
       return buildPlanForStructuredOutputNode(
           statementPlanPair.getLeft(),
           resultStream,
-          (KsqlStructuredDataOutputNode) outputNode,
+          ksqlStructuredDataOutputNode,
           serviceId,
           persistanceQueryPrefix,
-          statementPlanPair.getLeft()
-      );
+          statementPlanPair.getLeft());
+
 
     } else {
       throw new KsqlException(
@@ -197,6 +177,7 @@ public class PhysicalPlanBuilder {
     ));
 
     KafkaStreams streams = buildStreams(
+        bareOutputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -215,7 +196,8 @@ public class PhysicalPlanBuilder {
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
-        builder.build()
+        builder.build(),
+        overriddenStreamsProperties
     );
   }
 
@@ -240,7 +222,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
@@ -253,20 +235,25 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic()
           );
 
     }
 
-    if (updateMetastore) {
-      metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
-    }
+    sinkSetUp(outputNode, sinkDataSource);
 
-    final QueryId queryId = sinkDataSource.getPersistentQueryId();
+    final QueryId queryId;
+    if (outputNode.isDoCreateInto()) {
+      queryId = new QueryId(sinkDataSource.getPersistentQueryId().getId() + "_"
+                            + queryIdGenerator.getNextId());
+    } else {
+      queryId = new QueryId("InsertQuery_" + queryIdGenerator.getNextId());
+    }
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(
+        outputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -277,17 +264,50 @@ public class PhysicalPlanBuilder {
 
     return new PersistentQueryMetadata(
         statement,
-        streams, outputNode, schemaKStream
-            .getExecutionPlan(""), queryId,
-        (schemaKStream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE
-            : DataSource.DataSourceType.KSTREAM,
+        streams,
+        outputNode,
+        sinkDataSource,
+        schemaKStream.getExecutionPlan(""),
+        queryId,
+        (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
+                                                : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient,
-        outputNode.getSchema(),
         sinkDataSource.getKsqlTopic(),
-        topology
+        topology,
+        overriddenStreamsProperties
     );
+  }
+
+  private void sinkSetUp(final KsqlStructuredDataOutputNode outputNode,
+                         final StructuredDataSource sinkDataSource) {
+    if (updateMetastore && outputNode.isDoCreateInto()) {
+      metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+    } else {
+      StructuredDataSource structuredDataSource = metaStore.getSource(sinkDataSource.getName());
+      if (structuredDataSource.getDataSourceType() != sinkDataSource.getDataSourceType()) {
+        throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
+                                              + " (%s) type is %s but select query result is %s.",
+                                              sinkDataSource.getName(),
+                                              sinkDataSource.getDataSourceType(),
+                                              structuredDataSource.getDataSourceType()));
+      }
+      Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+          sinkDataSource.cloneWithTimeKeyColumns().getSchema());
+      if (!SchemaUtil.areEqualSchemas(
+          resultSchema,
+          SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(structuredDataSource.getSchema()))) {
+        throw new KsqlException(String.format("Incompatible schema between results and sink. "
+                                              + "Result schema is %s, but the sink schema is %s"
+                                              + ".",
+                                              SchemaUtil.getSchemaDefinitionString(resultSchema),
+                                              SchemaUtil.getSchemaDefinitionString(
+                                                  SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+                                                      structuredDataSource.getSchema()))));
+      }
+      enforceKeyEquivalence(structuredDataSource.getKeyField(), sinkDataSource.getKeyField());
+
+    }
   }
 
   private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {
@@ -318,6 +338,7 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
+      final OutputNode outputNode,
       final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
@@ -338,14 +359,12 @@ public class PhysicalPlanBuilder {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
         ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
     );
-    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(
-          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX)
-      );
-      newStreamsProperties.put(
-          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+
+    final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    if (timestampIndex != null && timestampIndex >= 0) {
+      outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
+
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -357,6 +376,33 @@ public class PhysicalPlanBuilder {
         ProducerCollector.class.getCanonicalName()
     );
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+  }
+
+  private void enforceKeyEquivalence(Field sinkKeyField, Field resultKeyField) {
+    if (sinkKeyField == null && resultKeyField == null) {
+      return;
+    } else if (sinkKeyField != null && resultKeyField != null) {
+      if (sinkKeyField.name().equalsIgnoreCase(
+          resultKeyField.name())
+          && Objects.equals(sinkKeyField.schema(), resultKeyField.schema())) {
+        return;
+      }
+    }
+
+    throw new KsqlException(String.format(
+        "Incompatible key fields for sink and results. Sink"
+        + " key field is %s (type: %s) while result key "
+        + "field is %s (type: %s)",
+        sinkKeyField == null ? null : sinkKeyField.name(),
+        sinkKeyField == null ? null : sinkKeyField.schema().toString(),
+        resultKeyField == null ? null : resultKeyField.name(),
+        resultKeyField == null ? null : resultKeyField.schema().toString()));
+  }
+
+  // Package private because of test
+  String getServiceId() {
+    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+           + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }
 }
 

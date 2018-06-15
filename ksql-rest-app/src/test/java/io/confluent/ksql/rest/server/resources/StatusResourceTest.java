@@ -18,10 +18,12 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +32,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -101,5 +104,17 @@ public class StatusResourceTest {
 
       assertEquals(expectedCommandStatus, testCommandStatus);
     }
+  }
+
+  @Test
+  public void testGetStatusNotFound() throws Exception {
+    StatusResource testResource = getTestStatusResource();
+    Response response = testResource.getStatus(
+        CommandId.Type.STREAM.name(), "foo", CommandId.Action.CREATE.name());
+    assertThat(response.getStatus(), equalTo(Response.Status.NOT_FOUND.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_NOT_FOUND));
+    assertThat(errorMessage.getMessage(), equalTo("Command not found"));
   }
 }

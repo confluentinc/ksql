@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,14 +26,11 @@ import org.apache.kafka.streams.kstream.Windowed;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -46,45 +43,20 @@ public class QueuedSchemaKStream extends SchemaKStream {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
-  private QueuedSchemaKStream(
-      final Schema schema,
-      final KStream kstream,
-      final Field keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final Type type,
-      final FunctionRegistry functionRegistry,
-      final Optional<Integer> limit,
-      final OutputNode outputNode,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
+  QueuedSchemaKStream(final SchemaKStream schemaKStream) {
     super(
-        schema,
-        kstream,
-        keyField,
-        sourceSchemaKStreams,
-        type,
-        functionRegistry,
-        schemaRegistryClient
-    );
-    setOutputNode(outputNode);
-    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
-  }
-
-  QueuedSchemaKStream(
-      SchemaKStream schemaKStream,
-      Optional<Integer> limit
-  ) {
-    this(
         schemaKStream.schema,
         schemaKStream.getKstream(),
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
         Type.SINK,
         schemaKStream.functionRegistry,
-        limit,
-        schemaKStream.outputNode(),
         schemaKStream.schemaRegistryClient
     );
+
+    final OutputNode output = schemaKStream.outputNode();
+    setOutputNode(output);
+    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, output.getCallback()));
   }
 
   public BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
@@ -106,11 +78,6 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream select(Schema selectSchema) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public SchemaKStream select(List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }
@@ -127,7 +94,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream selectKey(Field newKeyField) {
+  public SchemaKStream selectKey(Field newKeyField, boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 
@@ -158,18 +125,17 @@ public class QueuedSchemaKStream extends SchemaKStream {
     return super.getSourceSchemaKStreams();
   }
 
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-
     private final BlockingQueue<KeyValue<String, GenericRow>> queue;
-    private final Optional<Integer> limit;
-    private int counter = 0;
+    private final OutputNode.Callback callback;
 
     QueuePopulator(
-        BlockingQueue<KeyValue<String, GenericRow>> queue,
-        Optional<Integer> limit
+        final BlockingQueue<KeyValue<String, GenericRow>> queue,
+        final OutputNode.Callback callback
     ) {
       this.queue = queue;
-      this.limit = limit;
+      this.callback = Objects.requireNonNull(callback, "callback");
     }
 
     @Override
@@ -178,23 +144,27 @@ public class QueuedSchemaKStream extends SchemaKStream {
         if (row == null) {
           return;
         }
-        if (limit.isPresent()) {
-          counter++;
-          if (counter > limit.get()) {
-            throw new KsqlException("LIMIT reached for the partition.");
-          }
+
+        if (!callback.shouldQueue()) {
+          return;
         }
-        String keyString;
-        if (key instanceof Windowed) {
-          Windowed windowedKey = (Windowed) key;
-          keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
-        } else {
-          keyString = Objects.toString(key);
-        }
+
+        final String keyString = getStringKey(key);
         queue.put(new KeyValue<>(keyString, row));
+
+        callback.onQueued();
       } catch (InterruptedException exception) {
         throw new KsqlException("InterruptedException while enqueueing:" + key);
       }
+    }
+
+    private String getStringKey(final K key) {
+      if (key instanceof Windowed) {
+        Windowed windowedKey = (Windowed) key;
+        return String.format("%s : %s", windowedKey.key(), windowedKey.window());
+      }
+
+      return Objects.toString(key);
     }
   }
 }

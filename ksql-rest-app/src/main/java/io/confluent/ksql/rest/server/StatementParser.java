@@ -28,7 +28,7 @@ public class StatementParser {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public Statement parseSingleStatement(String statementString) throws Exception {
+  public Statement parseSingleStatement(String statementString) {
     List<Statement> statements = ksqlEngine.getStatements(statementString);
     if (statements == null) {
       throw new IllegalArgumentException("Call to KsqlEngine.getStatements() returned null");

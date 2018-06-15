@@ -23,5 +23,7 @@ public abstract class AbstractStreamDropStatement extends Statement {
     super(location);
   }
 
+  public abstract boolean getIfExists();
+
   public abstract QualifiedName getName();
 }

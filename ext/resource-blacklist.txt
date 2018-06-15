@@ -1,0 +1,13 @@
+# Classes/Packages that aren't allowed to be loaded by UDFs.
+java.lang.Compiler
+java.lang.instrument
+java.lang.invoke
+java.lang.management
+java.lang.Process
+java.lang.ref
+java.lang.Runtime
+java.lang.Shutdown
+java.lang.Thread
+java.util.concurrent
+java.util.jar
+java.util.zip

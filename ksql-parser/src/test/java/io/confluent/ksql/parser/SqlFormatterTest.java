@@ -97,7 +97,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldFormatLeftJoinWithoutSpan() {
+  public void shouldFormatLeftJoinWithoutJoinWindow() {
     final Join join = new Join(location, Join.Type.LEFT, leftAlias, rightAlias,
                                Optional.of(criteria), Optional.empty());
 
@@ -118,7 +118,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldFormatInnerJoinWithoutSpan() {
+  public void shouldFormatInnerJoinWithoutJoinWindow() {
     final Join join = new Join(location, Join.Type.INNER, leftAlias, rightAlias,
                                Optional.of(criteria),
                                Optional.empty());
@@ -141,7 +141,7 @@ public class SqlFormatterTest {
 
 
   @Test
-  public void shouldFormatOuterJoinWithoutSpan() {
+  public void shouldFormatOuterJoinWithoutJoinWindow() {
     final Join join = new Join(location, Join.Type.OUTER, leftAlias, rightAlias,
                                Optional.of(criteria),
                                Optional.empty());

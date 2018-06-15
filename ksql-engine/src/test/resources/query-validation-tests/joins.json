@@ -34,7 +34,6 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,bar,99,,", "timestamp": 30000}
-
       ]
     },
     {
@@ -82,6 +81,33 @@
       "outputs": [
         {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000}
+      ]
+    },
+    {
+      "name": "stream stream inner join with out of order messages",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt on t.id = tt.id SPAN 10 seconds;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000},
+        {"topic": "left_topic", "key": 0, "value": "0,late-message,10000", "timestamp": 6000}
+
+
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,late-message,10000,blah,50", "timestamp": 6000}
       ]
     },
     {

@@ -332,7 +332,7 @@ public class SchemaKStream {
         joinSchema,
         joinStream,
         joinKey,
-        Arrays.asList(this, otherSchemaKStream),
+        ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
         functionRegistry,
         schemaRegistryClient);

@@ -267,7 +267,7 @@ public class QueryTranslationTest {
 
       String test;
       while ((test = reader.readLine()) != null) {
-        if (test.endsWith("json")) {
+        if (test.endsWith(".json")) {
           tests.add(test);
         }
       }

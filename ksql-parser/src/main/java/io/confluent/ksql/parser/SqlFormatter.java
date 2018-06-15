@@ -241,7 +241,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitJoin(Join node, Integer indent) {
-      String type = node.getType().toString();
+      String type = node.getFormattedType();
       process(node.getLeft(), indent);
 
       builder.append('\n');
@@ -258,9 +258,7 @@ public final class SqlFormatter {
           .append(ExpressionFormatter.formatExpression(on.getExpression()))
           .append(")");
 
-      builder.append(")");
-
-      node.getSpanExpression().map((e) -> builder.append(' ').append(e.toString()));
+      node.getSpanExpression().map((e) -> builder.append(e.toString()));
 
       return null;
     }

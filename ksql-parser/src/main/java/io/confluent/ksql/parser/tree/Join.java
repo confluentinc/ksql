@@ -65,6 +65,19 @@ public class Join
     return type;
   }
 
+  public String getFormattedType() {
+    switch (type) {
+      case INNER:
+        return "INNER";
+      case LEFT:
+        return "LEFT OUTER";
+      case OUTER:
+        return "FULL OUTER";
+      default:
+        throw new RuntimeException("Unknown join type encountered: " + type.toString());
+    }
+  }
+
   public Relation getLeft() {
     return left;
   }

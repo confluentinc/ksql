@@ -548,8 +548,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   public Node visitSpanExpression(final SqlBaseParser.SpanExpressionContext ctx) {
-    Pair<Long, TimeUnit> beforeSize;
-    Pair<Long, TimeUnit> afterSize;
+    final Pair<Long, TimeUnit> beforeSize;
+    final Pair<Long, TimeUnit> afterSize;
 
     if (ctx instanceof SqlBaseParser.SingleSpanContext) {
 
@@ -565,9 +565,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(1));
 
     } else {
-      throw new KsqlException("Expecting either a single SPAN, ie \"SPAN 10 seconds\", or a span "
-                              + "with before and after specified, ie. \"SPAN (10 seconds, 20 "
-                              + "seconds)");
+      throw new RuntimeException("Expecting either a single SPAN, ie \"SPAN 10 seconds\", or a "
+                                 + "span with before and after specified, ie. \"SPAN (10 seconds, "
+                                 + "20 seconds)");
     }
     return new SpanExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
   }

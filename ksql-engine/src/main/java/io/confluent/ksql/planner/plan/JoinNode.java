@@ -302,7 +302,6 @@ public class JoinNode extends PlanNode {
       this.joinNode = joinNode;
     }
 
-
     public abstract SchemaKStream join();
 
     protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
@@ -326,7 +325,7 @@ public class JoinNode extends PlanNode {
           joinTableProps, schemaRegistryClient);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
-        throw new KsqlException("Expected to find a Table, found a stream instead.");
+        throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
       return (SchemaKTable) schemaKStream;
@@ -380,11 +379,6 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream join() {
-      final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
-                                                   joinNode.getLeftKeyFieldName());
-      final SchemaKStream rightStream = buildStream(joinNode.getRight(),
-                                                    joinNode.getRightKeyFieldName());
-
       if (joinNode.spanExpression == null) {
         throw new KsqlException("Stream-Stream joins must have a SPAN clause specified. None was "
                                 + "provided. To learn about how to specify a SPAN clause with a "
@@ -392,6 +386,11 @@ public class JoinNode extends PlanNode {
                                 + ".io/current/ksql/docs/syntax-reference.html"
                                 + "#create-stream-as-select");
       }
+
+      final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
+                                                   joinNode.getLeftKeyFieldName());
+      final SchemaKStream rightStream = buildStream(joinNode.getRight(),
+                                                    joinNode.getRightKeyFieldName());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -439,6 +438,12 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream join() {
+      if (joinNode.spanExpression != null) {
+        throw new KsqlException("A window definition was provided for a Stream-Table join. These "
+                                + "joins are not windowed. Please drop the window definition (ie."
+                                + " the SPAN clause) and try to execute your join again");
+      }
+
       final SchemaKTable rightTable = buildTable(joinNode.getRight());
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
                                                    joinNode.getLeftKeyFieldName());
@@ -482,6 +487,13 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKTable join() {
+      if (joinNode.spanExpression != null) {
+        throw new KsqlException("A window definition was provided for a Table-Table join. These "
+                                + "joins are not windowed. Please drop the window definition "
+                                + "(ie. the SPAN clause) and try to execute your Table-Table join "
+                                + "again");
+      }
+
       final SchemaKTable leftTable = buildTable(joinNode.getLeft());
       final SchemaKTable rightTable = buildTable(joinNode.getRight());
 

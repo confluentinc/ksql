@@ -88,9 +88,9 @@ public class SpanExpression extends Node {
       return false;
     }
     SpanExpression spanExpression = (SpanExpression) o;
-    return spanExpression.before == before && spanExpression.after == after
-           && spanExpression.beforeTimeUnit == beforeTimeUnit
-           && spanExpression.afterTimeUnit == afterTimeUnit;
+    return before == spanExpression.before  && after == spanExpression.after
+           && Objects.equals(beforeTimeUnit, spanExpression.beforeTimeUnit)
+           && Objects.equals(afterTimeUnit, spanExpression.afterTimeUnit);
   }
 
   private JoinWindows createJoinWindows() {

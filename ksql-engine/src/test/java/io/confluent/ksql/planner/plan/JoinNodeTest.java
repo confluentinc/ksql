@@ -76,6 +76,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import static org.easymock.EasyMock.mock;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
@@ -454,9 +455,11 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
-    setupStreamWithoutSerde(left, leftSchemaKStream, leftSchema, 2);
+    expect(left.getSchema()).andReturn(leftSchema);
+    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(2);
 
-    setupStreamWithoutSerde(right, rightSchemaKStream, rightSchema, 2);
+    expect(right.getSchema()).andReturn(rightSchema);
+    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(2);
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 
@@ -481,7 +484,8 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("Should have raised an exception since no join window was specified");
     } catch (KsqlException e) {
-      // good;
+      assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a SPAN clause specified"
+                                           + ". None was provided."));
     }
 
     verify(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -531,7 +535,8 @@ public class JoinNodeTest {
       fail("should have raised an exception since the number of partitions on the input sources "
            + "don't match");
     } catch (KsqlException e) {
-      // good!
+      assertTrue(e.getMessage().startsWith("Can't join Foobar with Foobar since the number of "
+                                           + "partitions don't match."));
     }
 
     verify(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -662,7 +667,8 @@ public class JoinNodeTest {
       fail("Should have failed to build the stream since stream-table outer joins are not "
            + "supported");
     } catch (KsqlException e) {
-      // good!
+      assertEquals("Outer joins between streams and tables (stream: left, table: right) are not "
+                   + "supported.", e.getMessage());
     }
 
     verify(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -673,6 +679,55 @@ public class JoinNodeTest {
     assertEquals(rightAlias, joinNode.getRightAlias());
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
+    expect(left.getSchema()).andReturn(leftSchema);
+    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
+
+    expect(right.getSchema()).andReturn(rightSchema);
+    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
+
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+
+    replay(left, right, leftSchemaKStream, rightSchemaKTable);
+
+    final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
+                                           JoinNode.JoinType.OUTER,
+                                           left,
+                                           right,
+                                           leftKeyFieldName,
+                                           rightKeyFieldName,
+                                           leftAlias,
+                                           rightAlias,
+                                           spanExpression,
+                                           DataSource.DataSourceType.KSTREAM,
+                                           DataSource.DataSourceType.KTABLE);
+
+    try {
+      joinNode.buildStream(mockStreamsBuilder,
+                           mockKsqlConfig,
+                           mockKafkaTopicClient,
+                           mockFunctionRegistry,
+                           properties,
+                           mockSchemaRegistryClient);
+      fail("should have raised an exception since a join window was provided for a stream-table "
+           + "join");
+    } catch (KsqlException e) {
+        assertTrue(e.getMessage().startsWith("A window definition was provided for a "
+                                             + "Stream-Table join."));
+    }
+
+    verify(left, right, leftSchemaKStream, rightSchemaKTable);
+
+    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
+    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
+    assertEquals(leftAlias, joinNode.getLeftAlias());
+    assertEquals(rightAlias, joinNode.getRightAlias());
+    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+  }
+
 
   @SuppressWarnings("unchecked")
   @Test
@@ -802,6 +857,55 @@ public class JoinNodeTest {
     assertEquals(rightAlias, joinNode.getRightAlias());
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
+    expect(left.getSchema()).andReturn(leftSchema);
+    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
+
+    expect(right.getSchema()).andReturn(rightSchema);
+    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
+
+    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+
+    replay(left, right, leftSchemaKTable, rightSchemaKTable);
+
+    final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
+                                           JoinNode.JoinType.OUTER,
+                                           left,
+                                           right,
+                                           leftKeyFieldName,
+                                           rightKeyFieldName,
+                                           leftAlias,
+                                           rightAlias,
+                                           spanExpression,
+                                           DataSource.DataSourceType.KTABLE,
+                                           DataSource.DataSourceType.KTABLE);
+
+    try {
+      joinNode.buildStream(mockStreamsBuilder,
+                           mockKsqlConfig,
+                           mockKafkaTopicClient,
+                           mockFunctionRegistry,
+                           properties,
+                           mockSchemaRegistryClient);
+      fail("should have raised an exception since a join window was provided for a stream-table "
+           + "join");
+    } catch (KsqlException e) {
+        assertTrue(e.getMessage().startsWith("A window definition was provided for a "
+                                             + "Table-Table join."));
+    }
+
+    verify(left, right, leftSchemaKTable, rightSchemaKTable);
+
+    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
+    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
+    assertEquals(leftAlias, joinNode.getLeftAlias());
+    assertEquals(rightAlias, joinNode.getRightAlias());
+    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+  }
+
 
   private void setupTable(StructuredDataSourceNode node, SchemaKTable table, Schema schema,
                           int partitions) {

@@ -109,11 +109,12 @@ public class Join
     return (type == join.type)
            && Objects.equals(left, join.left)
            && Objects.equals(right, join.right)
-           && Objects.equals(criteria, join.criteria);
+           && Objects.equals(criteria, join.criteria)
+           && Objects.equals(spanExpression, join.spanExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right, criteria);
+    return Objects.hash(type, left, right, criteria, spanExpression);
   }
 }

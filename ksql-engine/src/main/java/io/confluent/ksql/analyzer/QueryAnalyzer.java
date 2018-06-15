@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import java.util.Objects;
+
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
@@ -29,14 +31,15 @@ public class QueryAnalyzer {
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
 
-  public QueryAnalyzer(final MetaStore metaStore, final FunctionRegistry functionRegistry) {
-    this.metaStore = metaStore;
-    this.functionRegistry = functionRegistry;
+  public QueryAnalyzer(final MetaStore metaStore,
+                       final FunctionRegistry functionRegistry) {
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   public Analysis analyze(final String sqlExpression, final Query query) {
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore);
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }

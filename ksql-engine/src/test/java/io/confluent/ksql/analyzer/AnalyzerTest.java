@@ -16,17 +16,18 @@
 
 package io.confluent.ksql.analyzer;
 
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 public class AnalyzerTest {
 
@@ -40,16 +41,15 @@ public class AnalyzerTest {
   }
 
   private Analysis analyze(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }
 
   @Test
-  public void testSimpleQueryAnalysis() throws Exception {
+  public void testSimpleQueryAnalysis() {
     String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.getInto());
@@ -88,7 +88,7 @@ public class AnalyzerTest {
   }
 
   @Test
-  public void testSimpleLeftJoinAnalysis() throws Exception {
+  public void testSimpleLeftJoinAnalysis() {
     String
         simpleQuery =
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
@@ -140,7 +140,7 @@ public class AnalyzerTest {
   }
 
   @Test
-  public void testBooleanExpressionAnalysis() throws Exception {
+  public void testBooleanExpressionAnalysis() {
     String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
     Analysis analysis = analyze(queryStr);
 
@@ -171,7 +171,7 @@ public class AnalyzerTest {
   }
 
   @Test
-  public void testFilterAnalysis() throws Exception {
+  public void testFilterAnalysis() {
     String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
     Analysis analysis = analyze(queryStr);
 

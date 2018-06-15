@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.parser.SqlFormatter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -40,6 +39,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
@@ -100,10 +100,9 @@ class QueryEngine {
   }
 
   private PlanNode buildQueryLogicalPlan(
-      String sqlExpression,
+      final String sqlExpression,
       final Query query,
-      final MetaStore tempMetaStore
-  ) {
+      final MetaStore tempMetaStore) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
         ksqlEngine.getFunctionRegistry()

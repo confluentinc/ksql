@@ -18,10 +18,8 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +35,6 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfCompiler;
-import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;

@@ -44,13 +44,13 @@ public class LogicalPlanBuilder {
   }
 
   public PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = parser.buildAst(queryStr, metaStore);
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+    final List<Statement> statements = parser.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
+    final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
         (functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));

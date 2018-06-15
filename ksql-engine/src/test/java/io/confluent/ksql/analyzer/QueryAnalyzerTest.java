@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -36,7 +35,6 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;

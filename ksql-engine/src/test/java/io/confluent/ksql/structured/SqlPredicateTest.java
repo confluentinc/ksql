@@ -16,6 +16,18 @@
 
 package io.confluent.ksql.structured;
 
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.KStream;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
@@ -33,18 +45,6 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class SqlPredicateTest {
   private SchemaKStream initialSchemaKStream;
@@ -70,13 +70,12 @@ public class SqlPredicateTest {
 
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
                                                                 analysis, functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));

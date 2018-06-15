@@ -168,9 +168,9 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddFunctionWithSameNameButDifferentReturnTypes() {
     functionRegistry.addFunction(func);
-    assertTrue(functionRegistry.addFunction(
+    functionRegistry.addFunction(
         new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
-            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class)));
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class));
   }
 
   @Test
@@ -179,8 +179,8 @@ public class InternalFunctionRegistryTest {
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class);
 
     functionRegistry.addFunction(func);
-    assertTrue(functionRegistry.addFunction(
-        func2));
+    functionRegistry.addFunction(
+        func2);
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA.type())), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")

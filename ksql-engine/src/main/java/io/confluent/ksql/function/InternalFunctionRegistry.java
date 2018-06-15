@@ -23,6 +23,7 @@ import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
 import io.confluent.ksql.function.udf.geo.GeoDistanceKudf;
@@ -88,23 +89,25 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   @SuppressWarnings("unchecked")
   @Override
-  public boolean addFunction(final KsqlFunction ksqlFunction) {
-    if (!functionNameValidator.test(ksqlFunction.getFunctionName())) {
-      throw new KsqlException(ksqlFunction.getFunctionName() + " is not a valid function name."
+  public void addFunction(final KsqlFunction ksqlFunction) {
+    addFunctionFactory(new UdfFactory(
+        ksqlFunction.getKudfClass(),
+        new UdfMetadata(ksqlFunction.getFunctionName(),
+            ksqlFunction.getDescription(),
+            "confluent",
+            "")));
+    final UdfFactory udfFactory = ksqlFunctionMap.get(ksqlFunction.getFunctionName().toUpperCase());
+    udfFactory.addFunction(ksqlFunction);
+  }
+
+  @Override
+  public boolean addFunctionFactory(final UdfFactory factory) {
+    if (!functionNameValidator.test(factory.getName())) {
+      throw new KsqlException(factory.getName() + " is not a valid function name."
           + " Function names must be valid java identifiers and not a KSQL reserved word"
       );
     }
-
-    final String key = ksqlFunction.getFunctionName().toUpperCase();
-    ksqlFunctionMap.compute(key, (s, udf) -> {
-      if (udf == null) {
-        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
-      }
-      udf.addFunction(ksqlFunction);
-      return udf;
-    });
-
-    return true;
+    return ksqlFunctionMap.putIfAbsent(factory.getName().toUpperCase(), factory) == null;
   }
 
   @Override

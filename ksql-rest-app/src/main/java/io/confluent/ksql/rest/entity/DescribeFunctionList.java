@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Collection;
@@ -24,17 +25,46 @@ import java.util.Objects;
 
 public class DescribeFunctionList extends KsqlEntity {
 
+  private final String name;
+  private final String description;
+  private final String author;
+  private final String version;
   private final Collection<FunctionInfo> functions;
 
+  @JsonCreator
   public DescribeFunctionList(
       @JsonProperty("statementText") final String statementText,
+      @JsonProperty("name") final String name,
+      @JsonProperty("description") final String description,
+      @JsonProperty("author") final String author,
+      @JsonProperty("version") final String version,
       @JsonProperty("functions") final Collection<FunctionInfo> functions) {
     super(statementText);
+    this.name = Objects.requireNonNull(name, "name can't be null");
+    this.description = Objects.requireNonNull(description, "description can't be null");
+    this.author = Objects.requireNonNull(author, "author can't be null");
+    this.version = Objects.requireNonNull(version, "version can't be null");
     this.functions = Objects.requireNonNull(functions, "functions can't be null");
   }
 
   public Collection<FunctionInfo> getFunctions() {
     return Collections.unmodifiableCollection(functions);
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public String getAuthor() {
+    return author;
+  }
+
+  public String getVersion() {
+    return version;
   }
 
   @Override
@@ -46,11 +76,15 @@ public class DescribeFunctionList extends KsqlEntity {
       return false;
     }
     final DescribeFunctionList that = (DescribeFunctionList) o;
-    return Objects.equals(functions, that.functions);
+    return Objects.equals(name, that.name)
+        && Objects.equals(description, that.description)
+        && Objects.equals(author, that.author)
+        && Objects.equals(version, that.version)
+        && Objects.equals(functions, that.functions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functions);
+    return Objects.hash(name, description, author, version, functions);
   }
 }

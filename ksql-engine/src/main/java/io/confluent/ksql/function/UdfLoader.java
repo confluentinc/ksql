@@ -37,9 +37,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConfig;
@@ -138,14 +140,24 @@ public class UdfLoader {
     instantiateUdfClass(method, classLevelAnnotaion);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
+    final Class<? extends Kudf> udfClass = collectMetrics
+        ? UdfMetricProducer.class
+        : PluggableUdf.class;
     addSensor(sensorName, classLevelAnnotaion.name());
+
     LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
+    metaStore.addFunctionFactory(new UdfFactory(udfClass,
+        new UdfMetadata(classLevelAnnotaion.name(),
+            classLevelAnnotaion.description(),
+            classLevelAnnotaion.author(),
+            classLevelAnnotaion.version())));
+
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
         classLevelAnnotaion.name(),
-        collectMetrics ? UdfMetricProducer.class : PluggableUdf.class,
+        udfClass,
         () -> {
           final PluggableUdf theUdf
               = new PluggableUdf(udf, instantiateUdfClass(method, classLevelAnnotaion));

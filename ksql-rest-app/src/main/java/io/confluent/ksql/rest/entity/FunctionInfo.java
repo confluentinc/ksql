@@ -24,26 +24,19 @@ import java.util.List;
 import java.util.Objects;
 
 public class FunctionInfo {
-  private final String name;
   private final List<String> argumentTypes;
   private final String returnType;
   private final String description;
 
   @JsonCreator
   public FunctionInfo(
-      @JsonProperty("name") final String name,
       @JsonProperty("argumentTypes") final List<String> argumentTypes,
       @JsonProperty("returnType") final String returnType,
       @JsonProperty("description") final String description
   ) {
-    this.name = Objects.requireNonNull(name, "name can't be null");
     this.argumentTypes = Objects.requireNonNull(argumentTypes, "argumentTypes can't be null");
     this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
-  }
-
-  public String getName() {
-    return name;
   }
 
   public List<String> getArgumentTypes() {
@@ -67,14 +60,13 @@ public class FunctionInfo {
       return false;
     }
     final FunctionInfo that = (FunctionInfo) o;
-    return Objects.equals(name, that.name)
-        && Objects.equals(argumentTypes, that.argumentTypes)
+    return Objects.equals(argumentTypes, that.argumentTypes)
         && Objects.equals(returnType, that.returnType)
         && Objects.equals(description, that.description);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, argumentTypes, returnType, description);
+    return Objects.hash(argumentTypes, returnType, description);
   }
 }

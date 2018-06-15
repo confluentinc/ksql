@@ -539,4 +539,9 @@ public class CliTest extends TestRunner {
     rows.add(Collections.singletonList("CONCAT"));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
+
+  @Test
+  public void shouldDescribeFunction() {
+    test("describe function timestamptostring;", EMPTY_RESULT);
+  }
 }

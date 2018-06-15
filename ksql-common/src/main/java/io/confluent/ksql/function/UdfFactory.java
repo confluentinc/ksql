@@ -21,25 +21,28 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class UdfFactory {
-  private final String name;
+  private final UdfMetadata metadata;
   private final Class<? extends Kudf> udfClass;
   private final Map<List<Schema.Type>, KsqlFunction> functions = new HashMap<>();
 
-  UdfFactory(final String name, final Class<? extends Kudf> udfClass) {
-    this.name = name;
-    this.udfClass = udfClass;
+  UdfFactory(final Class<? extends Kudf> udfClass,
+             final UdfMetadata metadata) {
+    this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
+    this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
   public UdfFactory copy() {
-    final UdfFactory udf = new UdfFactory(name, udfClass);
+    final UdfFactory udf = new UdfFactory(udfClass, metadata);
     udf.functions.putAll(functions);
     return udf;
   }
@@ -67,7 +70,19 @@ public class UdfFactory {
   }
 
   public String getName() {
-    return name;
+    return metadata.getName();
+  }
+
+  public String getAuthor() {
+    return metadata.getAuthor();
+  }
+
+  public String getVersion() {
+    return metadata.getVersion();
+  }
+
+  public String getDescription() {
+    return metadata.getDescription();
   }
 
   public void eachFunction(final Consumer<KsqlFunction> consumer) {
@@ -77,7 +92,7 @@ public class UdfFactory {
   @Override
   public String toString() {
     return "UdfFactory{"
-        + "name='" + name + '\''
+        + "metadata=" + metadata
         + ", udfClass=" + udfClass
         + ", functions=" + functions
         + '}';
@@ -93,7 +108,7 @@ public class UdfFactory {
         .map(SchemaUtil::getSchemaTypeAsSqlType)
         .collect(Collectors.joining(", ", "[", "]"));
 
-    throw new KsqlException("Function '" + name
+    throw new KsqlException("Function '" + metadata.getName()
                             + "' does not accept parameters of types:" + sqlParamTypes);
   }
 }

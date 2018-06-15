@@ -223,8 +223,13 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public boolean addFunction(KsqlFunction ksqlFunction) {
-    return functionRegistry.addFunction(ksqlFunction);
+  public void addFunction(KsqlFunction ksqlFunction) {
+    functionRegistry.addFunction(ksqlFunction);
+  }
+
+  @Override
+  public boolean addFunctionFactory(final UdfFactory factory) {
+    return functionRegistry.addFunctionFactory(factory);
   }
 
   public boolean isAggregate(String functionName) {

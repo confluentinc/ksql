@@ -63,7 +63,7 @@ public class LogicalPlannerTest {
   private PlanNode buildLogicalPlan(String queryStr) {
     final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,

@@ -25,21 +25,25 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
+  private final KsqlConfig config;
 
   public QueryAnalyzer(final MetaStore metaStore,
-                       final FunctionRegistry functionRegistry) {
+                       final FunctionRegistry functionRegistry,
+                       final KsqlConfig config) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.config = Objects.requireNonNull(config, "config");
   }
 
   public Analysis analyze(final String sqlExpression, final Query query) {
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore);
+    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, topicPrefix());
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }
@@ -127,5 +131,9 @@ public class QueryAnalyzer {
     if (numberOfNonAggProjections != groupBySize) {
       throw new KsqlException("Group by elements should match the SELECT expressions.");
     }
+  }
+
+  private String topicPrefix() {
+    return config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
   }
 }

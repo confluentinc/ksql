@@ -46,7 +46,7 @@ public class AggregateAnalyzerTest {
   private Analysis analyze(final String queryStr) {
     final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }

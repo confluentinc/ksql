@@ -46,7 +46,7 @@ public class LogicalPlanBuilder {
   public PlanNode buildLogicalPlan(String queryStr) {
     final List<Statement> statements = parser.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);

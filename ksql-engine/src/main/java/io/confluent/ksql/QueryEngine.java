@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.parser.SqlFormatter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -40,6 +39,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
@@ -55,6 +55,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -75,8 +76,8 @@ class QueryEngine {
 
   List<Pair<String, PlanNode>> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<Pair<String, Statement>> statementList
-  ) {
+      final List<Pair<String, Statement>> statementList,
+      final KsqlConfig config) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
@@ -87,7 +88,7 @@ class QueryEngine {
         PlanNode logicalPlan = buildQueryLogicalPlan(
             statementQueryPair.getLeft(),
             (Query) statementQueryPair.getRight(),
-            tempMetaStore
+            tempMetaStore, config
         );
         logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
       } else {
@@ -100,13 +101,14 @@ class QueryEngine {
   }
 
   private PlanNode buildQueryLogicalPlan(
-      String sqlExpression,
+      final String sqlExpression,
       final Query query,
-      final MetaStore tempMetaStore
-  ) {
+      final MetaStore tempMetaStore,
+      final KsqlConfig config) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
-        ksqlEngine.getFunctionRegistry()
+        ksqlEngine.getFunctionRegistry(),
+        config
     );
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);

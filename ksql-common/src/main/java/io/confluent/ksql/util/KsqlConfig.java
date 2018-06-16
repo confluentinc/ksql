@@ -73,6 +73,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
   public static final String
+      KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
+  private static final String KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS =
+      "A prefix to add to any output topic names, where the statement does not include an explicit "
+      + "topic name. E.g. given 'ksql.output.topic.name.prefix = \"thing-\"', then statement "
+      + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
+      + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
+
+  public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
   public static final boolean defaultAvroSchemaUnionNull = true;
@@ -119,6 +127,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Suffix for state store names in Tables. For instance if the suffix is "
             + "_ksql_statestore the state "
             + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
+        ).define(
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
         ).define(KSQL_TIMESTAMP_COLUMN_INDEX,
             ConfigDef.Type.INT,
             null,

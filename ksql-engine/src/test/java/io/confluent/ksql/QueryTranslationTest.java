@@ -17,11 +17,13 @@
 package io.confluent.ksql;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
@@ -43,7 +45,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,17 +151,20 @@ public class QueryTranslationTest {
   static class Query {
     private final String testPath;
     private final String name;
+    private final Map<String, Object> properties;
     private final List<String> statements;
     private final List<Record> inputs;
     private final List<Record> expectedOutputs;
 
     Query(final String testPath,
           final String name,
+          final Map<String, Object> properties,
           final List<String> statements,
           final List<Record> inputs,
           final List<Record> expectedOutputs) {
       this.testPath = testPath;
       this.name = name;
+      this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.inputs = inputs;
       this.expectedOutputs = expectedOutputs;
@@ -168,6 +172,10 @@ public class QueryTranslationTest {
 
     public String statements() {
       return Joiner.on("\n").join(statements);
+    }
+
+    public Map<String, Object> properties() {
+      return properties;
     }
 
     void processInput(final TopologyTestDriver testDriver,
@@ -184,12 +192,17 @@ public class QueryTranslationTest {
     void verifyOutput(final TopologyTestDriver testDriver) {
       for (final Record expectedOutput : expectedOutputs) {
         try {
-          OutputVerifier.compareKeyValueTimestamp(testDriver.readOutput(expectedOutput.topic,
-              expectedOutput.keyDeserializer(),
-              Serdes.String().deserializer()),
-              expectedOutput.key(),
-              expectedOutput.value,
-              expectedOutput.timestamp);
+          final ProducerRecord record = testDriver.readOutput(expectedOutput.topic,
+                                                              expectedOutput.keyDeserializer(),
+                                                              Serdes.String().deserializer());
+          if (record == null) {
+            throw new AssertionError("No record received");
+          }
+
+          OutputVerifier.compareKeyValueTimestamp(record,
+                                                  expectedOutput.key(),
+                                                  expectedOutput.value,
+                                                  expectedOutput.timestamp);
         } catch (AssertionError assertionError) {
           throw new AssertionError("Query name: "
               + name
@@ -203,8 +216,9 @@ public class QueryTranslationTest {
   }
 
   private TopologyTestDriver buildStreamsTopology(final Query query) {
-    final List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(query.statements(),
-        Collections.emptyMap());
+    final List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(
+        query.statements(), query.properties());
+
     return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),
         streamsProperties,
         0);
@@ -237,16 +251,22 @@ public class QueryTranslationTest {
       tests.findValue("tests").elements().forEachRemaining(query -> {
         try {
           final String name = query.findValue("name").asText();
+          final Map<String, Object> properties = new HashMap<>();
           final List<String> statements = new ArrayList<>();
           final List<Record> inputs = new ArrayList<>();
           final List<Record> outputs = new ArrayList<>();
+          final JsonNode propertiesNode = query.findValue("properties");
+          if (propertiesNode != null) {
+            propertiesNode.fields()
+                .forEachRemaining(property -> properties.put(property.getKey(), property.getValue().asText()));
+          }
           query.findValue("statements").elements()
               .forEachRemaining(statement -> statements.add(statement.asText()));
           query.findValue("inputs").elements()
               .forEachRemaining(input -> inputs.add(createRecordFromNode(input)));
           query.findValue("outputs").elements()
               .forEachRemaining(output -> outputs.add(createRecordFromNode(output)));
-          queries.add(new Query(testPath, name, statements, inputs, outputs));
+          queries.add(new Query(testPath, name, properties, statements, inputs, outputs));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -274,7 +294,7 @@ public class QueryTranslationTest {
   }
 
   @Test
-  public void shouldBuildAndExecuteQuery() throws Exception {
+  public void shouldBuildAndExecuteQuery() {
     final TopologyTestDriver testDriver = buildStreamsTopology(query);
     query.processInput(testDriver, recordFactory);
     query.verifyOutput(testDriver);

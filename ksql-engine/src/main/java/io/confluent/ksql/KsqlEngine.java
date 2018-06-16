@@ -259,7 +259,8 @@ public class KsqlEngine implements Closeable {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         tempMetaStore,
-        statementList
+        statementList,
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
 
     // Physical plan creation from logical plans.
@@ -291,8 +292,8 @@ public class KsqlEngine implements Closeable {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         metaStore,
-        Collections.singletonList(new Pair<>("", query))
-    );
+        Collections.singletonList(new Pair<>("", query)),
+        ksqlConfig);
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(

@@ -22,6 +22,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -30,6 +31,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Cast;
@@ -49,7 +51,6 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
@@ -72,11 +73,22 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   private final String sqlExpression;
   private final Analysis analysis;
   private final MetaStore metaStore;
+  private final String topicPrefix;
 
-  public Analyzer(String sqlExpression, Analysis analysis, MetaStore metaStore) {
-    this.sqlExpression = sqlExpression;
-    this.analysis = analysis;
-    this.metaStore = metaStore;
+  /**
+   * @param sqlExpression the sql expression to analyse
+   * @param analysis      where the results are stored.
+   * @param metaStore     the metastore to use.
+   * @param topicPrefix   the prefix to use for topic names where an explicit name is not specified.
+   */
+  public Analyzer(final String sqlExpression,
+                  final Analysis analysis,
+                  final MetaStore metaStore,
+                  final String topicPrefix) {
+    this.sqlExpression = Objects.requireNonNull(sqlExpression, "sqlExpression");
+    this.analysis = Objects.requireNonNull(analysis, "analysis");
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.topicPrefix = Objects.requireNonNull(topicPrefix, "topicPrefix");
   }
 
   @Override
@@ -126,10 +138,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
     StructuredDataSource intoStructuredDataSource = analysis.getInto();
-    String intoKafkaTopicName = analysis.getIntoKafkaTopicName();
-    if (intoKafkaTopicName == null) {
-      intoKafkaTopicName = intoStructuredDataSource.getName();
-    }
+    final String intoKafkaTopicName = analysis.getIntoKafkaTopicName() == null
+                                      ? topicPrefix + intoStructuredDataSource.getName()
+                                      : analysis.getIntoKafkaTopicName();
 
     KsqlTopic newIntoKsqlTopic;
     if (doCreateInto) {

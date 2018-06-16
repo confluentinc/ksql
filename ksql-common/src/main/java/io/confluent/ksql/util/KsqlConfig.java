@@ -76,7 +76,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
   private static final String KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS =
       "A prefix to add to any output topic names, where the statement does not include an explicit "
-      + "topic name. E.g. given 'ksql.output.topic.name.prefix = thing', then statement "
+      + "topic name. E.g. given 'ksql.output.topic.name.prefix = \"thing-\"', then statement "
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 

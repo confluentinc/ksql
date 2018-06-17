@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
+import io.confluent.ksql.rest.util.StructSerializationModule;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -234,6 +235,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // superclass creates a new json mapper on every call
     // we should probably ony create one per application
     ObjectMapper jsonMapper = super.getJsonMapper();
+    jsonMapper.registerModule(new StructSerializationModule());
     new SchemaMapper().registerToObjectMapper(jsonMapper);
     jsonMapper.registerModule(new Jdk8Module());
     return jsonMapper;
@@ -252,6 +254,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
           )
       );
       final ObjectMapper mapper = getJsonMapper();
+      mapper.registerModule(new StructSerializationModule());
       final StatementParser statementParser = new StatementParser(ksqlEngine);
 
       container.addEndpoint(

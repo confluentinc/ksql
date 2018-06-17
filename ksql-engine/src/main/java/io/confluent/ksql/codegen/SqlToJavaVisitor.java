@@ -18,6 +18,7 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.base.Joiner;
 
+import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -71,9 +72,13 @@ public class SqlToJavaVisitor {
   private Schema schema;
   private FunctionRegistry functionRegistry;
 
+  private final ExpressionTypeManager expressionTypeManager;
+
   public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.functionRegistry = functionRegistry;
+    this.expressionTypeManager =
+        new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public String process(final Expression expression) {
@@ -231,30 +236,34 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
+    protected Pair<String, Schema> visitFunctionCall(
+        final FunctionCall node,
+        final Boolean unmangleNames) {
       final String functionName = node.getName().getSuffix();
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
-      final List<Schema> argumentTypes = new ArrayList<>();
-      final ExpressionTypeManager expressionTypeManager
-          = new ExpressionTypeManager(schema, functionRegistry);
 
-      String instanceName = functionName + "_" + functionCounter++;
-
+      final String instanceName = functionName + "_" + functionCounter++;
+      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
+      final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
-      node.getArguments().forEach(arg -> argumentTypes.add(
-          expressionTypeManager.getExpressionSchema(arg)
-      ));
-      final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
-      String javaReturnType = SchemaUtil.getJavaType(returnType)
-          .getSimpleName();
+      final String builder = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + arguments + "))";
+      return new Pair<>(builder, functionReturnSchema);
+    }
 
-      final StringBuilder builder = new StringBuilder("(");
-      builder.append("(").append(javaReturnType).append(") ")
-          .append(instanceName).append(".evaluate(")
-          .append(arguments).append("))");
-      return new Pair<>(builder.toString(), returnType);
+    private Schema getFunctionReturnSchema(
+        final FunctionCall node,
+        final String functionName) {
+      if (functionName.equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+        return expressionTypeManager.getExpressionSchema(node);
+      }
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final List<Schema> argumentSchemas = node.getArguments().stream()
+          .map(expressionTypeManager::getExpressionSchema)
+          .collect(Collectors.toList());
+
+      return udfFactory.getFunction(argumentSchemas).getReturnType();
     }
 
     @Override
@@ -516,15 +525,11 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitSubscriptExpression(
-        SubscriptExpression node,
-        Boolean unmangleNames
+        final SubscriptExpression node,
+        final Boolean unmangleNames
     ) {
-      String arrayBaseName = node.getBase().toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + arrayBaseName);
-      }
-      final Schema internalSchema = schemaField.get().schema();
+      final Schema internalSchema = expressionTypeManager.getExpressionSchema(node.getBase());
+
       final String internalSchemaJavaType =
           SchemaUtil.getJavaType(internalSchema).getCanonicalName();
       switch (internalSchema.type()) {

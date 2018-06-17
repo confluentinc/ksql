@@ -18,7 +18,11 @@ package io.confluent.ksql.parser;
 
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.Pair;
@@ -53,7 +57,12 @@ public class KsqlParser {
         dataSourceExtractor.extractDataSources(statementContext);
         Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
         Statement statement = (Statement) root;
-
+        if (statement instanceof Query
+            || statement instanceof CreateAsSelect
+            || statement instanceof InsertInto) {
+          statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
+              .rewriteForStruct();
+        }
         astNodes.add(statement);
       }
       return astNodes;
@@ -81,6 +90,11 @@ public class KsqlParser {
     AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
     Node root = astBuilder.visit(statementContext);
     Statement statement = (Statement) root;
+    if (statement instanceof Query
+        || statement instanceof CreateAsSelect) {
+      statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
+          .rewriteForStruct();
+    }
     return new Pair<>(statement, dataSourceExtractor);
   }
 

@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ExpressionTypeManagerTest {
@@ -143,4 +144,38 @@ public class ExpressionTypeManagerTest {
             equalTo(Schema.OPTIONAL_STRING_SCHEMA));
 
     }
+
+  @Test
+  public void shouldHandleStruct() {
+    final Analysis analysis = analyzeQuery("SELECT itemid, address.zipcode, address.state from orders;");
+
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(),
+        functionRegistry);
+
+    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+
+    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),
+        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+
+    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2)),
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+
+  }
+
+  @Test
+  public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
+    try {
+      final Analysis analysis = analyzeQuery(
+          "SELECT itemid, address.zip, address.state from orders;");
+      final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+          metaStore.getSource("ORDERS").getSchema(),
+          functionRegistry);
+      expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+      Assert.fail();
+    } catch (KsqlException e) {
+      assertThat(e, instanceOf(KsqlException.class));
+      assertThat(e.getMessage(), equalTo("Could not find field ZIP in ORDERS.ADDRESS."));
+    }
+  }
 }

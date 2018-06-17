@@ -56,6 +56,13 @@ public class CodeGenRunner {
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
 
+  public static final String[] CODEGEN_IMPORTS = new String[]{
+      "org.apache.kafka.connect.data.Struct",
+      "java.util.HashMap",
+      "java.util.Map",
+      "java.util.List",
+      "java.util.ArrayList"};
+
   public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
     this.schema = schema;
@@ -92,7 +99,7 @@ public class CodeGenRunner {
 
     IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-
+    ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS);
     ee.setParameters(parameterNames, parameterTypes);
 
     Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
@@ -201,14 +208,21 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
-      String arrayBaseName = node.getBase().toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields: " + arrayBaseName);
+    protected Object visitSubscriptExpression(
+        final SubscriptExpression node,
+        final Object context
+    ) {
+      if (node.getBase() instanceof FunctionCall) {
+        process(node.getBase(), context);
+      } else {
+        final String arrayBaseName = node.getBase().toString();
+        final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+        if (!schemaField.isPresent()) {
+          throw new RuntimeException(
+              "Cannot find the select field in the available fields: " + arrayBaseName);
+        }
+        addParameter(schemaField);
       }
-      addParameter(schemaField);
       process(node.getIndex(), context);
       return null;
     }

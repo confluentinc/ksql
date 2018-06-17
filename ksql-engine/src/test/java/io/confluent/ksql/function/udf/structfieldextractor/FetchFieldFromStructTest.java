@@ -23,8 +23,10 @@ import org.apache.kafka.connect.data.Struct;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
@@ -67,4 +69,16 @@ public class FetchFieldFromStructTest {
       assertThat(e.getMessage(), equalTo("Invalid data type. Function argument should be Struct type."));
     }
   }
+
+  @Test
+  public void shouldReturnNullIfFirstArgIsNull() {
+    final Object result = fetchFieldFromStruct.evaluate(null, "NUMBER");
+    assertThat(result, nullValue());
+  }
+
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowIfArgSizeIsNot2() {
+    final Object result = fetchFieldFromStruct.evaluate();
+  }
+
 }

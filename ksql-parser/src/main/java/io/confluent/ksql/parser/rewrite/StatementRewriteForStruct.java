@@ -17,6 +17,7 @@
 package io.confluent.ksql.parser.rewrite;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.parser.tree.SubscriptExpression;
 import java.util.Objects;
 
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -61,6 +62,13 @@ public class StatementRewriteForStruct {
     ) {
       if (dereferenceExpression.getBase() instanceof QualifiedNameReference) {
         return getNewDereferenceExpression(dereferenceExpression, context);
+      } else if (dereferenceExpression.getBase() instanceof SubscriptExpression) {
+        return new FunctionCall(
+            QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
+            ImmutableList.of(
+                dereferenceExpression.getBase(),
+                new StringLiteral(dereferenceExpression.getFieldName())
+            ));
       }
       return getNewFunctionCall(dereferenceExpression, context);
     }

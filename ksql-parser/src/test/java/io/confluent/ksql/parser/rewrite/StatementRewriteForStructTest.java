@@ -1,0 +1,79 @@
+/**
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
+
+package io.confluent.ksql.parser.rewrite;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
+import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.MetaStoreFixture;
+import org.junit.Before;
+import org.junit.Test;
+
+public class StatementRewriteForStructTest {
+
+  private static final KsqlParser KSQL_PARSER = new KsqlParser();
+
+  private MetaStore metaStore;
+
+  @Before
+  public void init() {
+    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+  }
+
+  @Test
+  public void shouldCreateCorrectFunctionCallExpression() {
+    final String simpleQuery = "SELECT iteminfo.category.name, address.state FROM orders;";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
+    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+    dataSourceExtractor.extractDataSources(singleStatementContext);
+
+    final StatementRewriteForStruct statementRewriteForStruct = new StatementRewriteForStruct(
+        statement,
+        dataSourceExtractor
+    );
+    final Statement rewrittenStatement = statementRewriteForStruct.rewriteForStruct();
+
+    assertThat( rewrittenStatement, instanceOf(Query.class));
+    final Query query = (Query) rewrittenStatement;
+    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+
+    assertThat(col0, instanceOf(FunctionCall.class));
+    assertThat(col1, instanceOf(FunctionCall.class));
+
+    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(FETCH_FIELD_FROM_STRUCT(ORDERS.ITEMINFO, 'CATEGORY'), 'NAME')"));
+    assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STATE')"));
+
+  }
+
+}

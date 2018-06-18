@@ -26,7 +26,6 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -86,13 +85,13 @@ public class SqlFormatterTest {
 
 
   @Test
-  public void shouldFormatLeftJoinWithSpan() {
+  public void shouldFormatLeftJoinWithWithin() {
     final Join join = new Join(location, Join.Type.LEFT, leftAlias, rightAlias,
                          Optional.of(criteria),
-                         Optional.of(new SpanExpression(10, TimeUnit.SECONDS)));
+                         Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nLEFT OUTER JOIN right R ON (('left.col0' = 'right.col0')) "
-                           + "SPAN 10 SECONDS";
+    final String expected = "left L\nLEFT OUTER JOIN right R WITHIN 10 SECONDS ON "
+                            + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -110,10 +109,10 @@ public class SqlFormatterTest {
   public void shouldFormatInnerJoin() {
     final Join join = new Join(location, Join.Type.INNER, leftAlias, rightAlias,
                                Optional.of(criteria),
-                               Optional.of(new SpanExpression(10, TimeUnit.SECONDS)));
+                               Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nINNER JOIN right R ON (('left.col0' = 'right.col0')) "
-                            + "SPAN 10 SECONDS";
+    final String expected = "left L\nINNER JOIN right R WITHIN 10 SECONDS ON "
+                            + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -132,10 +131,10 @@ public class SqlFormatterTest {
   public void shouldFormatOuterJoin() {
     final Join join = new Join(location, Join.Type.OUTER, leftAlias, rightAlias,
                                Optional.of(criteria),
-                               Optional.of(new SpanExpression(10, TimeUnit.SECONDS)));
+                               Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nFULL OUTER JOIN right R ON (('left.col0' = 'right.col0')) "
-                            + "SPAN 10 SECONDS";
+    final String expected = "left L\nFULL OUTER JOIN right R WITHIN 10 SECONDS ON"
+                            + " (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 

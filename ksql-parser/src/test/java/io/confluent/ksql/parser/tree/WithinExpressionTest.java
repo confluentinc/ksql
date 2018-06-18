@@ -22,18 +22,18 @@ import java.util.concurrent.TimeUnit;
 
 import static org.testng.AssertJUnit.assertEquals;
 
-public class SpanExpressionTest {
+public class WithinExpressionTest {
 
   @Test
-  public void shouldDisplayCorrectStringWithSingleSpan() {
-    SpanExpression expression = new SpanExpression(20, TimeUnit.SECONDS);
-    assertEquals(" SPAN 20 SECONDS", expression.toString());
+  public void shouldDisplayCorrectStringWithSingleWithin() {
+    WithinExpression expression = new WithinExpression(20, TimeUnit.SECONDS);
+    assertEquals(" WITHIN 20 SECONDS", expression.toString());
   }
 
   @Test
-  public void shouldDisplayCorrectSTringWithBeforeAndAfter() {
-    SpanExpression expression = new SpanExpression(30, 40, TimeUnit.MINUTES, TimeUnit.HOURS);
-    assertEquals(" SPAN (30 MINUTES, 40 HOURS)", expression.toString());
+  public void shouldDisplayCorrectStringWithBeforeAndAfter() {
+    WithinExpression expression = new WithinExpression(30, 40, TimeUnit.MINUTES, TimeUnit.HOURS);
+    assertEquals(" WITHIN (30 MINUTES, 40 HOURS)", expression.toString());
   }
 
 }

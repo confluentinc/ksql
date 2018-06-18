@@ -43,7 +43,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.SpanExpression;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
@@ -60,7 +60,6 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -818,9 +817,10 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldSetSpanExpressionWithSingleSpan() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS ON "
-                                   + "TEST1.col1 = ORDERS.ORDERID SPAN 10 SECONDS;";
+  public void shouldSetWithinExpressionWithSingleWithin() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN"
+                                   + " 10 SECONDS ON "
+                                   + "TEST1.col1 = ORDERS.ORDERID ;";
 
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
 
@@ -837,21 +837,22 @@ public class KsqlParserTest {
 
     final Join join = (Join) specification.getFrom();
 
-    assertTrue(join.getSpanExpression().isPresent());
+    assertTrue(join.getWithinExpression().isPresent());
 
-    final SpanExpression spanExpression = join.getSpanExpression().get();
+    final WithinExpression withinExpression = join.getWithinExpression().get();
 
-    assertEquals(10L, spanExpression.getBefore());
-    assertEquals(10L, spanExpression.getAfter());
-    assertEquals(TimeUnit.SECONDS, spanExpression.getBeforeTimeUnit());
+    assertEquals(10L, withinExpression.getBefore());
+    assertEquals(10L, withinExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, withinExpression.getBeforeTimeUnit());
     assertEquals(Join.Type.INNER, join.getType());
   }
 
 
   @Test
-  public void shouldSetSpanExpressionWithBeforeAndAfter() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS ON "
-                                   + "TEST1.col1 = ORDERS.ORDERID SPAN (10 seconds, 20 minutes);";
+  public void shouldSetWithinExpressionWithBeforeAndAfter() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
+                                   + "WITHIN (10 seconds, 20 minutes) ON "
+                                   + "TEST1.col1 = ORDERS.ORDERID ;";
 
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
 
@@ -868,14 +869,14 @@ public class KsqlParserTest {
 
     final Join join = (Join) specification.getFrom();
 
-    assertTrue(join.getSpanExpression().isPresent());
+    assertTrue(join.getWithinExpression().isPresent());
 
-    final SpanExpression spanExpression = join.getSpanExpression().get();
+    final WithinExpression withinExpression = join.getWithinExpression().get();
 
-    assertEquals(10L, spanExpression.getBefore());
-    assertEquals(20L, spanExpression.getAfter());
-    assertEquals(TimeUnit.SECONDS, spanExpression.getBeforeTimeUnit());
-    assertEquals(TimeUnit.MINUTES, spanExpression.getAfterTimeUnit());
+    assertEquals(10L, withinExpression.getBefore());
+    assertEquals(20L, withinExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, withinExpression.getBeforeTimeUnit());
+    assertEquals(TimeUnit.MINUTES, withinExpression.getAfterTimeUnit());
     assertEquals(Join.Type.INNER, join.getType());
   }
 

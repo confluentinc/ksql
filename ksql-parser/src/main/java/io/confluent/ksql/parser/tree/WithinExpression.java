@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class SpanExpression extends Node {
+public class WithinExpression extends Node {
 
   private final long before;
   private final long after;
@@ -30,18 +30,19 @@ public class SpanExpression extends Node {
   private final TimeUnit afterTimeUnit;
   private final JoinWindows joinWindows;
 
-  public SpanExpression(final long size, final TimeUnit timeUnit) {
+  public WithinExpression(final long size, final TimeUnit timeUnit) {
     this(size, size, timeUnit, timeUnit);
   }
 
-  public SpanExpression(final long before, final long after, final TimeUnit beforeTimeUnit,
-                        final TimeUnit afterTimeUnit) {
+  public WithinExpression(final long before, final long after, final TimeUnit beforeTimeUnit,
+                          final TimeUnit afterTimeUnit) {
     this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit);
   }
 
 
-  private SpanExpression(final Optional<NodeLocation> location, final long before, final long after,
-                         final TimeUnit beforeTimeUnit, final TimeUnit afterTimeUnit) {
+  private WithinExpression(final Optional<NodeLocation> location, final long before,
+                           final long after, final TimeUnit beforeTimeUnit,
+                           final TimeUnit afterTimeUnit) {
     super(location);
     this.before = before;
     this.after = after;
@@ -57,7 +58,7 @@ public class SpanExpression extends Node {
   @Override
   public String toString() {
     final StringBuilder builder = new StringBuilder();
-    builder.append(" SPAN ");
+    builder.append(" WITHIN ");
     if (before == after) {
       builder.append(before).append(' ').append(beforeTimeUnit);
     } else {
@@ -87,10 +88,10 @@ public class SpanExpression extends Node {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SpanExpression spanExpression = (SpanExpression) o;
-    return before == spanExpression.before  && after == spanExpression.after
-           && Objects.equals(beforeTimeUnit, spanExpression.beforeTimeUnit)
-           && Objects.equals(afterTimeUnit, spanExpression.afterTimeUnit);
+    WithinExpression withinExpression = (WithinExpression) o;
+    return before == withinExpression.before && after == withinExpression.after
+           && Objects.equals(beforeTimeUnit, withinExpression.beforeTimeUnit)
+           && Objects.equals(afterTimeUnit, withinExpression.afterTimeUnit);
   }
 
   private JoinWindows createJoinWindows() {

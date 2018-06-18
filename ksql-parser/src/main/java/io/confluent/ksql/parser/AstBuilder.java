@@ -25,7 +25,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.SpanExpression;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -553,29 +553,30 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     );
   }
 
-  public Node visitSpanExpression(final SqlBaseParser.SpanExpressionContext ctx) {
+  public Node visitWithinExpression(final SqlBaseParser.WithinExpressionContext ctx) {
     final Pair<Long, TimeUnit> beforeSize;
     final Pair<Long, TimeUnit> afterSize;
 
-    if (ctx instanceof SqlBaseParser.SingleSpanContext) {
+    if (ctx instanceof SqlBaseParser.SingleJoinWindowContext) {
 
-      final SqlBaseParser.SingleSpanContext singleSpan = (SqlBaseParser.SingleSpanContext) ctx;
+      final SqlBaseParser.SingleJoinWindowContext singleWithin
+          = (SqlBaseParser.SingleJoinWindowContext) ctx;
 
-      beforeSize = getSizeAndUnitFromJoinWindowSize(singleSpan.joinWindowSize());
+      beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
       afterSize = beforeSize;
-    } else if (ctx instanceof SqlBaseParser.SpanWithBeforeAndAfterContext) {
-      final SqlBaseParser.SpanWithBeforeAndAfterContext beforeAndAfterSpan
-          = (SqlBaseParser.SpanWithBeforeAndAfterContext) ctx;
+    } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
+      final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
+          = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
 
-      beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(0));
-      afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(1));
+      beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
+      afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
 
     } else {
-      throw new RuntimeException("Expecting either a single SPAN, ie \"SPAN 10 seconds\", or a "
-                                 + "span with before and after specified, ie. \"SPAN (10 seconds, "
-                                 + "20 seconds)");
+      throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
+                                 + "seconds\", or a join window with before and after specified, "
+                                 + "ie. \"WITHIN (10 seconds, 20 seconds)");
     }
-    return new SpanExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
+    return new WithinExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
   }
 
   private Pair<Long, TimeUnit> getSizeAndUnitFromJoinWindowSize(
@@ -842,15 +843,15 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       joinType = Join.Type.INNER;
     }
 
-    SpanExpression spanExpression = null;
-    if (context.joinWindow() != null && context.joinWindow().spanExpression() != null) {
-      spanExpression = (SpanExpression) visitSpanExpression(
-          context.joinWindow().spanExpression());
+    WithinExpression withinExpression = null;
+    if (context.joinWindow() != null && context.joinWindow().withinExpression() != null) {
+      withinExpression = (WithinExpression) visitWithinExpression(
+          context.joinWindow().withinExpression());
     }
     AliasedRelation left = (AliasedRelation) visit(context.left);
     AliasedRelation right = (AliasedRelation) visit(context.right);
     return new Join(getLocation(context), joinType, left, right, Optional.of(criteria),
-                    Optional.ofNullable(spanExpression));
+                    Optional.ofNullable(withinExpression));
   }
 
   @Override

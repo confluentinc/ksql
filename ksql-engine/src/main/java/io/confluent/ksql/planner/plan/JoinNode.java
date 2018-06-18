@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.SpanExpression;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -63,7 +63,7 @@ public class JoinNode extends PlanNode {
   private final String leftAlias;
   private final String rightAlias;
   private final Field keyField;
-  private final SpanExpression spanExpression;
+  private final WithinExpression withinExpression;
   private final DataSource.DataSourceType leftType;
   private final DataSource.DataSourceType rightType;
 
@@ -75,7 +75,7 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
                   @JsonProperty("leftAlias") final String leftAlias,
                   @JsonProperty("rightAlias") final String rightAlias,
-                  @JsonProperty("span") final SpanExpression spanExpression,
+                  @JsonProperty("within") final WithinExpression withinExpression,
                   @JsonProperty("leftType") final DataSource.DataSourceType leftType,
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
 
@@ -90,7 +90,7 @@ public class JoinNode extends PlanNode {
     this.rightAlias = rightAlias;
     this.schema = buildSchema(left, right);
     this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName));
-    this.spanExpression = spanExpression;
+    this.withinExpression = withinExpression;
     this.leftType = leftType;
     this.rightType = rightType;
   }
@@ -352,9 +352,9 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream join() {
-      if (joinNode.spanExpression == null) {
-        throw new KsqlException("Stream-Stream joins must have a SPAN clause specified. None was "
-                                + "provided. To learn about how to specify a SPAN clause with a "
+      if (joinNode.withinExpression == null) {
+        throw new KsqlException("Stream-Stream joins must have a WITHIN clause specified. None was "
+                                + "provided. To learn about how to specify a WITHIN clause with a "
                                 + "stream-stream join, please visit: https://docs.confluent"
                                 + ".io/current/ksql/docs/syntax-reference.html"
                                 + "#create-stream-as-select");
@@ -371,7 +371,7 @@ public class JoinNode extends PlanNode {
                                      joinNode.schema,
                                      getJoinKey(joinNode.leftAlias,
                                                 leftStream.getKeyField().name()),
-                                     joinNode.spanExpression.joinWindow(),
+                                     joinNode.withinExpression.joinWindow(),
                                      getSerDeForNode(joinNode.left),
                                      getSerDeForNode(joinNode.right));
         case OUTER:
@@ -379,7 +379,7 @@ public class JoinNode extends PlanNode {
                                       joinNode.schema,
                                       getJoinKey(joinNode.leftAlias,
                                                  leftStream.getKeyField().name()),
-                                      joinNode.spanExpression.joinWindow(),
+                                      joinNode.withinExpression.joinWindow(),
                                       getSerDeForNode(joinNode.left),
                                       getSerDeForNode(joinNode.right));
         case INNER:
@@ -387,7 +387,7 @@ public class JoinNode extends PlanNode {
                                  joinNode.schema,
                                  getJoinKey(joinNode.leftAlias,
                                             leftStream.getKeyField().name()),
-                                 joinNode.spanExpression.joinWindow(),
+                                 joinNode.withinExpression.joinWindow(),
                                  getSerDeForNode(joinNode.left),
                                  getSerDeForNode(joinNode.right));
         default:
@@ -411,10 +411,10 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream join() {
-      if (joinNode.spanExpression != null) {
+      if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Stream-Table join. These "
                                 + "joins are not windowed. Please drop the window definition (ie."
-                                + " the SPAN clause) and try to execute your join again");
+                                + " the WITHIN clause) and try to execute your join again.");
       }
 
       final SchemaKTable rightTable = buildTable(joinNode.getRight());
@@ -436,7 +436,7 @@ public class JoinNode extends PlanNode {
                                             leftStream.getKeyField().name()),
                                  getSerDeForNode(joinNode.left));
         case OUTER:
-          throw new KsqlException("Outer joins between streams and tables (stream: left, "
+          throw new KsqlException("Full outer joins between streams and tables (stream: left, "
                                   + "table: right) are not supported.");
 
         default:
@@ -460,11 +460,11 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKTable join() {
-      if (joinNode.spanExpression != null) {
+      if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Table-Table join. These "
                                 + "joins are not windowed. Please drop the window definition "
-                                + "(ie. the SPAN clause) and try to execute your Table-Table join "
-                                + "again");
+                                + "(ie. the WITHIN clause) and try to execute your Table-Table "
+                                + "join again.");
       }
 
       final SchemaKTable leftTable = buildTable(joinNode.getLeft());

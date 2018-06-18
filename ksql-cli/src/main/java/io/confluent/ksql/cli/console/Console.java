@@ -19,7 +19,7 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.DescribeFunctionList;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -467,8 +467,8 @@ public abstract class Console implements Closeable {
       ((FunctionNameList) ksqlEntity)
           .getFunctionNames()
           .forEach(tableBuilder::withRow);
-    } else if (ksqlEntity instanceof DescribeFunctionList) {
-      printFunctionDescription((DescribeFunctionList) ksqlEntity);
+    } else if (ksqlEntity instanceof FunctionDescriptionList) {
+      printFunctionDescription((FunctionDescriptionList) ksqlEntity);
       return;
     } else {
       throw new RuntimeException(String.format(
@@ -704,7 +704,7 @@ public abstract class Console implements Closeable {
         });
   }
 
-  private void printFunctionDescription(final DescribeFunctionList describeFunction) {
+  private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
     writer().printf("%-12s: %s%n", "Name", describeFunction.getName().toUpperCase());
     writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
     writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());

@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.ShowFunctions;
-import io.confluent.ksql.rest.entity.DescribeFunctionList;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
@@ -504,13 +504,13 @@ public class KsqlResource {
     return new FunctionNameList(statementText,
         udfFactories
             .stream()
-            .map(UdfFactory::getName)
+            .map(factory -> factory.getName().toUpperCase())
             .collect(Collectors.toList())
     );
   }
 
-  private DescribeFunctionList describeFunction(final String statementText,
-                                                final String functionName) {
+  private FunctionDescriptionList describeFunction(final String statementText,
+                                                   final String functionName) {
     final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
     udfFactory.eachFunction(function ->
@@ -520,8 +520,8 @@ public class KsqlResource {
             SchemaUtil.getSqlTypeName(function.getReturnType()),
             function.getDescription())));
 
-    return new DescribeFunctionList(statementText,
-        udfFactory.getName(),
+    return new FunctionDescriptionList(statementText,
+        udfFactory.getName().toUpperCase(),
         udfFactory.getDescription(),
         udfFactory.getAuthor(),
         udfFactory.getVersion(),

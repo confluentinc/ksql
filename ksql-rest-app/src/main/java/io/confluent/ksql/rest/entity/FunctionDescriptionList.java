@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
-public class DescribeFunctionList extends KsqlEntity {
+public class FunctionDescriptionList extends KsqlEntity {
 
   private final String name;
   private final String description;
@@ -32,7 +32,7 @@ public class DescribeFunctionList extends KsqlEntity {
   private final Collection<FunctionInfo> functions;
 
   @JsonCreator
-  public DescribeFunctionList(
+  public FunctionDescriptionList(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("name") final String name,
       @JsonProperty("description") final String description,
@@ -75,7 +75,7 @@ public class DescribeFunctionList extends KsqlEntity {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final DescribeFunctionList that = (DescribeFunctionList) o;
+    final FunctionDescriptionList that = (FunctionDescriptionList) o;
     return Objects.equals(name, that.name)
         && Objects.equals(description, that.description)
         && Objects.equals(author, that.author)
@@ -86,5 +86,16 @@ public class DescribeFunctionList extends KsqlEntity {
   @Override
   public int hashCode() {
     return Objects.hash(name, description, author, version, functions);
+  }
+
+  @Override
+  public String toString() {
+    return "FunctionDescriptionList{"
+        + "name='" + name + '\''
+        + ", description='" + description + '\''
+        + ", author='" + author + '\''
+        + ", version='" + version + '\''
+        + ", functions=" + functions
+        + '}';
   }
 }

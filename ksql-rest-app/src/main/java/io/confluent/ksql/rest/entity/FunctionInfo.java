@@ -69,4 +69,13 @@ public class FunctionInfo {
   public int hashCode() {
     return Objects.hash(argumentTypes, returnType, description);
   }
+
+  @Override
+  public String toString() {
+    return "FunctionInfo{"
+        + "argumentTypes=" + argumentTypes
+        + ", returnType='" + returnType + '\''
+        + ", description='" + description + '\''
+        + '}';
+  }
 }

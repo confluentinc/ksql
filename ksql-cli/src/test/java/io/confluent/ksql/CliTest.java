@@ -16,11 +16,13 @@
 
 package io.confluent.ksql;
 
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -232,7 +234,7 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no -1));
+    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no - 1));
 
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));
@@ -333,48 +335,48 @@ public class CliTest extends TestRunner {
         Arrays.asList(
             "ITEM_1",
             10.0,
-            new Double[]{100.0, 110.99, 90.0 })));
+            new Double[]{100.0, 110.99, 90.0})));
     expectedResults.put("2", new GenericRow(
         Arrays.asList(
             "ITEM_2",
             20.0,
-            new Double[]{10.0, 10.99, 9.0 })));
+            new Double[]{10.0, 10.99, 9.0})));
 
     expectedResults.put("3", new GenericRow(
         Arrays.asList(
             "ITEM_3",
             30.0,
-            new Double[]{10.0, 10.99, 91.0 })));
+            new Double[]{10.0, 10.99, 91.0})));
 
     expectedResults.put("4", new GenericRow(
         Arrays.asList(
             "ITEM_4",
             40.0,
-            new Double[]{10.0, 140.99, 94.0 })));
+            new Double[]{10.0, 140.99, 94.0})));
 
     expectedResults.put("5", new GenericRow(
         Arrays.asList(
             "ITEM_5",
             50.0,
-            new Double[]{160.0, 160.99, 98.0 })));
+            new Double[]{160.0, 160.99, 98.0})));
 
     expectedResults.put("6", new GenericRow(
         Arrays.asList(
             "ITEM_6",
             60.0,
-            new Double[]{1000.0, 1100.99, 900.0 })));
+            new Double[]{1000.0, 1100.99, 900.0})));
 
     expectedResults.put("7", new GenericRow(
         Arrays.asList(
             "ITEM_7",
             70.0,
-            new Double[]{1100.0, 1110.99, 190.0 })));
+            new Double[]{1100.0, 1110.99, 190.0})));
 
     expectedResults.put("8", new GenericRow(
         Arrays.asList(
             "ITEM_8",
             80.0,
-            new Double[]{1100.0, 1110.99, 970.0 })));
+            new Double[]{1100.0, 1110.99, 970.0})));
 
     Schema resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -403,7 +405,7 @@ public class CliTest extends TestRunner {
             "ITEM_8",
             80.0,
             "2018-01-08",
-            new Double[]{1100.0, 1110.99, 970.0 },
+            new Double[]{1100.0, 1110.99, 970.0},
             mapField)));
 
     testCreateStreamAsSelect(
@@ -491,7 +493,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
     EasyMock.replay(mockRestClient);
-    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -518,7 +520,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -541,7 +543,26 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void shouldDescribeFunction() {
-    test("describe function timestamptostring;", EMPTY_RESULT);
+  public void shouldDescribeFunction() throws Exception {
+    final String expectedOutput =
+        "Name        : TIMESTAMPTOSTRING\n" +
+            "Author      : confluent\n" +
+            "Version     : \n" +
+            "Overview    : \n" +
+            "Variations  : \n" +
+            "\n" +
+            "\tArguments   : BIGINT, VARCHAR\n" +
+            "\tReturns     : VARCHAR\n" +
+            "\tDescription : \n";
+
+    localCli.handleLine("describe function timestamptostring;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantFindFunction() throws Exception {
+    localCli.handleLine("describe function foobar;");
+    final String expectedOutput = "Can't find any functions with the name 'foobar'";
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 }

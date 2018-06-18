@@ -140,7 +140,7 @@ The list of ACLs that must be defined depends on the version of the Kafka cluste
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 |cp| 5.0 simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs,
-(See `KIP-277 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-277+-+Fine+Grained+ACL+for+CreateTopics+API>`__ and
+(see `KIP-277 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-277+-+Fine+Grained+ACL+for+CreateTopics+API>`__ and
 `KIP-290 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-290%3A+Support+for+Prefixed+ACLs>`__ for details).
 It is highly recommended to use |cp| 5.0 or above for deploying secure installations of Kafka and KSQL.
 
@@ -190,8 +190,8 @@ ACLs on Literal Resource Pattern
 A literal resource pattern matches resources exactly. They are case-sensitive. e.g.
 ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` with the ``LITERAL`` name ``users``.
 
-Here, user Fred would be allowed to read from the topic users only.
-Fred would not be allowed to read from similarly named topics such as user, users-europe, Users etc.
+Here, user Fred would be allowed to read from the topic *users* only.
+Fred would not be allowed to read from similarly named topics such as *user*, *users-europe*, *Users* etc.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Prefixed Resource Pattern
@@ -201,8 +201,8 @@ A prefixed resource pattern matches resources where the resource name starts wit
 They are case-sensitive. e.g.
 ``ALLOW`` ``user Bob`` to ``WRITE`` to any ``TOPIC`` whose name is ``PREFIXED`` with ``fraud-``.
 
-Here, user Bob would be allowed to write to any topic whose name starts with fraud-, e.g. fraud-us, fraud-testing and fraud-.
-Bob would not be allowed to write to topics such as production-fraud-europe, Fraud-us, etc.
+Here, user Bob would be allowed to write to any topic whose name starts with *fraud-*, e.g. *fraud-us*, *fraud-testing* and *fraud-*.
+Bob would not be allowed to write to topics such as *production-fraud-europe*, *Fraud-us*, etc.
 
 Required ACLs
 ^^^^^^^^^^^^^
@@ -239,8 +239,7 @@ of input and output topics is well defined. Add the ACLs required to allow KSQL 
 
 For example, given the following setup:
 
-- A 3-node KSQL cluster
-- Running on hosts with IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
+- A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a 'KSQL1' user.
 - With 'ksql.service.id' set to 'production_'.
 - Running queries the read from input topics 'input-topic1' and 'input-topic2'.
@@ -284,13 +283,13 @@ created output topics.
 
 For example, given the following setup:
 
-- A 3-node KSQL cluster
-- Running on hosts with IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
+- A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a 'KSQL1' user.
 - With 'ksql.service.id' set to 'fraud_.
 - Where users should be able to run queries against any input topics prefixed with 'accounts-', 'orders-' and 'payments-'.
 - Where 'ksql.output.topic.name.prefix' is set to 'ksql-fraud-'
-- And users won't use explicit topic names.
+- And users won't use explicit topic names, i.e. users will rely on KSQL auto-creating any required topics with auto-generated names.
+  (Note: If users want to use explicit topic names, then you must provide the necessary ACLs for these in addition to what's shown in the example below.)
 
 Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:
 
@@ -336,11 +335,14 @@ Resource
     A resource is comprised of a resource type and resource name:
 
     - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
-    - Resource name, where the name is either specific, e.g. ``users``, or the wildcard ``*``, meaning all resources of this type.
+    - Resource name, where the name is either specific, e.g. ``users``, or the wildcard ``*``, meaning all resources of this type. The name is case-sensitive.
 
     The ``CLUSTER`` resource type does not require a resource name because it refers to the entire Kafka cluster.
 
-An example ACL might ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` named ``users``.
+An example ACL might ``ALLOW`` ``user Jane`` to ``READ`` the ``TOPIC`` named ``users``.
+
+Here, user Jane would be allowed to read from the topic *users* only.
+Jane would not be allowed to read from similarly named topics such as *user*, *users-europe*, *Users* etc.
 
 The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATION``. All ACLs described are ``ALLOW`` ACLs, where
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
@@ -369,8 +371,7 @@ example, you can add a ``DENY`` ACL to stop KSQL queries from accessing a topic 
 
 For example, given the following setup:
 
-- A 3-node KSQL cluster
-- Running on hosts with IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
+- A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a 'KSQL1' user.
 
 Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:

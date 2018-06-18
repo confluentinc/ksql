@@ -265,8 +265,7 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
-
-.. _config-security-ksql-acl-interactive_post_ak_2_0
+.. _config-security-ksql-acl-interactive_post_ak_2_0:
 
 Interactive KSQL clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^

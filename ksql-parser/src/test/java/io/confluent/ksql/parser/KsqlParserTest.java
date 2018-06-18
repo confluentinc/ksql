@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.SpanExpression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
@@ -58,6 +59,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -66,6 +68,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
 
 
 public class KsqlParserTest {
@@ -814,6 +818,183 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void shouldSetSpanExpressionWithSingleSpan() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS ON "
+                                   + "TEST1.col1 = ORDERS.ORDERID SPAN 10 SECONDS;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertTrue(join.getSpanExpression().isPresent());
+
+    final SpanExpression spanExpression = join.getSpanExpression().get();
+
+    assertEquals(10L, spanExpression.getBefore());
+    assertEquals(10L, spanExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, spanExpression.getBeforeTimeUnit());
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+
+  @Test
+  public void shouldSetSpanExpressionWithBeforeAndAfter() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS ON "
+                                   + "TEST1.col1 = ORDERS.ORDERID SPAN (10 seconds, 20 minutes);";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertTrue(join.getSpanExpression().isPresent());
+
+    final SpanExpression spanExpression = join.getSpanExpression().get();
+
+    assertEquals(10L, spanExpression.getBefore());
+    assertEquals(20L, spanExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, spanExpression.getBeforeTimeUnit());
+    assertEquals(TimeUnit.MINUTES, spanExpression.getAfterTimeUnit());
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveInnerJoinTypeWithExplicitInnerKeyword() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 INNER JOIN TEST2 "
+                                   + "ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveLeftJoinTypeWhenOuterIsSpecified() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT OUTER JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.LEFT, join.getType());
+  }
+
+  @Test
+  public void shouldHaveLeftJoinType() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.LEFT, join.getType());
+  }
+
+  @Test
+  public void shouldHaveOuterJoinType() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.OUTER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveOuterJoinTypeWhenOuterKeywordIsSpecified() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL OUTER JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.OUTER, join.getType());
+  }
+
+  @Test
   public void shouldAddPrefixEvenIfColumnNameIsTheSameAsStream() {
     final String statementString =
         "CREATE STREAM S AS SELECT address FROM address a;";
@@ -884,5 +1065,4 @@ public class KsqlParserTest {
     QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(), equalTo("ITEMID.ITEMID ITEMID_ITEMID"));
   }
-
 }

@@ -841,7 +841,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
                 node.getType(),
                 (Relation) process(node.getLeft(), context),
                 (Relation) process(node.getRight(), context),
-                node.getCriteria()
+                node.getCriteria(), node.getSpanExpression()
             )
         )
         .orElse(

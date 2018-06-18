@@ -19,7 +19,7 @@ package io.confluent.ksql.integration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.ResourceNameType;
+import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -249,12 +249,12 @@ public class SecureIntegrationTest {
 
   private static ResourcePattern resource(final ResourceType resourceType,
                                           final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, ResourceNameType.LITERAL);
+    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
   }
 
   private static ResourcePattern prefixedResource(final ResourceType resourceType,
                                                   final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, ResourceNameType.PREFIXED);
+    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {

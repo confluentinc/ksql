@@ -135,12 +135,14 @@ To work with such clusters, KSQL must be configured to :ref:`authenticate with t
 and certain ACLs must be defined in the Kafka cluster to allow the user KSQL is authenticating as access to resources.
 The list of ACLs that must be defined depends on the version of the Kafka cluster.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Kafka Cluster v2.0 and above
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+|cp| v5.0 (Apache Kafka v2.0) and above
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Kafka 2.0 saw some enhancements that drastic simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs.
-(See KIP-277 and KIP-290 for details). It is highly recommended to use Kafka versions of 2.0 or above for secure clusters.
+|cp| 5.0 saw some enhancements that drastic simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs.
+(See `KIP-277 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-277+-+Fine+Grained+ACL+for+CreateTopics+API>`__ and
+`KIP-290 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-290%3A+Support+for+Prefixed+ACLs>`__ for details).
+It is highly recommended to use Kafka versions of 2.0 or above for secure clusters.
 
 ACL definition
 ^^^^^^^^^^^^^^
@@ -213,6 +215,35 @@ Non-Interactive (headless) KSQL clusters
 :ref:`Non-interactive KSQL clusters <restrict-ksql-interactive>` run a known set of SQL statements, meaning the set
 of input and output topics is well defined. Add the ACLs required to allow KSQL access to these topics.
 
+For example, given the following setup:
+
+- A 3-node KSQL cluster
+- Running on hosts with IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
+- Authenticating with the Kafka cluster as a 'KSQL1' user.
+- With 'ksql.service.id' set to 'cluster1'.
+- Running queries the read from input topics 'input-topic1' and 'input-topic2'.
+- Writing to output topics 'output-topic1' and 'output-topic2'.
+- Where 'output-topic1' is also used as an input for another query.
+
+Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:
+
+.. code:: bash
+
+    # Allow KSQL to discover the cluster:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+
+    # Allow KSQL to read the input topics (including output-topic1):
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
+
+    # Allow KSQL to write to the output topics:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
+    # Or, if the output topics do not already exist, the 'create' operation is also required:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
+
+    # Allow KSQL to manage its own internal topics and consumer groups:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-cluster1 --group _confluent-ksql-cluster1
+
+
 .. config-security-ksql-acl-interactive_post_ak_2_0
 
 Interactive KSQL clusters
@@ -226,20 +257,55 @@ As the set of output topics may not be known up front, it is common to to add an
 on ``TOPIC``s ``PREFIXED`` with some chosen prefix, which will be used for all output topics in the cluster.
 Thereby allowing users to create output topics as required.
 The ``ALL`` operations allows topics to be created on-demand and to be used as input topics for subsequent statements.
+Starting KSQL with ``ksql.output.topic.name.prefix`` set instructs the servers to add the supplied prefix to any output topics
+here the statement does no explicitly specify a topic name.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Kafka Cluser versions below v2.0
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: sql
 
-Versions of Kafka below v2.0 do not benefit from the enhancements found in later version of Kafka that simplify the ACLs required to run
-KSQL against a Kafka cluster secured with ACLs.
-The list of ACLs that must be defined depends on whether the KSQL cluster is configured for
+    CREATE STREAM Foo AS SELECT bar FROM X;  -- implicit topic name 'FOO'; will be prefixed.
+    CREATE STREAM Foo2 WITH(KAFKA_TOPIC='Moo') AS SELECT bar from X; -- explicit topic names 'Moo'; won't be prefixed.
+
+For example, given the following setup:
+
+- A 3-node KSQL cluster
+- Running on hosts with IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
+- Authenticating with the Kafka cluster as a 'KSQL1' user.
+- With 'ksql.service.id' set to 'cluster1.
+- Where users should be able to run queries against any input topics prefixed with 'accounts-', 'orders-' and 'payments-'.
+- Where 'ksql.output.topic.name.prefix' is set to 'ksql-cluster1-'
+- And users won't use explicit topic names.
+
+Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:
+
+.. code:: bash
+
+    # Allow KSQL to discover the cluster:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+
+    # Allow KSQL to read the input topics:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
+
+    # Allow KSQL to manage output topics:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-cluster1-
+
+    # Allow KSQL to manage its own internal topics and consumer groups:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-cluster1 --group _confluent-ksql-cluster1
+
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+|cp| versions below v5.0 (Apache Kafka < v2.0)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Versions of the |cp| below v5.0, (which use Apache Kafka versions below v2.0), do not benefit from the enhancements
+found in later version of Kafka, which simplify the ACLs required to run KSQL against a Kafka cluster secured with ACLs.
+This means a much larger, or wider range, set of ACLs must be defined.
+The set of ACLs that must be defined depends on whether the KSQL cluster is configured for
 :ref:`interactive <config-security-ksql-acl-interactive_pre_ak_2_0>` or :ref:`non-interactive (headless) <config-security-ksql-acl-headless_pre_ak_2_0>`.
 
 ACL definition
 ^^^^^^^^^^^^^^
 
-Kafka acls are defined in the general format of "Principal P is [Allowed/Denied] Operation O From Host H on Resource R".
+Kafka ACLs are defined in the general format of "Principal P is [Allowed/Denied] Operation O From Host H on Resource R".
 
 Principal
     An authenticated user or group. For example, ``"user: Fred"`` or ``"group: fraud"``.

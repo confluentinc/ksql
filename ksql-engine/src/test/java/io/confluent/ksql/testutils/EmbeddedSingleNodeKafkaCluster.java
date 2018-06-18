@@ -253,7 +253,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         ResourceType$.MODULE$.fromJava(resource.resourceType());
 
     final kafka.security.auth.Resource scalaResource =
-        new kafka.security.auth.Resource(scalaResType, resource.name(), resource.nameType());
+        new kafka.security.auth.Resource(scalaResType, resource.name(), resource.patternType());
 
     authorizer.addAcls(scalaAcls, scalaResource);
 

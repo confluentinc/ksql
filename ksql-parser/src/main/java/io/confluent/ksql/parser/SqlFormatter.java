@@ -39,8 +39,6 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.JoinUsing;
-import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -62,6 +60,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Values;
+import io.confluent.ksql.util.KsqlException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -242,45 +241,24 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitJoin(Join node, Integer indent) {
-      JoinCriteria criteria = node.getCriteria().orElse(null);
-      String type = node.getType().toString();
-      if (criteria instanceof NaturalJoin) {
-        type = "NATURAL " + type;
-      }
-
-      if (node.getType() != Join.Type.IMPLICIT) {
-        builder.append('(');
-      }
+      String type = node.getFormattedType();
       process(node.getLeft(), indent);
 
       builder.append('\n');
-      if (node.getType() == Join.Type.IMPLICIT) {
-        append(indent, ", ");
-      } else {
-        append(indent, type).append(" JOIN ");
-      }
+      append(indent, type).append(" JOIN ");
 
       process(node.getRight(), indent);
 
-      if (node.getType() != Join.Type.CROSS && node.getType() != Join.Type.IMPLICIT) {
-        if (criteria instanceof JoinUsing) {
-          JoinUsing using = (JoinUsing) criteria;
-          builder.append(" USING (")
-                  .append(Joiner.on(", ").join(using.getColumns()))
-                  .append(")");
-        } else if (criteria instanceof JoinOn) {
-          JoinOn on = (JoinOn) criteria;
-          builder.append(" ON (")
-                  .append(ExpressionFormatter.formatExpression(on.getExpression()))
-                  .append(")");
-        } else if (!(criteria instanceof NaturalJoin)) {
-          throw new UnsupportedOperationException("unknown join criteria: " + criteria);
-        }
-      }
+      JoinCriteria criteria = node.getCriteria().orElseThrow(() ->
+          new KsqlException("Join criteria is missing")
+      );
 
-      if (node.getType() != Join.Type.IMPLICIT) {
-        builder.append(")");
-      }
+      JoinOn on = (JoinOn) criteria;
+      builder.append(" ON (")
+          .append(ExpressionFormatter.formatExpression(on.getExpression()))
+          .append(")");
+
+      node.getSpanExpression().map((e) -> builder.append(e.toString()));
 
       return null;
     }

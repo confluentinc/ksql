@@ -26,34 +26,34 @@ import static java.util.Objects.requireNonNull;
 public class Join
     extends Relation {
 
+  private final Optional<SpanExpression> spanExpression;
+
   public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
-    this(Optional.empty(), type, left, right, criteria);
+    this(Optional.empty(), type, left, right, criteria, null);
   }
 
   public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria) {
-    this(Optional.of(location), type, left, right, criteria);
+              Optional<JoinCriteria> criteria, Optional<SpanExpression> spanExpression) {
+    this(Optional.of(location), type, left, right, criteria, spanExpression);
   }
 
   private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
-               Optional<JoinCriteria> criteria) {
+               Optional<JoinCriteria> criteria,
+               Optional<SpanExpression> spanExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
-    if ((type == Type.CROSS) || (type == Type.IMPLICIT)) {
-      checkArgument(!criteria.isPresent(), "%s join cannot have join criteria", type);
-    } else {
-      checkArgument(criteria.isPresent(), "No join criteria specified");
-    }
+    checkArgument(criteria.isPresent(), "No join criteria specified");
 
     this.type = type;
     this.left = left;
     this.right = right;
     this.criteria = criteria;
+    this.spanExpression = spanExpression;
   }
 
   public enum Type {
-    CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
+    INNER, LEFT, OUTER
   }
 
   private final Type type;
@@ -63,6 +63,19 @@ public class Join
 
   public Type getType() {
     return type;
+  }
+
+  public String getFormattedType() {
+    switch (type) {
+      case INNER:
+        return "INNER";
+      case LEFT:
+        return "LEFT OUTER";
+      case OUTER:
+        return "FULL OUTER";
+      default:
+        throw new RuntimeException("Unknown join type encountered: " + type.toString());
+    }
   }
 
   public Relation getLeft() {
@@ -75,6 +88,10 @@ public class Join
 
   public Optional<JoinCriteria> getCriteria() {
     return criteria;
+  }
+
+  public Optional<SpanExpression> getSpanExpression() {
+    return spanExpression;
   }
 
   @Override
@@ -105,11 +122,12 @@ public class Join
     return (type == join.type)
            && Objects.equals(left, join.left)
            && Objects.equals(right, join.right)
-           && Objects.equals(criteria, join.criteria);
+           && Objects.equals(criteria, join.criteria)
+           && Objects.equals(spanExpression, join.spanExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right, criteria);
+    return Objects.hash(type, left, right, criteria, spanExpression);
   }
 }

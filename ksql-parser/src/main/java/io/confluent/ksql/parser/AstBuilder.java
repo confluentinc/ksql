@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.SpanExpression;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -41,6 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -83,7 +85,6 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.JoinUsing;
 import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -93,7 +94,6 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
@@ -553,6 +553,38 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     );
   }
 
+  public Node visitSpanExpression(final SqlBaseParser.SpanExpressionContext ctx) {
+    final Pair<Long, TimeUnit> beforeSize;
+    final Pair<Long, TimeUnit> afterSize;
+
+    if (ctx instanceof SqlBaseParser.SingleSpanContext) {
+
+      final SqlBaseParser.SingleSpanContext singleSpan = (SqlBaseParser.SingleSpanContext) ctx;
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(singleSpan.joinWindowSize());
+      afterSize = beforeSize;
+    } else if (ctx instanceof SqlBaseParser.SpanWithBeforeAndAfterContext) {
+      final SqlBaseParser.SpanWithBeforeAndAfterContext beforeAndAfterSpan
+          = (SqlBaseParser.SpanWithBeforeAndAfterContext) ctx;
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(0));
+      afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterSpan.joinWindowSize(1));
+
+    } else {
+      throw new RuntimeException("Expecting either a single SPAN, ie \"SPAN 10 seconds\", or a "
+                                 + "span with before and after specified, ie. \"SPAN (10 seconds, "
+                                 + "20 seconds)");
+    }
+    return new SpanExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
+  }
+
+  private Pair<Long, TimeUnit> getSizeAndUnitFromJoinWindowSize(
+      SqlBaseParser.JoinWindowSizeContext joinWindowSize) {
+    return new Pair<>(Long.parseLong(joinWindowSize.number().getText()),
+                      WindowExpression.getWindowUnit(
+                          joinWindowSize.windowUnit().getText().toUpperCase()));
+  }
+
   @Override
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
     return new GroupBy(
@@ -790,52 +822,35 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context) {
-    Relation left = (Relation) visit(context.left);
-    Relation right;
-
-    if (context.CROSS() != null) {
-      right = (Relation) visit(context.right);
-      return new Join(
-          getLocation(context),
-          Join.Type.CROSS,
-          left,
-          right,
-          Optional.<JoinCriteria>empty()
-      );
+    if (context.joinCriteria().ON() == null) {
+      throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
+                              + "column values. For example `... left JOIN right on left.col = "
+                              + "right.col ...`. Tables can only be joined on the Table's key "
+                              + "column. KSQL will repartition streams if the column in the join "
+                              + "criteria is not the key column.");
     }
 
-    JoinCriteria criteria;
-    if (context.NATURAL() != null) {
-      right = (Relation) visit(context.right);
-      criteria = new NaturalJoin();
-    } else {
-      right = (Relation) visit(context.rightRelation);
-      if (context.joinCriteria().ON() != null) {
-        criteria = new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
-      } else if (context.joinCriteria().USING() != null) {
-        List<String> columns = context.joinCriteria()
-            .identifier().stream()
-            .map(AstBuilder::getIdentifierText)
-            .collect(toList());
-
-        criteria = new JoinUsing(columns);
-      } else {
-        throw new IllegalArgumentException("Unsupported join criteria");
-      }
-    }
-
+    JoinCriteria criteria =
+        new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
     Join.Type joinType;
-    if (context.joinType().LEFT() != null) {
+    SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
+    if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
       joinType = Join.Type.LEFT;
-    } else if (context.joinType().RIGHT() != null) {
-      joinType = Join.Type.RIGHT;
-    } else if (context.joinType().FULL() != null) {
-      joinType = Join.Type.FULL;
+    } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
+      joinType = Join.Type.OUTER;
     } else {
       joinType = Join.Type.INNER;
     }
 
-    return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
+    SpanExpression spanExpression = null;
+    if (context.joinWindow() != null && context.joinWindow().spanExpression() != null) {
+      spanExpression = (SpanExpression) visitSpanExpression(
+          context.joinWindow().spanExpression());
+    }
+    AliasedRelation left = (AliasedRelation) visit(context.left);
+    AliasedRelation right = (AliasedRelation) visit(context.right);
+    return new Join(getLocation(context), joinType, left, right, Optional.of(criteria),
+                    Optional.ofNullable(spanExpression));
   }
 
   @Override

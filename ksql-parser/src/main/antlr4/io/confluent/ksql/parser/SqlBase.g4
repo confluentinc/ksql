@@ -115,7 +115,7 @@ querySpecification
 
 windowExpression
     : (IDENTIFIER)?
-     ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression)
+     ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression )
     ;
 
 tumblingWindowExpression
@@ -173,24 +173,31 @@ selectItem
 
 
 relation
-    : left=relation
-      ( CROSS JOIN right=aliasedRelation
-      | joinType JOIN rightRelation=relation joinCriteria
-      | NATURAL joinType JOIN right=aliasedRelation
-      )                                           #joinRelation
-    | aliasedRelation                             #relationDefault
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinCriteria joinWindow? #joinRelation
+    | aliasedRelation #relationDefault
     ;
 
 joinType
-    : INNER?
-    | LEFT OUTER?
-    | RIGHT OUTER?
-    | FULL OUTER?
+    : INNER? #innerJoin
+    | FULL OUTER? #outerJoin
+    | LEFT OUTER? #leftJoin
+    ;
+
+joinWindow
+    : (SPAN spanExpression)?
+    ;
+
+spanExpression
+    : '(' joinWindowSize ',' joinWindowSize ')' # spanWithBeforeAndAfter
+    | joinWindowSize # singleSpan
+    ;
+
+joinWindowSize
+    : number windowUnit
     ;
 
 joinCriteria
     : ON booleanExpression
-    | USING '(' identifier (',' identifier)* ')'
     ;
 
 
@@ -417,6 +424,7 @@ SOME: 'SOME';
 ANY: 'ANY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
+SPAN: 'SPAN';
 WINDOW: 'WINDOW';
 GROUP: 'GROUP';
 BY: 'BY';
@@ -489,13 +497,11 @@ THEN: 'THEN';
 ELSE: 'ELSE';
 END: 'END';
 JOIN: 'JOIN';
-CROSS: 'CROSS';
+FULL: 'FULL';
 OUTER: 'OUTER';
 INNER: 'INNER';
 LEFT: 'LEFT';
 RIGHT: 'RIGHT';
-FULL: 'FULL';
-NATURAL: 'NATURAL';
 USING: 'USING';
 ON: 'ON';
 OVER: 'OVER';

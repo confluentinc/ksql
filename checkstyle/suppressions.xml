@@ -23,7 +23,7 @@
     <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder|StatementRewriter).java"
               checks="ClassDataAbstractionCouplingCheck"/>
     <suppress
-            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand).java"
+            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand|AstBuilder).java"
               checks="CyclomaticComplexityCheck"/>
 
     <!-- EXAMPLES! -->

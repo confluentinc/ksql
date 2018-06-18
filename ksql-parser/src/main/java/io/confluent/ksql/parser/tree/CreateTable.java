@@ -40,12 +40,7 @@ public class CreateTable
     this(Optional.empty(), name, elements, notExists, properties);
   }
 
-  public CreateTable(NodeLocation location, QualifiedName name, List<TableElement> elements,
-                     boolean notExists, Map<String, Expression> properties) {
-    this(Optional.of(location), name, elements, notExists, properties);
-  }
-
-  private CreateTable(Optional<NodeLocation> location, QualifiedName name,
+  public CreateTable(Optional<NodeLocation> location, QualifiedName name,
                       List<TableElement> elements, boolean notExists,
                       Map<String, Expression> properties) {
     super(location);

@@ -42,16 +42,6 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
   }
 
   public CreateTableAsSelect(
-      NodeLocation location,
-      QualifiedName name,
-      Query query,
-      boolean notExists,
-      Map<String, Expression> properties
-  ) {
-    this(Optional.of(location), name, query, notExists, properties);
-  }
-
-  private CreateTableAsSelect(
       Optional<NodeLocation> location,
       QualifiedName name,
       Query query,

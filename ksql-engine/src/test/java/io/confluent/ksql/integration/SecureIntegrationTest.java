@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.integration;
 
-import com.google.common.collect.ImmutableSet;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.Resource;
+import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.test.TestUtils;
@@ -31,11 +30,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -55,10 +56,21 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import kafka.security.auth.Acl;
 
 import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static org.apache.kafka.common.acl.AclOperation.ALL;
+import static org.apache.kafka.common.acl.AclOperation.CREATE;
+import static org.apache.kafka.common.acl.AclOperation.DELETE;
+import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
+import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+import static org.apache.kafka.common.acl.AclOperation.READ;
+import static org.apache.kafka.common.acl.AclOperation.WRITE;
+import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
+import static org.apache.kafka.common.resource.ResourceType.GROUP;
+import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -122,15 +134,17 @@ public class SecureIntegrationTest {
   @Test
   public void shouldRunQueryAgainstKafkaClusterOverSsl() throws Exception {
     // Given:
-    givenAllowAcl(ALL_USERS, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+    givenAllowAcl(ALL_USERS,
+                  resource(CLUSTER, "kafka-cluster"),
+                  ops(DESCRIBE_CONFIGS, CREATE));
 
-    givenAllowAcl(ALL_USERS, ResourceType.TOPIC, "*",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
-                                  AclOperation.WRITE, AclOperation.DELETE));
+    givenAllowAcl(ALL_USERS,
+                  resource(TOPIC, Acl.WildCardResource()),
+                  ops(DESCRIBE, READ, WRITE, DELETE));
 
-    givenAllowAcl(ALL_USERS, ResourceType.GROUP, "*",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+    givenAllowAcl(ALL_USERS,
+                  resource(GROUP, Acl.WildCardResource()),
+                  ops(DESCRIBE, READ));
 
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -164,140 +178,34 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithWildcardAcls() throws Exception {
-    // Given:
-    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "*",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
-                                  AclOperation.WRITE, AclOperation.DELETE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "*",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAcls() throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_2";
-
-    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
-                  + "-0000000006-repartition",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
-                                  AclOperation.DELETE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0-KSTREAM-AGGREGATE-STATE-STORE"
-                  + "-0000000006-changelog",
-                  ImmutableSet
-                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
-                          AclOperation.DELETE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_2_0",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsWhereTopicsPreexist()
+  public void shouldRunQueriesRequiringChangeLogsAndRepartitionTopicsWithMinimalPrefixedAcls()
       throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_3";
 
-    final String repartitionTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-        + "-repartition";
-
-    final String changeLogTopic =
-        "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-        + "-changelog";
-
-    SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
-    SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
-    SECURE_CLUSTER.createTopic(changeLogTopic, 1, 1);
-
-    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  repartitionTopic,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  changeLogTopic,
-                  ImmutableSet
-                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP,
-                  "_confluent-ksql-default_query_CTAS_ACLS_TEST_3_0",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
-
-    // Then:
-    assertCanRunRepartitioningKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsAndCustomPrefixed()
-      throws Exception {
-    // Given:
-    outputTopic = "ACLS_TEST_4";
-
-    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
-                  + "-0000000006-repartition",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
-                                  AclOperation.DELETE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0-KSTREAM-AGGREGATE-STATE-STORE"
-                  + "-0000000006-changelog",
-                  ImmutableSet
-                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
-                          AclOperation.DELETE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4_0",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "t4_");
+    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, serviceId);
+
+    givenAllowAcl(NORMAL_USER,
+                  resource(CLUSTER, "kafka-cluster"),
+                  ops(DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER,
+                  resource(TOPIC, INPUT_TOPIC),
+                  ops(READ));
+
+    givenAllowAcl(NORMAL_USER,
+                  resource(TOPIC, outputTopic),
+                  ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+    givenAllowAcl(NORMAL_USER,
+                  prefixedResource(TOPIC, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
+
+    givenAllowAcl(NORMAL_USER,
+                  prefixedResource(GROUP, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
+
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
@@ -306,6 +214,7 @@ public class SecureIntegrationTest {
 
   // Requires correctly configured schema-registry running
   //@Test
+  @SuppressWarnings("unused")
   public void shouldRunQueryAgainstSecureSchemaRegistry() throws Exception {
     // Given:
     final HostnameVerifier existing = HttpsURLConnection.getDefaultHostnameVerifier();
@@ -328,15 +237,27 @@ public class SecureIntegrationTest {
     }
   }
 
-  private void givenAllowAcl(final Credentials credentials,
-                             final ResourceType resourceType,
-                             final String resourceName,
-                             final Set<AclOperation> ops) {
-    SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW,
-                              new Resource(resourceType, resourceName), ops);
+  private static void givenAllowAcl(final Credentials credentials,
+                                    final ResourcePattern resource,
+                                    final Set<AclOperation> ops) {
+    SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
   }
 
-  private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
+  private static Set<AclOperation> ops(final AclOperation... ops) {
+    return Arrays.stream(ops).collect(Collectors.toSet());
+  }
+
+  private static ResourcePattern resource(final ResourceType resourceType,
+                                          final String resourceName) {
+    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
+  }
+
+  private static ResourcePattern prefixedResource(final ResourceType resourceType,
+                                                  final String resourceName) {
+    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
+  }
+
+  private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
     ksqlEngine = new KsqlEngine(ksqlConfig);
 
@@ -394,7 +315,7 @@ public class SecureIntegrationTest {
 
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
-    awaitAsyncTopicCreation(INPUT_TOPIC);
+    awaitAsyncInputTopicCreation();
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
@@ -402,11 +323,11 @@ public class SecureIntegrationTest {
         .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
   }
 
-  private void awaitAsyncTopicCreation(final String topicName) {
-    assertThatEventually(() -> topicClient.isTopicExists(topicName), is(true));
+  private void awaitAsyncInputTopicCreation() {
+    assertThatEventually(() -> topicClient.isTopicExists(INPUT_TOPIC), is(true));
   }
 
-  private void execInitCreateStreamQueries() throws Exception {
+  private void execInitCreateStreamQueries() {
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
                                            + "map<varchar, double>) WITH (value_format = 'json', "
@@ -417,7 +338,7 @@ public class SecureIntegrationTest {
   }
 
   private void executePersistentQuery(final String queryString,
-                                      final Object... params) throws Exception {
+                                      final Object... params) {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = ksqlEngine

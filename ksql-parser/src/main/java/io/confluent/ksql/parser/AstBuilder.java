@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
+import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -151,6 +152,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   private DataSourceExtractor dataSourceExtractor;
 
+  private final Stack<String> dotStack = new Stack<>();
+
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
   }
@@ -201,7 +204,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
     return new CreateTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -222,7 +225,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
     return new CreateStream(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -239,7 +242,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     return new CreateStreamAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
@@ -251,7 +254,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
     return new CreateTableAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
@@ -266,8 +269,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       partitionByColumn = Optional.of(new QualifiedNameReference(
           QualifiedName.of(getIdentifierText(context.identifier()))));
     }
-    return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
-                                   (Query) visitQuery(context.query()), partitionByColumn);
+    return new InsertInto(
+        Optional.of(getLocation(context)),
+        getQualifiedName(context.qualifiedName()),
+        (Query) visitQuery(context.query()),
+        partitionByColumn);
   }
 
   @Override
@@ -282,7 +288,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
     return new DropTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         context.EXISTS() != null,
         context.DELETE() != null
@@ -1127,34 +1133,42 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-    String fieldName = getIdentifierText(context.identifier());
-    Expression baseExpression;
-    QualifiedName tableName = QualifiedName.of(
-        context.primaryExpression().getText().toUpperCase());
-    baseExpression = new QualifiedNameReference(
-        getLocation(context.primaryExpression()), tableName);
-    DereferenceExpression dereferenceExpression =
-        new DereferenceExpression(getLocation(context), baseExpression, fieldName);
-    return dereferenceExpression;
+  public Node visitDereference(final SqlBaseParser.DereferenceContext context) {
+    final String fieldName = getIdentifierText(context.identifier());
+    dotStack.push(fieldName);
+    final Expression baseExpression = (Expression) visit(context.base);
+    dotStack.pop();
+    return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
   }
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-    String columnName = getIdentifierText(context.identifier());
+    final String columnName = getIdentifierText(context.identifier());
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
+      final boolean sameAsLeft = columnName.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getLeftName());
+      final boolean sameAsRight = columnName.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getRightName());
+
+      if (!dotStack.empty()
+          && (sameAsLeft || sameAsRight)) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      }
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
         throw new KsqlException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
-        Expression baseExpression =
+        final Expression baseExpression =
             new QualifiedNameReference(
                 getLocation(context),
                 QualifiedName.of(dataSourceExtractor.getLeftAlias())
             );
         return new DereferenceExpression(getLocation(context), baseExpression, columnName);
       } else if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
-        Expression baseExpression =
+        final Expression baseExpression =
             new QualifiedNameReference(
                 getLocation(context),
                 QualifiedName.of(dataSourceExtractor.getRightAlias())
@@ -1164,7 +1178,16 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
-      Expression baseExpression =
+      if (!dotStack.empty()
+          && (columnName.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getFromName()))) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      }
+
+      final Expression baseExpression =
           new QualifiedNameReference(
               getLocation(context),
               QualifiedName.of(dataSourceExtractor.getFromAlias())

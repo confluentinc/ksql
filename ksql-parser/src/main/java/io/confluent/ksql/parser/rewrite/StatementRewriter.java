@@ -998,165 +998,82 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitCreateStream(final CreateStream node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new CreateStream(
-                node.getLocation().get(),
-                node.getName(),
-                node.getElements().stream()
-                    .map(tableElement -> (TableElement) process(tableElement, context))
-                    .collect(Collectors.toList()),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    ))
-            )
-        )
-        .orElse(
-            new CreateStream(
-                node.getName(),
-                node.getElements().stream()
-                    .map(tableElement -> (TableElement) process(tableElement, context))
-                    .collect(Collectors.toList()),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    ))
-            )
-        );
+    return new CreateStream(
+        node.getLocation(),
+        node.getName(),
+        node.getElements().stream()
+            .map(tableElement -> (TableElement) process(tableElement, context))
+            .collect(Collectors.toList()),
+        node.isNotExists(),
+        node.getProperties().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> (Expression) process(e.getValue(), context)
+            ))
+    );
   }
 
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new CreateStreamAsSelect(
-                node.getLocation().get(),
-                node.getName(),
-                (Query) process(node.getQuery(), context),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )),
-                node.getPartitionByColumn().isPresent()
-                    ? Optional.ofNullable(
-                    (Expression) process(node.getPartitionByColumn().get(),
-                        context))
-                    : Optional.empty()
-            )
-        )
-        .orElse(
-            new CreateStreamAsSelect(node.getName(),
-                (Query) process(node.getQuery(), context),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )),
-                node.getPartitionByColumn().isPresent()
-                    ? Optional.ofNullable(
-                    (Expression) process(node.getPartitionByColumn().get(),
-                        context))
-                    : Optional.empty()
-            )
-        );
+    return new CreateStreamAsSelect(
+        node.getLocation(),
+        node.getName(),
+        (Query) process(node.getQuery(), context),
+        node.isNotExists(),
+        node.getProperties().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> (Expression) process(e.getValue(), context)
+            )),
+        node.getPartitionByColumn().isPresent()
+            ? Optional.ofNullable(
+            (Expression) process(node.getPartitionByColumn().get(),
+                context))
+            : Optional.empty()
+    );
   }
 
   protected Node visitCreateTable(final CreateTable node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new CreateTable(node.getLocation().get(),
-                node.getName(),
-                node.getElements().stream()
-                    .map(tableElement -> (TableElement) process(tableElement, context))
-                    .collect(Collectors.toList()),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )))
-        )
-        .orElse(
-            new CreateTable(node.getName(),
-                node.getElements().stream()
-                    .map(tableElement -> (TableElement) process(tableElement, context))
-                    .collect(Collectors.toList()),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )))
-        );
+    return new CreateTable(node.getLocation(),
+        node.getName(),
+        node.getElements().stream()
+            .map(tableElement -> (TableElement) process(tableElement, context))
+            .collect(Collectors.toList()),
+        node.isNotExists(),
+        node.getProperties().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> (Expression) process(e.getValue(), context)
+            )));
   }
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new CreateTableAsSelect(node.getLocation().get(),
-                node.getName(),
-                (Query) process(node.getQuery(), context),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )))
-        )
-        .orElse(
-            new CreateTableAsSelect(node.getName(),
-                (Query) process(node.getQuery(), context),
-                node.isNotExists(),
-                node.getProperties().entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Entry::getKey,
-                        e -> (Expression) process(e.getValue(), context)
-                    )))
-        );
+    return new CreateTableAsSelect(node.getLocation(),
+        node.getName(),
+        (Query) process(node.getQuery(), context),
+        node.isNotExists(),
+        node.getProperties().entrySet().stream()
+            .collect(Collectors.toMap(
+                Entry::getKey,
+                e -> (Expression) process(e.getValue(), context)
+            )));
   }
 
   protected Node visitInsertInto(final InsertInto node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new InsertInto(node.getLocation().get(),
-                node.getTarget(),
-                (Query) process(node.getQuery(), context),
-                node.getPartitionByColumn().isPresent()
-                    ? Optional.ofNullable(
-                    (Expression) process(node.getPartitionByColumn().get(),
-                        context))
-                    : Optional.empty())
-        )
-        .orElse(
-            new InsertInto(node.getTarget(),
-                (Query) process(node.getQuery(), context),
-                node.getPartitionByColumn().isPresent()
-                    ? Optional.ofNullable(
-                    (Expression) process(node.getPartitionByColumn().get(), context))
-                    : Optional.empty())
-        );
+    return new InsertInto(node.getLocation(),
+        node.getTarget(),
+        (Query) process(node.getQuery(), context),
+        node.getPartitionByColumn().isPresent()
+            ? Optional.ofNullable(
+            (Expression) process(node.getPartitionByColumn().get(),
+                context))
+            : Optional.empty());
   }
 
   protected Node visitDropTable(final DropTable node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new DropTable(node.getLocation().get(),
-                node.getTableName(),
-                node.getIfExists(),
-                node.isDeleteTopic())
-        )
-        .orElse(
-            new DropTable(node.getTableName(),
-                node.getIfExists(),
-                node.isDeleteTopic())
-        );
+    return new DropTable(node.getLocation(),
+        node.getTableName(),
+        node.getIfExists(),
+        node.isDeleteTopic());
   }
 
   protected Node visitRenameColumn(final RenameColumn node, final Object context) {

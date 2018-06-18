@@ -74,9 +74,9 @@ In the KSQL query editor, create the ``impressions`` stream:
 
     CREATE STREAM impressions (viewtime BIGINT, key VARCHAR, userid VARCHAR, adid VARCHAR) WITH (KAFKA_TOPIC='impressions', VALUE_FORMAT='DELIMITED');
 
-.. code:: bash
-
 In the KSQL query editor, create the persistent ``impressions2`` stream:
+
+.. code:: bash
 
     CREATE STREAM impressions2 as select * from impressions;
 

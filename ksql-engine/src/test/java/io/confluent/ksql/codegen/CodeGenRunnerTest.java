@@ -35,6 +35,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -64,7 +65,6 @@ import static org.hamcrest.Matchers.not;
 public class CodeGenRunnerTest {
 
     private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
     private static final int INT64_INDEX1 = 0;
     private static final int STRING_INDEX1 = 1;
     private static final int STRING_INDEX2 = 2;
@@ -84,9 +84,13 @@ public class CodeGenRunnerTest {
     private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
+
     @Before
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+        // load substring function
+        UdfLoaderUtil.load(metaStore);
+
         final Schema schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -486,9 +490,8 @@ public class CodeGenRunnerTest {
 
     private Analysis analyzeQuery(String queryStr) {
         final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        // Analyze the query to resolve the references and extract oeprations
         final Analysis analysis = new Analysis();
-        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
         analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
     }

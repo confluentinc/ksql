@@ -45,6 +45,19 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     this.sizeUnit = sizeUnit;
   }
 
+  public long getSize() {
+    return size;
+  }
+
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitTumblingWindowExpression(this, context);
+  }
+
   @Override
   public String toString() {
     return " TUMBLING ( SIZE " + size + " " + sizeUnit + " ) ";

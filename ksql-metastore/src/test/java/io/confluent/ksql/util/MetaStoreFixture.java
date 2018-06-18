@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -84,11 +85,36 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
 
-    SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
-        .field("ORDERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
+    final Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
+
+    final Schema categorySchema = SchemaBuilder.struct()
+        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional().build();
+
+    final Schema itemInfoSchema = SchemaBuilder.struct()
+        .field("ITEMID", Schema.INT64_SCHEMA)
+        .field("NAME", Schema.STRING_SCHEMA)
+        .field("CATEGORY", categorySchema)
+        .optional().build();
+
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Schema schemaBuilderOrders = schemaBuilder
+        .field("ORDERTIME", Schema.INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ITEMINFO", itemInfoSchema)
+        .field("ORDERUNITS", Schema.INT32_SCHEMA)
+        .field("ARRAYCOL",schemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL", schemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+        .field("ADDRESS", addressSchema)
+        .build();
 
     KsqlTopic
         ksqlTopicOrders =

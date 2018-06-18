@@ -19,13 +19,13 @@
               checks="ClassDataAbstractionCouplingCheck"/>
     <suppress
             files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer|AggregateNode).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(KafkaConsumerGroupClientImpl.java)" checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="(KafkaConsumerGroupClientImpl|UdfLoader).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder).java"
+    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder|StatementRewriter).java"
               checks="ClassDataAbstractionCouplingCheck"/>
     <suppress
-            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand).java"
+            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand|AstBuilder).java"
               checks="CyclomaticComplexityCheck"/>
 
     <!-- EXAMPLES! -->

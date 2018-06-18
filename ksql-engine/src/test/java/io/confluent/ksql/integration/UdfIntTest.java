@@ -3,13 +3,17 @@ package io.confluent.ksql.integration;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.function.UdfCompiler;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +45,6 @@ public class UdfIntTest {
 
   private OrderDataProvider orderDataProvider;
   private ItemDataProvider itemDataProvider;
-  String format = DataSource.DataSourceSerDe.JSON.name();
 
   @Before
   public void before() throws Exception {
@@ -51,6 +54,13 @@ public class UdfIntTest {
     testHarness.createTopic(jsonTopicName);
 
     testHarness.createTopic(avroTopicName);
+
+    // load substring udf from classpath
+    new UdfLoader(ksqlContext.getMetaStore(),
+        TestUtils.tempDirectory(),
+        getClass().getClassLoader(),
+        value -> true, new UdfCompiler(), new Metrics(), true, false)
+        .load();
 
     /**
      * Setup test data

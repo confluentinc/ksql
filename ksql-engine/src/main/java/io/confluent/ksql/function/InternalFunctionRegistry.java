@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function;
 
+
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -36,7 +37,6 @@ import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.IfNullKudf;
 import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
-import io.confluent.ksql.function.udf.string.SubstringKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.util.KsqlException;
@@ -51,10 +51,12 @@ import java.util.Map;
 
 public class InternalFunctionRegistry implements FunctionRegistry {
 
-  private Map<String, UdfFactory> ksqlFunctionMap = new HashMap<>();
-  private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
+  private final Map<String, UdfFactory> ksqlFunctionMap ;
+  private final Map<String, AggregateFunctionFactory> aggregateFunctionMap;
+  private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
 
   public InternalFunctionRegistry() {
+    this(new HashMap<>(), new HashMap<>());
     init();
   }
 
@@ -76,12 +78,22 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   public UdfFactory getUdfFactory(final String functionName) {
-    return ksqlFunctionMap.get(functionName.toUpperCase());
+    final UdfFactory udfFactory = ksqlFunctionMap.get(functionName.toUpperCase());
+    if (udfFactory == null) {
+      throw new KsqlException("Can't find any functions with the name '" + functionName + "'");
+    }
+    return udfFactory;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public boolean addFunction(final KsqlFunction ksqlFunction) {
+    if (!functionNameValidator.test(ksqlFunction.getFunctionName())) {
+      throw new KsqlException(ksqlFunction.getFunctionName() + " is not a valid function name."
+          + " Function names must be valid java identifiers and not a KSQL reserved word"
+      );
+    }
+
     final String key = ksqlFunction.getFunctionName().toUpperCase();
     ksqlFunctionMap.compute(key, (s, udf) -> {
       if (udf == null) {
@@ -143,18 +155,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "UCASE", UCaseKudf.class);
     addFunction(ucase);
 
-    KsqlFunction substring = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA),
-        "SUBSTRING", SubstringKudf
-        .class);
-    addFunction(substring);
-    addFunction(new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA, Arrays.asList(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA),
-        "SUBSTRING", SubstringKudf
-        .class));
 
     KsqlFunction concat = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
@@ -297,4 +297,5 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
     addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
   }
+
 }

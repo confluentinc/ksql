@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
@@ -65,14 +67,24 @@ public class QueryTranslationTest {
       tests.findValue("tests").elements().forEachRemaining(query -> {
         try {
           final String name = query.findValue("name").asText();
+          final Map<String, Object> properties = new HashMap<>();
           final List<String> statements = new ArrayList<>();
           final List<Record> inputs = new ArrayList<>();
           final List<Record> outputs = new ArrayList<>();
           final List<Topic> topics = new LinkedList<>();
+          final JsonNode propertiesNode = query.findValue("properties");
+          if (propertiesNode != null) {
+            propertiesNode.fields()
+                .forEachRemaining(property -> properties.put(property.getKey(), property.getValue().asText()));
+          }
           topics.addAll(
               Arrays.asList(
                   new Topic("test_topic", null, new StringSerdeSupplier()),
-                  new Topic("test_table", null, new StringSerdeSupplier())));
+                  new Topic("test_table", null, new StringSerdeSupplier()),
+                  new Topic("left_topic", null, new StringSerdeSupplier()),
+                  new Topic("right_topic", null, new StringSerdeSupplier())
+              )
+          );
           if (query.has("topics")) {
             query.findValue("topics").forEach(
                 topic -> topics.add(createTopicFromNode(topic))
@@ -85,7 +97,7 @@ public class QueryTranslationTest {
           query.findValue("outputs").elements()
               .forEachRemaining(output -> outputs.add(createRecordFromNode(topics, output)));
           queries.add(
-              new Query(testPath, name, topics, inputs, outputs, statements));
+              new Query(testPath, name, properties, topics, inputs, outputs, statements));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

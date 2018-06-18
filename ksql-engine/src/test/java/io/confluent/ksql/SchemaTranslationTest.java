@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -185,6 +186,7 @@ public class SchemaTranslationTest {
     return new Query(
         "",
         node.get("name").asText(),
+        Collections.emptyMap(),
         ImmutableList.of(srcTopic, outputTopic),
         inputRecords,
         outputRecords,

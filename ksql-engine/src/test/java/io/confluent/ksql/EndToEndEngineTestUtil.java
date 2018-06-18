@@ -17,6 +17,8 @@
 package io.confluent.ksql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -25,6 +27,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
@@ -105,10 +108,11 @@ class EndToEndEngineTestUtil {
 
     @Override
     public Object deserialize(final String topicName, final byte[] data) {
-      Object avroObject = avroDeserializer.deserialize(topicName, data);
-      String schemaString;
+      final Object avroObject = avroDeserializer.deserialize(topicName, data);
+      final String schemaString;
       try {
-        schemaString = schemaRegistryClient.getLatestSchemaMetadata(topicName + "-value").getSchema();
+        schemaString = schemaRegistryClient.getLatestSchemaMetadata(
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -140,7 +144,8 @@ class EndToEndEngineTestUtil {
     public byte[] serialize(final String topicName, final Object spec) {
       final String schemaString;
       try {
-        schemaString = schemaRegistryClient.getLatestSchemaMetadata(topicName + "-value").getSchema();
+        schemaString = schemaRegistryClient.getLatestSchemaMetadata(
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -237,11 +242,11 @@ class EndToEndEngineTestUtil {
       return serdeSupplier;
     }
 
-    public Serializer getSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getSerializer(schemaRegistryClient);
     }
 
-    public Deserializer getDeserializer(SchemaRegistryClient schemaRegistryClient) {
+    public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getDeserializer(schemaRegistryClient);
     }
   }
@@ -311,6 +316,7 @@ class EndToEndEngineTestUtil {
   static class Query {
     private final String testPath;
     private final String name;
+    private final Map<String, Object> properties;
     private final Collection<Topic> topics;
     private final List<Record> inputRecords;
     private final List<Record> outputRecords;
@@ -323,6 +329,7 @@ class EndToEndEngineTestUtil {
     Query(
         final String testPath,
         final String name,
+        final Map<String, Object> properties,
         final List<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
@@ -332,7 +339,12 @@ class EndToEndEngineTestUtil {
       this.outputRecords = outputRecords;
       this.testPath = testPath;
       this.name = name;
+      this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
+    }
+
+    public Map<String, Object> properties() {
+      return properties;
     }
 
     public List<String> statements() {
@@ -356,16 +368,20 @@ class EndToEndEngineTestUtil {
     void verifyOutput(final TopologyTestDriver testDriver,
                       final SchemaRegistryClient schemaRegistryClient) {
       try {
-        outputRecords.forEach(
-            r -> OutputVerifier.compareKeyValueTimestamp(
-                testDriver.readOutput(
-                    r.topic.name, r.keyDeserializer(),
-                    r.topic.getDeserializer(schemaRegistryClient)
-                ),
-                r.key(),
-                r.value,
-                r.timestamp)
-        );
+       for (final Record expectedOutput : outputRecords) {
+         final ProducerRecord record = testDriver.readOutput(
+             expectedOutput.topic.name,
+             expectedOutput.keyDeserializer(),
+             expectedOutput.topic.getDeserializer(schemaRegistryClient));
+         if (record == null) {
+           throw new AssertionError("No record received");
+         }
+         OutputVerifier.compareKeyValueTimestamp(
+             record,
+             expectedOutput.key(),
+             expectedOutput.value,
+             expectedOutput.timestamp);
+       }
       } catch (AssertionError assertionError) {
         throw new AssertionError("Query name: "
             + name
@@ -395,7 +411,7 @@ class EndToEndEngineTestUtil {
                                                          final Properties streamsProperties) {
     final List<QueryMetadata> queries = new ArrayList<>();
     query.statements().forEach(
-        q -> queries.addAll(ksqlEngine.buildMultipleQueries(q, Collections.emptyMap()))
+        q -> queries.addAll(ksqlEngine.buildMultipleQueries(q, query.properties()))
     );
     return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),
         streamsProperties,
@@ -474,7 +490,10 @@ class EndToEndEngineTestUtil {
       case RECORD:
         final GenericRecord record = new GenericData.Record(schema);
         for (org.apache.avro.Schema.Field field : schema.getFields()) {
-          record.put(field.name(), ((Map<String, ?>)spec).get(field.name()));
+          record.put(
+              field.name(),
+              valueSpecToAvro(((Map<String, ?>)spec).get(field.name()), field.schema())
+          );
         }
         return record;
       case UNION:
@@ -490,7 +509,9 @@ class EndToEndEngineTestUtil {
   }
 
   @SuppressWarnings("unchecked")
-  static Object avroToValueSpec(Object avro, org.apache.avro.Schema schema, boolean toUpper) {
+  static Object avroToValueSpec(final Object avro,
+                                final org.apache.avro.Schema schema,
+                                final boolean toUpper) {
     if (avro == null) {
       return null;
     }
@@ -504,27 +525,36 @@ class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+          return ((List) avro).stream().collect(
+              Collectors.toMap(
+                  m -> ((GenericData.Record) m).get("key").toString(),
+                  m -> ((GenericData.Record) m).get("value")
+              )
+          );
+        }
         return ((List)avro).stream()
             .map(o -> avroToValueSpec(o, schema.getElementType(), toUpper))
             .collect(Collectors.toList());
       case MAP:
         return ((Map<Object, Object>)avro).entrySet().stream().collect(
                 Collectors.toMap(
-                    Map.Entry::getKey,
+                    e -> e.getKey().toString(),
                     e -> avroToValueSpec(e.getValue(), schema.getValueType(), toUpper)
                 )
             );
       case RECORD:
-        return schema.getFields().stream()
-            .collect(
-                Collectors.toMap(
-                    f -> toUpper ? f.name().toUpperCase() : f.name(),
-                    f -> avroToValueSpec(
-                        ((GenericData.Record)avro).get(f.name()),
-                        f.schema(),
-                        toUpper)
-                )
-            );
+        Map<String, Object> recordSpec = new HashMap<>();
+        schema.getFields().forEach(
+            f -> recordSpec.put(
+                toUpper ? f.name().toUpperCase() : f.name(),
+                avroToValueSpec(
+                    ((GenericData.Record)avro).get(f.name()),
+                    f.schema(),
+                    toUpper)
+            )
+        );
+        return recordSpec;
       case UNION:
         final int pos = GenericData.get().resolveUnion(schema, avro);
         return avroToValueSpec(avro, schema.getTypes().get(pos), toUpper);

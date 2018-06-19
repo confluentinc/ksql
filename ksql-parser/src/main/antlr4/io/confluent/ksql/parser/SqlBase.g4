@@ -175,7 +175,8 @@ selectItem
 
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinCriteria joinWindow? #joinRelation
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria
+    #joinRelation
     | aliasedRelation #relationDefault
     ;
 
@@ -186,12 +187,12 @@ joinType
     ;
 
 joinWindow
-    : (SPAN spanExpression)?
+    : (WITHIN withinExpression)?
     ;
 
-spanExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' # spanWithBeforeAndAfter
-    | joinWindowSize # singleSpan
+withinExpression
+    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
+    | joinWindowSize # singleJoinWindow
     ;
 
 joinWindowSize
@@ -426,7 +427,7 @@ SOME: 'SOME';
 ANY: 'ANY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
-SPAN: 'SPAN';
+WITHIN: 'WITHIN';
 WINDOW: 'WINDOW';
 GROUP: 'GROUP';
 BY: 'BY';

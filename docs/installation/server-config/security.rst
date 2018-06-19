@@ -181,7 +181,7 @@ All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL 
 with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
 
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-non-interactive queries, see :ref:`restrict-ksql-interactive`.
+         non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Literal Resource Pattern
@@ -212,8 +212,8 @@ The ACLs required are the same for both :ref:`Interactive and non-interactive (h
 KSQL always requires the following ACLs for its internal operations and data management:
 
 - The ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
-- The ``ALL`` operation on all internal ``TOPIC``s ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
-- The ``ALL`` operation on all internal ``GROUP``s ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+- The ``ALL`` operation on all internal ``TOPIC`` 's that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+- The ``ALL`` operation on all internal ``GROUP`` 's that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 
@@ -273,13 +273,11 @@ Interactive KSQL clusters
 to a wide variety of input and output topics. Add ACLs to appropriate literal and prefixed resource patterns to allow KSQL
 access to the input and output topics, as required.
 
-Recommendations for securing interactive KSQL clusters:
-
-- To simplify ACL management, you should configure a default custom topic name prefix such as ``ksql-interactive-`` for your
-KSQL cluster via the ``ksql.output.topic.name.prefix`` :ref:`server configuration setting <set-ksql-server-properties>`.
-Unless a user defines an explicit topic name in a KSQL statement, KSQL will then always prefix the name of any automatically
-created output topics.
-- Add an ACL to allow ``ALL`` operations on ``TOPIC``s ``PREFIXED`` with the configured custom name prefix (in the example above: ``ksql-interactive-``).
+.. tip:: To simplify ACL management, you should configure a default custom topic name prefix such as ``ksql-interactive-`` for your
+         KSQL cluster via the ``ksql.output.topic.name.prefix`` :ref:`server configuration setting <set-ksql-server-properties>`.
+         Unless a user defines an explicit topic name in a KSQL statement, KSQL will then always prefix the name of any automatically
+         created output topics.
+         Then add an ACL to allow ``ALL`` operations on ``TOPIC``s ``PREFIXED`` with the configured custom name prefix (in the example above: ``ksql-interactive-``).
 
 For example, given the following setup:
 
@@ -349,7 +347,7 @@ the principal is the user the KSQL server has authenticated as, with the Apache 
 that includes the authenticated KSQL user.
 
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-non-interactive queries, see :ref:`restrict-ksql-interactive`.
+         non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 

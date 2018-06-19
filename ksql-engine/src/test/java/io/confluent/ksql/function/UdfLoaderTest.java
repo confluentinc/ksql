@@ -171,6 +171,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldUseConfigForExtDir() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    // The tostring function is in the udf-example.jar that is found in src/test/resources
     final KsqlConfig config
         = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_EXT_DIR, "src/test/resources"));
     UdfLoader.newInstance(config, metaStore, "").load();

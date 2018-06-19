@@ -616,10 +616,9 @@ public class KsqlEngine implements Closeable {
   }
 
   public Map<String, Object> getKsqlConfigProperties(Map<String, Object> overwriteProperties) {
-    return
-        ksqlConfig
-            .cloneWithPropertyOverwrite(overwriteProperties)
-            .getAllProps();
+    return ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
+        .getAllProps();
   }
 
   public KsqlConfig getKsqlConfig() {

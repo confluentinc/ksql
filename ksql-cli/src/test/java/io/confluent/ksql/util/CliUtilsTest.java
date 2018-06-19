@@ -23,7 +23,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -57,7 +57,7 @@ public class CliUtilsTest {
     );
     final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
 
-    assertThat(properties.containsKey(key + " (LOCAL OVERRIDE)"), is(true));
+    assertThat(properties, hasKey(key + " (LOCAL OVERRIDE)"));
     assertThat(properties.get(key + " (LOCAL OVERRIDE)"), equalTo("earliest"));
   }
 

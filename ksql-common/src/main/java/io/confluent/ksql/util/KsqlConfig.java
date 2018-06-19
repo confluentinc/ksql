@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -23,7 +24,6 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -88,7 +88,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
   public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
-  private final Map<String, Object> ksqlStreamConfigProps;
+  private final ImmutableMap<String, Object> ksqlStreamConfigProps;
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -213,84 +213,94 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         || AdminClientConfig.configNames().contains(config);
   }
 
-  private void applyStreamsConfig(final Map<String, Object> props) {
+  private static void applyStreamsConfig(final Map<String, Object> props,
+                                         final Map<String, Object> streamsConfigProps) {
     props.entrySet()
         .stream()
         .map(Map.Entry::getKey)
         .filter(KsqlConfig::streamsConfigFilter)
         .forEach(
-            k -> applyPrefixedConfig(ksqlStreamConfigProps, KSQL_STREAMS_PREFIX, k, props.get(k)));
+            k -> applyPrefixedConfig(streamsConfigProps, KSQL_STREAMS_PREFIX, k, props.get(k)));
   }
 
   public KsqlConfig(final Map<?, ?> props) {
     super(CONFIG_DEF, props);
 
-    ksqlStreamConfigProps = new HashMap<>();
+    final Map<String, Object> streamsConfigOverlay = new HashMap<>();
 
-    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
+    streamsConfigOverlay.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
         .defaultAutoOffsetRestConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
+    streamsConfigOverlay.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
-    ksqlStreamConfigProps.put(
+    streamsConfigOverlay.put(
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
             .defaultCacheMaxBytesBufferingConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
+    streamsConfigOverlay.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
 
     final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
-      ksqlStreamConfigProps.put(
+      streamsConfigOverlay.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
 
-    applyStreamsConfig(originals());
+    applyStreamsConfig(originals(), streamsConfigOverlay);
+    this.ksqlStreamConfigProps = ImmutableMap.copyOf(streamsConfigOverlay);
   }
 
-  public Map<String, Object> getKsqlStreamConfigProps() {
-    return Collections.unmodifiableMap(ksqlStreamConfigProps);
+  private KsqlConfig(final Map<String, ?> values,
+                     final ImmutableMap<String, Object> ksqlStreamConfigProps) {
+    super(CONFIG_DEF, values);
+    this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  public Map<String, Object> getKsqlAdminClientConfigProps() {
-    final Map<String, Object> adminClientConfigs = new HashMap<>(ksqlStreamConfigProps);
-    adminClientConfigs.keySet().retainAll(AdminClientConfig.configNames());
-    return Collections.unmodifiableMap(adminClientConfigs);
+  public ImmutableMap<String, Object> getKsqlStreamConfigProps() {
+    return ksqlStreamConfigProps;
   }
 
-  public Map<String, Object> getAllProps() {
-    final Map<String, Object> props = new HashMap<>();
-    props.putAll(values().entrySet().stream()
+  public ImmutableMap<String, Object> getKsqlAdminClientConfigProps() {
+    return ksqlStreamConfigProps.entrySet().stream()
+        .map(Map.Entry::getKey)
+        .filter(AdminClientConfig.configNames()::contains)
+        .collect(
+            ImmutableMap.toImmutableMap(name -> name, ksqlStreamConfigProps::get)
+        );
+  }
+
+  public ImmutableMap<String, Object> getAllProps() {
+    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    builder.putAll(values().entrySet().stream()
         .filter(e -> e.getValue() != null)
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue))
     );
-    props.putAll(ksqlStreamConfigProps.entrySet().stream()
+    builder.putAll(ksqlStreamConfigProps.entrySet().stream()
         .filter(e -> e.getValue() != null)
         .collect(
             Collectors.toMap(
                 e -> KSQL_STREAMS_PREFIX + e.getKey(),
                 Map.Entry::getValue)));
-    return Collections.unmodifiableMap(props);
+    return builder.build();
   }
 
   public KsqlConfig clone() {
-    final Map<String, Object> clonedProperties = new HashMap<>();
-    clonedProperties.putAll(originals());
-    return new KsqlConfig(clonedProperties);
+    return new KsqlConfig(values(), ksqlStreamConfigProps);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
-    final Map<String, Object> cloneProps = new HashMap<>(originals());
+    final Map<String, Object> cloneProps = new HashMap<>(values());
     cloneProps.putAll(props);
-    final KsqlConfig clone = new KsqlConfig(cloneProps);
-    clone.applyStreamsConfig(props);
-    return clone;
+    final Map<String, Object> streamsConfigOverlay = new HashMap<>();
+    applyStreamsConfig(ksqlStreamConfigProps, streamsConfigOverlay);
+    applyStreamsConfig(props, streamsConfigOverlay);
+    return new KsqlConfig(cloneProps, ImmutableMap.copyOf(streamsConfigOverlay));
   }
 
-  /* Temporary hack to pass around the timestamp column for a query */
+  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query */
 
   private int timestampColumnIndex = -1;
 

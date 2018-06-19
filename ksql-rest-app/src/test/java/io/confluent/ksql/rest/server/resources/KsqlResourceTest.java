@@ -819,9 +819,8 @@ public class KsqlResourceTest {
   public void shouldListPropertiesWithOverrides() {
     final String ksqlString = "list properties;";
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
-    final Response response
-        = handleKsqlStatements(
-            testResource,
+    final Response response = handleKsqlStatements(
+        testResource,
         new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", 100)));
 
     assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));

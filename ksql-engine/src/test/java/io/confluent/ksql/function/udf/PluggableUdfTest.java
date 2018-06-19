@@ -24,6 +24,7 @@ import io.confluent.ksql.security.ExtensionSecurityManager;
 
 public class PluggableUdfTest {
 
+  private final SecurityManager securityManager = System.getSecurityManager();
   @Before
   public void before() {
     System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
@@ -31,13 +32,11 @@ public class PluggableUdfTest {
 
   @After
   public void after() {
-    //TODO: find a way to reset this. Throws an exception
-//    System.setSecurityManager(securityManager);
+    System.setSecurityManager(securityManager);
   }
 
   @Test(expected = SecurityException.class)
   public void shouldEnableUdfSecurity() {
-
     new PluggableUdf((thiz,args) -> {
       System.exit(1);
       return "";

@@ -28,8 +28,8 @@ import java.util.Stack;
 import io.confluent.ksql.function.udf.PluggableUdf;
 
 /**
- * A simple security manger extension to block UDFs from performing potentially malicious
- * actions, such as System.exit, executing processes, connecting to and reading from sockets etc
+ * A simple security manger extension to block UDFs from calling
+ * System.exit or executing processes
  */
 public class ExtensionSecurityManager extends SecurityManager {
 
@@ -39,18 +39,12 @@ public class ExtensionSecurityManager extends SecurityManager {
 
   // so only can be accessed via the INSTANCE
   private ExtensionSecurityManager() {
+    // set a policy here that grants all permissions
     Policy.setPolicy(new Policy() {
       @Override
       public PermissionCollection getPermissions(final CodeSource codesource) {
         final Permissions permissions = new Permissions();
-        if (codesource == null || codesource.getLocation() == null) {
-          return permissions;
-        }
-
-        // allow allowing of classes and jars from the filesystem
-        if (codesource.getLocation().getProtocol().equals("file")) {
-          permissions.add(new AllPermission());
-        }
+        permissions.add(new AllPermission());
         return permissions;
       }
 
@@ -61,12 +55,7 @@ public class ExtensionSecurityManager extends SecurityManager {
 
       @Override
       public boolean implies(final ProtectionDomain domain, final Permission permission) {
-        final CodeSource codeSource = domain.getCodeSource();
-        if (codeSource == null || codeSource.getLocation() == null) {
-          return false;
-        }
-
-        return codeSource.getLocation().getProtocol().equals("file");
+        return true;
 
       }
     });
@@ -98,11 +87,6 @@ public class ExtensionSecurityManager extends SecurityManager {
     super.checkExit(status);
   }
 
-  private boolean inUdfExecution() {
-    final Stack<Boolean> executing = UDF_IS_EXECUTING.get();
-    return executing != null && !executing.isEmpty();
-  }
-
   @Override
   public void checkExec(final String cmd) {
     if (inUdfExecution()) {
@@ -111,49 +95,11 @@ public class ExtensionSecurityManager extends SecurityManager {
     super.checkExec(cmd);
   }
 
-  @Override
-  public void checkPrintJobAccess() {
-    if (inUdfExecution()) {
-      throw new SecurityException("A UDF attempted to create a Print Job");
-    }
-    super.checkPrintJobAccess();
-  }
 
-  @Override
-  public void checkConnect(final String host, final int port) {
-    if (inUdfExecution()) {
-      throw new SecurityException("A UDF attempted a socket connection to host='" + host
-          + "' port=" + port);
-    }
-    super.checkConnect(host, port);
+  private boolean inUdfExecution() {
+    final Stack<Boolean> executing = UDF_IS_EXECUTING.get();
+    return executing != null && !executing.isEmpty();
   }
-
-  @Override
-  public void checkConnect(final String host, final int port, final Object context) {
-    if (inUdfExecution()) {
-      throw new SecurityException("A UDF attempted a socket connection to host='" + host
-          + "' port=" + port);
-    }
-    super.checkConnect(host, port, context);
-  }
-
-  @Override
-  public void checkListen(final int port) {
-    if (inUdfExecution()) {
-      throw new SecurityException("A UDF attempted to listen on  port=" + port);
-    }
-    super.checkListen(port);
-  }
-
-  @Override
-  public void checkAccept(final String host, final int port) {
-    if (inUdfExecution()) {
-      throw new SecurityException("A UDF attempted to accept a socket connection to host='" + host
-          + "' port=" + port);
-    }
-    super.checkAccept(host, port);
-  }
-
 
   /**
    * Check if the caller is a PluggableUdf. It will be the third

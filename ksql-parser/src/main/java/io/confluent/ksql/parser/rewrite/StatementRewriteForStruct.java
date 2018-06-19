@@ -17,6 +17,9 @@
 package io.confluent.ksql.parser.rewrite;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import java.util.Objects;
 
@@ -45,6 +48,15 @@ public class StatementRewriteForStruct {
     return (Statement) new RewriteWithStructFieldExtractors().process(statement, null);
   }
 
+  public static boolean requiresRewrite(Statement statement) {
+    if (statement instanceof Query
+        || statement instanceof CreateAsSelect
+        || statement instanceof InsertInto) {
+      return true;
+    }
+    return false;
+  }
+
 
   private class RewriteWithStructFieldExtractors extends StatementRewriter {
 
@@ -62,7 +74,8 @@ public class StatementRewriteForStruct {
     ) {
       if (dereferenceExpression.getBase() instanceof QualifiedNameReference) {
         return getNewDereferenceExpression(dereferenceExpression, context);
-      } else if (dereferenceExpression.getBase() instanceof SubscriptExpression) {
+      }
+      if (dereferenceExpression.getBase() instanceof SubscriptExpression) {
         return new FunctionCall(
             QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
             ImmutableList.of(
@@ -90,19 +103,10 @@ public class StatementRewriteForStruct {
         final DereferenceExpression dereferenceExpression,
         final Object context
     ) {
-      return dereferenceExpression.getLocation()
-          .map(location ->
-              new DereferenceExpression(
-                  dereferenceExpression.getLocation().get(),
-                  (Expression) process(dereferenceExpression.getBase(), context),
-                  dereferenceExpression.getFieldName())
-          )
-          .orElse(
-              new DereferenceExpression(
-                  (Expression) process(dereferenceExpression.getBase(), context),
-                  dereferenceExpression.getFieldName()
-              )
-          );
+      return new DereferenceExpression(
+          dereferenceExpression.getLocation(),
+          (Expression) process(dereferenceExpression.getBase(), context),
+          dereferenceExpression.getFieldName());
     }
   }
 

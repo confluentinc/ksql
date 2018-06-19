@@ -72,7 +72,11 @@ public class SqlToJavaVisitor {
   private Schema schema;
   private FunctionRegistry functionRegistry;
 
+<<<<<<< 8c3e22aae341048b61aeb5559f651310a5e94698
   private final ExpressionTypeManager expressionTypeManager;
+=======
+  final ExpressionTypeManager expressionTypeManager;
+>>>>>>> Applied Andy and Damian's feedback.
 
   public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
     this.schema = schema;
@@ -249,7 +253,7 @@ public class SqlToJavaVisitor {
           .collect(Collectors.joining(", "));
       final String builder = "((" + javaReturnType + ") " + instanceName
           + ".evaluate(" + arguments + "))";
-      return new Pair<>(builder, functionReturnSchema);
+      return new Pair<>(builder.toString(), functionReturnSchema);
     }
 
     private Schema getFunctionReturnSchema(
@@ -265,7 +269,6 @@ public class SqlToJavaVisitor {
 
       return udfFactory.getFunction(argumentSchemas).getReturnType();
     }
-
     @Override
     protected Pair<String, Schema> visitLogicalBinaryExpression(
         LogicalBinaryExpression node,

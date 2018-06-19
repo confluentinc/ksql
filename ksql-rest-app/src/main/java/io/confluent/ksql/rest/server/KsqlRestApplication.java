@@ -126,6 +126,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
 
+  private final ObjectMapper mapper;
+
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -158,6 +160,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
     this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;
     this.isUiEnabled = isUiEnabled;
+    this.mapper = getJsonMapper();
   }
 
   @Override
@@ -235,7 +238,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // superclass creates a new json mapper on every call
     // we should probably ony create one per application
     ObjectMapper jsonMapper = super.getJsonMapper();
-    jsonMapper.registerModule(new StructSerializationModule());
+    jsonMapper.registerModule(new StructSerializationModule(jsonMapper));
     new SchemaMapper().registerToObjectMapper(jsonMapper);
     jsonMapper.registerModule(new Jdk8Module());
     return jsonMapper;
@@ -253,8 +256,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                   .build()
           )
       );
-      final ObjectMapper mapper = getJsonMapper();
-      mapper.registerModule(new StructSerializationModule());
+
+      mapper.registerModule(new StructSerializationModule(mapper));
       final StatementParser statementParser = new StatementParser(ksqlEngine);
 
       container.addEndpoint(

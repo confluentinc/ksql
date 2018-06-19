@@ -156,6 +156,24 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic3);
     metaStore.putSource(ksqlTable3);
 
+    final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
+        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema))
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema));
+
+    KsqlTopic
+        nestedArrayStructMapTopic =
+        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", new KsqlJsonTopicSerDe());
+
+    KsqlStream nestedArrayStructMapOrders = new KsqlStream(
+        "sqlexpression",
+        "NESTED_STREAM",
+        nestedArrayStructMapSchema,
+        null,
+        timestampExtractionPolicy,
+        nestedArrayStructMapTopic);
+
+    metaStore.putTopic(nestedArrayStructMapTopic);
+    metaStore.putSource(nestedArrayStructMapOrders);
 
     return metaStore;
   }

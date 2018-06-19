@@ -49,36 +49,27 @@ public class FetchFieldFromStructTest {
     address.put("CITY", "Palo Alto");
     address.put("STATE", "CA");
     address.put("ZIPCODE", 94301L);
-
     return address;
   }
 
   @Test
   public void shouldReturnCorrectField() {
-    final Object result = fetchFieldFromStruct.evaluate(getStruct(), "NUMBER");
-    assertThat(result, instanceOf(Long.class));
-    assertThat(result, equalTo(101L));
+    assertThat(fetchFieldFromStruct.evaluate(getStruct(), "NUMBER"), equalTo(101L));
   }
 
-  @Test
+  @Test (expected = KsqlFunctionException.class)
   public void shouldFailIfFirstArgIsNotStruct() {
-    try {
-      final Object result = fetchFieldFromStruct.evaluate(getStruct().get("STATE"), "STATE");
-      Assert.fail();
-    } catch (KsqlFunctionException e) {
-      assertThat(e.getMessage(), equalTo("Invalid data type. Function argument should be Struct type."));
-    }
+    fetchFieldFromStruct.evaluate(getStruct().get("STATE"), "STATE");
   }
 
   @Test
   public void shouldReturnNullIfFirstArgIsNull() {
-    final Object result = fetchFieldFromStruct.evaluate(null, "NUMBER");
-    assertThat(result, nullValue());
+    assertThat(fetchFieldFromStruct.evaluate(null, "NUMBER"), nullValue());
   }
 
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowIfArgSizeIsNot2() {
-    final Object result = fetchFieldFromStruct.evaluate();
+    fetchFieldFromStruct.evaluate();
   }
 
 }

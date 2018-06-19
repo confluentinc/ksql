@@ -25,23 +25,24 @@ import java.io.IOException;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StructSerializationModule extends SimpleModule {
 
-  private static final Logger LOG = LoggerFactory.getLogger(StructSerializationModule.class);
   private static final JsonConverter jsonConverter = new JsonConverter();
 
-  public StructSerializationModule() {
+  public StructSerializationModule(final ObjectMapper objectMapper) {
     super();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-    addSerializer(Struct.class, new StructSerializationModule.Serializer());
+    addSerializer(Struct.class, new StructSerializationModule.Serializer(objectMapper));
   }
 
   static class Serializer extends JsonSerializer<Struct> {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public Serializer(final ObjectMapper objectMapper) {
+      this.objectMapper = objectMapper;
+    }
 
     @Override
     public void serialize(

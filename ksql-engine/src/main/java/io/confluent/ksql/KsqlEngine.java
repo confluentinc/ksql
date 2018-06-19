@@ -329,9 +329,7 @@ public class KsqlEngine implements Closeable {
             tempMetaStoreForParser
         );
         Statement statement = statementInfo.getLeft();
-        if (statement instanceof Query
-            || statement instanceof CreateAsSelect
-            || statement instanceof InsertInto) {
+        if (StatementRewriteForStruct.requiresRewrite(statement)) {
           statement = new StatementRewriteForStruct(
               statement,
               statementInfo.getRight())

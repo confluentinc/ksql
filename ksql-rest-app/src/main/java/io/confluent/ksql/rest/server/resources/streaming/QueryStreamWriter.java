@@ -64,7 +64,7 @@ class QueryStreamWriter implements StreamingOutput {
     QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-    this.objectMapper.registerModule(new StructSerializationModule());
+    this.objectMapper.registerModule(new StructSerializationModule(this.objectMapper));
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
           "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",

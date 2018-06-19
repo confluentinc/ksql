@@ -24,6 +24,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Query;
@@ -50,18 +51,9 @@ public class StatementRewriteForStructTest {
   public void shouldCreateCorrectFunctionCallExpression() {
     final String simpleQuery = "SELECT iteminfo.category.name, address.state FROM orders;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-    dataSourceExtractor.extractDataSources(singleStatementContext);
 
-    final StatementRewriteForStruct statementRewriteForStruct = new StatementRewriteForStruct(
-        statement,
-        dataSourceExtractor
-    );
-    final Statement rewrittenStatement = statementRewriteForStruct.rewriteForStruct();
-
-    assertThat( rewrittenStatement, instanceOf(Query.class));
-    final Query query = (Query) rewrittenStatement;
+    assertThat( statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
     assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -75,5 +67,45 @@ public class StatementRewriteForStructTest {
     assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STATE')"));
 
   }
+
+  @Test
+  public void shouldNotCreateFunctionCallIfNotNeeded() {
+    final String simpleQuery = "SELECT orderid FROM orders;";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+
+    assertThat( statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(1));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
+
+    assertThat(col0, instanceOf(DereferenceExpression.class));
+    assertThat(col0.toString(), equalTo("ORDERS.ORDERID"));
+  }
+
+
+  @Test
+  public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
+    final String simpleQuery = "SELECT arraycol[0].name as n0, mapcol['key'].name as n1 FROM nested_stream;";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
+
+    assertThat( statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+
+    assertThat(col0, instanceOf(FunctionCall.class));
+    assertThat(col1, instanceOf(FunctionCall.class));
+
+    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[0], 'NAME')"));
+    assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
+  }
+
+
 
 }

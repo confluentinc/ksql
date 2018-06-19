@@ -78,7 +78,8 @@ public class SqlPredicate {
 
     try {
       ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS);
+      ee.setDefaultImports((String[]) CodeGenRunner.CODEGEN_IMPORTS.toArray(
+          new String[CodeGenRunner.CODEGEN_IMPORTS.size()]));
       ee.setParameters(parameterNames, parameterTypes);
 
       ee.setExpressionType(boolean.class);

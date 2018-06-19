@@ -818,9 +818,8 @@ public class KsqlParserTest {
 
   @Test
   public void shouldSetWithinExpressionWithSingleWithin() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN"
-                                   + " 10 SECONDS ON "
-                                   + "TEST1.col1 = ORDERS.ORDERID ;";
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
+                                   + "10 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
 
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
 
@@ -851,8 +850,8 @@ public class KsqlParserTest {
   @Test
   public void shouldSetWithinExpressionWithBeforeAndAfter() {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
-                                   + "WITHIN (10 seconds, 20 minutes) ON "
-                                   + "TEST1.col1 = ORDERS.ORDERID ;";
+                                   + "WITHIN (10 seconds, 20 minutes) "
+                                   + "ON TEST1.col1 = ORDERS.ORDERID ;";
 
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
 

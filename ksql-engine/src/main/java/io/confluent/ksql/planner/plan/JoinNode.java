@@ -463,7 +463,7 @@ public class JoinNode extends PlanNode {
       if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Table-Table join. These "
                                 + "joins are not windowed. Please drop the window definition "
-                                + "(ie. the WITHIN clause) and try to execute your Table-Table "
+                                + "(i.e. the WITHIN clause) and try to execute your Table-Table "
                                 + "join again.");
       }
 

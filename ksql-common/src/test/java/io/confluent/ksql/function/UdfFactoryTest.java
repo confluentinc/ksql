@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
 
 public class UdfFactoryTest {
 
@@ -35,8 +36,8 @@ public class UdfFactoryTest {
   private UdfFactory factory;
 
   @Before
-  public void setUp() throws Exception {
-    factory = new UdfFactory("TestFunc", TestFunc.class);
+  public void setUp() {
+    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", ""));
   }
 
   @Test

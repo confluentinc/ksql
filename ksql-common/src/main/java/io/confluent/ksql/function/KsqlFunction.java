@@ -33,6 +33,7 @@ public class KsqlFunction {
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
   private final Supplier<Kudf> udfSupplier;
+  private final String description;
 
   public KsqlFunction(final Schema returnType,
                       final List<Schema> arguments,
@@ -46,7 +47,7 @@ public class KsqlFunction {
              + kudfClass
              + " for function "  + functionName, e);
       }
-    });
+    }, "");
 
   }
 
@@ -54,16 +55,14 @@ public class KsqlFunction {
                final List<Schema> arguments,
                final String functionName,
                final Class<? extends Kudf> kudfClass,
-               final Supplier<Kudf> udfSupplier) {
-    Objects.requireNonNull(returnType, "returnType can't be null");
-    Objects.requireNonNull(arguments, "arguments can't be null");
-    Objects.requireNonNull(functionName, "functionName can't be null");
-    Objects.requireNonNull(kudfClass, "kudfClass can't be null");
-    this.returnType = returnType;
-    this.arguments = arguments;
-    this.functionName = functionName;
-    this.kudfClass = kudfClass;
-    this.udfSupplier = udfSupplier;
+               final Supplier<Kudf> udfSupplier,
+               final String description) {
+    this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
+    this.arguments = Objects.requireNonNull(arguments, "arguments can't be null");
+    this.functionName = Objects.requireNonNull(functionName, "functionName can't be null");
+    this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass can't be null");
+    this.udfSupplier = Objects.requireNonNull(udfSupplier, "udfSupplier can't be null");
+    this.description = Objects.requireNonNull(description, "description can't be null");
   }
 
   public Schema getReturnType() {
@@ -78,6 +77,9 @@ public class KsqlFunction {
     return functionName;
   }
 
+  public String getDescription() {
+    return description;
+  }
 
   public Class<? extends Kudf> getKudfClass() {
     return kudfClass;
@@ -110,6 +112,7 @@ public class KsqlFunction {
         + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass
+        + ", description='" + description + "'"
         + '}';
   }
 

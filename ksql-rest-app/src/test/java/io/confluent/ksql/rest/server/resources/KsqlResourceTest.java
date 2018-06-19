@@ -18,13 +18,13 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -104,6 +104,7 @@ import io.confluent.rest.RestConfig;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -351,6 +352,24 @@ public class KsqlResourceTest {
     List<RunningQuery> testQueries = queries.getQueries();
 
     assertEquals(0, testQueries.size());
+  }
+
+  @Test
+  public void shouldListFunctions() {
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+    final FunctionNameList functionList = makeSingleRequest(
+        testResource,
+        "LIST FUNCTIONS;",
+        Collections.emptyMap(),
+        FunctionNameList.class
+    );
+
+    // not going to check every function
+    assertThat(functionList.getFunctionNames(), hasItems(
+        "TIMESTAMPTOSTRING",
+        "ARRAYCONTAINS",
+        "ARRAYCONTAINS",
+        "CONCAT"));
   }
 
   @Test

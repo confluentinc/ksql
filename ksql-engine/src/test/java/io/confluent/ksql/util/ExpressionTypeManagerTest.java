@@ -16,20 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfCompiler;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.function.UdfLoaderTest;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.Statement;
-import kafka.utils.TestUtils;
-
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -37,6 +23,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+
+import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.AnalysisContext;
+import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.tree.Statement;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,10 +56,9 @@ public class ExpressionTypeManagerTest {
     }
 
     private Analysis analyzeQuery(String queryStr) {
-        List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        // Analyze the query to resolve the references and extract oeprations
-        Analysis analysis = new Analysis();
-        Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+        final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
+        final Analysis analysis = new Analysis();
+        final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
         analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
     }

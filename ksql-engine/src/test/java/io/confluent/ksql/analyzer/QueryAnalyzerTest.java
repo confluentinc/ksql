@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -36,12 +35,12 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -56,7 +55,8 @@ public class QueryAnalyzerTest {
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlParser ksqlParser = new KsqlParser();
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry());
+  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry(),
+                                                                 new KsqlConfig(Collections.emptyMap()));
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {

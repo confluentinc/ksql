@@ -37,7 +37,7 @@ public class UdfFactoryTest {
 
   @Before
   public void setUp() {
-    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", ""));
+    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", "", ""));
   }
 
   @Test

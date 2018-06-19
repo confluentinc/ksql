@@ -67,6 +67,11 @@ public class UdfFactory {
           + " as a function with the same name and argument types already exists "
           + functions.get(paramTypes));
     }
+    if (!ksqlFunction.getPathLoadedFrom().equals(metadata.getPath())) {
+      throw new KsqlException("Can't add function " + ksqlFunction
+          + "as a function with the same name has been loaded from a different path "
+          + metadata.getPath());
+    }
   }
 
   public String getName() {
@@ -87,6 +92,10 @@ public class UdfFactory {
 
   public void eachFunction(final Consumer<KsqlFunction> consumer) {
     functions.values().forEach(consumer);
+  }
+
+  public String getPath() {
+    return metadata.getPath();
   }
 
   @Override

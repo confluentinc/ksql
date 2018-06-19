@@ -23,7 +23,6 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;

@@ -16,9 +16,17 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import com.google.common.collect.ImmutableList;
+
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.ShowFunctions;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -116,6 +124,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
@@ -211,7 +220,8 @@ public class KsqlResource {
 
     if (Stream.of(
         ListTopics.class, ListRegisteredTopics.class, ListStreams.class,
-        ListTables.class, ListQueries.class, ListProperties.class, RunScript.class)
+        ListTables.class, ListQueries.class, ListProperties.class, RunScript.class,
+        ShowFunctions.class, DescribeFunction.class)
         .anyMatch(c -> c.isInstance(statement))) {
       return;
     }
@@ -313,6 +323,10 @@ public class KsqlResource {
           statementWithSchema == statement
               ? statementText : SqlFormatter.formatSql(statementWithSchema),
           statement, streamsProperties);
+    } else if (statement instanceof ShowFunctions) {
+      return listFunctions(statementText);
+    } else if (statement instanceof DescribeFunction) {
+      return describeFunction(statementText, ((DescribeFunction)statement).getFunctionName());
     }
     // This line is unreachable. Once we have distinct exception types we won't need a
     // separate validation phase for each statement and this can go away. For now all
@@ -321,6 +335,8 @@ public class KsqlResource {
     throw new RuntimeException(
         "Unexpected statement of type " + statement.getClass().getSimpleName());
   }
+
+
 
   private boolean isExecutableDdlStatement(Statement statement) {
     return statement instanceof DdlStatement && !(statement instanceof SetProperty);
@@ -481,6 +497,35 @@ public class KsqlResource {
         ksqlTables.stream()
             .map(SourceInfo.Table::new)
             .collect(Collectors.toList()));
+  }
+
+  private KsqlEntity listFunctions(final String statementText) {
+    final List<UdfFactory> udfFactories = ksqlEngine.listFunctions();
+    return new FunctionNameList(statementText,
+        udfFactories
+            .stream()
+            .map(factory -> factory.getName().toUpperCase())
+            .collect(Collectors.toList())
+    );
+  }
+
+  private FunctionDescriptionList describeFunction(final String statementText,
+                                                   final String functionName) {
+    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
+    final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+    udfFactory.eachFunction(function ->
+        listBuilder.add(new FunctionInfo(function.getArguments()
+            .stream()
+            .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
+            SchemaUtil.getSqlTypeName(function.getReturnType()),
+            function.getDescription())));
+
+    return new FunctionDescriptionList(statementText,
+        udfFactory.getName().toUpperCase(),
+        udfFactory.getDescription(),
+        udfFactory.getAuthor(),
+        udfFactory.getVersion(),
+        listBuilder.build());
   }
 
   private QueryDescription explainQuery(Explain explain, String statementText) {

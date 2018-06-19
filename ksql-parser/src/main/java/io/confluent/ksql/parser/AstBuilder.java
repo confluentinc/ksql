@@ -24,8 +24,10 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
 
@@ -697,6 +699,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
     return new ListQueries(
         Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
+  }
+
+  @Override
+  public Node visitListFunctions(final SqlBaseParser.ListFunctionsContext ctx) {
+    return new ShowFunctions(Optional.of(getLocation(ctx)));
   }
 
   @Override
@@ -1379,6 +1386,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     //TODO: Expand to support other parts of EXPLAIN
 
     return new Explain(queryId, statement, false, Arrays.asList());
+  }
+
+  @Override
+  public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
+    return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
   }
 
   // ***************** helpers *****************

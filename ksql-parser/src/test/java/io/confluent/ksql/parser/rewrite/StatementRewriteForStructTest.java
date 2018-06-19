@@ -107,5 +107,27 @@ public class StatementRewriteForStructTest {
   }
 
 
+  @Test
+  public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
+    final String simpleQuery = "SELECT arraycol[CAST (item.id AS INTEGER)].name as n0, mapcol['key'].name as n1 FROM nested_stream;";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
+
+    assertThat( statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+
+    assertThat(col0, instanceOf(FunctionCall.class));
+    assertThat(col1, instanceOf(FunctionCall.class));
+
+    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[CAST(FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ITEM, 'ID') AS INTEGER)], 'NAME')"));
+    assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
+  }
+
+
 
 }

@@ -158,7 +158,8 @@ public class MetaStoreFixture {
 
     final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
         .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema))
-        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema));
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema))
+        .field("ITEM", itemInfoSchema);
 
     KsqlTopic
         nestedArrayStructMapTopic =

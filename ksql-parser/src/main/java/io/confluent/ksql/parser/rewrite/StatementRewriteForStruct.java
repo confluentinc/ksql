@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.SubscriptExpression;
 import java.util.Objects;
 
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -75,14 +74,6 @@ public class StatementRewriteForStruct {
       if (dereferenceExpression.getBase() instanceof QualifiedNameReference) {
         return getNewDereferenceExpression(dereferenceExpression, context);
       }
-      if (dereferenceExpression.getBase() instanceof SubscriptExpression) {
-        return new FunctionCall(
-            QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
-            ImmutableList.of(
-                dereferenceExpression.getBase(),
-                new StringLiteral(dereferenceExpression.getFieldName())
-            ));
-      }
       return getNewFunctionCall(dereferenceExpression, context);
     }
 
@@ -90,9 +81,8 @@ public class StatementRewriteForStruct {
         final DereferenceExpression dereferenceExpression,
         final Object context
     ) {
-      final Expression createFunctionResult = createFetchFunctionNodeIfNeeded(
-          (DereferenceExpression) dereferenceExpression.getBase(), context);
-
+      final Expression createFunctionResult
+          = (Expression) process(dereferenceExpression.getBase(), context);
       final String fieldName = dereferenceExpression.getFieldName();
       return new FunctionCall(
           QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),

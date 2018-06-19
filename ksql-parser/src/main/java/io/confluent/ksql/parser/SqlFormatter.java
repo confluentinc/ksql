@@ -253,12 +253,11 @@ public final class SqlFormatter {
           new KsqlException("Join criteria is missing")
       );
 
+      node.getWithinExpression().map((e) -> builder.append(e.toString()));
       JoinOn on = (JoinOn) criteria;
       builder.append(" ON (")
           .append(ExpressionFormatter.formatExpression(on.getExpression()))
           .append(")");
-
-      node.getSpanExpression().map((e) -> builder.append(e.toString()));
 
       return null;
     }

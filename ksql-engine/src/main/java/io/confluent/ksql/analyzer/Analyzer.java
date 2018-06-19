@@ -294,7 +294,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             rightKeyFieldName,
             leftAlias,
             rightAlias,
-            node.getSpanExpression().orElse(null),
+            node.getWithinExpression().orElse(null),
             leftDataSource.getDataSourceType(),
             rightDataSource.getDataSourceType()
         );

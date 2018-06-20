@@ -207,7 +207,10 @@ public class UdfLoader {
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
     final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
-    final File pluginDir = new File(ksqlInstallDir, "ext");
+    final String extDirName = config.getString(KsqlConfig.KSQL_EXT_DIR);
+    final File pluginDir = KsqlConfig.DEFAULT_EXT_DIR.equals(extDirName)
+        ? new File(ksqlInstallDir, extDirName)
+        : new File(extDirName);
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),

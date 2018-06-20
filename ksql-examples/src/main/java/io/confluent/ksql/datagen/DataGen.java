@@ -42,6 +42,7 @@ public class DataGen {
       return;
     } catch (IOException exception) {
       System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      System.exit(1);
       return;
     }
 
@@ -54,6 +55,7 @@ public class DataGen {
       generator = new Generator(arguments.schemaFile, new Random());
     } catch (IOException exception) {
       System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      System.exit(1);
       return;
     }
     DataGenProducer dataProducer;
@@ -94,6 +96,7 @@ public class DataGen {
       }
     } catch (IOException exception) {
       System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      System.exit(1);
       return;
     }
 

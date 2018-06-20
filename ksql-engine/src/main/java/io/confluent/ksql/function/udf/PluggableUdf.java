@@ -44,7 +44,7 @@ public class PluggableUdf implements Kudf {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       return udf.eval(actualUdf, args);
     } finally {
-      ExtensionSecurityManager.INSTANCE.popInUdf();
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 }

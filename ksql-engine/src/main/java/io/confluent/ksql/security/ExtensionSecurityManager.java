@@ -62,7 +62,7 @@ public class ExtensionSecurityManager extends SecurityManager {
   }
 
   public synchronized void pushInUdf() {
-    if (callerIsAllowed()) {
+    if (validateCaller()) {
       if (UDF_IS_EXECUTING.get() == null) {
         UDF_IS_EXECUTING.set(new Stack<>());
       }
@@ -70,11 +70,11 @@ public class ExtensionSecurityManager extends SecurityManager {
     }
   }
 
-  public void popInUdf() {
-    if (callerIsAllowed()) {
+  public void popOutUdf() {
+    if (validateCaller()) {
       final Stack<Boolean> stack = UDF_IS_EXECUTING.get();
       if (stack != null && !stack.isEmpty()) {
-        UDF_IS_EXECUTING.get().pop();
+        stack.pop();
       }
     }
   }
@@ -106,7 +106,7 @@ public class ExtensionSecurityManager extends SecurityManager {
    * item in the class array.
    * @return true if caller is allowed
    */
-  private boolean callerIsAllowed() {
+  private boolean validateCaller() {
     return getClassContext()[2].equals(PluggableUdf.class);
   }
 }

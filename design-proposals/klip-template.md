@@ -6,13 +6,13 @@ Release target: _release version this feature is targeted at_
 
 Status: _In Discussion | Design Approved | In development | Merged_
 
-Discussion: _link to the PR_
+Discussion: _link to the design discussion PR_
 
 ## tl;dr
 
 _The summary of WHY we we should do this, and (if possible) WHO benefits from this.  If this unclear or too verbose, it is a strong indication that we need to take a step back and re-think the proposal._
 
-_Example: "Rebalancing enables elasticity and fault-tolerance of Streams applications. However, as of today rebalancing is a costly operation that we need to optimize to achieve faster and more efficient application starts/restarts/shutdowns, failovers, elasticity." (from Kafka Streams - Reduce Rebalancing Cost - One Pager)._
+_Example: "Rebalancing enables elasticity and fault-tolerance of Streams applications. However, as of today rebalancing is a costly operation that we need to optimize to achieve faster and more efficient application starts/restarts/shutdowns, failovers, elasticity."._
 
 ## Motivation and background
 

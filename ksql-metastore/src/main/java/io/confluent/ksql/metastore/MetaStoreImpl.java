@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -222,8 +223,13 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public boolean addFunction(KsqlFunction ksqlFunction) {
-    return functionRegistry.addFunction(ksqlFunction);
+  public void addFunction(KsqlFunction ksqlFunction) {
+    functionRegistry.addFunction(ksqlFunction);
+  }
+
+  @Override
+  public boolean addFunctionFactory(final UdfFactory factory) {
+    return functionRegistry.addFunctionFactory(factory);
   }
 
   public boolean isAggregate(String functionName) {
@@ -243,5 +249,10 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   @Override
   public MetaStore copy() {
     return clone();
+  }
+
+  @Override
+  public List<UdfFactory> listFunctions() {
+    return functionRegistry.listFunctions();
   }
 }

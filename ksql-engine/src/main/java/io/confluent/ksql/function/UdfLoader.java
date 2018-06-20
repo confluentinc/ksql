@@ -37,9 +37,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.security.ExtensionSecurityManager;
@@ -103,7 +105,12 @@ public class UdfLoader {
         // if we are loading from the parent classloader then restrict the name space to only
         // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
         .filterClasspathElements(
-            name -> parentClassLoader != loader || name.contains("ksql-engine"))
+            name -> {
+              if (parentClassLoader != loader) {
+                return true;
+              }
+              return name.contains("ksql-engine");
+            })
         .matchClassesWithMethodAnnotation(Udf.class,
             (theClass, executable) -> {
               final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
@@ -127,30 +134,41 @@ public class UdfLoader {
         .scan();
   }
 
-  private void addFunction(final UdfDescription annotation,
+  private void addFunction(final UdfDescription classLevelAnnotaion,
                            final Method method,
                            final UdfInvoker udf) {
     // sanity check
-    instantiateUdfClass(method, annotation);
-    final String sensorName = "ksql-udf-" + annotation.name();
-    addSensor(sensorName, annotation.name());
+    instantiateUdfClass(method, classLevelAnnotaion);
+    final Udf udfAnnotation = method.getAnnotation(Udf.class);
+    final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
+    final Class<? extends Kudf> udfClass = collectMetrics
+        ? UdfMetricProducer.class
+        : PluggableUdf.class;
+    addSensor(sensorName, classLevelAnnotaion.name());
+
+    LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
+    metaStore.addFunctionFactory(new UdfFactory(udfClass,
+        new UdfMetadata(classLevelAnnotaion.name(),
+            classLevelAnnotaion.description(),
+            classLevelAnnotaion.author(),
+            classLevelAnnotaion.version())));
 
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
-        annotation.name(),
-        collectMetrics ? UdfMetricProducer.class : PluggableUdf.class,
+        classLevelAnnotaion.name(),
+        udfClass,
         () -> {
           final PluggableUdf theUdf
-              = new PluggableUdf(udf, instantiateUdfClass(method, annotation));
+              = new PluggableUdf(udf, instantiateUdfClass(method, classLevelAnnotaion));
           if (collectMetrics) {
             return new UdfMetricProducer(metrics.getSensor(sensorName),
                 theUdf,
                 new SystemTime());
           }
           return theUdf;
-        }));
+        }, udfAnnotation.description()));
   }
 
   private static Object instantiateUdfClass(final Method method,

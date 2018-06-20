@@ -234,10 +234,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
     }
 
+
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
 
-    JoinNode.Type joinType = getJoinType(node);
+    JoinNode.JoinType joinType = getJoinType(node);
 
     if (!node.getCriteria().isPresent()) {
       throw new KsqlException(String.format(
@@ -292,29 +293,27 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             leftKeyFieldName,
             rightKeyFieldName,
             leftAlias,
-            rightAlias
+            rightAlias,
+            node.getWithinExpression().orElse(null),
+            leftDataSource.getDataSourceType(),
+            rightDataSource.getDataSourceType()
         );
+
     analysis.setJoin(joinNode);
     return null;
   }
 
-  private JoinNode.Type getJoinType(Join node) {
-    JoinNode.Type joinType;
+  private JoinNode.JoinType getJoinType(Join node) {
+    JoinNode.JoinType joinType;
     switch (node.getType()) {
       case INNER:
-        joinType = JoinNode.Type.INNER;
+        joinType = JoinNode.JoinType.INNER;
         break;
       case LEFT:
-        joinType = JoinNode.Type.LEFT;
+        joinType = JoinNode.JoinType.LEFT;
         break;
-      case RIGHT:
-        joinType = JoinNode.Type.RIGHT;
-        break;
-      case CROSS:
-        joinType = JoinNode.Type.CROSS;
-        break;
-      case FULL:
-        joinType = JoinNode.Type.FULL;
+      case OUTER:
+        joinType = JoinNode.JoinType.OUTER;
         break;
       default:
         throw new KsqlException("Join type is not supported: " + node.getType().name());

@@ -64,8 +64,10 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -73,6 +75,8 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 public class Cli implements Closeable, AutoCloseable {
 
@@ -97,7 +101,6 @@ public class Cli implements Closeable, AutoCloseable {
   ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
-    validateClient(terminal.writer(), restClient);
 
     this.streamedQueryRowLimit = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
@@ -118,29 +121,36 @@ public class Cli implements Closeable, AutoCloseable {
     try {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
+        KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
+        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
+          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
+          return;
+        }
         writer.format(
-            "Couldn't connect to the KSQL server: %s\n\n",
-            restResponse.getErrorMessage().getMessage()
-        );
+            "Couldn't connect to the KSQL server: %s\n\n", ksqlError.getMessage());
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
     } catch (KsqlRestClientException exception) {
       if (exception.getCause() instanceof ProcessingException) {
         writer.println();
-        writer.println("**************** WARNING ******************");
-        writer.println("Remote server address may not be valid:");
+        writer.println("**************** ERROR ********************");
+        writer.println("Remote server address may not be valid.");
+        writer.println("Address: " + restClient.getServerAddress());
         writer.println(ErrorMessageUtil.buildErrorMessage(exception));
         writer.println("*******************************************");
         writer.println();
       } else {
         throw exception;
       }
+    } finally {
+      writer.flush();
     }
   }
 
   public void runInteractively() {
     displayWelcomeMessage();
+    validateClient(terminal.writer(), restClient);
     boolean eof = false;
     while (!eof) {
       try {
@@ -418,13 +428,7 @@ public class Cli implements Closeable, AutoCloseable {
               try {
                 StreamedRow row = queryStream.next();
                 terminal.printStreamedRow(row);
-                if (row.getErrorMessage() != null) {
-                  // got an error in the stream, which means we have reached the end.
-                  // the stream interface that queryStream uses isn't smart enough to figure
-                  // out when the socket is closed, so just break here since we know there will
-                  // be nothing more to read.
-                  LOGGER.debug("Going to stop reading results for row {} since there was an error"
-                               + " in the response stream: {}", row, row.getErrorMessage());
+                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
                   break;
                 }
               } catch (IOException exception) {
@@ -672,8 +676,10 @@ public class Cli implements Closeable, AutoCloseable {
       } else {
         String serverAddress = commandStrippedLine.trim();
         restClient.setServerAddress(serverAddress);
-        validateClient(writer, restClient);
+        writer.write("Server now: " + commandStrippedLine);
       }
+
+      validateClient(writer, restClient);
     }
   }
 }

@@ -25,9 +25,10 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 
 public class CountAggFunctionFactory extends AggregateFunctionFactory {
+  private static final String FUNCTION_NAME = "COUNT";
 
   public CountAggFunctionFactory() {
-    super("COUNT", Collections.singletonList(new CountKudaf(-1)));
+    super(FUNCTION_NAME, Collections.singletonList(new CountKudaf(FUNCTION_NAME, -1)));
   }
 
   @Override

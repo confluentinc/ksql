@@ -16,27 +16,29 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
-public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
+public class DoubleSumKudaf
+    extends BaseAggregateFunction<Double, Double>
+    implements TableAggregationFunction<Double, Double> {
 
-  DoubleSumKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0.0, Schema.FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+  DoubleSumKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0.0, Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
     );
   }
 
   @Override
-  public Double aggregate(Double currentVal, Double currentAggVal) {
-    return currentVal + currentAggVal;
+  public Double aggregate(Double currentValue, Double aggregateValue) {
+    return currentValue + aggregateValue;
   }
 
   @Override
@@ -45,10 +47,14 @@ public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleSumKudaf(udafIndex);
+  public Double undo(Double valueToUndo, Double aggregateValue) {
+    return aggregateValue - valueToUndo;
+  }
+
+  @Override
+  public KsqlAggregateFunction<Double, Double> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new DoubleSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 
 

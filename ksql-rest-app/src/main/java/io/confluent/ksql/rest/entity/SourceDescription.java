@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
@@ -31,97 +31,77 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @JsonTypeName("description")
 @JsonSubTypes({})
-public class SourceDescription extends KsqlEntity {
+public class SourceDescription {
 
   private final String name;
-  private final List<String> readQueries;
-  private final List<String> writeQueries;
-  private final List<FieldSchemaInfo> schema;
+  private final List<RunningQuery> readQueries;
+  private final List<RunningQuery> writeQueries;
+  private final List<FieldInfo> fields;
   private final String type;
   private final String key;
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
   private final boolean extended;
-  private final String serdes;
+  private final String format;
   private final String topic;
-  private final String topology;
-  private final String executionPlan;
   private final int partitions;
   private final int replication;
-  private final Map<String, Object> overriddenProperties;
 
   @JsonCreator
   public SourceDescription(
-      @JsonProperty("statementText") String statementText,
       @JsonProperty("name") String name,
-      @JsonProperty("readQueries") List<String> readQueries,
-      @JsonProperty("writeQueries") List<String> writeQueries,
-      @JsonProperty("schema") List<FieldSchemaInfo> schema,
+      @JsonProperty("readQueries") List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") List<RunningQuery> writeQueries,
+      @JsonProperty("fields") List<FieldInfo> fields,
       @JsonProperty("type") String type,
       @JsonProperty("key") String key,
       @JsonProperty("timestamp") String timestamp,
       @JsonProperty("statistics") String statistics,
       @JsonProperty("errorStats") String errorStats,
       @JsonProperty("extended") boolean extended,
-      @JsonProperty("serdes") String serdes,
+      @JsonProperty("format") String format,
       @JsonProperty("topic") String topic,
-      @JsonProperty("topology") String topology,
-      @JsonProperty("executionPlan") String executionPlan,
-      @JsonProperty("parititions") int partitions,
-      @JsonProperty("replication") int replication,
-      @JsonProperty("overriddenProperties") Map<String, Object> overriddenProperties
+      @JsonProperty("partitions") int partitions,
+      @JsonProperty("replication") int replication
   ) {
-    super(statementText);
     this.name = name;
-    this.readQueries = readQueries;
-    this.writeQueries = writeQueries;
-    this.schema = schema;
+    this.readQueries = Collections.unmodifiableList(readQueries);
+    this.writeQueries = Collections.unmodifiableList(writeQueries);
+    this.fields = Collections.unmodifiableList(fields);
     this.type = type;
     this.key = key;
     this.timestamp = timestamp;
     this.statistics = statistics;
     this.errorStats = errorStats;
     this.extended = extended;
-    this.serdes = serdes;
+    this.format = format;
     this.topic = topic;
-    this.topology = topology;
-    this.executionPlan = executionPlan;
     this.partitions = partitions;
     this.replication = replication;
-    this.overriddenProperties = overriddenProperties;
   }
 
   public SourceDescription(
       StructuredDataSource dataSource,
       boolean extended,
-      String serdes,
-      String topology,
-      String executionPlan,
-      List<String> readQueries,
-      List<String> writeQueries,
+      String format,
+      List<RunningQuery> readQueries,
+      List<RunningQuery> writeQueries,
       KafkaTopicClient topicClient
   ) {
     this(
-        "",
         dataSource.getName(),
         readQueries,
         writeQueries,
-        dataSource.getSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(
-                field.name(), SchemaUtil.getSchemaFieldName(field))
-            ).collect(Collectors.toList()),
+        EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
@@ -129,10 +109,8 @@ public class SourceDescription extends KsqlEntity {
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
         extended,
-        serdes,
+        format,
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        topology,
-        executionPlan,
         (
             extended && topicClient != null ? getPartitions(
                 topicClient,
@@ -148,48 +126,7 @@ public class SourceDescription extends KsqlEntity {
                     .getKsqlTopic()
                     .getKafkaTopicName()
             ) : 0
-        ),
-        Collections.emptyMap()
-    );
-  }
-
-  private static KsqlStructuredDataOutputNode outputNodeFromMetadata(
-      PersistentQueryMetadata metadata) {
-    return (KsqlStructuredDataOutputNode) metadata.getOutputNode();
-  }
-
-  public SourceDescription(
-      PersistentQueryMetadata queryMetadata,
-      KafkaTopicClient topicClient
-  ) {
-    this(
-        queryMetadata.getStatementString(),
-        queryMetadata.getStatementString(),
-        Collections.EMPTY_LIST,
-        Collections.EMPTY_LIST,
-        queryMetadata.getResultSchema().fields().stream().map(
-            field ->
-              new FieldSchemaInfo(field.name(), SchemaUtil
-                  .getSchemaFieldName(field))
-            ).collect(Collectors.toList()),
-        "QUERY",
-        Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-            .getKeyField()).map(Field::name).orElse(""),
-        Optional.ofNullable(outputNodeFromMetadata(queryMetadata)
-            .getTimestampExtractionPolicy()).map(TimestampExtractionPolicy::timestampField)
-            .orElse(""),
-        MetricCollectors.getStatsFor(
-            outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), false),
-        MetricCollectors.getStatsFor(
-            outputNodeFromMetadata(queryMetadata).getKafkaTopicName(), true),
-        true,
-        outputNodeFromMetadata(queryMetadata).getTopicSerde().getSerDe().name(),
-        outputNodeFromMetadata(queryMetadata).getKafkaTopicName(),
-        queryMetadata.getTopologyDescription(),
-        queryMetadata.getExecutionPlan(),
-        getPartitions(topicClient, outputNodeFromMetadata(queryMetadata).getKafkaTopicName()),
-        getReplication(topicClient, outputNodeFromMetadata(queryMetadata).getKafkaTopicName()),
-        queryMetadata.getOverriddenProperties()
+        )
     );
   }
 
@@ -219,8 +156,8 @@ public class SourceDescription extends KsqlEntity {
     return name;
   }
 
-  public List<FieldSchemaInfo> getSchema() {
-    return schema;
+  public List<FieldInfo> getFields() {
+    return fields;
   }
 
   public boolean isExtended() {
@@ -231,8 +168,8 @@ public class SourceDescription extends KsqlEntity {
     return type;
   }
 
-  public String getSerdes() {
-    return serdes;
+  public String getFormat() {
+    return format;
   }
 
   public String getTopic() {
@@ -243,11 +180,11 @@ public class SourceDescription extends KsqlEntity {
     return key;
   }
 
-  public List<String> getWriteQueries() {
+  public List<RunningQuery> getWriteQueries() {
     return writeQueries;
   }
 
-  public List<String> getReadQueries() {
+  public List<RunningQuery> getReadQueries() {
     return readQueries;
   }
 
@@ -263,57 +200,29 @@ public class SourceDescription extends KsqlEntity {
     return errorStats;
   }
 
-  public String getTopology() {
-    return topology;
-  }
-
-  public String getExecutionPlan() {
-    return executionPlan;
-  }
-
-  public Map<String, Object> getOverriddenProperties() {
-    return overriddenProperties;
-  }
-
-  public static class FieldSchemaInfo {
-
-    private final String name;
-    private final String type;
-
-    @JsonCreator
-    public FieldSchemaInfo(
-        @JsonProperty("name") String name,
-        @JsonProperty("type") String type
-    ) {
-      this.name = name;
-      this.type = type;
+  private boolean equals2(SourceDescription that) {
+    if (!Objects.equals(topic, that.topic)) {
+      return false;
     }
-
-    public String getName() {
-      return name;
+    if (!Objects.equals(key, that.key)) {
+      return false;
     }
-
-    public String getType() {
-      return type;
+    if (!Objects.equals(writeQueries, that.writeQueries)) {
+      return false;
     }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof FieldSchemaInfo)) {
-        return false;
-      }
-      FieldSchemaInfo that = (FieldSchemaInfo) o;
-      return Objects.equals(getName(), that.getName())
-             && Objects.equals(getType(), that.getType());
+    if (!Objects.equals(readQueries, that.readQueries)) {
+      return false;
     }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(getName(), getType());
+    if (!Objects.equals(timestamp, that.timestamp)) {
+      return false;
     }
+    if (!Objects.equals(statistics, that.statistics)) {
+      return false;
+    }
+    if (!Objects.equals(errorStats, that.errorStats)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
@@ -325,15 +234,26 @@ public class SourceDescription extends KsqlEntity {
       return false;
     }
     SourceDescription that = (SourceDescription) o;
-    return Objects.equals(getName(), that.getName())
-           && Objects.equals(getSchema(), that.getSchema())
-           && getType().equals(that.getType())
-           && Objects.equals(getKey(), that.getKey())
-           && Objects.equals(getTimestamp(), that.getTimestamp());
+    if (!Objects.equals(name, that.name)) {
+      return false;
+    }
+    if (!Objects.equals(fields, that.fields)) {
+      return false;
+    }
+    if (!Objects.equals(extended, that.extended)) {
+      return false;
+    }
+    if (!Objects.equals(type, that.type)) {
+      return false;
+    }
+    if (!Objects.equals(format, that.format)) {
+      return false;
+    }
+    return equals2(that);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
+    return Objects.hash(name, fields, type, key, timestamp);
   }
 }

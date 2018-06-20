@@ -59,10 +59,31 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     this.advanceByUnit = advanceByUnit;
   }
 
+  public long getSize() {
+    return size;
+  }
+
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  public long getAdvanceBy() {
+    return advanceBy;
+  }
+
+  public TimeUnit getAdvanceByUnit() {
+    return advanceByUnit;
+  }
+
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitHoppingWindowExpression(this, context);
+  }
+
   @Override
   public String toString() {
     return " HOPPING ( SIZE " + size + " " + sizeUnit + " , ADVANCE BY "
-           + advanceBy + " " + "" + advanceByUnit + " ) ";
+        + advanceBy + " " + "" + advanceByUnit + " ) ";
   }
 
   @Override
@@ -80,8 +101,8 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     }
     HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
     return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
-           && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
-                                                                    .advanceByUnit == advanceByUnit;
+        && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
+        .advanceByUnit == advanceByUnit;
   }
 
   @SuppressWarnings("unchecked")

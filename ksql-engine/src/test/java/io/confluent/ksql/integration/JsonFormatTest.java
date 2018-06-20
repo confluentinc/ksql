@@ -18,7 +18,6 @@ package io.confluent.ksql.integration;
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -42,7 +41,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -72,7 +70,6 @@ public class JsonFormatTest {
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
-  private AdminClient adminClient;
   private QueryId queryId;
   private KafkaTopicClient topicClient;
 
@@ -86,9 +83,8 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     KsqlConfig ksqlConfig = new KsqlConfig(configMap);
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(adminClient);
-    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig);
+    topicClient = ksqlEngine.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
     createInitTopics();
@@ -108,7 +104,7 @@ public class JsonFormatTest {
     topicProducer
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
-    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
+    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
     GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
@@ -144,7 +140,6 @@ public class JsonFormatTest {
   public void after() {
     terminateQuery();
     ksqlEngine.close();
-    adminClient.close();
   }
 
   //@Test

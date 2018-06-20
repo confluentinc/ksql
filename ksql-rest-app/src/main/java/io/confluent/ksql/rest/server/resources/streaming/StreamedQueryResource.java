@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.KsqlException;
@@ -34,7 +35,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -42,7 +42,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 
 @Path("/query")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
@@ -105,9 +105,6 @@ public class StreamedQueryResource {
       final PrintTopic printTopic
   ) {
     String topicName = printTopic.getTopic().toString();
-    Long
-        interval =
-        Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
@@ -122,7 +119,7 @@ public class StreamedQueryResource {
         ksqlEngine.getSchemaRegistryClient(),
         properties,
         topicName,
-        interval,
+        printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getFromBeginning()
     );

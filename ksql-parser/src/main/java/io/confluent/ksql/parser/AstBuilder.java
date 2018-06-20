@@ -19,7 +19,19 @@ package io.confluent.ksql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
+import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.parser.tree.ShowFunctions;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlException;
 
+import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -32,17 +44,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
-import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -72,13 +80,13 @@ import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.JoinUsing;
 import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -88,13 +96,12 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.NaturalJoin;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -103,7 +110,6 @@ import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -117,6 +123,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
@@ -126,14 +133,14 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -146,6 +153,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
   private DataSourceExtractor dataSourceExtractor;
+
+  private final Stack<String> dotStack = new Stack<>();
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
@@ -197,7 +206,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
     return new CreateTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -218,7 +227,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
     return new CreateStream(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         visit(context.tableElement(), TableElement.class),
         context.EXISTS() != null,
@@ -235,7 +244,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     return new CreateStreamAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
@@ -247,12 +256,26 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
     return new CreateTableAsSelect(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
         (Query) visitQuery(context.query()),
         context.EXISTS() != null,
         processTableProperties(context.tableProperties())
     );
+  }
+
+  @Override
+  public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
+    Optional<Expression> partitionByColumn = Optional.empty();
+    if (context.identifier() != null) {
+      partitionByColumn = Optional.of(new QualifiedNameReference(
+          QualifiedName.of(getIdentifierText(context.identifier()))));
+    }
+    return new InsertInto(
+        Optional.of(getLocation(context)),
+        getQualifiedName(context.qualifiedName()),
+        (Query) visitQuery(context.query()),
+        partitionByColumn);
   }
 
   @Override
@@ -267,9 +290,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
     return new DropTable(
-        getLocation(context),
+        Optional.of(getLocation(context)),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 
@@ -278,7 +302,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new DropStream(
         getLocation(context),
         getQualifiedName(context.qualifiedName()),
-        context.EXISTS() != null
+        context.EXISTS() != null,
+        context.DELETE() != null
     );
   }
 
@@ -324,6 +349,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               getLocation(context),
               query.getSelect(),
               query.getInto(),
+              query.isShouldCreateInto(),
               query.getFrom(),
               query.getWindowExpression(),
               query.getWhere(),
@@ -372,6 +398,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         select,
         into,
+        true,
         from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),
@@ -528,6 +555,39 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     );
   }
 
+  public Node visitWithinExpression(final SqlBaseParser.WithinExpressionContext ctx) {
+    final Pair<Long, TimeUnit> beforeSize;
+    final Pair<Long, TimeUnit> afterSize;
+
+    if (ctx instanceof SqlBaseParser.SingleJoinWindowContext) {
+
+      final SqlBaseParser.SingleJoinWindowContext singleWithin
+          = (SqlBaseParser.SingleJoinWindowContext) ctx;
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
+      afterSize = beforeSize;
+    } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
+      final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
+          = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
+
+      beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
+      afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
+
+    } else {
+      throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
+                                 + "seconds\", or a join window with before and after specified, "
+                                 + "ie. \"WITHIN (10 seconds, 20 seconds)");
+    }
+    return new WithinExpression(beforeSize.left, afterSize.left, beforeSize.right, afterSize.right);
+  }
+
+  private Pair<Long, TimeUnit> getSizeAndUnitFromJoinWindowSize(
+      SqlBaseParser.JoinWindowSizeContext joinWindowSize) {
+    return new Pair<>(Long.parseLong(joinWindowSize.number().getText()),
+                      WindowExpression.getWindowUnit(
+                          joinWindowSize.windowUnit().getText().toUpperCase()));
+  }
+
   @Override
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
     return new GroupBy(
@@ -624,18 +684,26 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
-    return new ListStreams(Optional.ofNullable(getLocation(context)));
+    return new ListStreams(
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
   }
 
   @Override
   public Node visitListTables(SqlBaseParser.ListTablesContext context) {
-    return new ListTables(Optional.ofNullable(getLocation(context)));
+    return new ListTables(
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
   }
 
 
   @Override
   public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
-    return new ListQueries(Optional.ofNullable(getLocation(context)));
+    return new ListQueries(
+        Optional.ofNullable(getLocation(context)), context.EXTENDED() != null);
+  }
+
+  @Override
+  public Node visitListFunctions(final SqlBaseParser.ListFunctionsContext ctx) {
+    return new ShowFunctions(Optional.of(getLocation(ctx)));
   }
 
   @Override
@@ -683,16 +751,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           getLocation(context),
           topicName,
           fromBeginning,
-          null
+          Optional.empty()
       );
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
       SqlBaseParser.IntegerLiteralContext integerLiteralContext =
           (SqlBaseParser.IntegerLiteralContext) context.number();
+      final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          (LongLiteral) visitIntegerLiteral(integerLiteralContext)
+          Optional.of(literal.getValue())
       );
     } else {
       throw new KsqlException("Interval value should be integer in 'PRINT' command!");
@@ -761,52 +830,35 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context) {
-    Relation left = (Relation) visit(context.left);
-    Relation right;
-
-    if (context.CROSS() != null) {
-      right = (Relation) visit(context.right);
-      return new Join(
-          getLocation(context),
-          Join.Type.CROSS,
-          left,
-          right,
-          Optional.<JoinCriteria>empty()
-      );
+    if (context.joinCriteria().ON() == null) {
+      throw new KsqlException("Invalid join criteria specified. KSQL only supports joining on "
+                              + "column values. For example `... left JOIN right on left.col = "
+                              + "right.col ...`. Tables can only be joined on the Table's key "
+                              + "column. KSQL will repartition streams if the column in the join "
+                              + "criteria is not the key column.");
     }
 
-    JoinCriteria criteria;
-    if (context.NATURAL() != null) {
-      right = (Relation) visit(context.right);
-      criteria = new NaturalJoin();
-    } else {
-      right = (Relation) visit(context.rightRelation);
-      if (context.joinCriteria().ON() != null) {
-        criteria = new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
-      } else if (context.joinCriteria().USING() != null) {
-        List<String> columns = context.joinCriteria()
-            .identifier().stream()
-            .map(AstBuilder::getIdentifierText)
-            .collect(toList());
-
-        criteria = new JoinUsing(columns);
-      } else {
-        throw new IllegalArgumentException("Unsupported join criteria");
-      }
-    }
-
+    JoinCriteria criteria =
+        new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
     Join.Type joinType;
-    if (context.joinType().LEFT() != null) {
+    SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
+    if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
       joinType = Join.Type.LEFT;
-    } else if (context.joinType().RIGHT() != null) {
-      joinType = Join.Type.RIGHT;
-    } else if (context.joinType().FULL() != null) {
-      joinType = Join.Type.FULL;
+    } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
+      joinType = Join.Type.OUTER;
     } else {
       joinType = Join.Type.INNER;
     }
 
-    return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
+    WithinExpression withinExpression = null;
+    if (context.joinWindow() != null && context.joinWindow().withinExpression() != null) {
+      withinExpression = (WithinExpression) visitWithinExpression(
+          context.joinWindow().withinExpression());
+    }
+    AliasedRelation left = (AliasedRelation) visit(context.left);
+    AliasedRelation right = (AliasedRelation) visit(context.right);
+    return new Join(getLocation(context), joinType, left, right, Optional.of(criteria),
+                    Optional.ofNullable(withinExpression));
   }
 
   @Override
@@ -1033,18 +1085,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitRowConstructor(SqlBaseParser.RowConstructorContext context) {
-    return new Row(getLocation(context), visit(context.expression(), Expression.class));
-  }
-
-
-  @Override
   public Node visitCast(SqlBaseParser.CastContext context) {
     boolean isTryCast = context.TRY_CAST() != null;
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
-        getType(context.type()),
+        getType(context.type()).toString(),
         isTryCast
     );
   }
@@ -1110,34 +1156,42 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-    String fieldName = getIdentifierText(context.identifier());
-    Expression baseExpression;
-    QualifiedName tableName = QualifiedName.of(
-        context.primaryExpression().getText().toUpperCase());
-    baseExpression = new QualifiedNameReference(
-        getLocation(context.primaryExpression()), tableName);
-    DereferenceExpression dereferenceExpression =
-        new DereferenceExpression(getLocation(context), baseExpression, fieldName);
-    return dereferenceExpression;
+  public Node visitDereference(final SqlBaseParser.DereferenceContext context) {
+    final String fieldName = getIdentifierText(context.identifier());
+    dotStack.push(fieldName);
+    final Expression baseExpression = (Expression) visit(context.base);
+    dotStack.pop();
+    return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
   }
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-    String columnName = getIdentifierText(context.identifier());
+    final String columnName = getIdentifierText(context.identifier());
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
+      final boolean sameAsLeft = columnName.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getLeftName());
+      final boolean sameAsRight = columnName.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getRightName());
+
+      if (!dotStack.empty()
+          && (sameAsLeft || sameAsRight)) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      }
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
         throw new KsqlException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
-        Expression baseExpression =
+        final Expression baseExpression =
             new QualifiedNameReference(
                 getLocation(context),
                 QualifiedName.of(dataSourceExtractor.getLeftAlias())
             );
         return new DereferenceExpression(getLocation(context), baseExpression, columnName);
       } else if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
-        Expression baseExpression =
+        final Expression baseExpression =
             new QualifiedNameReference(
                 getLocation(context),
                 QualifiedName.of(dataSourceExtractor.getRightAlias())
@@ -1147,7 +1201,16 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
-      Expression baseExpression =
+      if (!dotStack.empty()
+          && (columnName.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
+          || columnName.equalsIgnoreCase(dataSourceExtractor.getFromName()))) {
+        return new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(columnName)
+        );
+      }
+
+      final Expression baseExpression =
           new QualifiedNameReference(
               getLocation(context),
               QualifiedName.of(dataSourceExtractor.getFromAlias())
@@ -1276,7 +1339,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new LongLiteral(getLocation(context), context.getText());
+    return new IntegerLiteral(getLocation(context), context.getText());
   }
 
   @Override
@@ -1323,6 +1386,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     //TODO: Expand to support other parts of EXPLAIN
 
     return new Explain(queryId, statement, false, Arrays.asList());
+  }
+
+  @Override
+  public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
+    return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
   }
 
   // ***************** helpers *****************
@@ -1477,53 +1545,30 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  private static String getType(SqlBaseParser.TypeContext type) {
+  private static Type getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      String signature = baseTypeToString(type.baseType());
-      if (!type.typeParameter().isEmpty()) {
-        String typeParameterSignature = type
-            .typeParameter()
-            .stream()
-            .map(AstBuilder::typeParameterToString)
-            .collect(Collectors.joining(","));
-        signature += "(" + typeParameterSignature + ")";
-      }
-      return signature;
+      return PrimitiveType.getPrimitiveType(baseTypeToString(type.baseType()));
     }
 
     if (type.ARRAY() != null) {
-      return "ARRAY(" + getType(type.type(0)) + ")";
+      return new Array(getType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-      return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
+      return new io.confluent.ksql.parser.tree.Map(getType(type.type(1)));
     }
 
-    if (type.ROW() != null) {
-      StringBuilder builder = new StringBuilder("(");
+    if (type.STRUCT() != null) {
+      List<Pair<String, Type>> structItems = new ArrayList<>();
       for (int i = 0; i < type.identifier().size(); i++) {
-        if (i != 0) {
-          builder.append(",");
-        }
-        builder.append(getIdentifierText(type.identifier(i)))
-            .append(" ")
-            .append(getType(type.type(i)));
+        String itemName = getIdentifierText(type.identifier(i));
+        Type itemType = getType(type.type(i));
+        structItems.add(new Pair<>(itemName, itemType));
       }
-      builder.append(")");
-      return "ROW" + builder.toString();
+      return new Struct(structItems);
     }
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
-  }
-
-  private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter) {
-    if (typeParameter.INTEGER_VALUE() != null) {
-      return typeParameter.INTEGER_VALUE().toString();
-    }
-    if (typeParameter.type() != null) {
-      return getType(typeParameter.type());
-    }
-    throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
   }
 
   private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
@@ -1570,7 +1615,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
       }
     }
 
@@ -1597,4 +1642,5 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       super(message, cause);
     }
   }
+
 }

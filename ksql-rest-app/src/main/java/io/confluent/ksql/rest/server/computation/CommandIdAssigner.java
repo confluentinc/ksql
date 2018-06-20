@@ -24,11 +24,12 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 
@@ -53,6 +54,7 @@ public class CommandIdAssigner {
         command -> getSelectStreamCommandId((CreateStreamAsSelect) command));
     suppliers.put(CreateTableAsSelect.class,
         command -> getSelectTableCommandId((CreateTableAsSelect) command));
+    suppliers.put(InsertInto.class, command -> getInsertIntoCommandId((InsertInto) command));
     suppliers.put(TerminateQuery.class,
         command -> getTerminateCommandId((TerminateQuery) command));
     suppliers.put(DropTopic.class,
@@ -98,6 +100,11 @@ public class CommandIdAssigner {
 
   private CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
     return getTableCommandId(createTableAsSelect.getName().toString());
+  }
+
+  private CommandId getInsertIntoCommandId(InsertInto insertInto) {
+    return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(), CommandId.Action
+        .CREATE);
   }
 
   private CommandId getTerminateCommandId(TerminateQuery terminateQuery) {

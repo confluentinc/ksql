@@ -34,7 +34,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
 
-  public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
+  public static final String STRING_TIMESTAMP_FORMAT = "ksql.timestamp.string.format";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -44,12 +44,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
+  public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
+
+  public static final String KSQL_EXT_DIR = "ksql.extension.dir";
+
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
-
-  public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
-
-  public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
@@ -75,15 +75,27 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
   public static final String
+      KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
+  private static final String KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS =
+      "A prefix to add to any output topic names, where the statement does not include an explicit "
+      + "topic name. E.g. given 'ksql.output.topic.name.prefix = \"thing-\"', then statement "
+      + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
+      + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
+
+  public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
   public static final boolean defaultAvroSchemaUnionNull = true;
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
+  public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
+
   private final Map<String, Object> ksqlConfigProps;
   private final Map<String, Object> ksqlStreamConfigProps;
 
   private static final ConfigDef CONFIG_DEF;
+
+  public static final String DEFAULT_EXT_DIR = "ext";
 
   static {
     CONFIG_DEF = new ConfigDef()
@@ -119,6 +131,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Suffix for state store names in Tables. For instance if the suffix is "
             + "_ksql_statestore the state "
             + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
+        ).define(
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
         ).define(KSQL_TIMESTAMP_COLUMN_INDEX,
             ConfigDef.Type.INT,
             null,
@@ -152,7 +170,30 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             defaultSchemaRegistryUrl,
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry, defaults to http://localhost:8081"
-        ).withClientSslSupport();
+        ).define(
+            KSQL_ENABLE_UDFS,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.MEDIUM,
+            "Whether or not custom UDF jars found in the ext dir should be loaded. Default is true "
+        ).define(
+            KSQL_COLLECT_UDF_METRICS,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.LOW,
+            "Whether or not metrics should be collected for custom udfs. Default is false. Note: "
+                + "this will add some overhead to udf invocation. It is recommended that this "
+                + " be set to false in production."
+        )
+        .define(
+            KSQL_EXT_DIR,
+            ConfigDef.Type.STRING,
+            DEFAULT_EXT_DIR,
+            ConfigDef.Importance.LOW,
+            "The path to look for and load extensions such as UDFs from."
+        )
+
+        .withClientSslSupport();
   }
 
   private static Map<String, Object> commonConfigs(Map<String, Object> props) {

@@ -22,15 +22,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Properties;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.PhoneHomeConfig;
 
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
-
-  private Thread versionCheckerThread;
-
-  private KsqlVersionChecker ksqlVersionChecker;
 
   private boolean enableSettlingTime;
 
@@ -40,46 +35,47 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     this(true);
   }
 
-  //for testing purposes only
-  public KsqlVersionCheckerAgent(boolean enableSettlingTime) {
+  KsqlVersionCheckerAgent(boolean enableSettlingTime) {
     this.enableSettlingTime = enableSettlingTime;
   }
 
   @Override
-  public  void start(KsqlModuleType moduleType, Properties ksqlProperties) {
+  public void start(KsqlModuleType moduleType, Properties ksqlProperties) {
     BaseSupportConfig ksqlVersionCheckerConfig =
         new PhoneHomeConfig(ksqlProperties, "ksql");
-    if (ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
-      try {
-        Runtime serverRuntime = Runtime.getRuntime();
 
-        ksqlVersionChecker =
-            new KsqlVersionChecker(
-                ksqlVersionCheckerConfig,
-                serverRuntime,
-                moduleType,
-                enableSettlingTime
-            );
-        ksqlVersionChecker.init();
-        versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
-        long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
-        long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
-        versionCheckerThread.start();
-        // We log at WARN level to increase the visibility of this information.
-        log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
-
-      } catch (Exception e) {
-        // We catch any exceptions to prevent collateral damage to the more important broker
-        // threads that are running in the same JVM.
-        log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
-      }
-    } else {
+    if (!ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       log.warn(legalDisclaimerProactiveSupportDisabled());
+      return;
+    }
+
+    try {
+      Runtime serverRuntime = Runtime.getRuntime();
+
+      final KsqlVersionChecker ksqlVersionChecker = new KsqlVersionChecker(
+          ksqlVersionCheckerConfig,
+          serverRuntime,
+          moduleType,
+          enableSettlingTime
+      );
+      ksqlVersionChecker.init();
+
+      final Thread versionCheckerThread = newThread(ksqlVersionChecker);
+      long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
+      long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
+      versionCheckerThread.start();
+      // We log at WARN level to increase the visibility of this information.
+      log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
+
+    } catch (Exception e) {
+      // We catch any exceptions to prevent collateral damage to the more important broker
+      // threads that are running in the same JVM.
+      log.error("Failed to start KsqlVersionCheckerAgent: {}", e);
     }
   }
 
-  private static Thread newThread(String name, Runnable runnable) {
-    Thread thread = new Thread(runnable, name);
+  private static Thread newThread(Runnable runnable) {
+    Thread thread = new Thread(runnable, "KsqlVersionCheckerAgent");
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(
         (t, e) -> log.error("Uncaught exception in thread '{}':", t.getName(), e)

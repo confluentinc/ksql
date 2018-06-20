@@ -1,3 +1,5 @@
+.. _ksql_supported_versions:
+
 .. _install_overview:
 
 Installing KSQL
@@ -16,7 +18,25 @@ Docker support
     :local:
 
 
+---------------------------------------
+Supported Versions and Interoperability
+---------------------------------------
+
+.. include:: ../includes/ksql-supported-versions.rst
+
+
 .. _install_ksql-server:
+
+-------------------------
+Installation Instructions
+-------------------------
+
+Follow the instructions at :ref:`installing_cp`.
+
+It is also possible to install KSQL individually through :ref:`standalone packages <confluent-ksql-package>`.
+
+
+.. _start_ksql-server:
 
 ------------------------
 Starting the KSQL Server
@@ -40,9 +60,13 @@ Tip
     For development and testing purposes, you can also use Confluent CLI to start |cp|, including KSQL, on a single host.
     For more information, see :ref:`quickstart`.
 
-#.  Customize the KSQL ``<path-to-confluent>/etc/ksql/ksql-server.properties`` file.  The required parameters are ``bootstrap.servers``
-    and ``listeners``. You can also set any property the Kafka Streams API, the Kafka producer, or the Kafka consumer.
-    For a description of common configurations and how to set them, see :ref:`configuring-ksql`.
+#.  Specify your KSQL server configuration parameters. You can also set any property for the Kafka Streams API, the Kafka
+    producer, or the Kafka consumer. The required parameters are ``bootstrap.servers`` and ``listeners``. You can specify
+    the parameters in the KSQL properties file or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS``
+    take precedence over those specified in the properties file.
+
+    A recommended approach is to configure a common set of properties using ``KSQL_OPTS`` and override specific
+    properties as needed, using the KSQL properties file.
 
     Here are the default settings:
 
@@ -52,10 +76,7 @@ Tip
         listeners=http://localhost:8088
         ui.enabled=true
 
-    You can also set or override any of the KSQL server properties by specifying them in the ``KSQL_OPTS`` environment variable.
-    The properties are standard java system properties, for example, ``KSQL_OPTS=-Dbootstrap.servers=myhost:9090``
-    Any properties set in this way take precedence over those specified in the ``ksql-server.properties`` file. This allows you to deploy a
-    common set of properties and override specific properties as needed.
+    For more information, see :ref:`ksql-server-config`.
 
 #.  Start a server node with this command:
 
@@ -66,6 +87,7 @@ Tip
     or with overriding properties:
 
     .. code:: bash
+
         $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
@@ -98,6 +120,7 @@ Tip
 
                             This option may occur a maximum of 1 times
 
+#. Have a look at :ref:`this page <restrict-ksql-interactive>` for instructions on running KSQL in non-interactive (aka headless) mode.
 
 .. _install_ksql-cli:
 

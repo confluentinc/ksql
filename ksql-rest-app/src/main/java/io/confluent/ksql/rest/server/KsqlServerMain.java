@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -29,29 +30,50 @@ public class KsqlServerMain {
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
   private static final String KSQL_REST_SERVER_DEFAULT_APP_ID = "KSQL_REST_SERVER_DEFAULT_APP_ID";
 
-  public static void main(final String[] args) throws Exception {
-    final ServerOptions serverOptions = ServerOptions.parse(args);
-    if (serverOptions == null) {
-      return;
-    }
+  private final Executable executable;
 
-    final Properties properties = serverOptions.loadProperties(System::getProperties);
-    final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
-    final Executable executable = createExecutable(properties, queriesFile);
-    log.info("Starting server");
-    executable.start();
-    log.info("Server up and running");
-    executable.join();
-    log.info("Server shutting down");
+  public static void main(final String[] args) {
+    try {
+      final ServerOptions serverOptions = ServerOptions.parse(args);
+      if (serverOptions == null) {
+        return;
+      }
+
+      final Properties properties = serverOptions.loadProperties(System::getProperties);
+      final String installDir = properties.getProperty("ksql.server.install.dir");
+      final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
+      final Executable executable = createExecutable(properties, queriesFile, installDir);
+      new KsqlServerMain(executable).tryStartApp();
+    } catch (final Exception e) {
+      log.error("Failed to start KSQL", e);
+      System.exit(-1);
+    }
+  }
+
+  KsqlServerMain(final Executable executable) {
+    this.executable = Objects.requireNonNull(executable, "executable");
+  }
+
+  void tryStartApp() throws Exception {
+    try {
+      log.info("Starting server");
+      executable.start();
+      log.info("Server up and running");
+      executable.join();
+    } finally {
+      log.info("Server shutting down");
+      executable.stop();
+    }
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
       final Properties properties,
-      final Optional<String> queriesFile
+      final Optional<String> queriesFile,
+      final String installDir
   ) throws Exception {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutor.create(properties, queriesFile.get());
+      return StandaloneExecutor.create(properties, queriesFile.get(), installDir);
     }
 
     if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {

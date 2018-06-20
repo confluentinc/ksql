@@ -20,26 +20,25 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
-public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
+public class LongMaxKudaf extends BaseAggregateFunction<Long, Long> {
 
-  LongMaxKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> Long.MIN_VALUE, Schema.INT64_SCHEMA,
-          Collections.singletonList(Schema.INT64_SCHEMA)
+  LongMaxKudaf(String functionName, int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Long.MIN_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA)
     );
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    if (currentVal > currentAggVal) {
-      return currentVal;
+  public Long aggregate(Long currentValue, Long aggregateValue) {
+    if (currentValue > aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override
@@ -53,9 +52,8 @@ public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
-                                                       List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongMaxKudaf(udafIndex);
+  public KsqlAggregateFunction<Long, Long> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new LongMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

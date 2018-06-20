@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +30,12 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -49,16 +49,20 @@ public class StandaloneExecutor implements Executable {
 
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
+  private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
   StandaloneExecutor(final KsqlEngine ksqlEngine,
-                     final String queriesFile) {
-    this.ksqlEngine = ksqlEngine;
-    this.queriesFile = queriesFile;
+                     final String queriesFile,
+                     final UdfLoader udfLoader) {
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
+    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
+    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
   }
 
-  public void start() throws Exception {
+  public void start() {
     try {
+      udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
     } catch (Exception e) {
@@ -82,7 +86,9 @@ public class StandaloneExecutor implements Executable {
     shutdownLatch.await();
   }
 
-  public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
+  public static StandaloneExecutor create(final Properties properties,
+                                          final String queriesFile,
+                                          final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
     if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
@@ -90,14 +96,11 @@ public class StandaloneExecutor implements Executable {
           StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        ksqlConfig,
-        new KafkaTopicClientImpl(
-            AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
-
-    return new StandaloneExecutor(
-        ksqlEngine,
-        queriesFile);
+    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
+        ksqlEngine.getMetaStore(),
+        installDir);
+    return new StandaloneExecutor(ksqlEngine, queriesFile, udfLoader);
   }
 
   private void showWelcomeMessage() {
@@ -105,7 +108,6 @@ public class StandaloneExecutor implements Executable {
     if (console == null) {
       return;
     }
-
     final PrintWriter writer =
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 
@@ -117,7 +119,7 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
-  private void executeStatements(final String queries) throws Exception {
+  private void executeStatements(final String queries) {
     final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

@@ -1,7 +1,7 @@
 package io.confluent.ksql.integration;
 
 
-import org.apache.kafka.clients.admin.AdminClient;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -33,23 +33,19 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
 
 
 public class IntegrationTestHarness {
-
-
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
   public static final long RESULTS_POLL_MAX_TIME_MS = 60000;
@@ -58,17 +54,17 @@ public class IntegrationTestHarness {
   public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Integration_Test_Consumer_";
 
   public KsqlConfig ksqlConfig;
-  KafkaTopicClientImpl topicClient;
-  private AdminClient adminClient;
+  private KafkaTopicClientImpl topicClient;
 
   public SchemaRegistryClient schemaRegistryClient;
-
-  private TopicConsumer topicConsumer;
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
   }
 
+  public KafkaTopicClient topicClient() {
+    return topicClient;
+  }
 
   // Topic generation
   public void createTopic(String topicName) {
@@ -77,7 +73,6 @@ public class IntegrationTestHarness {
   public void createTopic(String topicName, int numPartitions, short replicatonFactor) {
     topicClient.createTopic(topicName, numPartitions, replicatonFactor);
   }
-
 
   /**
    * Topic topicName will be automatically created if it doesn't exist.
@@ -262,17 +257,13 @@ public class IntegrationTestHarness {
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(adminClient);
-
+    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
   }
 
   public void stop() {
     this.topicClient.close();
-    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
-
 
   public Map<String, RecordMetadata> publishTestData(String topicName,
                                                      TestDataProvider dataProvider,
@@ -301,9 +292,9 @@ public class IntegrationTestHarness {
       case JSON:
         return new KsqlJsonSerializer(schema);
       case AVRO:
-        return new KsqlGenericRowAvroSerializer(schema,
-                                                this.schemaRegistryClient,
-                                                new KsqlConfig(Collections.emptyMap()));
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).serializer();
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
       default:
@@ -315,11 +306,11 @@ public class IntegrationTestHarness {
                                                    DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
-        return new KsqlJsonDeserializer(schema);
+        return new KsqlJsonDeserializer(schema, false);
       case AVRO:
-        return new KsqlGenericRowAvroDeserializer(schema,
-                                                  this.schemaRegistryClient,
-                                                  false);
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).deserializer();
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);
       default:

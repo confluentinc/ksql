@@ -25,7 +25,7 @@ import java.util.List;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 
 public class SelectValueMapperTest {
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
 
 
@@ -74,7 +74,7 @@ public class SelectValueMapperTest {
 
   private List<ExpressionMetadata> createExpressionMetadata(final List<Pair<String, Expression>> expressionPairList,
                                                             final Schema schema) throws Exception {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, new FunctionRegistry());
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, new InternalFunctionRegistry());
     final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       final ExpressionMetadata

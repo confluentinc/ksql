@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -68,11 +68,11 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String OUTPUT_NODE = "KSTREAM-SINK-0000000004";
 
   private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.STRING_SCHEMA)
-      .field("field2", Schema.STRING_SCHEMA)
-      .field("field3", Schema.STRING_SCHEMA)
-      .field("timestamp", Schema.INT64_SCHEMA)
-      .field("key", Schema.STRING_SCHEMA)
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
   private final KsqlStream dataSource = new KsqlStream("sqlExpression", "datasource",
@@ -114,8 +114,8 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
-        Optional.empty()
-    );
+        Optional.empty(),
+        true);
   }
 
   @Test
@@ -151,13 +151,14 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldHaveCorrectOutputNodeSchema() {
-    final List<Field> expected = Arrays.asList(new Field("ROWTIME", 0, Schema.INT64_SCHEMA),
-        new Field("ROWKEY", 1, Schema.STRING_SCHEMA),
-        new Field("field1", 2, Schema.STRING_SCHEMA),
-        new Field("field2", 3, Schema.STRING_SCHEMA),
-        new Field("field3", 4, Schema.STRING_SCHEMA),
-        new Field("timestamp", 5, Schema.INT64_SCHEMA),
-        new Field("key", 6, Schema.STRING_SCHEMA));
+    final List<Field> expected = Arrays.asList(
+        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field1", 2, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field2", 3, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field3", 4, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("timestamp", 5, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("key", 6, Schema.OPTIONAL_STRING_SCHEMA));
     final List<Field> fields = stream.outputNode().getSchema().fields();
     assertThat(fields, equalTo(expected));
   }
@@ -177,7 +178,7 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"));
     final SchemaKStream schemaKStream = buildStream();
     final Field keyField = schemaKStream.getKeyField();
-    assertThat(keyField, equalTo(new Field("field2", 1, Schema.STRING_SCHEMA)));
+    assertThat(keyField, equalTo(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA)));
     assertThat(schemaKStream.getSchema().fields(), equalTo(schema.fields()));
   }
 
@@ -191,7 +192,7 @@ public class KsqlStructuredDataOutputNodeTest {
     return outputNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
@@ -208,7 +209,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForNonWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
@@ -228,7 +229,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
@@ -247,7 +248,7 @@ public class KsqlStructuredDataOutputNodeTest {
         streamsBuilder,
         ksqlConfig,
         topicClientForWindowTable,
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(),
         new MockSchemaRegistryClient());
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
@@ -281,7 +282,8 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
-        Optional.empty());
+        Optional.empty(),
+        true);
   }
 
 }

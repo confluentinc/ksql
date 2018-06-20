@@ -17,6 +17,8 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.parser.tree.PrimitiveType;
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -29,12 +31,16 @@ import java.util.List;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Array;
+import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
 import static org.easymock.EasyMock.anyObject;
@@ -48,7 +54,7 @@ import static org.junit.Assert.fail;
 
 public class AvroUtilTest {
 
-  private String ordersAveroSchemaStr = "{"
+  private String ordersAvroSchemaStr = "{"
                      + "\"namespace\": \"kql\","
                      + " \"name\": \"orders\","
                      + " \"type\": \"record\","
@@ -61,28 +67,31 @@ public class AvroUtilTest {
                      + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
                      + " ]"
                      + "}";
-  private AvroUtil avroUtil = new AvroUtil();
 
   @Test
   public void shouldPassAvroCheck() throws Exception {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    SchemaMetadata schemaMetadata = new SchemaMetadata(1, 1, ordersAveroSchemaStr);
+    SchemaMetadata schemaMetadata = new SchemaMetadata(1, 1, ordersAvroSchemaStr);
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString())).andReturn(schemaMetadata);
     replay(schemaRegistryClient);
     AbstractStreamCreateStatement abstractStreamCreateStatement = getAbstractStreamCreateStatement
-        ("CREATE STREAM S1 WITH "
-                                                                   + "(kafka_topic='s1_topic', "
+        ("CREATE STREAM S1 WITH (kafka_topic='s1_topic', "
                                      + "value_format='avro' );");
-    Pair<AbstractStreamCreateStatement, String> checkResult = avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
-    AbstractStreamCreateStatement newAbstractStreamCreateStatement = checkResult.getLeft();
-    assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
-        new TableElement("ORDERTIME", "BIGINT"),
-        new TableElement("ORDERID", "BIGINT"),
-        new TableElement("ITEMID", "VARCHAR"),
-        new TableElement("ORDERUNITS", "DOUBLE"),
-        new TableElement("ARRAYCOL", "ARRAY<DOUBLE>"),
-        new TableElement("MAPCOL", "MAP<VARCHAR,DOUBLE>")
-        )));
+    AbstractStreamCreateStatement newAbstractStreamCreateStatement = AvroUtil.checkAndSetAvroSchema(
+        abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+    assertThat(
+        newAbstractStreamCreateStatement.getElements(),
+        equalTo(
+            Arrays.asList(
+                new TableElement("ORDERTIME", new PrimitiveType(Type.KsqlType.BIGINT)),
+                new TableElement("ORDERID", new PrimitiveType(Type.KsqlType.BIGINT)),
+                new TableElement("ITEMID", new PrimitiveType(Type.KsqlType.STRING)),
+                new TableElement("ORDERUNITS", new PrimitiveType(Type.KsqlType.DOUBLE)),
+                new TableElement("ARRAYCOL", new Array(new PrimitiveType(Type.KsqlType.DOUBLE))),
+                new TableElement("MAPCOL", new Map(new PrimitiveType(Type.KsqlType.DOUBLE)))
+            )
+        )
+    );
   }
 
   @Test
@@ -96,7 +105,7 @@ public class AvroUtilTest {
          + "(kafka_topic='s1_topic', "
          + "value_format='avro' );");
     try {
-      avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+      AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
       fail();
     } catch (Exception e) {
       assertThat("Expected different message message.", e.getMessage().trim(),
@@ -122,14 +131,14 @@ public class AvroUtilTest {
       throws IOException, RestClientException {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe());
-    Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
+    Schema resultSchema = AvroSchemaTranslator.toKsqlSchema(ordersAvroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
+    org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
         .andReturn(true);
     replay(schemaRegistryClient);
-    avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+    AvroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
   }
 
   @Test
@@ -138,12 +147,12 @@ public class AvroUtilTest {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
         ());
-    Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
+    Schema resultSchema = AvroSchemaTranslator.toKsqlSchema(ordersAvroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {
-      avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+      AvroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
       fail();
     } catch (Exception e) {
       assertThat("Incorrect exception message", "Cannot register avro schema for testTopic since "
@@ -153,7 +162,7 @@ public class AvroUtilTest {
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(String statementString) {
     List<Statement> statementList = new KsqlParser().buildAst
-        (statementString, new MetaStoreImpl());
+        (statementString, new MetaStoreImpl(new InternalFunctionRegistry()));
     if (statementList.get(0) instanceof AbstractStreamCreateStatement) {
       return (AbstractStreamCreateStatement) statementList.get(0);
     }

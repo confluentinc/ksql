@@ -364,6 +364,113 @@ public class StreamsSelectAndProjectIntTest {
     Assert.assertEquals(4, results.size());
   }
 
+  @Test
+  public void testInsertIntoJson() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, "
+                            + "PRICEARRAY FROM "
+                    + "%s WHERE ITEMID = 'HELLO';", jsonStreamName));
+
+    ksqlContext.sql(String.format("INSERT INTO PROJECT_STREAM SELECT ITEMID, ORDERUNITS, PRICEARRAY "
+                            + "FROM %s;", jsonStreamName));
+
+    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
+                                                                     resultSchema, dataProvider
+                                                                         .data().size(), new
+                                                                         StringDeserializer(),
+                                                                     IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+                                                                     DataSource.DataSourceSerDe.JSON);
+
+    GenericRow value = easyOrdersData.values().iterator().next();
+    // skip over first to values (rowKey, rowTime)
+    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+  }
+
+  @Test
+  public void testInsertIntoAvro() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, "
+                                  + "PRICEARRAY FROM "
+                                  + "%s WHERE ITEMID = 'HELLO';", avroStreamName));
+
+    ksqlContext.sql(String.format("INSERT INTO PROJECT_STREAM SELECT ITEMID, ORDERUNITS, PRICEARRAY "
+                                  + "FROM %s;", avroStreamName));
+
+    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
+                                                                     resultSchema, dataProvider
+                                                                         .data().size(), new
+                                                                         StringDeserializer(),
+                                                                     IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+                                                                     DataSource.DataSourceSerDe.AVRO);
+
+    GenericRow value = easyOrdersData.values().iterator().next();
+    // skip over first to values (rowKey, rowTime)
+    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+  }
+
+  @Test
+  public void testInsertSelectStarJson() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM EASYORDERS AS SELECT * FROM %s WHERE ITEMID = "
+                                  + "'HELLO';", jsonStreamName));
+    ksqlContext.sql(String.format("INSERT INTO EASYORDERS SELECT * FROM %s;", jsonStreamName));
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
+        .schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness
+        .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.JSON);
+
+    assertThat(easyOrdersData, equalTo(dataProvider.data()));
+  }
+
+  @Test
+  public void testInsertSelectStarAvro() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM EASYORDERS AS SELECT * FROM %s WHERE ITEMID = "
+                                  + "'HELLO';", avroStreamName));
+    ksqlContext.sql(String.format("INSERT INTO EASYORDERS SELECT * FROM %s;", avroStreamName));
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
+        .schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness
+                                                                         .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
+
+    assertThat(easyOrdersData, equalTo(dataProvider.data()));
+  }
+
+  @Test
+  public void testInsertSelectWithFilterJson() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM BIGORDERS_json AS SELECT * FROM %s WHERE ORDERUNITS > "
+                           + "100000;", jsonStreamName));
+    ksqlContext.sql(String.format("INSERT INTO BIGORDERS_json SELECT * FROM %s WHERE ORDERUNITS > 40;"
+                                  + "", jsonStreamName));
+
+    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_json", dataProvider
+                                                                  .schema()
+        , 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.JSON);
+
+    Assert.assertEquals(4, results.size());
+  }
+
+  @Test
+  public void testInsertSelectWithFilterAvro() throws Exception {
+
+    ksqlContext.sql(String.format("CREATE STREAM BIGORDERS_avro AS SELECT * FROM %s WHERE ORDERUNITS > "
+                                  + "100000;", avroStreamName));
+    ksqlContext.sql(String.format("INSERT INTO BIGORDERS_avro SELECT * FROM %s WHERE ORDERUNITS > 40;"
+                                  + "", avroStreamName));
+
+    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_avro", dataProvider
+                                                                  .schema()
+        , 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+                                                              DataSource.DataSourceSerDe.AVRO);
+
+    Assert.assertEquals(4, results.size());
+  }
+
   private void createOrdersStream() throws Exception {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
             + "varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>,"

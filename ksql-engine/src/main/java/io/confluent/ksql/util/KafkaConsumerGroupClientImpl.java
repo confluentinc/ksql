@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,15 +66,20 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
     ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
         new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
-    ConsumerGroupCommand.KafkaConsumerGroupService consumerGroupService =
-        new ConsumerGroupCommand.KafkaConsumerGroupService(opts);
-    scala.collection.immutable.List<String> consumerGroups = consumerGroupService.listGroups();
-    scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
-    ArrayList<String> results = new ArrayList<>();
-    while (consumerGroupsIterator.hasNext()) {
-      results.add(consumerGroupsIterator.next());
+    ConsumerGroupCommand.ConsumerGroupService consumerGroupService =
+        new ConsumerGroupCommand.ConsumerGroupService(opts);
+
+    try {
+      scala.collection.immutable.List<String> consumerGroups = consumerGroupService.listGroups();
+      scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
+      ArrayList<String> results = new ArrayList<>();
+      while (consumerGroupsIterator.hasNext()) {
+        results.add(consumerGroupsIterator.next());
+      }
+      return results;
+    } finally {
+      consumerGroupService.close();
     }
-    return results;
   }
 
   private String[] consumerGroupCommandOptions() {
@@ -85,11 +90,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
     try {
       File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
-      String[] args = {
+      return new String[]{
           "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
           "--command-config", tmpConfigFile.getAbsolutePath()
       };
-      return args;
     } catch (IOException e) {
       log.error("Could not configure the list groups command.", e);
       throw new KsqlException("Could not list groups", e);

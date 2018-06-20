@@ -16,12 +16,19 @@
 
 package io.confluent.ksql.planner;
 
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
@@ -35,12 +42,6 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -51,22 +52,21 @@ public class LogicalPlannerTest {
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
-  private FunctionRegistry functionRegistry;
+  private InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
-    functionRegistry = new FunctionRegistry();
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    functionRegistry = new InternalFunctionRegistry();
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
                                                                 functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));

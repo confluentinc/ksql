@@ -18,6 +18,8 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Set;
 
+import io.confluent.ksql.util.Pair;
+
 public abstract class DefaultTraversalVisitor<R, C>
     extends AstVisitor<R, C> {
 
@@ -272,9 +274,9 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitRow(Row node, C context) {
-    for (Expression expression : node.getItems()) {
-      process(expression, context);
+  protected R visitStruct(Struct node, C context) {
+    for (Pair<String, Type> structItem : node.getItems()) {
+      process(structItem.getRight(), context);
     }
     return null;
   }
@@ -347,7 +349,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitDelete(Delete node, C context) {
     process(node.getTable(), context);
     node.getWhere().ifPresent(where -> process(where, context));
-
     return null;
   }
 
@@ -355,7 +356,20 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
     process(node.getQuery(), context);
     node.getProperties().values().forEach(expression -> process(expression, context));
+    return null;
+  }
+
+  @Override
+  protected R visitInsertInto(InsertInto node, C context) {
+    process(node.getQuery(), context);
+    return null;
+  }
+
+  protected R visitCreateStreamAsSelect(CreateStreamAsSelect node, C context) {
+    process(node.getQuery(), context);
+    node.getProperties().values().forEach(expression -> process(expression, context));
 
     return null;
   }
+
 }

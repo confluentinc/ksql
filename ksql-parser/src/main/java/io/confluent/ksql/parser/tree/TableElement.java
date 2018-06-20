@@ -26,17 +26,17 @@ public final class TableElement
     extends Node {
 
   private final String name;
-  private final String type;
+  private final Type type;
 
-  public TableElement(String name, String type) {
+  public TableElement(String name, Type type) {
     this(Optional.empty(), name, type);
   }
 
-  public TableElement(NodeLocation location, String name, String type) {
+  public TableElement(NodeLocation location, String name, Type type) {
     this(Optional.of(location), name, type);
   }
 
-  private TableElement(Optional<NodeLocation> location, String name, String type) {
+  private TableElement(Optional<NodeLocation> location, String name, Type type) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.type = requireNonNull(type, "type is null");
@@ -46,7 +46,7 @@ public final class TableElement
     return name;
   }
 
-  public String getType() {
+  public Type getType() {
     return type;
   }
 

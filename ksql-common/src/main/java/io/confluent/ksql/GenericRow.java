@@ -34,6 +34,10 @@ public class GenericRow {
     this.columns = columns;
   }
 
+  public GenericRow(Object ...columns) {
+    this(Arrays.asList(columns));
+  }
+
   @Override
   public String toString() {
     StringBuilder stringBuilder = new StringBuilder("[ ");

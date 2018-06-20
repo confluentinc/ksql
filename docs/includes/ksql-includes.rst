@@ -33,7 +33,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v4.1.0, Server v4.1.0 located at http://localhost:8088
+        CLI v|release|, Server v|release| located at http://localhost:8088
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -169,7 +169,7 @@ the latest offset.
        Page_24
        Page_73
        Page_78
-       LIMIT reached for the partition.
+       LIMIT reached
        Query terminated
 
 #. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The results from this
@@ -279,7 +279,7 @@ the latest offset.
        FEMALE | Region_9 | 6
        MALE | Region_8 | 2
        OTHER | Region_5 | 4
-       LIMIT reached for the partition.
+       LIMIT reached
        Query terminated
        ksql>
 

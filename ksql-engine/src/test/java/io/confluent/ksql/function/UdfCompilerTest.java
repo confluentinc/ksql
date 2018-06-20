@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,8 @@ import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UdfCompilerTest {
@@ -111,12 +116,32 @@ public class UdfCompilerTest {
   }
 
   @Test
-  public void should() throws NoSuchMethodException {
-    udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
+  public void shouldCompileUdafWithMethodWithNoArgs() throws NoSuchMethodException {
+    final KsqlAggregateFunction function
+        = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
         Long.class,
         Long.class);
+    assertThat(function.getInstance(
+        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
+            Collections.singletonList("udfIndex"))),
+        not(nullValue()));
+  }
+
+  @Test
+  public void shouldCompileUdafWhenMethodHasArgs() throws NoSuchMethodException {
+    final KsqlAggregateFunction function
+        = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLengthString",
+        String.class),
+        classLoader,
+        "test-udf",
+        Long.class,
+        String.class);
+    assertThat(function.getInstance(
+        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
+            Arrays.asList("udfIndex", "some string"))),
+        not(nullValue()));
   }
 
   @Test(expected = KsqlException.class)

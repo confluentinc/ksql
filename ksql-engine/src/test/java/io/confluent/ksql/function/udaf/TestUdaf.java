@@ -62,11 +62,11 @@ public class TestUdaf {
   @UdafFactory(description = "sums the length of strings",
       aggregateType = Long.class,
       valueType = String.class)
-  public static Udaf<String, Long> createSumLengthString() {
+  public static Udaf<String, Long> createSumLengthString(final String initialString) {
     return new Udaf<String, Long>() {
       @Override
       public Long initialize() {
-        return 0L;
+        return (long) initialString.length();
       }
 
       @Override

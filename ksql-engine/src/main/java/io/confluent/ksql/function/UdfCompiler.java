@@ -64,6 +64,27 @@ public class UdfCompiler {
       .put(List.class, index -> typeConversionCode("List", index))
       .build();
 
+  private static final Map<Class, Function<Integer, String>> aggregateParamTypes =
+      ImmutableMap.<Class, Function<Integer, String>>builder()
+          .put(int.class,
+              index -> "Integer.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(Integer.class,
+              index -> "Integer.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(long.class,
+              index -> "Long.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(Long.class,
+              index -> "Long.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(double.class,
+              index -> "Double.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(Double.class,
+              index -> "Double.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(boolean.class,
+              index -> "Boolean.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(Boolean.class,
+              index -> "Boolean.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
+          .put(String.class, index -> "aggregateFunctionArguments.arg(" + (index + 1) + ")")
+          .build();
+
   // Templates used to generate the UDF code
   private static final String genericTemplate =
       "#TYPE arg#INDEX;\n"
@@ -98,7 +119,7 @@ public class UdfCompiler {
       final Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
       final StringBuilder builder = new StringBuilder();
       while (scanner.hasNextLine()) {
-        builder.append(scanner.nextLine());
+        builder.append(scanner.nextLine()).append("\n");
       }
       udafTemplate = builder.toString();
     } catch (final IOException io) {
@@ -132,7 +153,7 @@ public class UdfCompiler {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
       final String udafClass = generateUdafClass(generatedClassName, method, functionName);
-      LOGGER.debug("Generated class for functionName={}, method={}:\n",
+      LOGGER.debug("Generated class for functionName={}, method={} class{}\n",
           functionName,
           method.getName(),
           udafClass);
@@ -187,12 +208,30 @@ public class UdfCompiler {
   }
 
   private String generateUdafClass(final String generatedClassName,
-                                   final Method method, final String functionName) {
+                                   final Method method,
+                                   final String functionName) {
+    final Class<?>[] params = method.getParameterTypes();
+    final String udafFactoryArguments = IntStream.range(0, params.length)
+        .mapToObj(index -> {
+          final Function<Integer, String> typeConversion = aggregateParamTypes.get(params[index]);
+          if (typeConversion == null) {
+            throw new KsqlException(String.format("Type %s is not supported by UDAF Factory "
+                    + "methods. Supported types %s. functionName=%s, method=%s, class=%s",
+                params[index],
+                aggregateParamTypes,
+                functionName,
+                method.getName(),
+                method.getDeclaringClass()));
+          }
+          return typeConversion.apply(index);
+        }).collect(Collectors.joining(","));
     return udafTemplate.replaceAll("#FUNCTION_CLASS_NAME", generatedClassName)
         .replaceAll("#CLASS", method.getDeclaringClass().getName())
         .replaceAll("#METHOD", method.getName())
         .replaceAll("#RETURN_TYPE", "SchemaBuilder.string()")
-        .replaceAll("#NAME", functionName);
+        .replaceAll("#NAME", functionName)
+        .replaceAll("#ARGS", udafFactoryArguments)
+        .replaceAll("#ARG_COUNT", String.valueOf(params.length + 1));
   }
 
 

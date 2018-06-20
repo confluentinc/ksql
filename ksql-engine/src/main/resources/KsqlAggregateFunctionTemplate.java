@@ -34,7 +34,8 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction {
   @Override
   public KsqlAggregateFunction getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new #FUNCTION_CLASS_NAME(#CLASS.#METHOD(),
+    aggregateFunctionArguments.ensureArgCount(#ARG_COUNT, "#NAME");
+    return new #FUNCTION_CLASS_NAME(#CLASS.#METHOD(#ARGS),
     aggregateFunctionArguments.udafIndex(),
     arguments,
     super.getReturnType());

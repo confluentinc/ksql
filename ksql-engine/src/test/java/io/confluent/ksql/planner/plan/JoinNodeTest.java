@@ -51,7 +51,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.SpanExpression;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -253,12 +253,12 @@ public class JoinNodeTest {
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
 
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
                                       eq(joinSchema),
                                       eq(joinKey),
-                                      eq(spanExpression.joinWindow()),
+                                      eq(withinExpression.joinWindow()),
                                       anyObject(Serde.class),
                                       anyObject(Serde.class)))
         .andReturn(niceMock(SchemaKStream.class));
@@ -273,7 +273,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KSTREAM,
                                            DataSource.DataSourceType.KSTREAM);
 
@@ -301,12 +301,12 @@ public class JoinNodeTest {
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
 
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.join(eq(rightSchemaKStream),
                                   eq(joinSchema),
                                   eq(joinKey),
-                                  eq(spanExpression.joinWindow()),
+                                  eq(withinExpression.joinWindow()),
                                   anyObject(Serde.class),
                                   anyObject(Serde.class)))
         .andReturn(niceMock(SchemaKStream.class));
@@ -321,7 +321,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KSTREAM,
                                            DataSource.DataSourceType.KSTREAM);
 
@@ -349,12 +349,12 @@ public class JoinNodeTest {
 
     setupStream(right, rightSchemaKStream, rightSchema, 2);
 
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     expect(leftSchemaKStream.outerJoin(eq(rightSchemaKStream),
                                        eq(joinSchema),
                                        eq(joinKey),
-                                       eq(spanExpression.joinWindow()),
+                                       eq(withinExpression.joinWindow()),
                                        anyObject(Serde.class),
                                        anyObject(Serde.class)))
         .andReturn(niceMock(SchemaKStream.class));
@@ -369,7 +369,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KSTREAM,
                                            DataSource.DataSourceType.KSTREAM);
 
@@ -421,7 +421,7 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("Should have raised an exception since no join window was specified");
     } catch (KsqlException e) {
-      assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a SPAN clause specified"
+      assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a WITHIN clause specified"
                                            + ". None was provided."));
     }
 
@@ -446,7 +446,7 @@ public class JoinNodeTest {
 
     expectSourceName(left);
     expectSourceName(right);
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 
@@ -458,7 +458,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KSTREAM,
                                            DataSource.DataSourceType.KSTREAM);
 
@@ -604,8 +604,8 @@ public class JoinNodeTest {
       fail("Should have failed to build the stream since stream-table outer joins are not "
            + "supported");
     } catch (KsqlException e) {
-      assertEquals("Outer joins between streams and tables (stream: left, table: right) are not "
-                   + "supported.", e.getMessage());
+      assertEquals("Full outer joins between streams and tables (stream: left, table: right) are "
+                   + "not supported.", e.getMessage());
     }
 
     verify(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -626,7 +626,7 @@ public class JoinNodeTest {
     expect(right.getSchema()).andReturn(rightSchema);
     expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
 
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
 
@@ -638,7 +638,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KSTREAM,
                                            DataSource.DataSourceType.KTABLE);
 
@@ -804,7 +804,7 @@ public class JoinNodeTest {
     expect(right.getSchema()).andReturn(rightSchema);
     expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
 
-    final SpanExpression spanExpression = new SpanExpression(10, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
 
@@ -816,7 +816,7 @@ public class JoinNodeTest {
                                            rightKeyFieldName,
                                            leftAlias,
                                            rightAlias,
-                                           spanExpression,
+                                           withinExpression,
                                            DataSource.DataSourceType.KTABLE,
                                            DataSource.DataSourceType.KTABLE);
 

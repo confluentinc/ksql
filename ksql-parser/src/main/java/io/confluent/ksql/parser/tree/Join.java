@@ -26,20 +26,20 @@ import static java.util.Objects.requireNonNull;
 public class Join
     extends Relation {
 
-  private final Optional<SpanExpression> spanExpression;
+  private final Optional<WithinExpression> withinExpression;
 
   public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
     this(Optional.empty(), type, left, right, criteria, null);
   }
 
   public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria, Optional<SpanExpression> spanExpression) {
-    this(Optional.of(location), type, left, right, criteria, spanExpression);
+              Optional<JoinCriteria> criteria, Optional<WithinExpression> withinExpression) {
+    this(Optional.of(location), type, left, right, criteria, withinExpression);
   }
 
   private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
                Optional<JoinCriteria> criteria,
-               Optional<SpanExpression> spanExpression) {
+               Optional<WithinExpression> withinExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
@@ -49,7 +49,7 @@ public class Join
     this.left = left;
     this.right = right;
     this.criteria = criteria;
-    this.spanExpression = spanExpression;
+    this.withinExpression = withinExpression;
   }
 
   public enum Type {
@@ -90,8 +90,8 @@ public class Join
     return criteria;
   }
 
-  public Optional<SpanExpression> getSpanExpression() {
-    return spanExpression;
+  public Optional<WithinExpression> getWithinExpression() {
+    return withinExpression;
   }
 
   @Override
@@ -123,11 +123,11 @@ public class Join
            && Objects.equals(left, join.left)
            && Objects.equals(right, join.right)
            && Objects.equals(criteria, join.criteria)
-           && Objects.equals(spanExpression, join.spanExpression);
+           && Objects.equals(withinExpression, join.withinExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right, criteria, spanExpression);
+    return Objects.hash(type, left, right, criteria, withinExpression);
   }
 }

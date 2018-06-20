@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -33,16 +34,10 @@ public class StructSerializationModule extends SimpleModule {
   public StructSerializationModule(final ObjectMapper objectMapper) {
     super();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-    addSerializer(Struct.class, new StructSerializationModule.Serializer(objectMapper));
+    addSerializer(Struct.class, new StructSerializationModule.Serializer());
   }
 
   static class Serializer extends JsonSerializer<Struct> {
-
-    private final ObjectMapper objectMapper;
-
-    public Serializer(final ObjectMapper objectMapper) {
-      this.objectMapper = objectMapper;
-    }
 
     @Override
     public void serialize(
@@ -52,7 +47,8 @@ public class StructSerializationModule extends SimpleModule {
     ) throws IOException {
       struct.validate();
       jsonGenerator.writeRaw(
-          new String(jsonConverter.fromConnectData("", struct.schema(), struct)));
+          new String(jsonConverter.fromConnectData("", struct.schema(), struct),
+              StandardCharsets.UTF_8));
     }
   }
 

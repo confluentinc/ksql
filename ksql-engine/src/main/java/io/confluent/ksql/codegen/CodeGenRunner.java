@@ -131,10 +131,10 @@ public class CodeGenRunner {
       this.expressionTypeManager = expressionTypeManager;
     }
 
-    private void addParameter(Optional<Field> schemaField) {
-      schemaField.ifPresent(f -> parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(f.schema()),
-          f.name().replace(".", "_"))));
+    private void addParameter(final Field schemaField) {
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.schema()),
+          schemaField.name().replace(".", "_")));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -198,7 +198,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      addParameter(schemaField);
+      addParameter(schemaField.get());
       return null;
     }
 
@@ -223,7 +223,7 @@ public class CodeGenRunner {
                   return new RuntimeException("Cannot find the select "
                  + "field in the available fields: " + arrayBaseName);
                 });
-        addParameter(Optional.ofNullable(schemaField));
+        addParameter(schemaField);
       }
       process(node.getIndex(), context);
       return null;
@@ -236,7 +236,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      addParameter(schemaField);
+      addParameter(schemaField.get());
       return null;
     }
 

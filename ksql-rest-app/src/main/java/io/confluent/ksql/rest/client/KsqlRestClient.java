@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import java.io.Closeable;
@@ -53,7 +54,6 @@ import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
@@ -356,7 +356,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   private static Client buildClient() {
-    final ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     objectMapper.registerModule(new Jdk8Module());

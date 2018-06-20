@@ -27,7 +27,7 @@ public class FetchFieldFromStruct implements Kudf {
 
   @Override
   public Object evaluate(final Object... args) {
-    FunctionUtil.ensureCorrectArgs(FUNCTION_NAME, 2, args, Struct.class, String.class);
+    FunctionUtil.ensureCorrectArgs(FUNCTION_NAME, args, Struct.class, String.class);
     if (args[0] == null) {
       return null;
     }

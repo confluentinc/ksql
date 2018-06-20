@@ -20,7 +20,6 @@ public class FunctionUtil {
 
   public static void ensureCorrectArgs(
       final String functionName,
-      final int expectedArgSize,
       final Object[] args,
       final Class... argTypes) {
 
@@ -28,12 +27,12 @@ public class FunctionUtil {
       throw new KsqlFunctionException(String.format("Null argument list for %s.", functionName));
     }
 
-    if (args.length != expectedArgSize
+    if (args.length != argTypes.length
         || args.length != argTypes.length) {
       throw new KsqlFunctionException(String.format("Inorrect arguments for %s.", functionName));
     }
 
-    for (int i = 0; i < expectedArgSize; i++) {
+    for (int i = 0; i < argTypes.length; i++) {
       if (args[i] == null) {
         continue;
       }

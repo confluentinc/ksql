@@ -17,12 +17,10 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.rest.util.StructSerializationModule;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,10 +62,7 @@ public class StreamedQueryResource {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
-    this.objectMapper = new ObjectMapper();
-    this.objectMapper.registerModule(new StructSerializationModule(this.objectMapper));
-    new SchemaMapper().registerToObjectMapper(this.objectMapper);
-    this.objectMapper.registerModule(new Jdk8Module());
+    this.objectMapper = JsonMapper.INSTANCE.mapper;
   }
 
   @POST

@@ -25,25 +25,25 @@ public class FunctionUtilTest {
   @Test
   public void shouldPassIfArgsAreCorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", 2, args, String.class, Long.class);
+    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfTypeIsIncorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", 2, args, String.class, Boolean.class);
+    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfargsNumbersIsIncorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", 1, args, String.class, Long.class);
+    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldPassWithNullArgs() {
     final Object[] args = new Object[] {"TtestArg1", null};
-    FunctionUtil.ensureCorrectArgs("Test", 1, args, String.class, Long.class);
+    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
   }
 
 }

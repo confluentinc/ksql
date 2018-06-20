@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.List;
@@ -32,6 +33,7 @@ import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -43,6 +45,9 @@ public class ExpressionTypeManagerTest {
     private MetaStore metaStore;
     private Schema schema;
     private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void init() {
@@ -163,20 +168,16 @@ public class ExpressionTypeManagerTest {
 
   }
 
-  @Test (expected = KsqlException.class)
+  @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    try {
-      final Analysis analysis = analyzeQuery(
-          "SELECT itemid, address.zip, address.state from orders;");
-      final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-          metaStore.getSource("ORDERS").getSchema(),
-          functionRegistry);
-      expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-      Assert.fail();
-    } catch (KsqlException e) {
-      assertThat(e, instanceOf(KsqlException.class));
-      assertThat(e.getMessage(), equalTo("Could not find field ZIP in ORDERS.ADDRESS."));
-      throw e;
-    }
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
+    final Analysis analysis = analyzeQuery(
+        "SELECT itemid, address.zip, address.state from orders;");
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        metaStore.getSource("ORDERS").getSchema(),
+        functionRegistry);
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
   }
 }

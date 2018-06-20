@@ -1,6 +1,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -9,7 +10,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class EntityQueryIDTest {
-  ObjectMapper objectMapper = new ObjectMapper();
+  final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
   @Test
   public void shouldSerializeCorrectly() throws IOException {

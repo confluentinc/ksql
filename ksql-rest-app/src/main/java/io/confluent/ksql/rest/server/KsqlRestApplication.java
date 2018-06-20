@@ -17,16 +17,14 @@
 package io.confluent.ksql.rest.server;
 
 
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
-import io.confluent.ksql.rest.util.StructSerializationModule;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -77,7 +75,6 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
@@ -126,8 +123,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
 
-  private final ObjectMapper mapper;
-
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -160,7 +155,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
     this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;
     this.isUiEnabled = isUiEnabled;
-    this.mapper = getJsonMapper();
   }
 
   @Override
@@ -234,17 +228,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   }
 
   @Override
-  protected ObjectMapper getJsonMapper() {
-    // superclass creates a new json mapper on every call
-    // we should probably ony create one per application
-    ObjectMapper jsonMapper = super.getJsonMapper();
-    jsonMapper.registerModule(new StructSerializationModule(jsonMapper));
-    new SchemaMapper().registerToObjectMapper(jsonMapper);
-    jsonMapper.registerModule(new Jdk8Module());
-    return jsonMapper;
-  }
-
-  @Override
   protected void registerWebSocketEndpoints(ServerContainer container) {
     try {
       final ListeningScheduledExecutorService exec = MoreExecutors.listeningDecorator(
@@ -257,7 +240,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
           )
       );
 
-      mapper.registerModule(new StructSerializationModule(mapper));
       final StatementParser statementParser = new StatementParser(ksqlEngine);
 
       container.addEndpoint(
@@ -271,7 +253,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                 @SuppressWarnings("unchecked")
                 public <T> T getEndpointInstance(Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
-                      mapper,
+                      JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
                       exec

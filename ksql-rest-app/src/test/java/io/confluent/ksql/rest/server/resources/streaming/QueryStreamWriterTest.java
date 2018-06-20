@@ -21,6 +21,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 
 import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.rest.util.StructSerializationModule;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -94,7 +95,7 @@ public class QueryStreamWriterTest {
   @Before
   public void setUp() {
 
-    objectMapper = new ObjectMapper();
+    objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.registerModule(new StructSerializationModule(objectMapper));
     new SchemaMapper().registerToObjectMapper(objectMapper);
     objectMapper.registerModule(new Jdk8Module());

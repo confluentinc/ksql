@@ -51,6 +51,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   String topicName;
   Schema schema;
   String keyColumnName;
+  String protobufClass;
   boolean isWindowed;
   RegisterTopicCommand registerTopicCommand;
   private KafkaTopicClient kafkaTopicClient;
@@ -97,6 +98,13 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
             keyColumnName
         ));
       }
+    }
+
+    protobufClass = "";
+    if (properties.containsKey(DdlConfig.PROTOBUF_CLASS_PROPERTY)) {
+      protobufClass = StringUtil.cleanQuotes(
+        properties.get(DdlConfig.PROTOBUF_CLASS_PROPERTY).toString()
+      );
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
@@ -199,6 +207,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.PROTOBUF_CLASS_PROPERTY.toUpperCase());
 
     for (String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

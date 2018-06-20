@@ -29,10 +29,23 @@
             <artifactId>kafka-schema-registry-client</artifactId>
         </dependency>
 
-	<dependency>
-		<groupId>io.confluent</groupId>
-		<artifactId>kafka-connect-avro-converter</artifactId>
-		<version>${confluent.version}</version>
+	    <dependency>
+		    <groupId>io.confluent</groupId>
+		    <artifactId>kafka-connect-avro-converter</artifactId>
+		    <version>${confluent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+
+        <!-- TODO Remove this after no longer translating through json -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.5.1</version>
         </dependency>
 
         <dependency>

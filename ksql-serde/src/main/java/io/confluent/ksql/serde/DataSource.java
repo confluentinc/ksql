@@ -47,11 +47,12 @@ public interface DataSource {
 
   }
 
-  enum DataSourceSerDe { JSON, AVRO, DELIMITED }
+  enum DataSourceSerDe { JSON, AVRO, DELIMITED, PROTOBUF }
 
   String AVRO_SERDE_NAME = "AVRO";
   String JSON_SERDE_NAME = "JSON";
   String DELIMITED_SERDE_NAME = "DELIMITED";
+  String PROTOBUF_NAME = "PROTOBUF";
 
   String getName();
 

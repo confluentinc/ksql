@@ -31,4 +31,5 @@ public class DdlConfig {
   public static final String SCHEMA_FILE_CONTENT_PROPERTY = "ksql.schema.file.content";
   public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
   public static final String TIMESTAMP_FORMAT_PROPERTY = "TIMESTAMP_FORMAT";
+  public static final String PROTOBUF_CLASS_PROPERTY = "PROTOBUF_CLASS";
 }

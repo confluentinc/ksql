@@ -212,8 +212,8 @@ The ACLs required are the same for both :ref:`Interactive and non-interactive (h
 KSQL always requires the following ACLs for its internal operations and data management:
 
 - The ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
-- The ``ALL`` operation on all internal ``TOPIC`` 's that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
-- The ``ALL`` operation on all internal ``GROUP`` 's that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+- The ``ALL`` operation on all internal ``TOPICS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
+- The ``ALL`` operation on all internal ``GROUPS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 

@@ -30,13 +30,19 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
@@ -48,6 +54,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.lukehutch.fastclasspathscanner.matchprocessor.ClassAnnotationMatchProcessor;
+import io.github.lukehutch.fastclasspathscanner.matchprocessor.MethodAnnotationMatchProcessor;
 
 public class UdfLoader {
 
@@ -110,27 +118,76 @@ public class UdfLoader {
               }
               return name.contains("ksql-engine");
             })
-        .matchClassesWithMethodAnnotation(Udf.class,
-            (theClass, executable) -> {
-              final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
-              if (annotation != null) {
-                final Method method = (Method) executable;
-                try {
-                  final UdfInvoker udf = compiler.compile(method, loader);
-                  addFunction(annotation, method, udf);
-                } catch (final KsqlException e) {
-                  if (parentClassLoader == loader) {
-                    throw e;
-                  } else {
-                    LOGGER.warn("Failed to add UDF to the MetaStore. name={} method={}",
-                        annotation.name(),
-                        method,
-                        e);
-                  }
-                }
-              }
-            })
+        .matchClassesWithMethodAnnotation(Udf.class, handleUdfAnnotation(loader))
+        .matchClassesWithAnnotation(UdafDescription.class, handleUdafAnnotation(loader))
         .scan();
+  }
+
+  private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader) {
+    return (theClass) ->  {
+      final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
+      final List<KsqlAggregateFunction> aggregateFunctions = Arrays.stream(theClass.getMethods())
+          .filter(method -> method.getAnnotation(UdafFactory.class) != null)
+          .filter(method -> {
+            if (!Modifier.isStatic(method.getModifiers())) {
+              LOGGER.warn("Trying to create a UDAF from a non-static factory method. Udaf factory"
+                      + " methods must be static. class={}, method={}, name={}",
+                  method.getDeclaringClass(),
+                  method.getName(),
+                  udafAnnotation.name());
+              return false;
+            }
+            return true;
+          })
+          .map(method -> {
+            final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
+            try {
+              return Optional.of(compiler.compileAggregate(method,
+                  loader,
+                  udafAnnotation.name(),
+                  annotation.aggregateType(),
+                  annotation.valueType()));
+            } catch (final Exception e) {
+              LOGGER.warn("Failed to create UDAF name={}, method={}, class={}",
+                  udafAnnotation.name(),
+                  method.getName(),
+                  method.getDeclaringClass(),
+                  e);
+            }
+            return Optional.<KsqlAggregateFunction>empty();
+          }).filter(Optional::isPresent)
+          .map(Optional::get)
+          .collect(Collectors.toList());
+
+      metaStore.addAggregateFunctionFactory(new UdafAggregateFunctionFactory(
+          new UdfMetadata(udafAnnotation.name(),
+              udafAnnotation.description(),
+              udafAnnotation.author(),
+              udafAnnotation.version()),
+              aggregateFunctions));
+    };
+  }
+
+  private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader) {
+    return (theClass, executable) ->  {
+      final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
+      if (annotation != null) {
+        final Method method = (Method) executable;
+        try {
+          final UdfInvoker udf = compiler.compile(method, loader);
+          addFunction(annotation, method, udf);
+        } catch (final KsqlException e) {
+          if (parentClassLoader == loader) {
+            throw e;
+          } else {
+            LOGGER.warn("Failed to add UDF to the MetaStore. name={} method={}",
+                annotation.name(),
+                method,
+                e);
+          }
+        }
+      }
+    };
   }
 
   private void addFunction(final UdfDescription classLevelAnnotaion,

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -107,6 +108,15 @@ public class UdfCompilerTest {
         classLoader);
 
     assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
+  }
+
+  @Test
+  public void should() throws NoSuchMethodException {
+    udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
+        classLoader,
+        "test-udf",
+        Long.class,
+        Long.class);
   }
 
   @Test(expected = KsqlException.class)

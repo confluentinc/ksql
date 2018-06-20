@@ -47,4 +47,6 @@ public interface KsqlAggregateFunction<V, A> {
    * Merges two session windows together with the same merge key.
    */
   Merger<String, A> getMerger();
+
+  List<Schema> getArgTypes();
 }

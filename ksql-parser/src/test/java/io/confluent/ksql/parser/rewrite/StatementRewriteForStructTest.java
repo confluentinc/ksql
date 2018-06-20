@@ -24,15 +24,21 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.MetaStoreFixture;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,18 +58,18 @@ public class StatementRewriteForStructTest {
     final String simpleQuery = "SELECT iteminfo.category.name, address.state FROM orders;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
-    assertThat( statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+    final QuerySpecification querySpecification = getQuerySpecification(statement);
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+        .getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+        .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
     assertThat(col1, instanceOf(FunctionCall.class));
 
-    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(FETCH_FIELD_FROM_STRUCT(ORDERS.ITEMINFO, 'CATEGORY'), 'NAME')"));
+    assertThat(col0.toString(), equalTo(
+        "FETCH_FIELD_FROM_STRUCT(FETCH_FIELD_FROM_STRUCT(ORDERS.ITEMINFO, 'CATEGORY'), 'NAME')"));
     assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STATE')"));
 
   }
@@ -73,12 +79,10 @@ public class StatementRewriteForStructTest {
     final String simpleQuery = "SELECT orderid FROM orders;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
-    assertThat( statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(1));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
+    final QuerySpecification querySpecification = getQuerySpecification(statement);
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(1));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+        .getExpression();
 
     assertThat(col0, instanceOf(DereferenceExpression.class));
     assertThat(col0.toString(), equalTo("ORDERS.ORDERID"));
@@ -89,21 +93,21 @@ public class StatementRewriteForStructTest {
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
     final String simpleQuery = "SELECT arraycol[0].name as n0, mapcol['key'].name as n1 FROM nested_stream;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
 
-    assertThat( statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+    final QuerySpecification querySpecification = getQuerySpecification(statement);
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+        .getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+        .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
     assertThat(col1, instanceOf(FunctionCall.class));
 
-    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[0], 'NAME')"));
-    assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
+    assertThat(col0.toString(),
+        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[0], 'NAME')"));
+    assertThat(col1.toString(),
+        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
 
 
@@ -111,23 +115,42 @@ public class StatementRewriteForStructTest {
   public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
     final String simpleQuery = "SELECT arraycol[CAST (item.id AS INTEGER)].name as n0, mapcol['key'].name as n1 FROM nested_stream;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-    final SingleStatementContext singleStatementContext = KSQL_PARSER.getStatements(simpleQuery).get(0);
 
-    assertThat( statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat( query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat( querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1)).getExpression();
+    final QuerySpecification querySpecification = getQuerySpecification(statement);
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+        .getExpression();
+    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+        .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
     assertThat(col1, instanceOf(FunctionCall.class));
 
-    assertThat(col0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[CAST(FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ITEM, 'ID') AS INTEGER)], 'NAME')"));
-    assertThat(col1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
+    assertThat(col0.toString(), equalTo(
+        "FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[CAST(FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ITEM, 'ID') AS INTEGER)], 'NAME')"));
+    assertThat(col1.toString(),
+        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
+  }
+
+  private QuerySpecification getQuerySpecification(Statement statement) {
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    return (QuerySpecification) query.getQueryBody();
   }
 
 
+  @Test
+  public void shouldEnsureRewriteRequirementCorrectly() {
+    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(Query.class)));
+    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateStreamAsSelect.class)));
+    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTableAsSelect.class)));
+    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(InsertInto.class)));
+  }
+
+  @Test
+  public void shouldFailTestIfStatementShouldBeRewritten() {
+    assertThat("Incorrect rewrite requirement enforcement.", !StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTable.class)));
+  }
 
 }

@@ -165,11 +165,18 @@ public class ExpressionTypeManagerTest {
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT itemid, address.zip, address.state from orders;");
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        metaStore.getSource("ORDERS").getSchema(),
-        functionRegistry);
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+    try {
+      final Analysis analysis = analyzeQuery(
+          "SELECT itemid, address.zip, address.state from orders;");
+      final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+          metaStore.getSource("ORDERS").getSchema(),
+          functionRegistry);
+      expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+      Assert.fail();
+    } catch (KsqlException e) {
+      assertThat(e, instanceOf(KsqlException.class));
+      assertThat(e.getMessage(), equalTo("Could not find field ZIP in ORDERS.ADDRESS."));
+      throw e;
+    }
   }
 }

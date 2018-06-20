@@ -16,9 +16,13 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.StructSerializationModule;
 import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,15 +54,20 @@ public class StreamedQueryResource {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
+  private final ObjectMapper objectMapper;
 
   public StreamedQueryResource(
-      KsqlEngine ksqlEngine,
-      StatementParser statementParser,
-      long disconnectCheckInterval
+      final KsqlEngine ksqlEngine,
+      final StatementParser statementParser,
+      final long disconnectCheckInterval
   ) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
+    this.objectMapper = new ObjectMapper();
+    this.objectMapper.registerModule(new StructSerializationModule(this.objectMapper));
+    new SchemaMapper().registerToObjectMapper(this.objectMapper);
+    this.objectMapper.registerModule(new Jdk8Module());
   }
 
   @POST
@@ -80,8 +89,12 @@ public class StreamedQueryResource {
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter;
       try {
-        queryStreamWriter =
-            new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+        queryStreamWriter = new QueryStreamWriter(
+            ksqlEngine,
+            disconnectCheckInterval,
+            ksql,
+            clientLocalProperties,
+            objectMapper);
       } catch (KsqlException e) {
         return Errors.badRequest(e);
       }

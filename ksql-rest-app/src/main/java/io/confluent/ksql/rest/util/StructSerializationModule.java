@@ -51,8 +51,8 @@ public class StructSerializationModule extends SimpleModule {
         final SerializerProvider serializerProvider
     ) throws IOException {
       struct.validate();
-      jsonGenerator.writeObject(objectMapper.readTree(
-          jsonConverter.fromConnectData("", struct.schema(), struct)));
+      jsonGenerator.writeRaw(
+          new String(jsonConverter.fromConnectData("", struct.schema(), struct)));
     }
   }
 

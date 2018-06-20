@@ -18,10 +18,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.google.common.collect.Lists;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.util.StructSerializationModule;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,15 +54,15 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
-      KsqlEngine ksqlEngine,
-      long disconnectCheckInterval,
-      String queryString,
-      Map<String, Object> overriddenProperties
+      final KsqlEngine ksqlEngine,
+      final long disconnectCheckInterval,
+      final String queryString,
+      final Map<String, Object> overriddenProperties,
+      final ObjectMapper objectMapper
   ) throws Exception {
-    QueryMetadata queryMetadata =
+    final QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
-    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-    this.objectMapper.registerModule(new StructSerializationModule(this.objectMapper));
+    this.objectMapper = objectMapper;
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
           "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",

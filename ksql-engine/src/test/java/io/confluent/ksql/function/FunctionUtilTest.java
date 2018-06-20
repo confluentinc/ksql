@@ -40,4 +40,10 @@ public class FunctionUtilTest {
     FunctionUtil.ensureCorrectArgs("Test", 1, args, String.class, Long.class);
   }
 
+  @Test (expected = KsqlException.class)
+  public void shouldPassWithNullArgs() {
+    final Object[] args = new Object[] {"TtestArg1", null};
+    FunctionUtil.ensureCorrectArgs("Test", 1, args, String.class, Long.class);
+  }
+
 }

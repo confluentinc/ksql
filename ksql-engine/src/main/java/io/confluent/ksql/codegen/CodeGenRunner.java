@@ -57,7 +57,7 @@ public class CodeGenRunner {
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
 
-  public static final ImmutableList CODEGEN_IMPORTS = ImmutableList.of(
+  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
       "java.util.HashMap",
       "java.util.Map",
@@ -100,8 +100,7 @@ public class CodeGenRunner {
 
     IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-    ee.setDefaultImports((String[]) CodeGenRunner.CODEGEN_IMPORTS.toArray(
-        new String[CodeGenRunner.CODEGEN_IMPORTS.size()]));
+    ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
     ee.setParameters(parameterNames, parameterTypes);
 
     Schema expressionType = expressionTypeManager.getExpressionSchema(expression);

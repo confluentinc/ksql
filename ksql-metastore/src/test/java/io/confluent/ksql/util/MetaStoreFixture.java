@@ -161,11 +161,11 @@ public class MetaStoreFixture {
         .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema))
         .field("ITEM", itemInfoSchema);
 
-    KsqlTopic
+    final KsqlTopic
         nestedArrayStructMapTopic =
         new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", new KsqlJsonTopicSerDe());
 
-    KsqlStream nestedArrayStructMapOrders = new KsqlStream(
+    final KsqlStream nestedArrayStructMapOrders = new KsqlStream(
         "sqlexpression",
         "NESTED_STREAM",
         nestedArrayStructMapSchema,

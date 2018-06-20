@@ -47,13 +47,10 @@ public class StatementRewriteForStruct {
     return (Statement) new RewriteWithStructFieldExtractors().process(statement, null);
   }
 
-  public static boolean requiresRewrite(Statement statement) {
-    if (statement instanceof Query
+  public static boolean requiresRewrite(final Statement statement) {
+    return statement instanceof Query
         || statement instanceof CreateAsSelect
-        || statement instanceof InsertInto) {
-      return true;
-    }
-    return false;
+        || statement instanceof InsertInto;
   }
 
 

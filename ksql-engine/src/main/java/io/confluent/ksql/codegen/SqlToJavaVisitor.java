@@ -157,7 +157,8 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitNullLiteral(NullLiteral node, Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
+      return new Pair<>("null",
+          null);
     }
 
     @Override

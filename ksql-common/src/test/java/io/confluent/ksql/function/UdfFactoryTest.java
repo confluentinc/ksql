@@ -25,8 +25,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.KsqlException;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UdfFactoryTest {
 
@@ -34,10 +41,12 @@ public class UdfFactoryTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private UdfFactory factory;
+  private String functionName;
 
   @Before
   public void setUp() {
-    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", ""));
+    functionName = "TestFunc";
+    factory = new UdfFactory(TestFunc.class, new UdfMetadata(functionName, "", "", ""));
   }
 
   @Test
@@ -46,6 +55,37 @@ public class UdfFactoryTest {
     expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[VARCHAR(STRING), BIGINT]");
 
     factory.getFunction(ImmutableList.of(Schema.Type.STRING, Schema.Type.INT64));
+  }
+
+  @Test
+  public void shouldFindFirstMatchingFunctionWhenNullTypeInArgs() {
+    final KsqlFunction expected = new KsqlFunction(Schema.STRING_SCHEMA,
+        Collections.singletonList(Schema.STRING_SCHEMA),
+        functionName,
+        TestFunc.class
+    );
+    factory.addFunction(expected);
+    factory.addFunction(new KsqlFunction(Schema.STRING_SCHEMA,
+        Collections.singletonList(Schema.INT64_SCHEMA),
+        functionName,
+        TestFunc.class
+    ));
+
+    final KsqlFunction function = factory.getFunction(Collections.singletonList(null));
+    assertThat(function, equalTo(expected));
+  }
+
+  @Test
+  public void shouldNotMatchingFunctionWhenNullTypeInArgsIfParamLengthsDiffer() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("VARCHAR(STRING), null");
+    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+        Collections.singletonList(Schema.STRING_SCHEMA),
+        functionName,
+        TestFunc.class
+    );
+    factory.addFunction(function);
+    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA.type(), null));
   }
 
   private abstract class TestFunc implements Kudf {

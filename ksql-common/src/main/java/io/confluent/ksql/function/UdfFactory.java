@@ -104,11 +104,39 @@ public class UdfFactory {
       return function;
     }
 
+    if (paramTypes.stream().anyMatch(Objects::isNull)) {
+      for (final Map.Entry<List<Schema.Type>, KsqlFunction> entry : functions.entrySet()) {
+        final List<Schema.Type> functionArgTypes = entry.getKey();
+        if (checkParamsMatch(functionArgTypes, paramTypes)) {
+          return entry.getValue();
+        }
+      }
+    }
+
     final String sqlParamTypes = paramTypes.stream()
-        .map(SchemaUtil::getSchemaTypeAsSqlType)
+        .map(type -> {
+          if (type == null) {
+            return null;
+          }
+          return SchemaUtil.getSchemaTypeAsSqlType(type);
+        })
         .collect(Collectors.joining(", ", "[", "]"));
 
     throw new KsqlException("Function '" + metadata.getName()
                             + "' does not accept parameters of types:" + sqlParamTypes);
+  }
+
+  private boolean checkParamsMatch(final List<Schema.Type> functionArgTypes,
+                                   final List<Schema.Type> suppliedParamTypes) {
+    if (functionArgTypes.size() != suppliedParamTypes.size()) {
+      return false;
+    }
+    for (int i = 0; i < suppliedParamTypes.size(); i++) {
+      final Schema.Type paramType = suppliedParamTypes.get(i);
+      if (!functionArgTypes.get(i).equals(paramType) && paramType != null) {
+        return false;
+      }
+    }
+    return true;
   }
 }

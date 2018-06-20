@@ -40,22 +40,25 @@ public class UdfCompiler {
 
   private static final Map<Class, Function<Integer, String>> typeConverters
       = ImmutableMap.<Class, Function<Integer, String>>builder()
-      .put(int.class, index -> typeConversionCode("Integer", index))
-      .put(Integer.class, index -> typeConversionCode("Integer", index))
-      .put(long.class, index -> typeConversionCode("Long", index))
-      .put(Long.class, index -> typeConversionCode("Long", index))
-      .put(double.class, index -> typeConversionCode("Double", index))
-      .put(Double.class, index -> typeConversionCode("Double", index))
-      .put(boolean.class, index -> typeConversionCode("Boolean", index))
-      .put(Boolean.class, index -> typeConversionCode("Boolean", index))
-      .put(String.class, index -> typeConversionCode("String", index))
-      .put(Map.class, index -> typeConversionCode("Map", index))
-      .put(List.class, index -> typeConversionCode("List", index))
+      .put(int.class, index -> typeConversionCode("Integer", index, true))
+      .put(Integer.class, index -> typeConversionCode("Integer", index, false))
+      .put(long.class, index -> typeConversionCode("Long", index, true))
+      .put(Long.class, index -> typeConversionCode("Long", index, false))
+      .put(double.class, index -> typeConversionCode("Double", index, true))
+      .put(Double.class, index -> typeConversionCode("Double", index, false))
+      .put(boolean.class, index -> typeConversionCode("Boolean", index, true))
+      .put(Boolean.class, index -> typeConversionCode("Boolean", index, false))
+      .put(String.class, index -> typeConversionCode("String", index, false))
+      .put(Map.class, index -> typeConversionCode("Map", index, false))
+      .put(List.class, index -> typeConversionCode("List", index, false))
       .build();
 
   // Templates used to generate the UDF code
   private static final String genericTemplate =
       "#TYPE arg#INDEX;\n"
+          + "if(args[#INDEX] == null && #IS_PRIMITIVE)\n"
+          + "throw new KsqlFunctionException(\"Can't coerce argument at index #INDEX from "
+          + "null to a primitive type\");"
           + "if(args[#INDEX] == null) arg#INDEX = null;\n"
           + "else if (args[#INDEX] instanceof #TYPE) arg#INDEX = (#TYPE)args[#INDEX];\n"
           + "else if (args[#INDEX] instanceof String) \n"
@@ -152,7 +155,9 @@ public class UdfCompiler {
   }
 
 
-  private static String typeConversionCode(final String type, final int index) {
+  private static String typeConversionCode(final String type,
+                                           final int index,
+                                           final boolean isPrimitive) {
     if (type.equals("Map") || type.equals("List")) {
       return type + " arg" + index + " = (" + type + ")args[" + index + "];\n";
     }
@@ -167,6 +172,7 @@ public class UdfCompiler {
     builder.append(THROWS_TEMPLATE);
     return builder.toString()
         .replaceAll("#TYPE", type)
+        .replaceAll("#IS_PRIMITIVE", String.valueOf(isPrimitive))
         .replaceAll("#LC_TYPE", type.toLowerCase())
         .replaceAll("#INDEX", String.valueOf(index));
   }

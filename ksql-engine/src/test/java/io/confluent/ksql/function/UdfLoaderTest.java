@@ -31,6 +31,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -165,6 +166,17 @@ public class UdfLoaderTest {
         not(nullValue()));
     assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf-substring")),
         not(nullValue()));
+  }
+
+  @Test
+  public void shouldUseConfigForExtDir() {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    // The tostring function is in the udf-example.jar that is found in src/test/resources
+    final KsqlConfig config
+        = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_EXT_DIR, "src/test/resources"));
+    UdfLoader.newInstance(config, metaStore, "").load();
+    // will throw if it doesn't exist
+    metaStore.getUdfFactory("tostring");
   }
 
   private UdfLoader createUdfLoader(final MetaStore metaStore,

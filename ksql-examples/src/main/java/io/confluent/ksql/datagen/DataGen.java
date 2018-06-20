@@ -31,74 +31,32 @@ import io.confluent.ksql.util.KsqlConfig;
 
 public class DataGen {
 
-  public static void main(String[] args) {
-    Arguments arguments;
-
+  public static void main(final String[] args) {
     try {
-      arguments = new Arguments.Builder().parseArgs(args).build();
+      run(args);
     } catch (Arguments.ArgumentParseException exception) {
       System.err.println(exception.getMessage());
-      usage(1);
-      return;
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      usage();
       System.exit(1);
-      return;
+    } catch (final Exception e) {
+      System.err.println(e.getMessage());
+      System.exit(1);
     }
+  }
+
+  static void run(final String... args) throws IOException {
+    final Arguments arguments = new Arguments.Builder()
+        .parseArgs(args)
+        .build();
 
     if (arguments.help) {
-      usage(0);
-    }
-
-    Generator generator;
-    try {
-      generator = new Generator(arguments.schemaFile, new Random());
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      System.exit(1);
+      usage();
       return;
     }
-    DataGenProducer dataProducer;
 
-    switch (arguments.format) {
-      case AVRO:
-        dataProducer = new AvroProducer(
-            new KsqlConfig(
-                Collections.singletonMap(
-                  KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                  arguments.schemaRegistryUrl
-                )
-            )
-        );
-        break;
-      case JSON:
-        dataProducer = new JsonProducer();
-        break;
-      case DELIMITED:
-        dataProducer = new DelimitedProducer();
-        break;
-      default:
-        System.err.printf(
-            "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n",
-            arguments.format
-        );
-        usage(1);
-        return;
-    }
-
-    Properties props = new Properties();
-    props.put("bootstrap.servers", arguments.bootstrapServer);
-    props.put("client.id", "KSQLDataGenProducer");
-
-    try {
-      if (arguments.propertiesFile != null) {
-        props.load(arguments.propertiesFile);
-      }
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      System.exit(1);
-      return;
-    }
+    final Generator generator = new Generator(arguments.schemaFile, new Random());
+    final DataGenProducer dataProducer = getProducer(arguments);
+    final Properties props = getProperties(arguments);
 
     dataProducer.populateTopic(
         props,
@@ -108,6 +66,42 @@ public class DataGen {
         arguments.iterations,
         arguments.maxInterval
     );
+  }
+
+  private static Properties getProperties(final Arguments arguments) throws IOException {
+    final Properties props = new Properties();
+    props.put("bootstrap.servers", arguments.bootstrapServer);
+    props.put("client.id", "KSQLDataGenProducer");
+
+    if (arguments.propertiesFile != null) {
+      props.load(arguments.propertiesFile);
+    }
+
+    return props;
+  }
+
+  private static DataGenProducer getProducer(final Arguments arguments) {
+    switch (arguments.format) {
+      case AVRO:
+        return new AvroProducer(
+            new KsqlConfig(
+                Collections.singletonMap(
+                    KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+                    arguments.schemaRegistryUrl
+                )
+            )
+        );
+
+      case JSON:
+        return new JsonProducer();
+
+      case DELIMITED:
+        return new DelimitedProducer();
+
+      default:
+        throw new IllegalArgumentException("Invalid format in '" + arguments.format
+                                           + "'; was expecting one of AVRO, JSON, or DELIMITED%n");
+    }
   }
 
   private static void usage() {
@@ -128,12 +122,7 @@ public class DataGen {
     );
   }
 
-  private static void usage(int exitValue) {
-    usage();
-    System.exit(exitValue);
-  }
-
-  private static class Arguments {
+  static class Arguments {
 
     public enum Format { AVRO, JSON, DELIMITED }
 
@@ -172,9 +161,9 @@ public class DataGen {
       this.propertiesFile = propertiesFile;
     }
 
-    public static class ArgumentParseException extends RuntimeException {
+    static class ArgumentParseException extends RuntimeException {
 
-      public ArgumentParseException(String message) {
+      ArgumentParseException(String message) {
         super(message);
       }
     }

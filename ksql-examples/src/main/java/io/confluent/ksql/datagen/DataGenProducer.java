@@ -54,10 +54,15 @@ public abstract class DataGenProducer {
       int messageCount,
       long maxInterval
   ) {
+    final Schema avroSchema = generator.schema();
+    if (avroSchema.getField(key) == null) {
+      throw new IllegalArgumentException("Key field does not exist:" + key);
+    }
+
     if (maxInterval < 0) {
       maxInterval = INTER_MESSAGE_MAX_INTERVAL;
     }
-    Schema avroSchema = generator.schema();
+
     org.apache.kafka.connect.data.Schema kafkaSchema = new AvroData(1).toConnectSchema(avroSchema);
 
     Serializer<GenericRow> serializer = getSerializer(avroSchema, kafkaSchema, kafkaTopicName);

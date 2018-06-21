@@ -50,32 +50,32 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
             functionName,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-            Collections.singletonList(Schema.INT32_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
             Integer.class);
       case INT64:
         return new TopkKudaf<>(
             functionName,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-            Collections.singletonList(Schema.INT64_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
             Long.class);
       case FLOAT64:
         return new TopkKudaf<>(
             functionName,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-            Collections.singletonList(Schema.FLOAT64_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
             Double.class);
       case STRING:
         return new TopkKudaf<>(
             functionName,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-            Collections.singletonList(Schema.STRING_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
             String.class);
       default:
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)

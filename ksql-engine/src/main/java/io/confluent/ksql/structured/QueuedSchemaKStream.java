@@ -33,8 +33,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -87,8 +85,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
       SchemaKTable schemaKTable,
       Schema joinSchema,
       Field joinKey,
-      KsqlTopicSerDe joinSerDe,
-      KsqlConfig ksqlConfig
+      Serde<GenericRow> joinSerde
   ) {
     throw new UnsupportedOperationException();
   }

@@ -57,7 +57,7 @@ public class SchemaKGroupedTableTest {
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(null, new
+            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema(), new
                 KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClient())));
 
   }
@@ -92,7 +92,7 @@ public class SchemaKGroupedTableTest {
           new KudafInitializer(1),
           Collections.singletonMap(
               0,
-              functionRegistry.getAggregate("SUM", Schema.INT64_SCHEMA)),
+              functionRegistry.getAggregate("SUM", Schema.OPTIONAL_INT64_SCHEMA)),
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
@@ -112,9 +112,9 @@ public class SchemaKGroupedTableTest {
     try {
       Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = new HashMap<>();
       aggValToFunctionMap.put(
-          0, functionRegistry.getAggregate("MAX", Schema.INT64_SCHEMA));
+          0, functionRegistry.getAggregate("MAX", Schema.OPTIONAL_INT64_SCHEMA));
       aggValToFunctionMap.put(
-          1, functionRegistry.getAggregate("MIN", Schema.INT64_SCHEMA));
+          1, functionRegistry.getAggregate("MIN", Schema.OPTIONAL_INT64_SCHEMA));
       kGroupedTable.aggregate(
           new KudafInitializer(1),
           aggValToFunctionMap,

@@ -17,48 +17,36 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.confluent.ksql.query.QueryId;
 
 import java.util.Objects;
 
-public class FieldSchemaInfo {
+public class EntityQueryId {
+  private final String id;
 
-  private final String name;
-  private final String type;
+  public EntityQueryId(QueryId queryId) {
+    this.id = queryId.getId();
+  }
 
   @JsonCreator
-  public FieldSchemaInfo(
-      @JsonProperty("name") String name,
-      @JsonProperty("type") String type
-  ) {
-    this.name = name;
-    this.type = type;
+  public EntityQueryId(final String id) {
+    this.id = id;
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public String getType() {
-    return type;
+  @JsonValue
+  public String getId() {
+    return id;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof FieldSchemaInfo)) {
-      return false;
-    }
-    FieldSchemaInfo that = (FieldSchemaInfo) o;
-    return Objects.equals(getName(), that.getName())
-        && Objects.equals(getType(), that.getType());
+    return o instanceof EntityQueryId
+        && Objects.equals(((EntityQueryId) o).id, id);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getType());
+    return Objects.hashCode(id);
   }
 }
-

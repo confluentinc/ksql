@@ -25,13 +25,13 @@ import java.util.Set;
 public class RunningQuery {
   private final String queryString;
   private final Set<String> sinks;
-  private final String id;
+  private final EntityQueryId id;
 
   @JsonCreator
   public RunningQuery(
       @JsonProperty("statementText") String queryString,
       @JsonProperty("sinks") Set<String> sinks,
-      @JsonProperty("id") String id
+      @JsonProperty("id") EntityQueryId id
   ) {
     this.queryString = queryString;
     this.sinks = sinks;
@@ -46,7 +46,7 @@ public class RunningQuery {
     return sinks;
   }
 
-  public String getId() {
+  public EntityQueryId getId() {
     return id;
   }
 

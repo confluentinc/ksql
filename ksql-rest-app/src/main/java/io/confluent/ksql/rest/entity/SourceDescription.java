@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
@@ -30,12 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @JsonTypeName("description")
@@ -45,7 +44,7 @@ public class SourceDescription {
   private final String name;
   private final List<RunningQuery> readQueries;
   private final List<RunningQuery> writeQueries;
-  private final List<FieldSchemaInfo> schema;
+  private final List<FieldInfo> fields;
   private final String type;
   private final String key;
   private final String timestamp;
@@ -62,7 +61,7 @@ public class SourceDescription {
       @JsonProperty("name") String name,
       @JsonProperty("readQueries") List<RunningQuery> readQueries,
       @JsonProperty("writeQueries") List<RunningQuery> writeQueries,
-      @JsonProperty("schema") List<FieldSchemaInfo> schema,
+      @JsonProperty("fields") List<FieldInfo> fields,
       @JsonProperty("type") String type,
       @JsonProperty("key") String key,
       @JsonProperty("timestamp") String timestamp,
@@ -77,7 +76,7 @@ public class SourceDescription {
     this.name = name;
     this.readQueries = Collections.unmodifiableList(readQueries);
     this.writeQueries = Collections.unmodifiableList(writeQueries);
-    this.schema = Collections.unmodifiableList(schema);
+    this.fields = Collections.unmodifiableList(fields);
     this.type = type;
     this.key = key;
     this.timestamp = timestamp;
@@ -102,10 +101,7 @@ public class SourceDescription {
         dataSource.getName(),
         readQueries,
         writeQueries,
-        dataSource.getSchema().fields().stream().map(
-            field -> new FieldSchemaInfo(field.name(), SchemaUtil.describeSchema(field.schema()))
-            ).collect(Collectors.toList()),
-
+        EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
@@ -160,8 +156,8 @@ public class SourceDescription {
     return name;
   }
 
-  public List<FieldSchemaInfo> getSchema() {
-    return schema;
+  public List<FieldInfo> getFields() {
+    return fields;
   }
 
   public boolean isExtended() {
@@ -241,7 +237,7 @@ public class SourceDescription {
     if (!Objects.equals(name, that.name)) {
       return false;
     }
-    if (!Objects.equals(schema, that.schema)) {
+    if (!Objects.equals(fields, that.fields)) {
       return false;
     }
     if (!Objects.equals(extended, that.extended)) {
@@ -258,6 +254,6 @@ public class SourceDescription {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, schema, type, key, timestamp);
+    return Objects.hash(name, fields, type, key, timestamp);
   }
 }

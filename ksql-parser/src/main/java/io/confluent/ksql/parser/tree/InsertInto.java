@@ -36,14 +36,6 @@ public final class InsertInto
   }
 
   public InsertInto(
-      NodeLocation location,
-      QualifiedName target,
-      Query query, Optional<Expression> partitionByColumn
-  ) {
-    this(Optional.of(location), target, query, partitionByColumn);
-  }
-
-  private InsertInto(
       Optional<NodeLocation> location,
       QualifiedName target,
       Query query,

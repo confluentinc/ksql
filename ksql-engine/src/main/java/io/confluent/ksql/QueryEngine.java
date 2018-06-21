@@ -39,9 +39,8 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
@@ -56,6 +55,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -76,8 +76,8 @@ class QueryEngine {
 
   List<Pair<String, PlanNode>> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<Pair<String, Statement>> statementList
-  ) {
+      final List<Pair<String, Statement>> statementList,
+      final KsqlConfig config) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
@@ -88,7 +88,7 @@ class QueryEngine {
         PlanNode logicalPlan = buildQueryLogicalPlan(
             statementQueryPair.getLeft(),
             (Query) statementQueryPair.getRight(),
-            tempMetaStore
+            tempMetaStore, config
         );
         logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
       } else {
@@ -101,13 +101,14 @@ class QueryEngine {
   }
 
   private PlanNode buildQueryLogicalPlan(
-      String sqlExpression,
+      final String sqlExpression,
       final Query query,
-      final MetaStore tempMetaStore
-  ) {
+      final MetaStore tempMetaStore,
+      final KsqlConfig config) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
-        ksqlEngine.getFunctionRegistry()
+        ksqlEngine.getFunctionRegistry(),
+        config
     );
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -205,12 +206,12 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      Pair<DdlStatement, String> avroCheckResult =
+      AbstractStreamCreateStatement streamCreateStatementWithSchema =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
-      if (avroCheckResult.getRight() != null) {
-        statement = avroCheckResult.getLeft();
-        sqlExpression = avroCheckResult.getRight();
+      if (streamCreateStatementWithSchema != streamCreateStatement) {
+        statement = (DdlStatement)streamCreateStatementWithSchema;
+        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
     DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
@@ -224,7 +225,7 @@ class QueryEngine {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
       }
     }
 
@@ -239,7 +240,7 @@ class QueryEngine {
     );
   }
 
-  private Pair<DdlStatement, String> maybeAddFieldsFromSchemaRegistry(
+  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
       AbstractStreamCreateStatement streamCreateStatement
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
@@ -272,20 +273,10 @@ class QueryEngine {
           newProperties
       );
     }
-    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(
-            streamCreateStatement,
-            new HashMap<>(),
-            ksqlEngine.getSchemaRegistryClient()
-        );
-    if (avroCheckResult.getRight() != null) {
-      if (avroCheckResult.getLeft() instanceof CreateStream) {
-        return new Pair<>((CreateStream) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      } else if (avroCheckResult.getLeft() instanceof CreateTable) {
-        return new Pair<>((CreateTable) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      }
-    }
-    return new Pair<>(null, null);
+    return AvroUtil.checkAndSetAvroSchema(
+        streamCreateStatement,
+        new HashMap<>(),
+        ksqlEngine.getSchemaRegistryClient());
   }
 
 }

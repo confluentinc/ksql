@@ -68,11 +68,11 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String OUTPUT_NODE = "KSTREAM-SINK-0000000004";
 
   private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.STRING_SCHEMA)
-      .field("field2", Schema.STRING_SCHEMA)
-      .field("field3", Schema.STRING_SCHEMA)
-      .field("timestamp", Schema.INT64_SCHEMA)
-      .field("key", Schema.STRING_SCHEMA)
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
   private final KsqlStream dataSource = new KsqlStream("sqlExpression", "datasource",
@@ -151,13 +151,14 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldHaveCorrectOutputNodeSchema() {
-    final List<Field> expected = Arrays.asList(new Field("ROWTIME", 0, Schema.INT64_SCHEMA),
-        new Field("ROWKEY", 1, Schema.STRING_SCHEMA),
-        new Field("field1", 2, Schema.STRING_SCHEMA),
-        new Field("field2", 3, Schema.STRING_SCHEMA),
-        new Field("field3", 4, Schema.STRING_SCHEMA),
-        new Field("timestamp", 5, Schema.INT64_SCHEMA),
-        new Field("key", 6, Schema.STRING_SCHEMA));
+    final List<Field> expected = Arrays.asList(
+        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field1", 2, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field2", 3, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field3", 4, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("timestamp", 5, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("key", 6, Schema.OPTIONAL_STRING_SCHEMA));
     final List<Field> fields = stream.outputNode().getSchema().fields();
     assertThat(fields, equalTo(expected));
   }
@@ -177,7 +178,7 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"));
     final SchemaKStream schemaKStream = buildStream();
     final Field keyField = schemaKStream.getKeyField();
-    assertThat(keyField, equalTo(new Field("field2", 1, Schema.STRING_SCHEMA)));
+    assertThat(keyField, equalTo(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA)));
     assertThat(schemaKStream.getSchema().fields(), equalTo(schema.fields()));
   }
 

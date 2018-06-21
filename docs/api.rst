@@ -93,9 +93,12 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    :>json string  sourceDescription.name: The name of the stream or table.
    :>json array   sourceDescription.readQueries: The queries reading from the stream or table.
    :>json array   sourceDescription.writeQueries: The queries writing into the stream or table
-   :>json array   sourceDescription.schema: The schema of the stream or table as a list of column names and types.
-   :>json string  sourceDescription.schema[i].name: The name of the column.
-   :>json string  sourceDescription.schema[i].type: The data type of the column.
+   :>json array   sourceDescription.fields: A list of field objects that describes each field in the stream/table.
+   :>json string  sourceDescription.fields[i].name: The name of the field.
+   :>json object  sourceDescription.fields[i].schema: A schema object that describes the schema of the field.
+   :>json string  sourceDescription.fields[i].schema.type: The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, MAP, ARRAY, or STRUCT.
+   :>json object  sourceDescription.fields[i].schema.memberSchema: A schema object. For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
+   :>json array   sourceDescription.fields[i].schema.fields: For STRUCT types, contains a list of field objects that descrbies each field within the struct. For other types this field is not used and its value is undefined.
    :>json string  sourceDescription.type: STREAM or TABLE
    :>json string  sourceDescription.key: The name of the key column.
    :>json string  sourceDescription.timestamp: The name of the timestamp column.
@@ -111,21 +114,23 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 
    :>json string statementText: The KSQL statement whose result is being returned.
    :>json string queryDescription.statementText: The KSQL statement for which the query being explained is running.
-   :>json array  queryDescription.schema: The schema of the query data.
-   :>json string queryDescription.schema[i].name: The name of the column.
-   :>json string queryDescription.schema[i].type: The data type of the column.
+   :>json array  queryDescription.fields: A list of field objects that describes each field in the query output.
+   :>json string queryDescription.fields[i].name: The name of the field.
+   :>json object queryDescription.fields[i].schema: A schema object that describes the schema of the field.
+   :>json string queryDescription.fields[i].schema.type: The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, MAP, ARRAY, or STRUCT.
+   :>json object queryDescription.fields[i].schema.memberSchema: A schema object. For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
+   :>json array  queryDescription.fields[i].schema.fields: For STRUCT types, contains a list of field objects that descrbies each field within the struct. For other types this field is not used and its value is undefined.
    :>json array  queryDescription.sources: The streams and tables being read by the query.
    :>json string queryDescription.sources[i]: The name of a stream or table being read from by the query.
    :>json array  queryDescription.sinks: The streams and tables being written to by the query.
    :>json string queryDescription.sinks[i]: The name of a stream or table being written to by the query.
    :>json string queryDescription.executionPlan: They query execution plan.
    :>json string queryDescription.topology: The Kafka Streams topology that the query is running.
-   :>json map    overriddenProperties: The property overrides that the query is running with. 
+   :>json map    overriddenProperties: The property overrides that the query is running with.
 
    **Errors**
 
-   If KSQL fails to execute a statement, it returns a response with an error status code (4xx/5xx). Even if an error is returned, the server may have been able to successfully execute some statements in the request. In this case, the response includes the ``error_code`` and ``message`` fields, 
-a ``statementText`` field with the text of the failed statement, and an ``entities`` field that contains an array of result objects:
+   If KSQL fails to execute a statement, it returns a response with an error status code (4xx/5xx). Even if an error is returned, the server may have been able to successfully execute some statements in the request. In this case, the response includes the ``error_code`` and ``message`` fields, a ``statementText`` field with the text of the failed statement, and an ``entities`` field that contains an array of result objects:
 
    :>json string statementText: The text of the KSQL statement where the error occurred.
    :>json array  entities: Result objects for statements that were successfully executed by the server.
@@ -207,7 +212,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "SELECT * FROM pageviews;"
+        "ksql": "SELECT * FROM pageviews;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

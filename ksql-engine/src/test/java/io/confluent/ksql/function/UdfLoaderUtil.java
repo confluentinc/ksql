@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,30 +12,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.function;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.test.TestUtils;
 
-public class NaturalJoin
-    extends JoinCriteria {
+import io.confluent.ksql.metastore.MetaStore;
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    return (obj != null) && (getClass() == obj.getClass());
-  }
+public class UdfLoaderUtil {
 
-  @Override
-  public int hashCode() {
-    return 0;
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this).toString();
+  public static void load(final MetaStore metaStore) {
+    new UdfLoader(metaStore,
+        TestUtils.tempDirectory(),
+        UdfLoaderUtil.class.getClassLoader(),
+        value -> false, new UdfCompiler(), new Metrics(), true, false)
+        .load();
   }
 }

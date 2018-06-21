@@ -1,0 +1,15 @@
+# Classes/Packages that aren't allowed to be loaded by UDFs.
+# if a class name ends with $ it will only match that class
+# otherwise it will match anything beginning with the string
+java.lang.Compiler$
+java.lang.instrument
+java.lang.invoke
+java.lang.management
+java.lang.Process
+java.lang.ref
+java.lang.Runtime$
+java.lang.Shutdown$
+java.lang.Thread
+java.util.concurrent
+java.util.jar
+java.util.zip

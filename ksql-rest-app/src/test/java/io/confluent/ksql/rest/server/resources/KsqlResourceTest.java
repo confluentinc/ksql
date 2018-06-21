@@ -16,6 +16,16 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -59,12 +69,10 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.Queries;
@@ -88,11 +96,6 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -101,6 +104,7 @@ import io.confluent.rest.RestConfig;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -134,7 +138,7 @@ public class KsqlResourceTest {
     @Override
     public Future<RecordMetadata> send(ProducerRecord record) {
       // Fake result: only for testing purpose
-      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0, 0, 0, 0, 0, 0));
+      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0));
     }
   }
 
@@ -148,8 +152,7 @@ public class KsqlResourceTest {
 
     public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
 
-    public static KsqlResource get(KsqlEngine ksqlEngine) throws Exception {
-
+    public static KsqlResource get(KsqlEngine ksqlEngine) {
       Properties defaultKsqlConfig = getDefaultKsqlConfig();
 
       // Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
@@ -166,9 +169,14 @@ public class KsqlResourceTest {
       );
 
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-                                                   commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
+      return get(ksqlEngine, commandStore, statementExecutor);
+    }
 
+    public static KsqlResource get(KsqlEngine ksqlEngine,
+                                   CommandStore commandStore,
+                                   StatementExecutor statementExecutor) {
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
       return new KsqlResource(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
@@ -190,11 +198,11 @@ public class KsqlResourceTest {
     }
 
     private static void addTestTopicAndSources(MetaStore metaStore, KafkaTopicClient kafkaTopicClient) {
-      Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
+      Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
           "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
-      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA);
+      Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
           "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
@@ -264,7 +272,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testInstantRegisterTopic() throws Exception {
+  public void testInstantRegisterTopic() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     final String ksqlTopic = "FOO";
@@ -302,7 +310,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListRegisteredTopics() throws Exception {
+  public void testListRegisteredTopics() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST REGISTERED TOPICS;";
 
@@ -331,7 +339,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testShowQueries() throws Exception {
+  public void testShowQueries() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SHOW QUERIES;";
 
@@ -347,12 +355,30 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldListFunctions() {
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+    final FunctionNameList functionList = makeSingleRequest(
+        testResource,
+        "LIST FUNCTIONS;",
+        Collections.emptyMap(),
+        FunctionNameList.class
+    );
+
+    // not going to check every function
+    assertThat(functionList.getFunctionNames(), hasItems(
+        "TIMESTAMPTOSTRING",
+        "ARRAYCONTAINS",
+        "ARRAYCONTAINS",
+        "CONCAT"));
+  }
+
+  @Test
   public void shouldReturnDescriptionsForShowStreamsExtended() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
-        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.STRING_SCHEMA);
+        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
     TestKsqlResourceUtil.addSource(
         testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
         DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -383,8 +409,8 @@ public class KsqlResourceTest {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
 
     Schema schema = SchemaBuilder.struct()
-        .field("FIELD1", Schema.BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.STRING_SCHEMA);
+        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
     TestKsqlResourceUtil.addSource(
         testResource.getKsqlEngine().getMetaStore(), testResource.getKsqlEngine().getTopicClient(),
         DataSource.DataSourceType.KTABLE, "new_table", "new_topic",
@@ -453,12 +479,14 @@ public class KsqlResourceTest {
         new RunningQuery(
             queries.get(0).getStatementString(),
             ((PersistentQueryMetadata)queries.get(0)).getSinkNames(),
-            ((PersistentQueryMetadata)queries.get(0)).getQueryId().getId()));
+            new EntityQueryId(
+                ((PersistentQueryMetadata)queries.get(0)).getQueryId())));
     List<RunningQuery> readQueries = Collections.singletonList(
         new RunningQuery(
             queries.get(1).getStatementString(),
             ((PersistentQueryMetadata)queries.get(1)).getSinkNames(),
-            ((PersistentQueryMetadata)queries.get(1)).getQueryId().getId()));
+            new EntityQueryId(
+                ((PersistentQueryMetadata)queries.get(1)).getQueryId())));
     SourceDescription expectedDescription =
         new SourceDescription(
             testResource.getKsqlEngine().getMetaStore().getSource(streamName), false, "JSON",
@@ -467,7 +495,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListStreamsStatement() throws Exception {
+  public void testListStreamsStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST STREAMS;";
 
@@ -488,7 +516,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testListTablesStatement() throws Exception {
+  public void testListTablesStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "LIST TABLES;";
 
@@ -517,7 +545,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCSASStatementResultType() throws Exception {
+  public void shouldFailForIncorrectCSASStatementResultType() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
@@ -550,7 +578,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCTASStatementResultType() throws Exception {
+  public void shouldFailForIncorrectCTASStatementResultType() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE s1 AS SELECT * FROM test_stream;";
 
@@ -567,7 +595,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectDropStreamStatement() throws Exception {
+  public void shouldFailForIncorrectDropStreamStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "DROP TABLE test_stream;";
     Response response = handleKsqlStatements(
@@ -581,7 +609,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectDropTableStatement() throws Exception {
+  public void shouldFailForIncorrectDropTableStatement() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "DROP STREAM test_table;";
     Response response = handleKsqlStatements(
@@ -593,11 +621,33 @@ public class KsqlResourceTest {
         equalTo("incompatible data source type is table, but statement was drop stream"));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
-  public void shouldCreateTableWithInference() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
+  public void shouldCreateTableWithInference() {
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
-                              + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+        + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+    final String ksqlStringWithSchema =
+        "CREATE TABLE ORDERS " +
+            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRING, ORDERUNITS DOUBLE, " +
+            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>) " +
+            "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
+            "AVRO_SCHEMA_ID='1', KEY='orderid');";
+
+    CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
+    CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId, (x) -> {});
+    commandStatusFuture.complete(
+        new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    CommandStore commandStore = EasyMock.mock(CommandStore.class);
+    EasyMock.expect(commandStore.distributeStatement(
+        EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
+        EasyMock.anyObject(Map.class))).andReturn(commandId);
+    StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
+    EasyMock.expect(
+        statementExecutor.registerQueuedStatement(commandId)).andReturn(commandStatusFuture);
+    EasyMock.replay(commandStore, statementExecutor);
+
+    KsqlResource testResource = TestKsqlResourceUtil.get(
+        ksqlEngine, commandStore, statementExecutor);
 
     Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
@@ -608,10 +658,12 @@ public class KsqlResourceTest {
     assertThat(
         commandStatusEntity.getCommandId().getType().name().toUpperCase(),
         equalTo("TABLE"));
+
+    EasyMock.verify(commandStore, statementExecutor);
   }
 
   @Test
-  public void shouldFailCreateTableWithInferenceWithIncorrectKey() throws Exception {
+  public void shouldFailCreateTableWithInferenceWithIncorrectKey() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
                               + "VALUE_FORMAT = 'avro', KEY = 'orderid1');";
@@ -625,7 +677,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailBareQuery() throws Exception {
+  public void shouldFailBareQuery() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "SELECT * FROM test_table;";
     Response response = handleKsqlStatements(
@@ -637,7 +689,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailPrintTopic() throws Exception {
+  public void shouldFailPrintTopic() {
     KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine);
     final String ksqlString = "PRINT 'orders-topic';";
     Response response = handleKsqlStatements(
@@ -665,13 +717,12 @@ public class KsqlResourceTest {
     QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(
-        queryDescription.getSchema(),
+        queryDescription.getFields(),
         equalTo(
-            queryMetadata.getOutputNode().getSchema().fields()
-                .stream()
-                .map(f -> new FieldSchemaInfo(
-                    f.name(), SchemaUtil.describeSchema(f.schema())))
-                .collect(Collectors.toList())));
+            EntityUtil.buildSourceSchemaEntity(
+                queryMetadata.getOutputNode().getSchema())
+        )
+    );
     assertThat(
         queryDescription.getOverriddenProperties(),
         equalTo(overriddenProperties));
@@ -712,7 +763,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturn5xxOnSystemError() throws Exception {
+  public void shouldReturn5xxOnSystemError() {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     // Set up a mock engine to mirror the returns of the real engine
     KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
@@ -736,7 +787,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturn5xxOnStatementSystemError() throws Exception {
+  public void shouldReturn5xxOnStatementSystemError() {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     // Set up a mock engine to mirror the returns of the real engine
     KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);

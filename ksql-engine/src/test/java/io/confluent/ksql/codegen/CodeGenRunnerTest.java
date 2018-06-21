@@ -35,6 +35,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -64,7 +65,6 @@ import static org.hamcrest.Matchers.not;
 public class CodeGenRunnerTest {
 
     private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
     private static final int INT64_INDEX1 = 0;
     private static final int STRING_INDEX1 = 1;
     private static final int STRING_INDEX2 = 2;
@@ -84,43 +84,47 @@ public class CodeGenRunnerTest {
     private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
+
     @Before
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+        // load substring function
+        UdfLoaderUtil.load(metaStore);
+
         final Schema schema = SchemaBuilder.struct()
-            .field("CODEGEN_TEST.COL0", SchemaBuilder.INT64_SCHEMA)
-            .field("CODEGEN_TEST.COL1", SchemaBuilder.STRING_SCHEMA)
-            .field("CODEGEN_TEST.COL2", SchemaBuilder.STRING_SCHEMA)
-            .field("CODEGEN_TEST.COL3", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("CODEGEN_TEST.COL4", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("CODEGEN_TEST.COL5", SchemaBuilder.INT32_SCHEMA)
-            .field("CODEGEN_TEST.COL6", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("CODEGEN_TEST.COL7", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("CODEGEN_TEST.COL8", SchemaBuilder.INT64_SCHEMA)
-            .field("CODEGEN_TEST.COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
-            .field("CODEGEN_TEST.COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
+            .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("CODEGEN_TEST.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("CODEGEN_TEST.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("CODEGEN_TEST.COL4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("CODEGEN_TEST.COL5", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+            .field("CODEGEN_TEST.COL6", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("CODEGEN_TEST.COL7", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("CODEGEN_TEST.COL8", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("CODEGEN_TEST.COL9", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL10", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL11",
-                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                   SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL12",
-                   SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
-            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
+                   SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
         Schema metaStoreSchema = SchemaBuilder.struct()
-            .field("COL0", SchemaBuilder.INT64_SCHEMA)
-            .field("COL1", SchemaBuilder.STRING_SCHEMA)
-            .field("COL2", SchemaBuilder.STRING_SCHEMA)
-            .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("COL4", SchemaBuilder.FLOAT64_SCHEMA)
-            .field("COL5", SchemaBuilder.INT32_SCHEMA)
-            .field("COL6", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("COL7", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("COL8", SchemaBuilder.INT64_SCHEMA)
-            .field("COL9", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
-            .field("COL10", SchemaBuilder.array(SchemaBuilder.INT32_SCHEMA))
+            .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("COL4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("COL5", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+            .field("COL6", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("COL7", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("COL8", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("COL9", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("COL10", SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("COL11",
-                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
+                SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("COL12",
-                SchemaBuilder.map(SchemaBuilder.INT32_SCHEMA, SchemaBuilder.INT32_SCHEMA))
-            .field("COL13", SchemaBuilder.array(SchemaBuilder.STRING_SCHEMA));
+                SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
+            .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
         KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
@@ -424,6 +428,47 @@ public class CodeGenRunnerTest {
         // Then:
     }
 
+    @Test
+    public void shouldHandleMaps() throws Exception {
+        final String query =
+            "SELECT col11['address'] as Address FROM codegen_test;";
+
+        final Map<String, String> inputs = new HashMap<>();
+        inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
+
+        final Analysis analysis = analyzeQuery(query);
+        final ExpressionMetadata expressionMetadata
+            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
+
+        assertThat(expressionMetadata.getExpressionEvaluator().evaluate(new Object[]{inputs}),
+            equalTo("{\"city\":\"adelaide\",\"country\":\"oz\"}"));
+    }
+
+    @Test
+    public void shouldHandleUdfsExtractingFromMaps() throws Exception {
+        final String query =
+            "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test;";
+
+        final Map<String, String> inputs = new HashMap<>();
+        inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
+
+        final Analysis analysis = analyzeQuery(query);
+        final ExpressionMetadata metadata
+            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
+
+        final Object [] params = new Object[2];
+        for (int i = 0; i < 2; i++) {
+            if (metadata.getIndexes()[i] == -1) {
+                params[i] = metadata.getUdfs()[i];
+            } else {
+                params[i] = inputs;
+            }
+        }
+        assertThat(metadata.getExpressionEvaluator()
+                .evaluate(params),
+            equalTo("adelaide"));
+    }
+
     private List<Object> executeExpression(final String query,
                                            final Map<Integer, Object> inputValues) {
         final Analysis analysis = analyzeQuery(query);
@@ -445,9 +490,8 @@ public class CodeGenRunnerTest {
 
     private Analysis analyzeQuery(String queryStr) {
         final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        // Analyze the query to resolve the references and extract oeprations
         final Analysis analysis = new Analysis();
-        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
         analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
     }

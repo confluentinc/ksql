@@ -16,8 +16,11 @@
 
 package io.confluent.ksql.codegen;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -35,18 +38,14 @@ import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -56,14 +55,16 @@ public class CodeGenRunner {
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
+  private final ExpressionTypeManager expressionTypeManager;
 
   public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
     this.schema = schema;
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public Set<ParameterType> getParameterInfo(final Expression expression) {
-    Visitor visitor = new Visitor(schema, functionRegistry);
+    Visitor visitor = new Visitor(schema, functionRegistry, expressionTypeManager);
     visitor.process(expression, null);
     return visitor.parameters;
   }
@@ -95,11 +96,7 @@ public class CodeGenRunner {
 
     ee.setParameters(parameterNames, parameterTypes);
 
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        schema,
-        functionRegistry
-    );
-    Schema expressionType = expressionTypeManager.getExpressionType(expression);
+    Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
@@ -113,14 +110,24 @@ public class CodeGenRunner {
     private final Schema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
+    private final ExpressionTypeManager expressionTypeManager;
 
-    private final FunctionArguments functionArguments = new FunctionArguments();
     private int functionCounter = 0;
 
-    Visitor(Schema schema, FunctionRegistry functionRegistry) {
+    Visitor(
+        final Schema schema,
+        final FunctionRegistry functionRegistry,
+        final ExpressionTypeManager expressionTypeManager) {
       this.schema = schema;
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
+      this.expressionTypeManager = expressionTypeManager;
+    }
+
+    private void addParameter(Optional<Field> schemaField) {
+      schemaField.ifPresent(f -> parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(f.schema()),
+          f.name().replace(".", "_"))));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -130,28 +137,24 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       final int functionNumber = functionCounter++;
-      functionArguments.beginFunction();
+      final List<Type> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
+        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlFunction function = holder.getFunction(functionArguments.endFunction());
+      final KsqlFunction function = holder.getFunction(argumentTypes);
       parameters.add(new ParameterType(function,
           node.getName().getSuffix() + "_" + functionNumber));
-      functionArguments.addArgumentType(function.getReturnType().type());
       return null;
     }
 
 
     protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
-      final int index = functionArguments.numCurrentFunctionArguments();
       process(node.getLeft(), null);
       process(node.getRight(), null);
-      if (functionArguments.numCurrentFunctionArguments() > index + 1) {
-        functionArguments.mergeArithmeticArguments(index);
-      }
       return null;
     }
 
@@ -188,7 +191,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      addParameter(schemaField);
       return null;
     }
 
@@ -206,21 +209,9 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      addParameter(schemaField);
       process(node.getIndex(), context);
-      functionArguments.removeLastParams(1);
       return null;
-    }
-
-    private void updateFunctionArgTypesAndParams(final Field schemaField) {
-      final Schema schema = schemaField.schema();
-      if (schema.type() != Schema.Type.ARRAY) {
-        functionArguments.addArgumentType(schema.type());
-      } else {
-        functionArguments.addArgumentType(schema.valueSchema().type());
-      }
-      parameters.add(new ParameterType(SchemaUtil.getJavaType(schema),
-          schemaField.name().replace(".", "_")));
     }
 
     @Override
@@ -230,34 +221,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      updateFunctionArgTypesAndParams(schemaField.get());
+      addParameter(schemaField);
       return null;
     }
 
-    private Object updateFunctionArgs(final Schema.Type type) {
-      functionArguments.addArgumentType(type);
-      return null;
-    }
-
-    @Override
-    protected Object visitStringLiteral(final StringLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.STRING);
-    }
-
-    @Override
-    protected Object visitDoubleLiteral(final DoubleLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.FLOAT64);
-    }
-
-    @Override
-    protected Object visitLongLiteral(final LongLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.INT64);
-    }
-
-    @Override
-    protected Object visitIntegerLiteral(final IntegerLiteral node, final Object context) {
-      return updateFunctionArgs(Schema.Type.INT32);
-    }
   }
 
   public static class ParameterType {

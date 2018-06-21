@@ -31,8 +31,8 @@ public class CountKudaf
     extends BaseAggregateFunction<Object, Long> implements TableAggregationFunction<Object, Long> {
 
   CountKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+    super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
     );
   }
 

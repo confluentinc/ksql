@@ -69,7 +69,7 @@ public class UdfFactory {
     }
     if (!ksqlFunction.getPathLoadedFrom().equals(metadata.getPath())) {
       throw new KsqlException("Can't add function " + ksqlFunction
-          + "as a function with the same name has been loaded from a different path "
+          + "as a function with the same name has been loaded from a different jar "
           + metadata.getPath());
     }
   }

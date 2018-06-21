@@ -63,6 +63,9 @@ public class KsqlFunction {
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass can't be null");
     this.udfSupplier = Objects.requireNonNull(udfSupplier, "udfSupplier can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
+    if (arguments.stream().anyMatch(Objects::isNull)) {
+      throw new IllegalArgumentException("KSQL Function can't have null argument types");
+    }
   }
 
   public Schema getReturnType() {

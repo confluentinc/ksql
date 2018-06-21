@@ -51,7 +51,7 @@ public class UdfFactory {
 
   void addFunction(final KsqlFunction ksqlFunction) {
     final List<FunctionParameter> paramTypes
-        = mapToFunctionParameter(ksqlFunction.getArguments(), false);
+        = mapToFunctionParameter(ksqlFunction.getArguments());
 
     checkCompatible(ksqlFunction, paramTypes);
     functions.put(paramTypes, ksqlFunction);
@@ -100,7 +100,7 @@ public class UdfFactory {
   }
 
   public KsqlFunction getFunction(final List<Schema> paramTypes) {
-    final List<FunctionParameter> params = mapToFunctionParameter(paramTypes, true);
+    final List<FunctionParameter> params = mapToFunctionParameter(paramTypes);
     final KsqlFunction function = functions.get(params);
     if (function != null) {
       return function;
@@ -109,9 +109,10 @@ public class UdfFactory {
     if (paramTypes.stream().anyMatch(Objects::isNull)) {
       return functions.entrySet()
           .stream()
-          .filter(entry -> checkParamsMatch(entry.getKey(), params))
+          .filter(entry -> checkParamsMatch(entry.getKey(), paramTypes))
           .map(Map.Entry::getValue)
-          .findFirst().orElseThrow(() -> createNoMatchingFunctionException(paramTypes));
+          .findFirst()
+          .orElseThrow(() -> createNoMatchingFunctionException(paramTypes));
     }
 
     throw createNoMatchingFunctionException(paramTypes);
@@ -129,29 +130,22 @@ public class UdfFactory {
   }
 
   private static boolean checkParamsMatch(final List<FunctionParameter> functionArgTypes,
-                                          final List<FunctionParameter> suppliedParamTypes) {
+                                          final List<Schema> suppliedParamTypes) {
     if (functionArgTypes.size() != suppliedParamTypes.size()) {
       return false;
     }
 
     return IntStream.range(0, suppliedParamTypes.size())
         .boxed()
-        .allMatch(idx -> suppliedParamTypes.get(idx).matches(functionArgTypes.get(idx)));
+        .allMatch(idx -> functionArgTypes.get(idx).matches(suppliedParamTypes.get(idx)));
   }
 
-  private List<FunctionParameter> mapToFunctionParameter(final List<Schema> params,
-                                                         final boolean includeNull) {
+  private List<FunctionParameter> mapToFunctionParameter(final List<Schema> params) {
     return params
         .stream()
-        .filter(param -> includeNull || param != null)
         .map(schema -> schema == null
             ? new FunctionParameter(null, false)
             : new FunctionParameter(schema.type(), schema.isOptional()))
-        .peek(fp -> {
-          if (!includeNull && fp.type == null) {
-            throw new KsqlException("Cannot add function with a null schema argument");
-          }
-        })
         .collect(Collectors.toList());
   }
 
@@ -173,11 +167,17 @@ public class UdfFactory {
         return false;
       }
       final FunctionParameter that = (FunctionParameter) o;
+      // isOptional is excluded from equals and hashCode so that
+      // primitive types will match their boxed counterparts. i.e,
+      // primitive types are not optional, i.e., they don't accept null.
       return type == that.type;
     }
 
     @Override
     public int hashCode() {
+      // isOptional is excluded from equals and hashCode so that
+      // primitive types will match their boxed counterparts. i.e,
+      // primitive types are not optional, i.e., they don't accept null.
       return Objects.hash(type);
     }
 
@@ -185,13 +185,11 @@ public class UdfFactory {
       return isOptional;
     }
 
-    public boolean matches(final FunctionParameter other) {
-      if (type == null
-          && !other.isOptional()
-          && !Schema.Type.STRING.equals(other.type)) {
-        return false;
+    public boolean matches(final Schema schema) {
+      if (schema == null) {
+        return isOptional;
       }
-      return type == null || other.type.equals(type);
+      return type.equals(schema.type());
     }
   }
 }

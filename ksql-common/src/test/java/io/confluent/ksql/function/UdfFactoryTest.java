@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -40,14 +39,9 @@ public class UdfFactoryTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private UdfFactory factory;
-  private String functionName;
-
-  @Before
-  public void setUp() {
-    functionName = "TestFunc";
-    factory = new UdfFactory(TestFunc.class, new UdfMetadata(functionName, "", "", ""));
-  }
+  private final String functionName = "TestFunc";
+  private final UdfFactory factory = new UdfFactory(TestFunc.class,
+      new UdfMetadata(functionName, "", "", ""));
 
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
@@ -60,7 +54,7 @@ public class UdfFactoryTest {
   @Test
   public void shouldFindFirstMatchingFunctionWhenNullTypeInArgs() {
     final KsqlFunction expected = new KsqlFunction(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.STRING_SCHEMA),
+        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
     );
@@ -80,7 +74,7 @@ public class UdfFactoryTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VARCHAR(STRING), null");
     final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.STRING_SCHEMA),
+        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
     );
@@ -93,7 +87,7 @@ public class UdfFactoryTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("BIGINT, null");
     final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
     );
@@ -106,7 +100,7 @@ public class UdfFactoryTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VARCHAR(STRING), null");
     final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA),
+        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA),
         functionName,
         TestFunc.class
     );
@@ -117,7 +111,7 @@ public class UdfFactoryTest {
   @Test
   public void shouldMatchNullWithStringSchema() {
     final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.INT64_SCHEMA, Schema.STRING_SCHEMA),
+        Arrays.asList(Schema.INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
     );

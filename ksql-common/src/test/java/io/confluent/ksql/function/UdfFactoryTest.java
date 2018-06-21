@@ -41,8 +41,8 @@ public class UdfFactoryTest {
 
   private final String functionName = "TestFunc";
   private final UdfFactory factory = new UdfFactory(TestFunc.class,
-      new UdfMetadata(functionName, "", "", ""));
-
+      new UdfMetadata(functionName, "", "", "", "internal"));
+  
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
     expectedException.expect(KafkaException.class);
@@ -118,6 +118,22 @@ public class UdfFactoryTest {
     factory.addFunction(function);
     factory.getFunction(Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, null));
   }
+
+  @Test
+  public void shouldThrowExceptionIfAddingFunctionWithDifferentPath() {
+    expectedException.expect(KafkaException.class);
+    expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
+    factory.addFunction(new KsqlFunction(
+        Schema.STRING_SCHEMA,
+        Collections.<Schema>emptyList(),
+        "TestFunc",
+        TestFunc.class,
+        () -> null,
+        "",
+        "not the same path"
+    ));
+  }
+
   private abstract class TestFunc implements Kudf {
 
   }

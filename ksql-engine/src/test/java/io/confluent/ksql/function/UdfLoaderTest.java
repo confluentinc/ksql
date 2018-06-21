@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
@@ -31,6 +33,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -95,6 +98,18 @@ public class UdfLoaderTest {
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
     assertThat(multiplyLoader, equalTo(getActualUdfClassLoader(toStringUdf)));
     assertThat(multiplyLoader, not(equalTo(parentClassLoader)));
+  }
+
+  @Test
+  public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
+    final UdfFactory tostring = metaStore.getUdfFactory("tostring");
+    assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
+  }
+
+  @Test
+  public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
   }
 
   @Test
@@ -165,6 +180,21 @@ public class UdfLoaderTest {
         not(nullValue()));
     assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf-substring")),
         not(nullValue()));
+  }
+
+  @Test
+  public void shouldUseConfigForExtDir() {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    // The tostring function is in the udf-example.jar that is found in src/test/resources
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "src/test/resources")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
+    final KsqlConfig config
+        = new KsqlConfig(configMap);
+    UdfLoader.newInstance(config, metaStore, "").load();
+    // will throw if it doesn't exist
+    metaStore.getUdfFactory("tostring");
   }
 
   private UdfLoader createUdfLoader(final MetaStore metaStore,

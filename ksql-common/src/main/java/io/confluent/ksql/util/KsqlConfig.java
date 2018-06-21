@@ -46,6 +46,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
+  public static final String KSQL_EXT_DIR = "ksql.extension.dir";
+
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
@@ -87,11 +89,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
+  public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
   private final Map<String, Object> ksqlConfigProps;
   private final Map<String, Object> ksqlStreamConfigProps;
 
   private static final ConfigDef CONFIG_DEF;
+
+  public static final String DEFAULT_EXT_DIR = "ext";
 
   static {
     CONFIG_DEF = new ConfigDef()
@@ -180,6 +185,19 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Whether or not metrics should be collected for custom udfs. Default is false. Note: "
                 + "this will add some overhead to udf invocation. It is recommended that this "
                 + " be set to false in production."
+        ).define(
+            KSQL_EXT_DIR,
+            ConfigDef.Type.STRING,
+            DEFAULT_EXT_DIR,
+            ConfigDef.Importance.LOW,
+            "The path to look for and load extensions such as UDFs from."
+        ).define(
+            KSQL_UDF_SECURITY_MANAGER_ENABLED,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
+               + " calling System.exit or executing processes"
         )
 
         .withClientSslSupport();

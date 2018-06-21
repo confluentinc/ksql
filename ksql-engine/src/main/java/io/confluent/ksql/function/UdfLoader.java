@@ -31,8 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -44,10 +46,12 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+
 
 public class UdfLoader {
 
@@ -84,12 +88,12 @@ public class UdfLoader {
 
   public void load() {
     // load udfs packaged as part of ksql first
-    loadUdfs(parentClassLoader);
+    loadUdfs(parentClassLoader, Optional.empty());
     if (loadCustomerUdfs) {
       try {
         Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
             .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
-            .forEach(this::loadUdfs);
+            .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));
       } catch (IOException e) {
         LOGGER.error("Failed to load UDFs from location {}", pluginDir, e);
       }
@@ -97,7 +101,8 @@ public class UdfLoader {
   }
 
 
-  private void loadUdfs(final ClassLoader loader) {
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private void loadUdfs(final ClassLoader loader, final Optional<Path> path) {
     new FastClasspathScanner()
         .overrideClassLoaders(loader)
         .ignoreParentClassLoaders()
@@ -114,10 +119,15 @@ public class UdfLoader {
             (theClass, executable) -> {
               final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
               if (annotation != null) {
+                final String pathLoadedFrom
+                    = path.map(Path::toString).orElse(KsqlFunction.INTERNAL_PATH);
+                LOGGER.info("Adding UDF name='{}' from path={}",
+                    annotation.name(),
+                    pathLoadedFrom);
                 final Method method = (Method) executable;
                 try {
                   final UdfInvoker udf = compiler.compile(method, loader);
-                  addFunction(annotation, method, udf);
+                  addFunction(annotation, method, udf, pathLoadedFrom);
                 } catch (final KsqlException e) {
                   if (parentClassLoader == loader) {
                     throw e;
@@ -135,7 +145,8 @@ public class UdfLoader {
 
   private void addFunction(final UdfDescription classLevelAnnotaion,
                            final Method method,
-                           final UdfInvoker udf) {
+                           final UdfInvoker udf,
+                           final String path) {
     // sanity check
     instantiateUdfClass(method, classLevelAnnotaion);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
@@ -150,7 +161,8 @@ public class UdfLoader {
         new UdfMetadata(classLevelAnnotaion.name(),
             classLevelAnnotaion.description(),
             classLevelAnnotaion.author(),
-            classLevelAnnotaion.version())));
+            classLevelAnnotaion.version(),
+            path)));
 
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
@@ -167,7 +179,9 @@ public class UdfLoader {
                 new SystemTime());
           }
           return theUdf;
-        }, udfAnnotation.description()));
+        },
+        udfAnnotation.description(),
+        path));
   }
 
   private static Object instantiateUdfClass(final Method method,
@@ -207,7 +221,13 @@ public class UdfLoader {
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
     final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
-    final File pluginDir = new File(ksqlInstallDir, "ext");
+    final String extDirName = config.getString(KsqlConfig.KSQL_EXT_DIR);
+    final File pluginDir = KsqlConfig.DEFAULT_EXT_DIR.equals(extDirName)
+        ? new File(ksqlInstallDir, extDirName)
+        : new File(extDirName);
+    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
+      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+    }
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),

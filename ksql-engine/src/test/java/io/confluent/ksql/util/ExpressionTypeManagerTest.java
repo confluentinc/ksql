@@ -170,7 +170,6 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
     final Analysis analysis = analyzeQuery(
@@ -179,5 +178,17 @@ public class ExpressionTypeManagerTest {
         metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+  }
+
+  @Test
+  public void shouldFindTheNestedArrayTypeCorrectly() {
+    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0].CATEGORY.NAME, NESTED_ORDER_COL.arraycol[0] from NESTED_STREAM;");
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
+        functionRegistry);
+    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),
+        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+
   }
 }

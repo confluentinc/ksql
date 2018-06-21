@@ -72,15 +72,7 @@ public class SqlToJavaVisitor {
   private Schema schema;
   private FunctionRegistry functionRegistry;
 
-<<<<<<< e1556370d8cb414a09e56f6837d74b1008df523a
-<<<<<<< 8c3e22aae341048b61aeb5559f651310a5e94698
   private final ExpressionTypeManager expressionTypeManager;
-=======
-  final ExpressionTypeManager expressionTypeManager;
->>>>>>> Applied Andy and Damian's feedback.
-=======
-  private final ExpressionTypeManager expressionTypeManager;
->>>>>>> More changes based on Andy's feedback.
 
   public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
     this.schema = schema;

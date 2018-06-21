@@ -16,8 +16,19 @@
 
 package io.confluent.ksql.function;
 
-public class FunctionUtil {
+public final class FunctionUtil {
 
+  private FunctionUtil() {
+
+  }
+
+  /**
+   * Given the arguments and types for a function ensures the args are correct type.
+   *
+   * @param functionName The name of the function
+   * @param args Argument array
+   * @param argTypes Expected argument types
+   */
   public static void ensureCorrectArgs(
       final String functionName,
       final Object[] args,
@@ -27,9 +38,8 @@ public class FunctionUtil {
       throw new KsqlFunctionException(String.format("Null argument list for %s.", functionName));
     }
 
-    if (args.length != argTypes.length
-        || args.length != argTypes.length) {
-      throw new KsqlFunctionException(String.format("Inorrect arguments for %s.", functionName));
+    if (args.length != argTypes.length) {
+      throw new KsqlFunctionException(String.format("Incorrect arguments for %s.", functionName));
     }
 
     for (int i = 0; i < argTypes.length; i++) {
@@ -46,8 +56,5 @@ public class FunctionUtil {
                 args[i].getClass().getCanonicalName()));
       }
     }
-
-
   }
-
 }

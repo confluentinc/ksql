@@ -56,7 +56,7 @@ public class StructSerializationModuleTest {
   @Before
   public void init() {
     objectMapper = new ObjectMapper();
-    objectMapper.registerModule(new StructSerializationModule(objectMapper));
+    objectMapper.registerModule(new StructSerializationModule());
   }
 
   @Test

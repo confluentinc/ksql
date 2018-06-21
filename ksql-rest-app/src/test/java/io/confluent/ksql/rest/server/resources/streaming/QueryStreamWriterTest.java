@@ -96,9 +96,6 @@ public class QueryStreamWriterTest {
   public void setUp() {
 
     objectMapper = JsonMapper.INSTANCE.mapper;
-    objectMapper.registerModule(new StructSerializationModule(objectMapper));
-    new SchemaMapper().registerToObjectMapper(objectMapper);
-    objectMapper.registerModule(new Jdk8Module());
 
     ehCapture = newCapture();
     drainCapture = newCapture();

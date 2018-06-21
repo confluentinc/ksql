@@ -142,10 +142,10 @@ public class StatementRewriteForStructTest {
 
   @Test
   public void shouldEnsureRewriteRequirementCorrectly() {
-    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(Query.class)));
-    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateStreamAsSelect.class)));
-    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTableAsSelect.class)));
-    assertThat("Incorrect rewrite requirement enforcement.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(InsertInto.class)));
+    assertThat("Query should be valid for rewrite for struct.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(Query.class)));
+    assertThat("CSAS should be valid for rewrite for struct.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateStreamAsSelect.class)));
+    assertThat("CTAS should be valid for rewrite for struct.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTableAsSelect.class)));
+    assertThat("Insert Into should be valid for rewrite for struct.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(InsertInto.class)));
   }
 
   @Test

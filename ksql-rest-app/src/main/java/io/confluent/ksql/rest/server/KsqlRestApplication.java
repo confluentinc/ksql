@@ -215,7 +215,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(getJsonMapper());
+    JacksonMessageBodyProvider jsonProvider =
+        new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
 

@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.util;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
@@ -31,7 +30,7 @@ public class StructSerializationModule extends SimpleModule {
 
   private static final JsonConverter jsonConverter = new JsonConverter();
 
-  public StructSerializationModule(final ObjectMapper objectMapper) {
+  public StructSerializationModule() {
     super();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     addSerializer(Struct.class, new StructSerializationModule.Serializer());

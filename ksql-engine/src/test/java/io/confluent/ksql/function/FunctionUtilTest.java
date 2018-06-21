@@ -34,13 +34,7 @@ public class FunctionUtilTest {
     FunctionUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class);
   }
 
-  @Test (expected = KsqlException.class)
-  public void shouldFailIfargsNumbersIsIncorrect() {
-    final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
-  }
-
-  @Test (expected = KsqlException.class)
+  @Test
   public void shouldPassWithNullArgs() {
     final Object[] args = new Object[] {"TtestArg1", null};
     FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);

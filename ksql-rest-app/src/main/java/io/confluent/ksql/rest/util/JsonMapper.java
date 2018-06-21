@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.rest.entity.SchemaMapper;
@@ -23,11 +24,12 @@ import io.confluent.ksql.rest.entity.SchemaMapper;
 public enum JsonMapper {
   INSTANCE;
 
-  public final ObjectMapper mapper = new ObjectMapper();
+  public final ObjectMapper mapper =
+      new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
 
   JsonMapper() {
     new SchemaMapper().registerToObjectMapper(mapper);
     mapper.registerModule(new Jdk8Module());
-    mapper.registerModule(new StructSerializationModule(mapper));
+    mapper.registerModule(new StructSerializationModule());
   }
 }

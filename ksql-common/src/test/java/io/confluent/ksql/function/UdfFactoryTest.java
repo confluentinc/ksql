@@ -115,7 +115,7 @@ public class UdfFactoryTest {
   }
 
   @Test
-  public void should() {
+  public void shouldMatchNullWithStringSchema() {
     final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.INT64_SCHEMA, Schema.STRING_SCHEMA),
         functionName,

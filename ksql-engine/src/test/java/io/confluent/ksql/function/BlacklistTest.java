@@ -95,6 +95,14 @@ public class BlacklistTest {
     assertTrue(blacklist.test("java.util.Map"));
   }
 
+  @Test
+  public void shouldNotBlackListAllClassesIfItemEndsWith$() throws IOException {
+    writeBlacklist(ImmutableList.<String>builder().add("java.lang.Runtime$").build());
+    final Blacklist blacklist = new Blacklist(this.blacklistFile);
+    assertTrue(blacklist.test("java.lang.Runtime"));
+    assertFalse(blacklist.test("java.lang.RuntimeException"));
+  }
+
   private void writeBlacklist(final List<String> blacklisted) throws IOException {
     Files.write(blacklistFile.toPath(), blacklisted, StandardCharsets.UTF_8);
   }

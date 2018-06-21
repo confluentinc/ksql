@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
@@ -73,7 +74,7 @@ public class KafkaTopicsListTest {
 
   @Test
   public void testSerde() throws Exception {
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KafkaTopicsList expected = new KafkaTopicsList(
         "SHOW TOPICS;",
         ImmutableList.of(new KafkaTopicInfo("thetopic", true, ImmutableList.of(1, 2, 3), 42, 12))

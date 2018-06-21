@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -226,7 +227,7 @@ public class StreamedQueryResourceTest {
     queryWriterThread.start();
 
     Scanner responseScanner = new Scanner(responseInputStream);
-    ObjectMapper objectMapper = new ObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     for (int i = 0; i != NUM_ROWS; i++) {
       if (!responseScanner.hasNextLine()) {
         throw new Exception("Response input stream failed to have expected line available");

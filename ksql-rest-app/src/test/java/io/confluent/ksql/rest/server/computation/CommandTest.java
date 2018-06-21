@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class CommandTest {
   @Test
   public void shouldDeserializeCorrectly() throws IOException {
     String commandStr = "{\"statement\": \"test statement;\", \"streamsProperties\": {\"foo\": \"bar\"}}";
-    ObjectMapper mapper = new ObjectMapper();
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     Command command = mapper.readValue(commandStr, Command.class);
     Assert.assertThat(command.getStatement(), equalTo("test statement;"));
     Map<String, Object> expectedKsqlProperties = Collections.singletonMap("foo", "bar");
@@ -45,7 +46,7 @@ public class CommandTest {
   @Test
   public void shouldSerializeDeserializeCorrectly() throws IOException {
     Command command = new Command("test statement;", Collections.singletonMap("foo", "bar"));
-    ObjectMapper mapper = new ObjectMapper();
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");

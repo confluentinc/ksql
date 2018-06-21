@@ -39,6 +39,7 @@
         <module>ksql-console-scripts</module>
         <module>ksql-package</module>
         <module>cp-ksql-cli</module>
+        <module>cp-ksql-server</module>
     </modules>
 
     <repositories>

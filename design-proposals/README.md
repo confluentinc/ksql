@@ -18,6 +18,7 @@ Next KLIP number: 0.
 | KLIP                                   | Status | Release |
 |----------------------------------------|:------:| ------: |
 | [KLIP-X: Template](klip-template.md)   | Open   | N/A     |
+| [KLIP-0: Add ProtoBuf Support](klip-0-add-protobuf-support.md)   | In Discussion   | N/A     |
 
 
 

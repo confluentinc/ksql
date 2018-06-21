@@ -28,7 +28,7 @@ import java.util.Stack;
 import io.confluent.ksql.function.udf.PluggableUdf;
 
 /**
- * A simple security manger extension to block UDFs from calling
+ * A simple security manager extension to block UDFs from calling
  * System.exit or executing processes
  */
 public class ExtensionSecurityManager extends SecurityManager {

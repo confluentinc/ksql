@@ -43,6 +43,7 @@ public class TestFunctionRegistry implements FunctionRegistry {
         new UdfMetadata(ksqlFunction.getFunctionName(),
             "",
             "",
+            "",
             "")));
     final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName());
     udfFactory.addFunction(ksqlFunction);  }

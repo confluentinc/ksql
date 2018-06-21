@@ -96,4 +96,7 @@ public class UdfClassLoader extends URLClassLoader {
     }
   }
 
+  Path getJarPath() {
+    return path;
+  }
 }

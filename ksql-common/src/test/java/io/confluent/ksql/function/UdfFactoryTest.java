@@ -25,6 +25,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Collections;
+
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 
@@ -37,7 +39,7 @@ public class UdfFactoryTest {
 
   @Before
   public void setUp() {
-    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", ""));
+    factory = new UdfFactory(TestFunc.class, new UdfMetadata("TestFunc", "", "", "", ""));
   }
 
   @Test
@@ -46,6 +48,21 @@ public class UdfFactoryTest {
     expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[VARCHAR(STRING), BIGINT]");
 
     factory.getFunction(ImmutableList.of(Schema.Type.STRING, Schema.Type.INT64));
+  }
+
+  @Test
+  public void shouldThrowExceptionIfAddingFunctionWithDifferentPath() {
+    expectedException.expect(KafkaException.class);
+    expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
+    factory.addFunction(new KsqlFunction(
+        Schema.STRING_SCHEMA,
+        Collections.<Schema>emptyList(),
+        "TestFunc",
+        TestFunc.class,
+        () -> null,
+        "",
+        "not the same path"
+    ));
   }
 
   private abstract class TestFunc implements Kudf {

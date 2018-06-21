@@ -525,7 +525,9 @@ public class KsqlResource {
         udfFactory.getDescription(),
         udfFactory.getAuthor(),
         udfFactory.getVersion(),
-        listBuilder.build());
+        udfFactory.getPath(),
+        listBuilder.build()
+        );
   }
 
   private QueryDescription explainQuery(Explain explain, String statementText) {

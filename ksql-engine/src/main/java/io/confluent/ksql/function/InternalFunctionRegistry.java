@@ -95,7 +95,9 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         new UdfMetadata(ksqlFunction.getFunctionName(),
             ksqlFunction.getDescription(),
             "confluent",
-            "")));
+            "",
+            KsqlFunction.INTERNAL_PATH
+            )));
     final UdfFactory udfFactory = ksqlFunctionMap.get(ksqlFunction.getFunctionName().toUpperCase());
     udfFactory.addFunction(ksqlFunction);
   }

@@ -33,6 +33,10 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>

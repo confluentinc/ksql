@@ -42,13 +42,15 @@ import java.util.stream.IntStream;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 /**
- * This class takes a Method that has been marked with the Udf annotation,
- * generates code for it to be invoked and compiles it into an UdfInvoker instance.
+ * This class takes methods that have been marked with the Udf or UdfFactory annotation.
+ * Each method gets a class generate for it. For Udfs it is an {@link UdfInvoker}.
+ * For UDAFs it is a {@link KsqlAggregateFunction}
  */
 public class UdfCompiler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfCompiler.class);
@@ -158,6 +160,7 @@ public class UdfCompiler {
                                          final String functionName,
                                          final Class aggregateClass,
                                          final Class valueClass) {
+    validateReturnType(method, aggregateClass, valueClass, functionName);
     try {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
@@ -185,6 +188,28 @@ public class UdfCompiler {
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);
     }
   }
+
+  private void validateReturnType(final Method method,
+                                  final Class aggregateClass,
+                                  final Class valueClass,
+                                  final String functionName) {
+    final String functionInfo = "method='" + method.getName()
+        + "', functionName='" + functionName + "' UDFClass='" + method.getDeclaringClass() + "'";
+    final String invalidClass = "class='%s'"
+        + " is not supported by UDAFs. " + functionInfo;
+    if (!typeConverters.containsKey(aggregateClass)) {
+      throw new KsqlException(String.format(invalidClass, aggregateClass));
+    }
+    if (!typeConverters.containsKey(valueClass)) {
+      throw new KsqlException(String.format(invalidClass, valueClass));
+    }
+    if (!Udaf.class.isAssignableFrom(method.getReturnType())) {
+      throw new KsqlException("UDAFs must implement " + Udaf.class.getName() + " or "
+          + TableUdaf.class.getName() + " ."
+          + functionInfo);
+    }
+  }
+
 
   private JavaSourceClassLoader createJavaSourceClassLoader(final ClassLoader loader,
                                                             final String generatedClassName,

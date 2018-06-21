@@ -286,7 +286,8 @@ primaryExpression
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
-    | base=primaryExpression '.' fieldName=identifier                                #dereference
+    | identifier '.' identifier                                                      #columnReference
+    | base=primaryExpression ':' fieldName=identifier                                #dereference
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
@@ -663,11 +664,11 @@ DECIMAL_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' )*
     ;
 
 DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    : DIGIT (LETTER | DIGIT | '_' | '@' )+
     ;
 
 QUOTED_IDENTIFIER

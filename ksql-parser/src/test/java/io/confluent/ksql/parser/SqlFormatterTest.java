@@ -16,9 +16,17 @@
 
 package io.confluent.ksql.parser;
 
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.function.TestFunctionRegistry;
 
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,6 +53,9 @@ public class SqlFormatterTest {
   JoinCriteria criteria;
   NodeLocation location;
 
+  private static final KsqlParser KSQL_PARSER = new KsqlParser();
+  private MetaStore metaStore;
+
   @Before
   public void setUp() {
     left = new Table(QualifiedName.of(Collections.singletonList("left")));
@@ -56,6 +67,69 @@ public class SqlFormatterTest {
                                                    new StringLiteral("left.col0"),
                                                    new StringLiteral("right.col0")));
     location = new NodeLocation(0, 0);
+
+    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+
+    final Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
+
+    final Schema categorySchema = SchemaBuilder.struct()
+        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional().build();
+
+    final Schema itemInfoSchema = SchemaBuilder.struct()
+        .field("ITEMID", Schema.INT64_SCHEMA)
+        .field("NAME", Schema.STRING_SCHEMA)
+        .field("CATEGORY", categorySchema)
+        .optional().build();
+
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Schema schemaBuilderOrders = schemaBuilder
+        .field("ORDERTIME", Schema.INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ITEMINFO", itemInfoSchema)
+        .field("ORDERUNITS", Schema.INT32_SCHEMA)
+        .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+        .field("ADDRESS", addressSchema)
+        .build();
+
+    final KsqlTopic
+        ksqlTopicOrders =
+        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+
+    final KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression",
+        "ADDRESS",
+        schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopicOrders);
+
+    metaStore.putTopic(ksqlTopicOrders);
+    metaStore.putSource(ksqlStreamOrders);
+
+    final KsqlTopic
+        ksqlTopicItems =
+        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
+    final KsqlTable ksqlTableOrders = new KsqlTable(
+        "sqlexpression",
+        "ITEMID",
+        itemInfoSchema,
+        itemInfoSchema.field("ITEMID"),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopicItems,
+        "items",
+        false);
+    metaStore.putTopic(ksqlTopicItems);
+    metaStore.putSource(ksqlTableOrders);
   }
 
   @Test
@@ -148,5 +222,18 @@ public class SqlFormatterTest {
     final String expected = "left L\nFULL OUTER JOIN right R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
+
+  @Test
+  public void shouldFormatSelectQueryCorrectly() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT a.address:city FROM address a;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    String s = SqlFormatter.formatSql(statement);
+
+    System.out.println();
+
+  }
+
 }
 

@@ -303,14 +303,14 @@ public class KsqlParserTest {
 
   @Test
   public void shouldParseStructFieldAccessCorrectly() {
-    String simpleQuery = "SELECT iteminfo.category.name, address.street FROM orders WHERE address.state = 'CA';";
-    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final String simpleQuery = "SELECT iteminfo:category:name, address:street FROM orders WHERE address:state = 'CA';";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
 
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
-    Query query = (Query) statement;
+    final Query query = (Query) statement;
     assertThat("testSimpleQuery fails", query.getQueryBody(), instanceOf(QuerySpecification.class));
-    QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     assertThat("testSimpleQuery fails", querySpecification.getSelect().getSelectItems().size(), equalTo(2));
     final SingleColumn singleColumn0 = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
     final SingleColumn singleColumn1 = (SingleColumn) querySpecification.getSelect().getSelectItems().get(1);
@@ -1022,7 +1022,7 @@ public class KsqlParserTest {
   @Test
   public void shouldPassIfStreamColumnNameWithAliasIsNotAmbiguous() {
     final String statementString =
-        "CREATE STREAM S AS SELECT a.address.city FROM address a;";
+        "CREATE STREAM S AS SELECT a.address:city FROM address a;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1035,7 +1035,7 @@ public class KsqlParserTest {
   @Test
   public void shouldPassIfStreamColumnNameIsNotAmbiguous() {
     final String statementString =
-        "CREATE STREAM S AS SELECT address.address.city FROM address a;";
+        "CREATE STREAM S AS SELECT address.address:city FROM address a;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     Query query = ((CreateStreamAsSelect) statement).getQuery();

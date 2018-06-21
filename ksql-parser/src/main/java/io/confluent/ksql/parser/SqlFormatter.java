@@ -155,6 +155,7 @@ public final class SqlFormatter {
       process(node.getSelect(), indent);
 
       append(indent, "FROM");
+      processRelation(node.getFrom(), indent);
       builder.append('\n');
       append(indent, "  ");
 

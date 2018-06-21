@@ -84,7 +84,7 @@
       "name": "simple struct select filter",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S2 AS SELECT itemid.name FROM orders where itemid.name = 'Item_6';"
+        "CREATE STREAM S2 AS SELECT itemid:name FROM orders where itemid:name = 'Item_6';"
       ],
       "inputs": [
         {
@@ -143,7 +143,7 @@
       "name": "simple struct select filter 2",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S3 AS SELECT itemid.category.id, address.street , address.zipcode as zipcode, address.state as state FROM orders WHERE address.state LIKE '%_9';"
+        "CREATE STREAM S3 AS SELECT itemid:category:id, address:street , address:zipcode as zipcode, address:state as state FROM orders WHERE address:state LIKE '%_9';"
       ],
       "inputs": [
         {
@@ -190,7 +190,7 @@
       "name": "simple struct select filter 3",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S4 AS SELECT itemid.itemid, itemid as iid, itemid.category.name as catname FROM orders WHERE itemid.itemid = 6 OR itemid.category.name = 'Food';"
+        "CREATE STREAM S4 AS SELECT itemid:itemid, itemid as iid, itemid:category:name as catname FROM orders WHERE itemid:itemid = 6 OR itemid:category:name = 'Food';"
       ],
       "inputs": [
         {
@@ -255,7 +255,7 @@
       "name": "simple struct select filter 4",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S5 as SELECT itemid.itemid * 10 as itemid, concat(itemid.category.name, '_HELLO') as cname, len(address.state) as state_length FROM orders WHERE address.state LIKE '%1' OR address.state LIKE '%9';"
+        "CREATE STREAM S5 as SELECT itemid:itemid * 10 as itemid, concat(itemid:category:name, '_HELLO') as cname, len(address:state) as state_length FROM orders WHERE address:state LIKE '%1' OR address:state LIKE '%9';"
       ],
       "inputs": [
         {
@@ -308,7 +308,7 @@
       "name": "simple struct select woth nulls",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S6 as SELECT itemid.itemid * 10 as itemid, itemid.category.id as catid, itemid.category as cat FROM orders;"
+        "CREATE STREAM S6 as SELECT itemid:itemid * 10 as itemid, itemid:category:id as catid, itemid:category as cat FROM orders;"
       ],
       "inputs": [
         {

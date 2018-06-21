@@ -104,6 +104,7 @@ public class UdfCompiler {
    *<pre>{@code
    * // try and coerce the arguments to the types expected by the UDF
    * Boolean arg0;
+   * if (args[0] == null && isPrimitive) throw new KsqlFunctionException(...);
    * if(args[0] == null) arg0 = null;
    * else if(args[0] instanceof Boolean) arg0 = (Boolean)args[0];
    * else if(args[0] instanceof String) arg0 = Boolean.valueOf((String)args[0]);

@@ -88,6 +88,19 @@ public class UdfFactoryTest {
     factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA.type(), null));
   }
 
+  @Test
+  public void shouldThrowExceptionWhenAtLeastOneArgumentOtherThanNullDoesntMatch() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("BIGINT, null");
+    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
+        functionName,
+        TestFunc.class
+    );
+    factory.addFunction(function);
+    factory.getFunction(Arrays.asList(Schema.INT64_SCHEMA.type(), null));
+  }
+
   private abstract class TestFunc implements Kudf {
 
   }

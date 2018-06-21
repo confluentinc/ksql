@@ -50,6 +50,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -272,7 +273,10 @@ public class UdfLoader {
     final Optional<Metrics> metrics = collectMetrics
         ? Optional.of(MetricCollectors.getMetrics())
         : Optional.empty();
-
+    
+    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
+      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+    }
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),

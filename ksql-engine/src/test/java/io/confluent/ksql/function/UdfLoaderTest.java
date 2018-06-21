@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
@@ -186,8 +188,12 @@ public class UdfLoaderTest {
   public void shouldUseConfigForExtDir() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     // The tostring function is in the udf-example.jar that is found in src/test/resources
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "src/test/resources")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
     final KsqlConfig config
-        = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_EXT_DIR, "src/test/resources"));
+        = new KsqlConfig(configMap);
     UdfLoader.newInstance(config, metaStore, "").load();
     // will throw if it doesn't exist
     metaStore.getUdfFactory("tostring");

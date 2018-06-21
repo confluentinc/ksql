@@ -22,7 +22,8 @@ import java.util.Optional;
 
 import io.confluent.ksql.metastore.MetaStore;
 
-public class UdfLoaderUtil {
+public final class UdfLoaderUtil {
+  private UdfLoaderUtil() {}
 
   public static void load(final MetaStore metaStore) {
     new UdfLoader(metaStore,

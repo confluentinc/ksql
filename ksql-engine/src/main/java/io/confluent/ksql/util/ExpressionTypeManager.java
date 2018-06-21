@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
@@ -55,13 +56,12 @@ public class ExpressionTypeManager
   }
 
   public Schema getExpressionSchema(final Expression expression) {
-    ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
+    if (expressionTypeContext.getSchema() == null) {
+      return null;
+    }
     return expressionTypeContext.getSchema();
-  }
-
-  public Schema.Type getExpressionType(final Expression expression) {
-    return getExpressionSchema(expression).type();
   }
 
   static class ExpressionTypeContext {
@@ -70,6 +70,13 @@ public class ExpressionTypeManager
 
     public Schema getSchema() {
       return schema;
+    }
+
+    public Schema.Type getSchemaType() {
+      if (schema == null) {
+        return null;
+      }
+      return schema.type();
     }
 
     public void setSchema(Schema schema) {
@@ -158,6 +165,13 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
+  protected Expression visitNullLiteral(final NullLiteral node,
+                                        final ExpressionTypeContext context) {
+    context.setSchema(null);
+    return null;
+  }
+
   protected Expression visitLikePredicate(LikePredicate node,
                                           ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
@@ -198,10 +212,10 @@ public class ExpressionTypeManager
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
-      final List<Schema.Type> argTypes = new ArrayList<>();
+      final List<Schema> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSchema().type());
+        argTypes.add(expressionTypeContext.getSchema());
       }
       final Schema returnType = udfFactory.getFunction(argTypes)
           .getReturnType();

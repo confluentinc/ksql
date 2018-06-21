@@ -49,14 +49,14 @@ public class SchemaUtil {
   private static final Map<Type, Supplier<Schema>> typeToSchema
       = ImmutableMap.<Type, Supplier<Schema>>builder()
       .put(String.class, () -> Schema.OPTIONAL_STRING_SCHEMA)
-      .put(boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(boolean.class, () -> Schema.BOOLEAN_SCHEMA)
       .put(Boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .put(Integer.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(int.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(int.class, () -> Schema.INT32_SCHEMA)
       .put(Long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
-      .put(long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(long.class, () -> Schema.INT64_SCHEMA)
       .put(Double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .put(double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .put(double.class, () -> Schema.FLOAT64_SCHEMA)
       .build();
 
   private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =

@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -137,11 +136,11 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       final int functionNumber = functionCounter++;
-      final List<Type> argumentTypes = new ArrayList<>();
+      final List<Schema> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr));
+        argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);

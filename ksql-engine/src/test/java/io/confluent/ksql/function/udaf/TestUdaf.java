@@ -76,7 +76,7 @@ public class TestUdaf {
 
       @Override
       public Long aggregate(final String s, final Long aggregate) {
-        return aggregate + s == null ? 0L : s.length();
+        return aggregate + s.length();
       }
 
       @Override

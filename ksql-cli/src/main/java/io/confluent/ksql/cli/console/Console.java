@@ -709,6 +709,7 @@ public abstract class Console implements Closeable {
     writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
     writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
     writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
     writer().printf("%-12s: %n", "Variations");
     final Collection<FunctionInfo> functions = describeFunction.getFunctions();
     functions.forEach(functionInfo -> {

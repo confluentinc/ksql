@@ -549,6 +549,7 @@ public class CliTest extends TestRunner {
             "Author      : confluent\n" +
             "Version     : \n" +
             "Overview    : \n" +
+            "Jar         : internal\n" +
             "Variations  : \n" +
             "\n" +
             "\tArguments   : BIGINT, VARCHAR\n" +

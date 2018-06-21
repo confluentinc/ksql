@@ -101,6 +101,18 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
+    final UdfFactory tostring = metaStore.getUdfFactory("tostring");
+    assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
+  }
+
+  @Test
+  public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+  }
+
+  @Test
   public void shouldPutKsqlFunctionsInParentClassLoader()
       throws NoSuchFieldException, IllegalAccessException {
     final UdfFactory substring = metaStore.getUdfFactory("substring");

@@ -30,6 +30,7 @@ public class FunctionDescriptionList extends KsqlEntity {
   private final String author;
   private final String version;
   private final Collection<FunctionInfo> functions;
+  private final String path;
 
   @JsonCreator
   public FunctionDescriptionList(
@@ -38,12 +39,14 @@ public class FunctionDescriptionList extends KsqlEntity {
       @JsonProperty("description") final String description,
       @JsonProperty("author") final String author,
       @JsonProperty("version") final String version,
+      @JsonProperty("path") final String path,
       @JsonProperty("functions") final Collection<FunctionInfo> functions) {
     super(statementText);
     this.name = Objects.requireNonNull(name, "name can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     this.author = Objects.requireNonNull(author, "author can't be null");
     this.version = Objects.requireNonNull(version, "version can't be null");
+    this.path = Objects.requireNonNull(path, "path can't be null");
     this.functions = Objects.requireNonNull(functions, "functions can't be null");
   }
 
@@ -67,6 +70,10 @@ public class FunctionDescriptionList extends KsqlEntity {
     return version;
   }
 
+  public String getPath() {
+    return path;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -80,12 +87,13 @@ public class FunctionDescriptionList extends KsqlEntity {
         && Objects.equals(description, that.description)
         && Objects.equals(author, that.author)
         && Objects.equals(version, that.version)
-        && Objects.equals(functions, that.functions);
+        && Objects.equals(functions, that.functions)
+        && Objects.equals(path, that.path);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, description, author, version, functions);
+    return Objects.hash(name, description, author, version, functions, path);
   }
 
   @Override
@@ -96,6 +104,7 @@ public class FunctionDescriptionList extends KsqlEntity {
         + ", author='" + author + '\''
         + ", version='" + version + '\''
         + ", functions=" + functions
+        + ", path='" + path + "'"
         + '}';
   }
 }

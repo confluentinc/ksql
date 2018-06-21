@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udf;
 import java.util.Objects;
 
 import io.confluent.ksql.function.UdfInvoker;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 
 /**
  * Class to allow conversion from Kudf to UdfInvoker.
@@ -39,6 +40,11 @@ public class PluggableUdf implements Kudf {
 
   @Override
   public Object evaluate(final Object... args) {
-    return udf.eval(actualUdf, args);
+    try {
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
+      return udf.eval(actualUdf, args);
+    } finally {
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
+    }
   }
 }

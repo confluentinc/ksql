@@ -179,7 +179,7 @@ public class UdfLoaderTest {
         .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
         .build();
     final KsqlConfig config
-        = new KsqlConfig(configMap));
+        = new KsqlConfig(configMap);
     UdfLoader.newInstance(config, metaStore, "").load();
     // will throw if it doesn't exist
     metaStore.getUdfFactory("tostring");

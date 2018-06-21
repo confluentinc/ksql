@@ -38,7 +38,6 @@ import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,11 +66,11 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
     assertThat(substring1.evaluate("foo", 1), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32, Schema.Type.INT32)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
     assertThat(substring2.evaluate("foo", 1,2), equalTo("o"));
   }
 
@@ -90,9 +89,10 @@ public class UdfLoaderTest {
     final UdfFactory multiply = metaStore.getUdfFactory("multiply");
 
 
-    final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.Type.STRING))
+    final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.STRING_SCHEMA))
         .newInstance();
-    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(Schema.Type.INT32, Schema.Type.INT32))
+    final Kudf multiplyUdf = multiply.getFunction(
+        Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance();
 
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
@@ -117,7 +117,7 @@ public class UdfLoaderTest {
       throws NoSuchFieldException, IllegalAccessException {
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     final Kudf kudf = substring.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32))
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance();
     assertThat(getActualUdfClassLoader(kudf), equalTo(parentClassLoader));
   }
@@ -167,7 +167,7 @@ public class UdfLoaderTest {
     pluginLoader.load();
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     final KsqlFunction function
-        = substring.getFunction(Arrays.asList(Schema.Type.STRING, Schema.Type.INT32));
+        = substring.getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
     final Kudf kudf = function.newInstance();
     assertThat(kudf, instanceOf(UdfMetricProducer.class));
     final Sensor sensor = metrics.getSensor("ksql-udf-substring");

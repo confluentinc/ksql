@@ -26,6 +26,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
@@ -49,7 +50,7 @@ import static org.testng.Assert.fail;
 public class UdfLoaderTest {
 
   private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-  private final UdfCompiler compiler = new UdfCompiler();
+  private final UdfCompiler compiler = new UdfCompiler(Optional.empty());
   private final ClassLoader parentClassLoader = UdfLoaderTest.class.getClassLoader();
   private final Metrics metrics = new Metrics();
   private final UdfLoader pluginLoader = createUdfLoader(metaStore, true, false);
@@ -195,12 +196,16 @@ public class UdfLoaderTest {
   private UdfLoader createUdfLoader(final MetaStore metaStore,
                                     final boolean loadCustomerUdfs,
                                     final boolean collectMetrics) {
+    final Optional<Metrics> optionalMetrics = collectMetrics
+        ? Optional.of(metrics)
+        : Optional.empty();
     return new UdfLoader(metaStore,
         new File("src/test/resources"),
         parentClassLoader,
         value -> false,
         compiler,
-        metrics, loadCustomerUdfs, collectMetrics);
+        optionalMetrics,
+        loadCustomerUdfs);
   }
 
 }

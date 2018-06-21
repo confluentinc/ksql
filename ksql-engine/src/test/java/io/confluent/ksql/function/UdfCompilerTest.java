@@ -16,15 +16,15 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableMap;
-
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import io.confluent.ksql.function.udaf.TestUdaf;
@@ -38,7 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class UdfCompilerTest {
 
   private final ClassLoader classLoader = UdfCompilerTest.class.getClassLoader();
-  private final UdfCompiler udfCompiler = new UdfCompiler();
+  private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
   @Test
   public void shouldCompileFunctionWithMapArgument() throws NoSuchMethodException {
@@ -142,6 +142,30 @@ public class UdfCompilerTest {
         new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
             Arrays.asList("udfIndex", "some string"))),
         not(nullValue()));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldCollectMetricsForUdafsWhenEnabled() throws NoSuchMethodException {
+    final Metrics metrics = new Metrics();
+    final UdfCompiler udfCompiler = new UdfCompiler(Optional.of(metrics));
+    final KsqlAggregateFunction function
+        = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
+        classLoader,
+        "test-udf",
+        Long.class,
+        Long.class);
+
+    final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
+        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
+            Collections.singletonList("udfIndex")));
+
+    executable.aggregate(1L, 1L);
+    executable.aggregate(1L, 1L);
+    final KafkaMetric metric = metrics.metric(
+        metrics.metricName("ksql-udaf-aggregate-test-udf-createSumLong-count",
+        "ksql-udaf-aggregate-test-udf-createSumLong"));
+    assertThat(metric.metricValue(), equalTo(2.0));
   }
 
   @Test(expected = KsqlException.class)

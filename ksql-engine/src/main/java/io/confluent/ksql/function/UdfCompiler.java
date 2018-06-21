@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function;
 
+import org.apache.kafka.common.metrics.Metrics;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
 import org.codehaus.janino.JavaSourceClassLoader;
@@ -32,6 +33,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -113,7 +116,12 @@ public class UdfCompiler {
 
   private final String udafTemplate;
 
-  public UdfCompiler() {
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private final Optional<Metrics> metrics;
+
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  public UdfCompiler(final Optional<Metrics> metrics) {
+    this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     try (final InputStream inputStream = getClass().getClassLoader()
         .getResourceAsStream("KsqlAggregateFunctionTemplate.java")) {
       final Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
@@ -167,10 +175,10 @@ public class UdfCompiler {
               fqn);
       final UdfArgSupplier evaluator = (UdfArgSupplier)
           scriptEvaluator.createFastEvaluator("return new " + generatedClassName
-                  + "(args, returnType);",
-              UdfArgSupplier.class, new String[]{"args", "returnType"});
+                  + "(args, returnType, metrics);",
+              UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
       return evaluator.apply(Collections.singletonList(SchemaUtil.getSchemaFromType(valueClass)),
-          SchemaUtil.getSchemaFromType(aggregateClass));
+          SchemaUtil.getSchemaFromType(aggregateClass), metrics);
     } catch (final Exception e) {
       throw new KsqlException("Failed to compile KSqlAggregateFunction for method='"
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);

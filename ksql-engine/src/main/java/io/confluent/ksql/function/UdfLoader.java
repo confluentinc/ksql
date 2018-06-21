@@ -23,7 +23,7 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.utils.SystemTime;
+import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,19 +66,19 @@ public class UdfLoader {
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
   private final UdfCompiler compiler;
-  private final Metrics metrics;
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private final Optional<Metrics> metrics;
   private final boolean loadCustomerUdfs;
-  private final boolean collectMetrics;
 
 
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   public UdfLoader(final MetaStore metaStore,
                    final File pluginDir,
                    final ClassLoader parentClassLoader,
                    final Predicate<String> blacklist,
                    final UdfCompiler compiler,
-                   final Metrics metrics,
-                   final boolean loadCustomerUdfs,
-                   final boolean collectMetrics) {
+                   final Optional<Metrics> metrics,
+                   final boolean loadCustomerUdfs) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
     this.parentClassLoader = Objects.requireNonNull(parentClassLoader,
@@ -87,7 +87,6 @@ public class UdfLoader {
     this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
-    this.collectMetrics = collectMetrics;
   }
 
   public void load() {
@@ -197,9 +196,11 @@ public class UdfLoader {
     instantiateUdfClass(method, classLevelAnnotaion);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
-    final Class<? extends Kudf> udfClass = collectMetrics
-        ? UdfMetricProducer.class
-        : PluggableUdf.class;
+
+    @SuppressWarnings("unchecked")
+    final Class<? extends Kudf> udfClass = metrics
+        .map(m -> (Class)UdfMetricProducer.class)
+        .orElse(PluggableUdf.class);
     addSensor(sensorName, classLevelAnnotaion.name());
 
     LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
@@ -218,12 +219,9 @@ public class UdfLoader {
         () -> {
           final PluggableUdf theUdf
               = new PluggableUdf(udf, instantiateUdfClass(method, classLevelAnnotaion));
-          if (collectMetrics) {
-            return new UdfMetricProducer(metrics.getSensor(sensorName),
-                theUdf,
-                new SystemTime());
-          }
-          return theUdf;
+          return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
+              theUdf,
+              Time.SYSTEM)).orElse(theUdf);
         }, udfAnnotation.description()));
   }
 
@@ -240,22 +238,24 @@ public class UdfLoader {
   }
 
   private void addSensor(final String sensorName, final String udfName) {
-    if (collectMetrics && metrics.getSensor(sensorName) == null) {
-      final Sensor sensor = metrics.sensor(sensorName);
-      sensor.add(metrics.metricName(sensorName + "-avg", sensorName,
-          "Average time for an invocation of " + udfName + " udf"),
-          new Avg());
-      sensor.add(metrics.metricName(sensorName + "-max", sensorName,
-          "Max time for an invocation of " + udfName + " udf"),
-          new Max());
-      sensor.add(metrics.metricName(sensorName + "-count", sensorName,
-          "Total number of invocations of " + udfName + " udf"),
-          new Count());
-      sensor.add(metrics.metricName(sensorName + "-rate", sensorName,
-          "The average number of occurrence of " + udfName + " operation per second "
-              + udfName + " udf"),
-          new Rate(TimeUnit.SECONDS, new Count()));
-    }
+    metrics.ifPresent(metrics -> {
+      if (metrics.getSensor(sensorName) == null) {
+        final Sensor sensor = metrics.sensor(sensorName);
+        sensor.add(metrics.metricName(sensorName + "-avg", sensorName,
+            "Average time for an invocation of " + udfName + " udf"),
+            new Avg());
+        sensor.add(metrics.metricName(sensorName + "-max", sensorName,
+            "Max time for an invocation of " + udfName + " udf"),
+            new Max());
+        sensor.add(metrics.metricName(sensorName + "-count", sensorName,
+            "Total number of invocations of " + udfName + " udf"),
+            new Count());
+        sensor.add(metrics.metricName(sensorName + "-rate", sensorName,
+            "The average number of occurrence of " + udfName + " operation per second "
+                + udfName + " udf"),
+            new Rate(TimeUnit.SECONDS, new Count()));
+      }
+    });
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
@@ -268,14 +268,19 @@ public class UdfLoader {
     final File pluginDir = KsqlConfig.DEFAULT_EXT_DIR.equals(extDirName)
         ? new File(ksqlInstallDir, extDirName)
         : new File(extDirName);
+
+    final Optional<Metrics> metrics = collectMetrics
+        ? Optional.of(MetricCollectors.getMetrics())
+        : Optional.empty();
+
     return new UdfLoader(metaStore,
         pluginDir,
         Thread.currentThread().getContextClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
-        new UdfCompiler(),
-        MetricCollectors.getMetrics(),
-        loadCustomerUdfs,
-        collectMetrics);
+        new UdfCompiler(metrics),
+        metrics,
+        loadCustomerUdfs
+    );
   }
 
 }

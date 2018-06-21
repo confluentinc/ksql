@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -233,13 +234,18 @@ public class UdfCompiler {
           }
           return typeConversion.apply(index);
         }).collect(Collectors.joining(","));
+
+    final boolean supportsTableAgg = TableUdaf.class.isAssignableFrom(method.getReturnType());
     return udafTemplate.replaceAll("#FUNCTION_CLASS_NAME", generatedClassName)
         .replaceAll("#CLASS", method.getDeclaringClass().getName())
         .replaceAll("#METHOD", method.getName())
         .replaceAll("#RETURN_TYPE", "SchemaBuilder.string()")
         .replaceAll("#NAME", functionName)
         .replaceAll("#ARGS", udafFactoryArguments)
-        .replaceAll("#ARG_COUNT", String.valueOf(params.length + 1));
+        .replaceAll("#ARG_COUNT", String.valueOf(params.length + 1))
+        .replaceAll("#ADD_TABLE_AGG", supportsTableAgg
+            ? "implements TableAggregationFunction"
+            : "");
   }
 
 

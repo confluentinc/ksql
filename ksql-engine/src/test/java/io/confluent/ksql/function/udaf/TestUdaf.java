@@ -20,8 +20,13 @@ package io.confluent.ksql.function.udaf;
 public class TestUdaf {
 
   @UdafFactory(description = "sums longs", aggregateType = Long.class, valueType = Long.class)
-  public static Udaf<Long, Long> createSumLong() {
-    return new Udaf<Long, Long>() {
+  public static TableUdaf<Long, Long> createSumLong() {
+    return new TableUdaf<Long, Long>() {
+      @Override
+      public Long undo(final Long valueToUndo, final Long aggregateValue) {
+        return aggregateValue - valueToUndo;
+      }
+
       @Override
       public Long initialize() {
         return 0L;

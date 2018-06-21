@@ -31,6 +31,7 @@ import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -130,6 +131,17 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws NoSuchMethodException {
+    final KsqlAggregateFunction function
+        = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
+        classLoader,
+        "test-udf",
+        Long.class,
+        Long.class);
+    assertThat(function, instanceOf(TableAggregationFunction.class));
+  }
+
+  @Test
   public void shouldCompileUdafWhenMethodHasArgs() throws NoSuchMethodException {
     final KsqlAggregateFunction function
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLengthString",
@@ -138,10 +150,12 @@ public class UdfCompilerTest {
         "test-udf",
         Long.class,
         String.class);
-    assertThat(function.getInstance(
+    final KsqlAggregateFunction instance = function.getInstance(
         new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Arrays.asList("udfIndex", "some string"))),
+            Arrays.asList("udfIndex", "some string")));
+    assertThat(instance,
         not(nullValue()));
+    assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
   }
 
   @SuppressWarnings("unchecked")

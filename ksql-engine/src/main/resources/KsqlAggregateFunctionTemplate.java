@@ -20,6 +20,8 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.TableAggregationFunction;
 
 /**
  * This is the template used to generate UDAF classes that are built from
@@ -28,7 +30,7 @@ import io.confluent.ksql.function.udaf.Udaf;
  *
  * Note: Java 7 style as the compiler doesn't support lambdas
  */
-public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction {
+public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction #ADD_TABLE_AGG{
 
   private Udaf udaf;
   private int udafIndex;
@@ -139,6 +141,10 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction {
         }
       }
     };
+  }
+
+  public Object undo(final Object valueToUndo, final Object aggregateValue) {
+    return ((TableUdaf)udaf).undo(valueToUndo, aggregateValue);
   }
 
   private static Supplier createSupplier(final Udaf udaf) {

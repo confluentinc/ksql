@@ -21,10 +21,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Classes with this annotation will be scanned for the {@link UdafFactory} annotation.
+ * This tells KSQL that this class contains methods that you would like to add
+ * as UDAFS to KSQL.
+ */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
-public @interface UdafFactory {
-  Class aggregateType();
-  Class valueType();
+@Target(ElementType.TYPE)
+public @interface UdafDescription {
+  String name();
+
   String description();
+
+  String author() default "";
+
+  String version() default "";
 }

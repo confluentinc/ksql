@@ -16,8 +16,13 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.rest.util.StructSerializationModule;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -85,9 +90,13 @@ public class QueryStreamWriterTest {
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
   private OutputNode.LimitHandler limitHandler;
+  private ObjectMapper objectMapper;
 
   @Before
   public void setUp() {
+
+    objectMapper = JsonMapper.INSTANCE.mapper;
+
     ehCapture = newCapture();
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
@@ -180,7 +189,9 @@ public class QueryStreamWriterTest {
         ksqlEngine,
         1000,
         "a KSQL statement",
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        objectMapper
+        );
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

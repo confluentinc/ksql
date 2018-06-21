@@ -99,22 +99,22 @@ public class MetaStoreFixture {
         .optional().build();
 
     final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.INT64_SCHEMA)
-        .field("NAME", Schema.STRING_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
         .field("CATEGORY", categorySchema)
         .optional().build();
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final Schema schemaBuilderOrders = schemaBuilder
-        .field("ORDERTIME", Schema.INT64_SCHEMA)
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
         .field("ITEMINFO", itemInfoSchema)
         .field("ORDERUNITS", Schema.INT32_SCHEMA)
-        .field("ARRAYCOL",schemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
-        .field("MAPCOL", schemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+        .field("ARRAYCOL",SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("ADDRESS", addressSchema)
-        .build();
+        .optional().build();
 
     KsqlTopic
         ksqlTopicOrders =
@@ -156,6 +156,27 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic3);
     metaStore.putSource(ksqlTable3);
 
+    final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
+        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema))
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema))
+        .field("NESTED_ORDER_COL", schemaBuilderOrders)
+        .field("ITEM", itemInfoSchema)
+        .optional().build();
+
+    final KsqlTopic
+        nestedArrayStructMapTopic =
+        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", new KsqlJsonTopicSerDe());
+
+    final KsqlStream nestedArrayStructMapOrders = new KsqlStream(
+        "sqlexpression",
+        "NESTED_STREAM",
+        nestedArrayStructMapSchema,
+        null,
+        timestampExtractionPolicy,
+        nestedArrayStructMapTopic);
+
+    metaStore.putTopic(nestedArrayStructMapTopic);
+    metaStore.putSource(nestedArrayStructMapOrders);
 
     return metaStore;
   }

@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -328,7 +329,12 @@ public class KsqlEngine implements Closeable {
             tempMetaStoreForParser
         );
         Statement statement = statementInfo.getLeft();
-
+        if (StatementRewriteForStruct.requiresRewrite(statement)) {
+          statement = new StatementRewriteForStruct(
+              statement,
+              statementInfo.getRight())
+              .rewriteForStruct();
+        }
         Pair<String, Statement> queryPair =
             buildSingleQueryAst(
                 statement,

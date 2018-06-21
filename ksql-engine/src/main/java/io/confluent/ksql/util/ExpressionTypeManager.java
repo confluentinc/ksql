@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
@@ -191,25 +192,37 @@ public class ExpressionTypeManager
   }
 
   protected Expression visitSubscriptExpression(
-      final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
-    String arrayBaseName = node.getBase().toString();
-    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-    if (!schemaField.isPresent()) {
-      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
-    }
-    final Schema valueSchema = schemaField.get().schema().valueSchema();
-    expressionTypeContext.setSchema(valueSchema);
+      final SubscriptExpression node,
+      final ExpressionTypeContext expressionTypeContext
+  ) {
+    process(node.getBase(), expressionTypeContext);
+    final Schema arrayMapSchema = expressionTypeContext.getSchema();
+    expressionTypeContext.setSchema(arrayMapSchema.valueSchema());
     return null;
   }
 
-  protected Expression visitFunctionCall(final FunctionCall node,
-                                         final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitFunctionCall(
+      final FunctionCall node,
+      final ExpressionTypeContext expressionTypeContext) {
 
     if (functionRegistry.isAggregate(node.getName().getSuffix())) {
       final KsqlAggregateFunction ksqlAggregateFunction =
           functionRegistry.getAggregate(
               node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
+      return null;
+    }
+    if (node.getName().getSuffix().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+      process(node.getArguments().get(0), expressionTypeContext);
+      final Schema firstArgSchema = expressionTypeContext.getSchema();
+      final String fieldName = ((StringLiteral) node.getArguments().get(1)).getValue();
+      if (firstArgSchema.field(fieldName) == null) {
+        throw new KsqlException(String.format("Could not find field %s in %s.",
+            fieldName,
+            node.getArguments().get(0).toString()));
+      }
+      final Schema returnSchema = firstArgSchema.field(fieldName).schema();
+      expressionTypeContext.setSchema(returnSchema);
     } else {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
       final List<Schema> argTypes = new ArrayList<>();

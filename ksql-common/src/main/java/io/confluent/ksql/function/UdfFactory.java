@@ -18,12 +18,13 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
@@ -33,7 +34,8 @@ import io.confluent.ksql.util.SchemaUtil;
 public class UdfFactory {
   private final UdfMetadata metadata;
   private final Class<? extends Kudf> udfClass;
-  private final Map<List<Schema.Type>, KsqlFunction> functions = new HashMap<>();
+  private final Map<List<FunctionParameter>, KsqlFunction> functions = new LinkedHashMap<>();
+
 
   UdfFactory(final Class<? extends Kudf> udfClass,
              final UdfMetadata metadata) {
@@ -48,16 +50,15 @@ public class UdfFactory {
   }
 
   void addFunction(final KsqlFunction ksqlFunction) {
-    final List<Schema.Type> paramTypes = ksqlFunction.getArguments()
-        .stream()
-        .map(Schema::type).collect(Collectors.toList());
+    final List<FunctionParameter> paramTypes
+        = mapToFunctionParameter(ksqlFunction.getArguments(), false);
 
     checkCompatible(ksqlFunction, paramTypes);
     functions.put(paramTypes, ksqlFunction);
   }
 
   private void checkCompatible(final KsqlFunction ksqlFunction,
-                               final List<Schema.Type> paramTypes) {
+                               final List<FunctionParameter> paramTypes) {
     if (udfClass != ksqlFunction.getKudfClass()) {
       throw new KsqlException("Can't add function " + ksqlFunction
           + " as a function with the same name exists on a different class " + udfClass);
@@ -98,45 +99,99 @@ public class UdfFactory {
         + '}';
   }
 
-  public KsqlFunction getFunction(final List<Schema.Type> paramTypes) {
-    final KsqlFunction function = functions.get(paramTypes);
+  public KsqlFunction getFunction(final List<Schema> paramTypes) {
+    final List<FunctionParameter> params = mapToFunctionParameter(paramTypes, true);
+    final KsqlFunction function = functions.get(params);
     if (function != null) {
       return function;
     }
 
     if (paramTypes.stream().anyMatch(Objects::isNull)) {
-      for (final Map.Entry<List<Schema.Type>, KsqlFunction> entry : functions.entrySet()) {
-        final List<Schema.Type> functionArgTypes = entry.getKey();
-        if (checkParamsMatch(functionArgTypes, paramTypes)) {
-          return entry.getValue();
-        }
-      }
+      return functions.entrySet()
+          .stream()
+          .filter(entry -> checkParamsMatch(entry.getKey(), params))
+          .map(Map.Entry::getValue)
+          .findFirst().orElseThrow(() -> createNoMatchingFunctionException(paramTypes));
     }
 
+    throw createNoMatchingFunctionException(paramTypes);
+  }
+
+  private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
     final String sqlParamTypes = paramTypes.stream()
-        .map(type -> {
-          if (type == null) {
-            return null;
-          }
-          return SchemaUtil.getSchemaTypeAsSqlType(type);
-        })
+        .map(schema -> schema == null
+            ? null
+            : SchemaUtil.getSchemaTypeAsSqlType(schema.type()))
         .collect(Collectors.joining(", ", "[", "]"));
 
-    throw new KsqlException("Function '" + metadata.getName()
+    return new KsqlException("Function '" + metadata.getName()
                             + "' does not accept parameters of types:" + sqlParamTypes);
   }
 
-  private boolean checkParamsMatch(final List<Schema.Type> functionArgTypes,
-                                   final List<Schema.Type> suppliedParamTypes) {
+  private static boolean checkParamsMatch(final List<FunctionParameter> functionArgTypes,
+                                          final List<FunctionParameter> suppliedParamTypes) {
     if (functionArgTypes.size() != suppliedParamTypes.size()) {
       return false;
     }
-    for (int i = 0; i < suppliedParamTypes.size(); i++) {
-      final Schema.Type paramType = suppliedParamTypes.get(i);
-      if (!functionArgTypes.get(i).equals(paramType) && paramType != null) {
+
+    return IntStream.range(0, suppliedParamTypes.size())
+        .boxed()
+        .allMatch(idx -> suppliedParamTypes.get(idx).matches(functionArgTypes.get(idx)));
+  }
+
+  private List<FunctionParameter> mapToFunctionParameter(final List<Schema> params,
+                                                         final boolean includeNull) {
+    return params
+        .stream()
+        .filter(param -> includeNull || param != null)
+        .map(schema -> schema == null
+            ? new FunctionParameter(null, false)
+            : new FunctionParameter(schema.type(), schema.isOptional()))
+        .peek(fp -> {
+          if (!includeNull && fp.type == null) {
+            throw new KsqlException("Cannot add function with a null schema argument");
+          }
+        })
+        .collect(Collectors.toList());
+  }
+
+  private class FunctionParameter {
+    private final Schema.Type type;
+    private final boolean isOptional;
+
+    private FunctionParameter(final Schema.Type type, final boolean isOptional) {
+      this.type = type;
+      this.isOptional = isOptional;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
       }
+      final FunctionParameter that = (FunctionParameter) o;
+      return type == that.type;
     }
-    return true;
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(type);
+    }
+
+    boolean isOptional() {
+      return isOptional;
+    }
+
+    public boolean matches(final FunctionParameter other) {
+      if (type == null
+          && !other.isOptional()
+          && !Schema.Type.STRING.equals(other.type)) {
+        return false;
+      }
+      return type == null || other.type.equals(type);
+    }
   }
 }

@@ -98,22 +98,7 @@ public class UdfCompiler {
   }
 
   /**
-   * Generates code for the given method. Assuming the method has a single Boolean argument
-   * the generated code would look like the below. A block of code like this is generated for each
-   * of the arguments.
-   *<pre>{@code
-   * // try and coerce the arguments to the types expected by the UDF
-   * Boolean arg0;
-   * if (args[0] == null && isPrimitive) throw new KsqlFunctionException(...);
-   * if(args[0] == null) arg0 = null;
-   * else if(args[0] instanceof Boolean) arg0 = (Boolean)args[0];
-   * else if(args[0] instanceof String) arg0 = Boolean.valueOf((String)args[0]);
-   * else throw new KsqlFunctionException("Type: " + args[0].getClass()
-   * + "is not supported by KSQL UDFS");
-   *
-   * // invoke the udf with the args
-   * return ((UdfCompilerTest) thiz).udf(arg0);
-   *}</pre>
+   * Generates code for the given method.
    * @param method  the UDF to generate the code for
    * @return String representation of the code that should be compiled for the UDF
    */

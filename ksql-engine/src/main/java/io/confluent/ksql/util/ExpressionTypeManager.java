@@ -56,18 +56,12 @@ public class ExpressionTypeManager
   }
 
   public Schema getExpressionSchema(final Expression expression) {
-    ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
-    return expressionTypeContext.getSchema();
-  }
-
-  public Schema.Type getExpressionType(final Expression expression) {
-    final Schema expressionSchema = getExpressionSchema(expression);
-    // would happen if visiting NULL predicate
-    if (expressionSchema == null) {
+    if (expressionTypeContext.getSchema() == null) {
       return null;
     }
-    return expressionSchema.type();
+    return expressionTypeContext.getSchema();
   }
 
   static class ExpressionTypeContext {
@@ -218,10 +212,10 @@ public class ExpressionTypeManager
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
-      final List<Schema.Type> argTypes = new ArrayList<>();
+      final List<Schema> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSchemaType());
+        argTypes.add(expressionTypeContext.getSchema());
       }
       final Schema returnType = udfFactory.getFunction(argTypes)
           .getReturnType();

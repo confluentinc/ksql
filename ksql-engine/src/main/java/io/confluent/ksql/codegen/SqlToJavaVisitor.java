@@ -157,8 +157,7 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitNullLiteral(NullLiteral node, Boolean unmangleNames) {
-      return new Pair<>("null",
-          null);
+      return new Pair<>("null", null);
     }
 
     @Override
@@ -235,7 +234,7 @@ public class SqlToJavaVisitor {
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
       final String functionName = node.getName().getSuffix();
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
-      final List<Schema.Type> argumentTypes = new ArrayList<>();
+      final List<Schema> argumentTypes = new ArrayList<>();
       final ExpressionTypeManager expressionTypeManager
           = new ExpressionTypeManager(schema, functionRegistry);
 
@@ -245,7 +244,7 @@ public class SqlToJavaVisitor {
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
       node.getArguments().forEach(arg -> argumentTypes.add(
-          expressionTypeManager.getExpressionType(arg)
+          expressionTypeManager.getExpressionSchema(arg)
       ));
       final Schema returnType = udfFactory.getFunction(argumentTypes).getReturnType();
       String javaReturnType = SchemaUtil.getJavaType(returnType)

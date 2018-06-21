@@ -54,7 +54,7 @@ public class UdfFactoryTest {
     expectedException.expect(KafkaException.class);
     expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[VARCHAR(STRING), BIGINT]");
 
-    factory.getFunction(ImmutableList.of(Schema.Type.STRING, Schema.Type.INT64));
+    factory.getFunction(ImmutableList.of(Schema.STRING_SCHEMA, Schema.INT64_SCHEMA));
   }
 
   @Test
@@ -66,7 +66,7 @@ public class UdfFactoryTest {
     );
     factory.addFunction(expected);
     factory.addFunction(new KsqlFunction(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.INT64_SCHEMA),
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         functionName,
         TestFunc.class
     ));
@@ -85,7 +85,7 @@ public class UdfFactoryTest {
         TestFunc.class
     );
     factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA.type(), null));
+    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA, null));
   }
 
   @Test
@@ -98,9 +98,32 @@ public class UdfFactoryTest {
         TestFunc.class
     );
     factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.INT64_SCHEMA.type(), null));
+    factory.getFunction(Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, null));
   }
 
+  @Test
+  public void shouldThrowWhenNullAndPrimitiveTypeArg() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("VARCHAR(STRING), null");
+    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA),
+        functionName,
+        TestFunc.class
+    );
+    factory.addFunction(function);
+    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA, null));
+  }
+
+  @Test
+  public void should() {
+    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.INT64_SCHEMA, Schema.STRING_SCHEMA),
+        functionName,
+        TestFunc.class
+    );
+    factory.addFunction(function);
+    factory.getFunction(Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, null));
+  }
   private abstract class TestFunc implements Kudf {
 
   }

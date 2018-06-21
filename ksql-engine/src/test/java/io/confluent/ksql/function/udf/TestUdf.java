@@ -17,6 +17,7 @@
 package io.confluent.ksql.function.udf;
 
 @UdfDescription(name="test_udf", description = "test")
+@SuppressWarnings("unused")
 public class TestUdf {
 
   @Udf(description = "returns the method name")

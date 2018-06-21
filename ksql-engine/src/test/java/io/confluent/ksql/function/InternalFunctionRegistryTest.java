@@ -182,7 +182,7 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addFunction(
         func2);
     assertThat(functionRegistry.getUdfFactory("func")
-        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA.type())), equalTo(func2));
+        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA)), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.emptyList()), equalTo(func));
   }

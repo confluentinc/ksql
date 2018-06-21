@@ -18,7 +18,9 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +40,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UdfCompilerTest {
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
   private final ClassLoader classLoader = UdfCompilerTest.class.getClassLoader();
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
@@ -187,6 +191,16 @@ public class UdfCompilerTest {
     udfCompiler.compile(
         getClass().getMethod("udf", Set.class),
         classLoader);
+  }
+
+  @Test
+  public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
+      throws NoSuchMethodException {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Can't coerce argument at index 0 from null to a primitive type");
+    final UdfInvoker udf =
+        udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
+    udf.eval(this, new Object[]{null});
   }
 
   public String udf(final Set val) {

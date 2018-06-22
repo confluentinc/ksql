@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -46,10 +45,6 @@ import static org.junit.Assert.assertEquals;
 public class WebSocketSubscriberTest {
 
   private static final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
-
-  static {
-    mapper.registerModule(new Jdk8Module());
-  }
 
   private final Subscription subscription = EasyMock.mock(Subscription.class);
   private final Session session = EasyMock.mock(Session.class);

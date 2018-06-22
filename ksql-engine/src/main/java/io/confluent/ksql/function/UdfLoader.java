@@ -157,9 +157,8 @@ public class UdfLoader {
                   method.getDeclaringClass());
               return Optional.of(compiler.compileAggregate(method,
                   loader,
-                  udafAnnotation.name(),
-                  annotation.aggregateType(),
-                  annotation.valueType()));
+                  udafAnnotation.name()
+              ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",
                   udafAnnotation.name(),

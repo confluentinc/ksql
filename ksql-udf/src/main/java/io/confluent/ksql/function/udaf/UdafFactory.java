@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
-/**
+/*
  * This is applied to static methods of classes that are annotated with {@link UdafDescription}.
  * The annotated method must return an implementation of {@link Udaf} or {@link TableUdaf}.
  * For example:
@@ -32,57 +32,54 @@ import java.lang.annotation.Target;
  *   @UdafDescription(name = "my_udaf", description = "example udaf")
  *   public class MyUdaf {
  *
- *   @UdafFactory(description = "sums longs", aggregateType = Long.class, valueType = Long.class)
- *   public static Udaf<Long, Long> createSumLong() {
- *     return new TableUdaf<Long, Long>() {
- *       @Override
- *       public Long undo(final Long valueToUndo, final Long aggregateValue) {
- *         return aggregateValue - valueToUndo;
- *       }
+ *    @UdafFactory(description = "sums longs")
+ *    public static Udaf<Long, Long> createSumLong() {
+ *      return new TableUdaf<Long, Long>() {
+ *        @Override
+ *        public Long undo(final Long valueToUndo, final Long aggregateValue) {
+ *          return aggregateValue - valueToUndo;
+ *        }
  *
- *       @Override
- *       public Long initialize() {
- *         return 0L;
- *       }
+ *        @Override
+ *        public Long initialize() {
+ *          return 0L;
+ *        }
  *
- *       @Override
- *       public Long aggregate(final Long aggregate, final Long aLong) {
- *         return aggregate + aLong;
- *       }
+ *        @Override
+ *        public Long aggregate(final Long aggregate, final Long aLong) {
+ *          return aggregate + aLong;
+ *        }
  *
- *       @Override
- *       public Long merge(final Long aggOne, final Long aggTwo) {
- *         return aggOne + aggTwo;
- *       }
- *     };
+ *        @Override
+ *        public Long merge(final Long aggOne, final Long aggTwo) {
+ *          return aggOne + aggTwo;
+ *        }
+ *      };
+ *    }
+ *
+ *    @UdafFactory(description = "sums double")
+ *    public static Udaf<Double, Double> createSumDouble() {
+ *      return new Udaf<Double, Double>() {
+ *        @Override
+ *        public Double initialize() {
+ *          return 0.0;
+ *        }
+ *
+ *        @Override
+ *        public Double aggregate(final Double aggregate, final Double val) {
+ *          return aggregate + val;
+ *        }
+ *
+ *        @Override
+ *        public Double merge(final Double aggOne, final Double aggTwo) {
+ *          return aggOne + aggTwo;
+ *        }
+ *      };
+ *    }
  *   }
- *
- *   @UdafFactory(description = "sums double", aggregateType = Double.class,
- *   valueType = Double.class)
- *   public static Udaf<Double, Double> createSumDouble() {
- *     return new Udaf<Double, Double>() {
- *       @Override
- *       public Double initialize() {
- *         return 0.0;
- *       }
- *
- *       @Override
- *       public Double aggregate(final Double aggregate, final Double val) {
- *         return aggregate + val;
- *       }
- *
- *       @Override
- *       public Double merge(final Double aggOne, final Double aggTwo) {
- *         return aggOne + aggTwo;
- *       }
- *     };
- *   }
- *   }
- *   }
+ *  }
  * </pre>
  */
 public @interface UdafFactory {
-  Class aggregateType();
-  Class valueType();
   String description();
 }

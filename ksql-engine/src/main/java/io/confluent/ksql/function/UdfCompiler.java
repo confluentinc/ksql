@@ -28,7 +28,10 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -45,6 +48,7 @@ import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 
 /**
@@ -55,8 +59,8 @@ import io.confluent.ksql.util.SchemaUtil;
 public class UdfCompiler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfCompiler.class);
 
-  private static final Map<Class, Function<Integer, String>> typeConverters
-      = ImmutableMap.<Class, Function<Integer, String>>builder()
+  private static final Map<Type, Function<Integer, String>> typeConverters
+      = ImmutableMap.<Type, Function<Integer, String>>builder()
       .put(int.class, index -> typeConversionCode("Integer", index, true))
       .put(Integer.class, index -> typeConversionCode("Integer", index, false))
       .put(long.class, index -> typeConversionCode("Long", index, true))
@@ -70,8 +74,8 @@ public class UdfCompiler {
       .put(List.class, index -> typeConversionCode("List", index, false))
       .build();
 
-  private static final Map<Class, Function<Integer, String>> aggregateParamTypes =
-      ImmutableMap.<Class, Function<Integer, String>>builder()
+  private static final Map<Type, Function<Integer, String>> aggregateParamTypes =
+      ImmutableMap.<Type, Function<Integer, String>>builder()
           .put(int.class,
               index -> "Integer.valueOf(aggregateFunctionArguments.arg(" + (index + 1) + "))")
           .put(Integer.class,
@@ -119,6 +123,7 @@ public class UdfCompiler {
   private static final String THROWS_TEMPLATE =
       "else throw new KsqlFunctionException(\"Type: \" + args[#INDEX].getClass() + \""
           + " is not supported by KSQL UDFS\");";
+  private static final String UDAF_PACKAGE = "io.confluent.ksql.function.udaf.";
 
   private final String udafTemplate;
 
@@ -160,10 +165,9 @@ public class UdfCompiler {
   @SuppressWarnings("unchecked")
   KsqlAggregateFunction compileAggregate(final Method method,
                                          final ClassLoader loader,
-                                         final String functionName,
-                                         final Class aggregateClass,
-                                         final Class valueClass) {
-    validateReturnType(method, aggregateClass, valueClass, functionName);
+                                         final String functionName) {
+    final Pair<Type, Type> valueAndAggregateTypes
+        = getValueAndAggregateTypes(method, functionName);
     try {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
@@ -175,44 +179,57 @@ public class UdfCompiler {
       final ClassLoader javaSourceClassLoader
           = createJavaSourceClassLoader(loader, generatedClassName, udafClass);
 
-      final String fqn = "io.confluent.ksql.function.udaf." + generatedClassName;
       final IScriptEvaluator scriptEvaluator =
           createScriptEvaluator(method,
               javaSourceClassLoader,
-              fqn);
+              UDAF_PACKAGE + generatedClassName);
       final UdfArgSupplier evaluator = (UdfArgSupplier)
           scriptEvaluator.createFastEvaluator("return new " + generatedClassName
                   + "(args, returnType, metrics);",
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
-      return evaluator.apply(Collections.singletonList(SchemaUtil.getSchemaFromType(valueClass)),
-          SchemaUtil.getSchemaFromType(aggregateClass), metrics);
+      return evaluator.apply(Collections.singletonList(
+          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)),
+          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right), metrics);
     } catch (final Exception e) {
       throw new KsqlException("Failed to compile KSqlAggregateFunction for method='"
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);
     }
   }
 
-  private void validateReturnType(final Method method,
-                                  final Class aggregateClass,
-                                  final Class valueClass,
-                                  final String functionName) {
+  private Pair<Type, Type> getValueAndAggregateTypes(final Method method,
+                                                       final String functionName) {
+
     final String functionInfo = "method='" + method.getName()
         + "', functionName='" + functionName + "' UDFClass='" + method.getDeclaringClass() + "'";
     final String invalidClass = "class='%s'"
         + " is not supported by UDAFs. " + functionInfo;
-    if (!typeConverters.containsKey(aggregateClass)) {
-      throw new KsqlException(String.format(invalidClass, aggregateClass));
-    }
-    if (!typeConverters.containsKey(valueClass)) {
-      throw new KsqlException(String.format(invalidClass, valueClass));
-    }
-    if (!Udaf.class.isAssignableFrom(method.getReturnType())) {
+
+    if (!(Udaf.class.equals(method.getReturnType())
+        || TableUdaf.class.equals(method.getReturnType()))) {
       throw new KsqlException("UDAFs must implement " + Udaf.class.getName() + " or "
           + TableUdaf.class.getName() + " ."
           + functionInfo);
     }
+    final AnnotatedParameterizedType annotatedReturnType
+        = (AnnotatedParameterizedType) method.getAnnotatedReturnType();
+    final ParameterizedType type = (ParameterizedType) annotatedReturnType.getType();
+    final Type valueType = type.getActualTypeArguments()[0];
+    final Type aggregateType = type.getActualTypeArguments()[1];
+    if (!typeConverters.containsKey(getRawType(aggregateType))) {
+      throw new KsqlException(String.format(invalidClass, aggregateType));
+    }
+    if (!typeConverters.containsKey(getRawType(valueType))) {
+      throw new KsqlException(String.format(invalidClass, valueType));
+    }
+    return new Pair<>(valueType, aggregateType);
   }
 
+  private Type getRawType(final Type type) {
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getRawType();
+    }
+    return type;
+  }
 
   private JavaSourceClassLoader createJavaSourceClassLoader(final ClassLoader loader,
                                                             final String generatedClassName,

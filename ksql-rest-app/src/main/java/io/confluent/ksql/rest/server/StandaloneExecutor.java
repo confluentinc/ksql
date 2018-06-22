@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -90,12 +88,6 @@ public class StandaloneExecutor implements Executable {
                                           final String queriesFile,
                                           final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(
-          StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
-    }
-
     final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),

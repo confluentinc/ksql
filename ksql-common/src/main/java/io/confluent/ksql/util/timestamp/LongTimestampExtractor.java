@@ -17,7 +17,7 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.processor.TimestampExtractor;
@@ -34,8 +34,8 @@ public class LongTimestampExtractor implements TimestampExtractor, Configurable 
 
   @Override
   public void configure(Map<String, ?> map) {
-    if (map.containsKey(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX)) {
-      timestampColumnindex = (Integer) map.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    if (map.containsKey(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX)) {
+      timestampColumnindex = (Integer) map.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX);
     }
   }
 

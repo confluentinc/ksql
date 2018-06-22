@@ -179,14 +179,6 @@ public class CommandFactoriesTest {
     assertThat(result, instanceOf(DropTopicCommand.class));
   }
 
-  @Test
-  public void shouldCreateCommandForSetProperty() {
-    final DdlCommand result = commandFactories.create(sqlExpression,
-        new SetProperty(Optional.empty(), "prop", "value")
-    );
-    assertThat(result, instanceOf(SetPropertyCommand.class));
-  }
-
   @Test(expected = KsqlException.class)
   public void shouldThowKsqlExceptionIfCommandFactoryNotFound() {
     commandFactories.create(sqlExpression, new DdlStatement() {});

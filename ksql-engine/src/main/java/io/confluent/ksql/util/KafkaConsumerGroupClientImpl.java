@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   public KafkaConsumerGroupClientImpl(KsqlConfig ksqlConfig) {
     this.ksqlConfig = ksqlConfig;
     Properties props = new Properties();
-    props.putAll(ksqlConfig.getKsqlAdminClientConfigProps());
+    props.putAll(ConfigDef.convertToStringMapWithPasswordValues(
+        ksqlConfig.getKsqlAdminClientConfigProps()));
     this.adminClient = AdminClient.create(props);
   }
 
@@ -87,8 +89,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     // for the underlying admin client can be passed only through a properties file. So we dump
     // the admin client configs to a temporary file and then use that file to configure the
     // underlying admin client correctly.
-    Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
+    Map<String, String> clientConfigProps = ConfigDef.convertToStringMapWithPasswordValues(
+        ksqlConfig.getKsqlAdminClientConfigProps());
     try {
+      // this is dangerous - we could be writing a password out here
       File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
       return new String[]{
           "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
@@ -100,7 +104,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     }
   }
 
-  private File flushPropertiesToTempFile(Map<String, Object> configProps) throws IOException {
+  private File flushPropertiesToTempFile(Map<String, String> configProps) throws IOException {
     FileAttribute<Set<PosixFilePermission>> attributes
         = PosixFilePermissions.asFileAttribute(new HashSet<>(
             Arrays.asList(PosixFilePermission.OWNER_WRITE,
@@ -110,7 +114,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
     try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
       Properties clientProps = new Properties();
-      for (Map.Entry<String, Object> property
+      for (Map.Entry<String, String> property
           : configProps.entrySet()) {
         clientProps.put(property.getKey(), property.getValue());
       }

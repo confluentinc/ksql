@@ -140,7 +140,7 @@ public class WSQueryEndpoint {
         new PrintPublisher(
             exec,
             ksqlEngine.getSchemaRegistryClient(),
-            ksqlEngine.getKsqlConfigProperties(Collections.emptyMap()),
+            ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps(),
             topicName,
             printTopic.getFromBeginning()
         ).subscribe(topicSubscriber);

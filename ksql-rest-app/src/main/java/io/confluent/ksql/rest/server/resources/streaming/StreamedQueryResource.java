@@ -121,8 +121,9 @@ public class StreamedQueryResource {
               + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
               topicName)));
     }
-    final Map<String, Object> properties
-        = ksqlEngine.getKsqlConfigProperties(clientLocalProperties);
+    final Map<String, Object> properties = ksqlEngine.getKsqlConfig()
+        .cloneWithPropertyOverwrite(clientLocalProperties)
+        .getKsqlStreamConfigProps();
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         ksqlEngine.getSchemaRegistryClient(),
         properties,

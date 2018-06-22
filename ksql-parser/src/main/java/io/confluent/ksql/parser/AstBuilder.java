@@ -86,7 +86,6 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -625,6 +624,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         alias = Optional.of(qualifiedNameReference.getName().getSuffix());
       } else if (selectItemExpression instanceof DereferenceExpression) {
         DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
+        final String dereferenceExpressionString = dereferenceExpression.toString();
         if ((dataSourceExtractor.getJoinLeftSchema() != null) && (
             dataSourceExtractor
                 .getCommonFieldNames()
@@ -632,12 +632,14 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     dereferenceExpression.getFieldName()
                 )
           )) {
-          alias = Optional.of(replaceDotColon(
-              dereferenceExpression.getBase().toString()
-              + "_" + dereferenceExpression.getFieldName()
-          ));
+          alias = Optional.of(replaceDotColon(dereferenceExpressionString));
+        } else if (dereferenceExpressionString.contains("->")) {
+          alias = Optional.of(
+              replaceDotColon(
+                  dereferenceExpressionString.substring(
+                      dereferenceExpressionString.indexOf(".") + 1)));
         } else {
-          alias = Optional.of(replaceDotColon(dereferenceExpression.getFieldName()));
+          alias = Optional.of(dereferenceExpression.getFieldName());
         }
       } else {
         alias = Optional.of("KSQL_COL_" + selectItemIndex);
@@ -650,7 +652,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   private String replaceDotColon(String input) {
-    return input.replace(".", "_").replace(":", "__");
+    return input.replace(".", "_").replace("->", "__");
   }
 
   @Override
@@ -1290,17 +1292,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         distinct,
         visit(context.expression(), Expression.class)
     );
-  }
-
-  @Override
-  public Node visitLambda(SqlBaseParser.LambdaContext context) {
-    List<String> arguments = context.identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
-
-    Expression body = (Expression) visit(context.expression());
-
-    return new LambdaExpression(arguments, body);
   }
 
 

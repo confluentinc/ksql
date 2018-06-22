@@ -55,7 +55,7 @@ public class StatementRewriteForStructTest {
 
   @Test
   public void shouldCreateCorrectFunctionCallExpression() {
-    final String simpleQuery = "SELECT iteminfo:category:name, address:state FROM orders;";
+    final String simpleQuery = "SELECT iteminfo->category->name, address->state FROM orders;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
@@ -91,7 +91,7 @@ public class StatementRewriteForStructTest {
 
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
-    final String simpleQuery = "SELECT arraycol[0]:name as n0, mapcol['key']:name as n1 FROM nested_stream;";
+    final String simpleQuery = "SELECT arraycol[0]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
@@ -113,7 +113,7 @@ public class StatementRewriteForStructTest {
 
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
-    final String simpleQuery = "SELECT arraycol[CAST (item:id AS INTEGER)]:name as n0, mapcol['key']:name as n1 FROM nested_stream;";
+    final String simpleQuery = "SELECT arraycol[CAST (item->id AS INTEGER)]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);

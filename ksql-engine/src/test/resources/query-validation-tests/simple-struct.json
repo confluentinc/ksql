@@ -84,7 +84,7 @@
       "name": "simple struct select filter",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S2 AS SELECT itemid:name FROM orders where itemid:name = 'Item_6';"
+        "CREATE STREAM S2 AS SELECT itemid->name FROM orders where itemid->name = 'Item_6';"
       ],
       "inputs": [
         {
@@ -122,19 +122,19 @@
         {
           "topic": "S2",
           "key": 0,
-          "value": "{\"NAME\":\"Item_6\"}",
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
           "timestamp": 0
         },
         {
           "topic": "S2",
           "key": 100,
-          "value": "{\"NAME\":\"Item_6\"}",
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
           "timestamp": 0
         },
         {
           "topic": "S2",
           "key": 101,
-          "value": "{\"NAME\":\"Item_6\"}",
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
           "timestamp": 0
         }
       ]
@@ -143,7 +143,7 @@
       "name": "simple struct select filter 2",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S3 AS SELECT itemid:category:id, address:street , address:zipcode as zipcode, address:state as state FROM orders WHERE address:state LIKE '%_9';"
+        "CREATE STREAM S3 AS SELECT itemid->category->id, address->street , address->zipcode as zipcode, address->state as state FROM orders WHERE address->state LIKE '%_9';"
       ],
       "inputs": [
         {
@@ -181,7 +181,7 @@
         {
           "topic": "S3",
           "key": 101,
-          "value": "{\"ID\":2,\"STREET\":\"STREET_3\",\"ZIPCODE\":287,\"STATE\":\"STATE_9\"}",
+          "value": "{\"ITEMID__CATEGORY__ID\":2,\"ADDRESS__STREET\":\"STREET_3\",\"ZIPCODE\":287,\"STATE\":\"STATE_9\"}",
           "timestamp": 0
         }
       ]
@@ -190,7 +190,7 @@
       "name": "simple struct select filter 3",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S4 AS SELECT itemid:itemid, itemid as iid, itemid:category:name as catname FROM orders WHERE itemid:itemid = 6 OR itemid:category:name = 'Food';"
+        "CREATE STREAM S4 AS SELECT itemid->itemid, itemid as iid, itemid->category->name as catname FROM orders WHERE itemid->itemid = 6 OR itemid->category->name = 'Food';"
       ],
       "inputs": [
         {
@@ -228,25 +228,25 @@
         {
           "topic": "S4",
           "key": 0,
-          "value": "{\"ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
           "timestamp": 0
         },
         {
           "topic": "S4",
           "key": 100,
-          "value": "{\"ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
           "timestamp": 0
         },
         {
           "topic": "S4",
           "key": 101,
-          "value": "{\"ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
           "timestamp": 0
         },
         {
           "topic": "S4",
           "key": 101,
-          "value": "{\"ITEMID\":2,\"IID\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
+          "value": "{\"ITEMID__ITEMID\":2,\"IID\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
           "timestamp": 0
         }
       ]
@@ -255,7 +255,7 @@
       "name": "simple struct select filter 4",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S5 as SELECT itemid:itemid * 10 as itemid, concat(itemid:category:name, '_HELLO') as cname, len(address:state) as state_length FROM orders WHERE address:state LIKE '%1' OR address:state LIKE '%9';"
+        "CREATE STREAM S5 as SELECT itemid->itemid * 10 as itemid, concat(itemid->category->name, '_HELLO') as cname, len(address->state) as state_length FROM orders WHERE address->state LIKE '%1' OR address->state LIKE '%9';"
       ],
       "inputs": [
         {
@@ -308,7 +308,7 @@
       "name": "simple struct select woth nulls",
       "statements": [
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
-        "CREATE STREAM S6 as SELECT itemid:itemid * 10 as itemid, itemid:category:id as catid, itemid:category as cat FROM orders;"
+        "CREATE STREAM S6 as SELECT itemid->itemid * 10 as itemid, itemid->category->id as catid, itemid->category as cat FROM orders;"
       ],
       "inputs": [
         {

@@ -274,8 +274,6 @@ primaryExpression
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
     | qualifiedName '(' (expression (',' expression)*)? ')' over?                    #functionCall
-    | identifier '->' expression                                                     #lambda
-    | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists
@@ -287,7 +285,7 @@ primaryExpression
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
     | identifier '.' identifier                                                      #columnReference
-    | base=primaryExpression ':' fieldName=identifier                                #dereference
+    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                   #dereference
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
@@ -640,6 +638,8 @@ ASTERISK: '*';
 SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
+
+STRUCT_FIELD_REF: '->';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

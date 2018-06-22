@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -226,13 +227,12 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
-        "CREATE STREAM S AS SELECT a.address:city FROM address a;";
+        "CREATE STREAM S AS SELECT a.address->city FROM address a;";
     final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
-
     String s = SqlFormatter.formatSql(statement);
-
-    System.out.println();
-
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
+        + "FROM ADDRESS A\n"
+        + "  \n"));
   }
 
 }

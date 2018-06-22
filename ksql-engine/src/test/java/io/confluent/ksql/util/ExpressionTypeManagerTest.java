@@ -152,7 +152,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldHandleStruct() {
-    final Analysis analysis = analyzeQuery("SELECT itemid, address:zipcode, address:state from orders;");
+    final Analysis analysis = analyzeQuery("SELECT itemid, address->zipcode, address->state from orders;");
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
@@ -173,7 +173,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
     final Analysis analysis = analyzeQuery(
-        "SELECT itemid, address:zip, address:state from orders;");
+        "SELECT itemid, address->zip, address->state from orders;");
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
@@ -182,7 +182,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFindTheNestedArrayTypeCorrectly() {
-    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]:CATEGORY:NAME, NESTED_ORDER_COL:arraycol[0] from NESTED_STREAM;");
+    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[0] from NESTED_STREAM;");
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
         functionRegistry);
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),

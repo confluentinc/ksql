@@ -57,6 +57,38 @@ public class SqlFormatterTest {
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
 
+  static final Schema addressSchema = SchemaBuilder.struct()
+      .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+      .optional().build();
+
+  static final Schema categorySchema = SchemaBuilder.struct()
+      .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+      .optional().build();
+
+  static final Schema itemInfoSchema = SchemaBuilder.struct()
+      .field("ITEMID", Schema.INT64_SCHEMA)
+      .field("NAME", Schema.STRING_SCHEMA)
+      .field("CATEGORY", categorySchema)
+      .optional().build();
+
+  static final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+  static final Schema schemaBuilderOrders = schemaBuilder
+      .field("ORDERTIME", Schema.INT64_SCHEMA)
+      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ITEMINFO", itemInfoSchema)
+      .field("ORDERUNITS", Schema.INT32_SCHEMA)
+      .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
+      .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+      .field("ADDRESS", addressSchema)
+      .build();
+
+
   @Before
   public void setUp() {
     left = new Table(QualifiedName.of(Collections.singletonList("left")));
@@ -71,36 +103,7 @@ public class SqlFormatterTest {
 
     metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
 
-    final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
 
-    final Schema categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional().build();
-
-    final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.INT64_SCHEMA)
-        .field("NAME", Schema.STRING_SCHEMA)
-        .field("CATEGORY", categorySchema)
-        .optional().build();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final Schema schemaBuilderOrders = schemaBuilder
-        .field("ORDERTIME", Schema.INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.INT32_SCHEMA)
-        .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
-        .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
-        .field("ADDRESS", addressSchema)
-        .build();
 
     final KsqlTopic
         ksqlTopicOrders =

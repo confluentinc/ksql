@@ -146,6 +146,9 @@ import static java.util.stream.Collectors.toList;
 
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
+  private static final String DOT = ".";
+  private static final String STRUC_FIELD_REF = "->";
+
   private int selectItemIndex = 0;
 
   private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
@@ -632,12 +635,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     dereferenceExpression.getFieldName()
                 )
           )) {
-          alias = Optional.of(replaceDotColon(dereferenceExpressionString));
-        } else if (dereferenceExpressionString.contains("->")) {
+          alias = Optional.of(replaceDotFieldRef(dereferenceExpressionString));
+        } else if (dereferenceExpressionString.contains(STRUC_FIELD_REF)) {
           alias = Optional.of(
-              replaceDotColon(
+              replaceDotFieldRef(
                   dereferenceExpressionString.substring(
-                      dereferenceExpressionString.indexOf(".") + 1)));
+                      dereferenceExpressionString.indexOf(DOT) + 1)));
         } else {
           alias = Optional.of(dereferenceExpression.getFieldName());
         }
@@ -651,8 +654,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
   }
 
-  private String replaceDotColon(String input) {
-    return input.replace(".", "_").replace("->", "__");
+  private String replaceDotFieldRef(String input) {
+    return input.replace(DOT, "_").replace(STRUC_FIELD_REF, "__");
   }
 
   @Override
@@ -1173,7 +1176,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final String prefixName = context.identifier(1) == null
         ? null
         : getIdentifierText(context.identifier(0));
-    if (context.identifier(1) != null) {
+    if (prefixName != null) {
       if (!isValidNameOrAlias(prefixName)) {
         throw new KsqlException(String.format(
             "'%s' is not a valid stream/table name or alias.", prefixName));

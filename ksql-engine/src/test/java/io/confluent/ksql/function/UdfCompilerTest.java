@@ -262,8 +262,24 @@ public class UdfCompilerTest {
   }
 
   @Test
-  public void shouldHandlUdafsWithMapValMapAggTypes() throws NoSuchMethodException {
+  public void shouldHandleUdafsWithMapValMapAggTypes() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap"),
+        classLoader,
+        "test"
+    );
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws NoSuchMethodException {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBad"),
+        classLoader,
+        "test"
+    );
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws NoSuchMethodException {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createNonStatic"),
         classLoader,
         "test"
     );
@@ -358,6 +374,14 @@ public class UdfCompilerTest {
   }
 
   public static String createBlah() {
+    return null;
+  }
+
+  public static Udaf<Character, Character> createBad() {
+    return null;
+  }
+
+  public Udaf<String, String> createNonStatic() {
     return null;
   }
 }

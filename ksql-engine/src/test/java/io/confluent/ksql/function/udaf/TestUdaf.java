@@ -19,7 +19,7 @@ package io.confluent.ksql.function.udaf;
 @UdafDescription(name = "test_udaf", description = "test_udaf")
 public class TestUdaf {
 
-  @UdafFactory(description = "sums longs", aggregateType = Long.class, valueType = Long.class)
+  @UdafFactory(description = "sums longs")
   public static TableUdaf<Long, Long> createSumLong() {
     return new TableUdaf<Long, Long>() {
       @Override
@@ -44,7 +44,7 @@ public class TestUdaf {
     };
   }
 
-  @UdafFactory(description = "sums double", aggregateType = Double.class, valueType = Double.class)
+  @UdafFactory(description = "sums double")
   public static Udaf<Double, Double> createSumDouble() {
     return new Udaf<Double, Double>() {
       @Override
@@ -64,9 +64,7 @@ public class TestUdaf {
     };
   }
 
-  @UdafFactory(description = "sums the length of strings",
-      aggregateType = Long.class,
-      valueType = String.class)
+  @UdafFactory(description = "sums the length of strings")
   public static Udaf<String, Long> createSumLengthString(final String initialString) {
     return new Udaf<String, Long>() {
       @Override

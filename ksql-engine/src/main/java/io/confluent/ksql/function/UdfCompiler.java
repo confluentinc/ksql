@@ -53,7 +53,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 /**
  * This class takes methods that have been marked with the Udf or UdfFactory annotation.
- * Each method gets a class generate for it. For Udfs it is an {@link UdfInvoker}.
+ * Each method gets a class generated for it. For Udfs it is an {@link UdfInvoker}.
  * For UDAFs it is a {@link KsqlAggregateFunction}
  */
 public class UdfCompiler {

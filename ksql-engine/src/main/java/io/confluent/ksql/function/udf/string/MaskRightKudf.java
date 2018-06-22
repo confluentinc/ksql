@@ -14,48 +14,58 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
-@UdfDescription(name = "mask", author = "Confluent",
-    description = "Returns a version of the input string with every character replaced by a mask."
+@UdfDescription(name = "mask_left", author = "Confluent",
+    description = "Returns a version of the input string with the"
+        + " specified number of characters, counting back from the end of the string, masked out."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"
         + " characters with 'x', all digits with 'n', and any other character with '-'.")
-public class MaskKudf {
+public class MaskRightKudf {
 
-  @Udf(description = "Returns a masked version of the input string. All characters of the input"
+  @Udf(description = "Returns a masked version of the input string. The last n characters"
       + " will be replaced according to the default masking rules.")
-  public String mask(final String input) {
-    return doMask(new Masker(), input);
+  public String mask(final String input, final int numChars) {
+    return doMask(new Masker(), input, numChars);
   }
 
-  // TODO these descriptions would be much easier and more structured if we had an annotation for
-  // each param (a bit like javadoc) as it's basically the extra params that are getting described
-  // in each variant of the UDF
-  @Udf(description = "Returns a masked version of the input string. All characters of the input"
+  @Udf(description = "Returns a masked version of the input string. The last n characters"
       + " will be replaced with the specified masking characters: e.g."
-      + " mask(input, upperCaseMask, lowerCaseMask, digitMask, otherMask)."
-      + " Pass NULL for any of the mask characters to prevent masking of that character type.")
-  public String mask(final String input, final String upper, final String lower, final String digit,
-      final String other) {
+      + " mask_right(input, numberToMask, upperCaseMask, lowerCaseMask, digitMask, otherMask)"
+      + " . Pass NULL for any of the mask characters to prevent masking of that character type.")
+  public String mask(final String input, final int numChars, final String upper, final String lower,
+      final String digit, final String other) {
     // TODO once KSQL gains Char sql-datatype support we should change the xxMask params to int
     // (codepoint) instead of String
 
+    // TODO really need a way for UDFs to do one-shot init() stuff instead of repeating all this
+    // literal-param manipulation and validation for every single record
     final int upperMask = upper == null ? Masker.NO_MASK : upper.codePointAt(0);
     final int lowerMask = lower == null ? Masker.NO_MASK : lower.codePointAt(0);
     final int digitMask = digit == null ? Masker.NO_MASK : digit.codePointAt(0);
     final int otherMask = other == null ? Masker.NO_MASK : other.codePointAt(0);
     final Masker masker = new Masker(upperMask, lowerMask, digitMask, otherMask);
-    return doMask(masker, input);
+    return doMask(masker, input, numChars);
   }
 
-  private String doMask(final Masker masker, final String input) {
+  private String doMask(final Masker masker, final String input, final int numChars) {
+    validateParams(numChars);
     if (input == null) {
       return null;
     }
     final StringBuilder output = new StringBuilder(input.length());
-    output.append(masker.mask(input));
+    final int charsToKeep = Math.max(0, input.length() - numChars);
+    output.append(input.substring(0, charsToKeep));
+    output.append(masker.mask(input.substring(charsToKeep)));
     return output.toString();
   }
 
+  private void validateParams(final int numChars) {
+    if (numChars < 0) {
+      throw new KsqlFunctionException(
+          "mask_right requires a non-negative number of characters to mask");
+    }
+  }
 }

@@ -99,7 +99,7 @@ public class KsqlStructuredDataOutputNodeTest {
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
     createOutputNode(props);
-    topicClient.createTopic(eq("output"), anyInt(), anyShort(), eq(Collections.emptyMap()));
+    topicClient.createTopic(eq("output"), eq(4), eq((short)3), eq(Collections.emptyMap()));
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
     stream = buildStream();
@@ -161,16 +161,6 @@ public class KsqlStructuredDataOutputNodeTest {
         new Field("key", 6, Schema.OPTIONAL_STRING_SCHEMA));
     final List<Field> fields = stream.outputNode().getSchema().fields();
     assertThat(fields, equalTo(expected));
-  }
-
-  @Test
-  public void shouldUpdateReplicationPartitionsInConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo(Integer.valueOf(3).shortValue()));
-  }
-
-  @Test
-  public void shouldUpdatePartitionsInConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(4));
   }
 
   @Test

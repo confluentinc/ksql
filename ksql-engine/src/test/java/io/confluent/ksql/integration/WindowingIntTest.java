@@ -13,6 +13,7 @@ import org.junit.experimental.categories.Category;
 
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class WindowingIntTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
+    testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);
     UdfLoaderUtil.load(ksqlContext.getMetaStore());

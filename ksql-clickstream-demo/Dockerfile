@@ -10,7 +10,7 @@ ARG ARTIFACT_ID
 EXPOSE 3000
 
 ENV ES_JAVA_OPTS="-Xms512M -Xmx512M"
-ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar
+ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/*
 ENV KSQL_CONFIG_DIR="/etc/ksql"
 ENV KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
 
@@ -25,7 +25,7 @@ RUN wget -q https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_
     && rm grafana_5.0.3_amd64.deb \
     && rm elasticsearch-5.6.8.deb
 
-ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar /usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar
+ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/${ARTIFACT_ID}/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/* /usr/bin/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/
 

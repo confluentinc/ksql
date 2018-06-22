@@ -189,10 +189,10 @@ public class CliTest extends TestRunner {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
-    configMap.put("application.id", "KSQL");
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     return configMap;
   }
@@ -206,7 +206,9 @@ public class CliTest extends TestRunner {
   private static Map<String, Object> validStartUpConfigs() {
     // TODO: these configs should be set with other configs on start-up, rather than setup later.
     Map<String, Object> startConfigs = genDefaultConfigMap();
-    startConfigs.put("num.stream.threads", 4);
+    startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+    startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
+    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
 
     startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
     startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
@@ -217,7 +219,10 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
-    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class.getName());
+    startConfigs.put(
+        KsqlConfig.KSQL_STREAMS_PREFIX
+            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
 

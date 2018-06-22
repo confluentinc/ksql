@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.Capture;
@@ -44,7 +45,7 @@ import static org.junit.Assert.assertEquals;
 
 public class WebSocketSubscriberTest {
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
 
   static {
     new SchemaMapper().registerToObjectMapper(mapper);

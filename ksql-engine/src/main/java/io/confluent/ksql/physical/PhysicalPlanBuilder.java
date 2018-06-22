@@ -24,6 +24,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -126,9 +127,9 @@ public class PhysicalPlanBuilder {
     }
     String serviceId = getServiceId();
     String persistanceQueryPrefix =
-        ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
+        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
     String transientQueryPrefix =
-        ksqlConfig.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
+        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
 
     if (isBareQuery) {
       return buildPlanForBareQuery(
@@ -225,7 +226,7 @@ public class PhysicalPlanBuilder {
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
-                  + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+                  + ksqlConfig.getString(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed()
           );
     } else {
@@ -344,23 +345,12 @@ public class PhysicalPlanBuilder {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlStreamConfigProps();
+    final Map<String, Object> newStreamsProperties
+        = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    newStreamsProperties.put(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-        ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)
-    );
-    newStreamsProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
-    );
-    newStreamsProperties.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
-    );
 
-    final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    final Integer timestampIndex = ksqlConfig.getKsqlTimestampColumnIndex();
     if (timestampIndex != null && timestampIndex >= 0) {
       outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
     }
@@ -402,7 +392,7 @@ public class PhysicalPlanBuilder {
   // Package private because of test
   String getServiceId() {
     return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-           + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+           + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 }
 

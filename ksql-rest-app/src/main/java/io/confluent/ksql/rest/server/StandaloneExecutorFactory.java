@@ -20,6 +20,9 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -35,9 +38,14 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir
   ) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    final KsqlConfig baseConfig = new KsqlConfig(properties);
 
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+    final ServiceContext serviceContext = DefaultServiceContext.create(baseConfig);
+
+    final ConfigStore configStore = new KafkaConfigStore(
+        baseConfig,
+        serviceContext.getTopicClient());
+    final KsqlConfig ksqlConfig = configStore.getKsqlConfig();
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(properties);

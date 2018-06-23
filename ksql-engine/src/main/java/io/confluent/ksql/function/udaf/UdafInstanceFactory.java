@@ -14,22 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.function.udaf;
 
-import org.apache.kafka.test.TestUtils;
-
-import java.util.Optional;
-
-import io.confluent.ksql.metastore.MetaStore;
-
-public final class UdfLoaderUtil {
-  private UdfLoaderUtil() {}
-
-  public static void load(final MetaStore metaStore) {
-    new UdfLoader(metaStore,
-        TestUtils.tempDirectory(),
-        UdfLoaderUtil.class.getClassLoader(),
-        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true)
-        .load();
-  }
+public class UdafInstanceFactory {
 }

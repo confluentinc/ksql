@@ -135,7 +135,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    aggregateFunctionMap.put(
+    aggregateFunctionMap.putIfAbsent(
         aggregateFunctionFactory.functionName.toUpperCase(),
         aggregateFunctionFactory);
   }

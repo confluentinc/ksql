@@ -40,12 +40,10 @@ public class MaskKeepRightKudf {
     // TODO once KSQL gains Char sql-datatype support we should change the xxMask params to int
     // (codepoint) instead of String
 
-    // TODO really need a way for UDFs to do one-shot init() stuff instead of repeating all this
-    // literal-param manipulation and validation for every single record
-    final int upperMask = upper == null ? Masker.NO_MASK : upper.codePointAt(0);
-    final int lowerMask = lower == null ? Masker.NO_MASK : lower.codePointAt(0);
-    final int digitMask = digit == null ? Masker.NO_MASK : digit.codePointAt(0);
-    final int otherMask = other == null ? Masker.NO_MASK : other.codePointAt(0);
+    final int upperMask = Masker.getMaskCharacter(upper);
+    final int lowerMask = Masker.getMaskCharacter(lower);
+    final int digitMask = Masker.getMaskCharacter(digit);
+    final int otherMask = Masker.getMaskCharacter(other);
     final Masker masker = new Masker(upperMask, lowerMask, digitMask, otherMask);
     return doMask(masker, input, numChars);
   }

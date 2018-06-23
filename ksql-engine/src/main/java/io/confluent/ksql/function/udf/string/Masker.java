@@ -21,7 +21,7 @@ class Masker {
   private static final int DEFAULT_DIGIT_MASK = 'n';
   private static final int DEFAULT_OTHER_MASK = '-';
   // safe to use MAX_VALUE because codepoints use only the lower 21 bits of an int
-  static final int NO_MASK = Integer.MAX_VALUE;
+  private static final int NO_MASK = Integer.MAX_VALUE;
 
   private int upperMask = DEFAULT_UPPERCASE_MASK;
   private int lowerMask = DEFAULT_LOWERCASE_MASK;
@@ -69,5 +69,9 @@ class Masker {
         break;
     }
     return c;
+  }
+
+  static int getMaskCharacter(String stringMask) {
+    return stringMask == null ? NO_MASK : stringMask.codePointAt(0);
   }
 }

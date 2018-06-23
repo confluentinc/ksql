@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -24,15 +23,10 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class MaskLeftKudfTest {
-  private MaskLeftKudf udf;
+  private final MaskLeftKudf udf = new MaskLeftKudf();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-
-  @Before
-  public void setUp() {
-    udf = new MaskLeftKudf();
-  }
 
   @Test
   public void shouldMaskFirstNChars() {
@@ -44,36 +38,18 @@ public class MaskLeftKudfTest {
   public void shouldMaskAllCharsIfLengthTooLong() {
     final String result = udf.mask("AbCd#$123xy Z", 999);
     assertThat(result, is("XxXx--nnnxx-X"));
- }
+  }
 
   @Test
   public void shouldThrowIfLengthIsNegative() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("mask_left requires a non-negative number");
     final String result = udf.mask("AbCd#$123xy Z", -1);
- }
+  }
 
   @Test
   public void shouldReturnNullForNullInput() {
     final String result = udf.mask(null, 5);
     assertThat(result, is(nullValue()));
- }
-//  @Test
-//  public void shouldApplyAllExplicitTypeMasks() {
-//    final String result = udf.mask("AbCd#$123xy Z", "Q", "q", "9", "@");
-//    assertThat(result, is("QqQq@@999qq@Q"));
-//  }
-//
-//  @Test
-//  public void shouldMaskNothingIfNullMasks() {
-//    final String result = udf.mask("AbCd#$123xy Z", null, null, null, null);
-//    assertThat(result, is("AbCd#$123xy Z"));
-//  }
-//
-//  @Test
-//  public void shouldMaskOnlySpecifiedCharTypes() {
-//    final String result = udf.mask("AbCd#$123xy Z", null, "q", null, "=");
-//    assertThat(result, is("AqCq==123qq=Z"));
-//  }
-
+  }
 }

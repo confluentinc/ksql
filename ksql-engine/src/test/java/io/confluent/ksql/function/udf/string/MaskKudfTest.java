@@ -14,19 +14,13 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class MaskKudfTest {
-  private MaskKudf udf;
-
-  @Before
-  public void setUp() {
-    udf = new MaskKudf();
-  }
+  private final MaskKudf udf = new MaskKudf();
 
   @Test
   public void shouldApplyAllDefaultTypeMasks() {

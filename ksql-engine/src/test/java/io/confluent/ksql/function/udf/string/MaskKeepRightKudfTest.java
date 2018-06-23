@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -24,15 +23,10 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class MaskKeepRightKudfTest {
-  private MaskKeepRightKudf udf;
+  private final MaskKeepRightKudf udf = new MaskKeepRightKudf();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-
-  @Before
-  public void setUp() {
-    udf = new MaskKeepRightKudf();
-  }
 
   @Test
   public void shouldNotMaskLastNChars() {

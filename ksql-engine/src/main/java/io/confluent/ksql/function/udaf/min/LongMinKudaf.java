@@ -29,7 +29,8 @@ public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
 
   LongMinKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA)
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "computes the minimum long value for a key"
     );
   }
 

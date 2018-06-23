@@ -48,7 +48,8 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
         functionName, argIndexInValue,
         ArrayList::new,
         SchemaBuilder.array(outputSchema).optional().build(),
-        Collections.singletonList(outputSchema)
+        Collections.singletonList(outputSchema),
+        "calculates topk Distinct"
     );
 
     this.tkVal = tkVal;
@@ -125,5 +126,9 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     final int udafIndex = aggregateFunctionArguments.udafIndex();
     final int tkValFromArg = Integer.parseInt(aggregateFunctionArguments.arg(1));
     return new TopkDistinctKudaf<>(functionName, udafIndex, tkValFromArg, outputSchema, ttClass);
+  }
+
+  Schema getOutputSchema() {
+    return outputSchema;
   }
 }

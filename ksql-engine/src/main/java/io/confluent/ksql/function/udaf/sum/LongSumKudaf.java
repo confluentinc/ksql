@@ -31,7 +31,8 @@ public class LongSumKudaf
 
   LongSumKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA));
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "computes the sum for a key");
   }
 
   @Override

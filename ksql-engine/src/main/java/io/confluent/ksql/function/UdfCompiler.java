@@ -163,15 +163,19 @@ public class UdfCompiler {
   }
 
   @SuppressWarnings("unchecked")
-  KsqlAggregateFunction compileAggregate(final Method method,
+  KsqlAggregateFunction<?, ?> compileAggregate(final Method method,
                                          final ClassLoader loader,
-                                         final String functionName) {
+                                         final String functionName,
+                                         final String description) {
     final Pair<Type, Type> valueAndAggregateTypes
         = getValueAndAggregateTypes(method, functionName);
     try {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
-      final String udafClass = generateUdafClass(generatedClassName, method, functionName);
+      final String udafClass = generateUdafClass(generatedClassName,
+          method,
+          functionName,
+          description);
       LOGGER.debug("Generated class for functionName={}, method={} class{}\n",
           functionName,
           method.getName(),
@@ -264,7 +268,8 @@ public class UdfCompiler {
 
   private String generateUdafClass(final String generatedClassName,
                                    final Method method,
-                                   final String functionName) {
+                                   final String functionName,
+                                   final String description) {
     final Class<?>[] params = method.getParameterTypes();
     final String udafFactoryArguments = IntStream.range(0, params.length)
         .mapToObj(index -> {
@@ -287,6 +292,7 @@ public class UdfCompiler {
         .replaceAll("#METHOD", method.getName())
         .replaceAll("#RETURN_TYPE", "SchemaBuilder.string()")
         .replaceAll("#NAME", functionName)
+        .replaceAll("#DESCRIPTION", description)
         .replaceAll("#ARGS", udafFactoryArguments)
         .replaceAll("#ARG_COUNT", String.valueOf(params.length + 1))
         .replaceAll("#ADD_TABLE_AGG", supportsTableAgg

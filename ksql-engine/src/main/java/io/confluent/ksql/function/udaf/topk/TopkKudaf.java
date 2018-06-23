@@ -49,7 +49,8 @@ public class TopkKudaf<T extends Comparable<? super T>>
         argIndexInValue,
         ArrayList::new,
         returnType,
-        argumentTypes
+        argumentTypes,
+        "calculates the topk"
     );
     this.topKSize = topKSize;
     this.returnType = returnType;

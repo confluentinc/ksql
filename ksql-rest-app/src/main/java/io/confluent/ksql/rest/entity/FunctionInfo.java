@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class FunctionInfo {
+
   private final List<String> argumentTypes;
   private final String returnType;
   private final String description;

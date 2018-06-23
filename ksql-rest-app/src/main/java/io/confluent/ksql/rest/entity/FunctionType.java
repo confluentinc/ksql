@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.rest.entity;
 
-public class UdafInstanceFactory {
-}
+public enum FunctionType { scalar, aggregate }

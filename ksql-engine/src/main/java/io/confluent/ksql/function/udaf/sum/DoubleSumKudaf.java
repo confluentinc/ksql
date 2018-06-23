@@ -32,7 +32,8 @@ public class DoubleSumKudaf
 
   DoubleSumKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> 0.0, Schema.OPTIONAL_FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "computes the sum for a key"
     );
   }
 

@@ -38,4 +38,8 @@ public interface FunctionRegistry {
   FunctionRegistry copy();
 
   List<UdfFactory> listFunctions();
+
+  AggregateFunctionFactory getAggregateFactory(String functionName);
+
+  List<AggregateFunctionFactory> listAggregateFunctions();
 }

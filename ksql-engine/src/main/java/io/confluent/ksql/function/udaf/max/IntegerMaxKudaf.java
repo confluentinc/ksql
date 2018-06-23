@@ -29,7 +29,8 @@ public class IntegerMaxKudaf extends BaseAggregateFunction<Integer, Integer> {
 
   IntegerMaxKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> Integer.MIN_VALUE, Schema.OPTIONAL_INT32_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA)
+          Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+        "computes the maximum integer value for a key"
     );
   }
 

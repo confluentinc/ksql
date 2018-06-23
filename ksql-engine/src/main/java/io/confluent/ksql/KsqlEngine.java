@@ -130,7 +130,7 @@ public class KsqlEngine implements Closeable {
                     final MetaStore metaStore) {
 
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient(
-        (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
+         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
          metaStore
     );
   }
@@ -615,11 +615,10 @@ public class KsqlEngine implements Closeable {
     return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }
 
-  public Map<String, Object> getKsqlConfigProperties() {
-    Map<String, Object> configProperties = new HashMap<>();
-    configProperties.putAll(ksqlConfig.getKsqlConfigProps());
-    configProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
-    return configProperties;
+  public Map<String, Object> getKsqlConfigProperties(Map<String, Object> overwriteProperties) {
+    return ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
+        .getAllProps();
   }
 
   public KsqlConfig getKsqlConfig() {

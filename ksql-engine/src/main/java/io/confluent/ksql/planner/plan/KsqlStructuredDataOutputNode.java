@@ -96,7 +96,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    final Map<String, Object> outputProperties = getOutputProperties();
     final PlanNode source = getSource();
     final SchemaKStream schemaKStream = source.buildStream(
         builder,
@@ -117,18 +116,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
 
 
-    if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
-      ksqlConfig.put(
-          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-          outputProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
-      );
-    }
-    if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
-      ksqlConfig.put(
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-          outputProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-      );
-    }
+    final int partitions = (Integer) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+    final short replicas = (Short) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
 
     final SchemaKStream result = createOutputStream(
         schemaKStream,
@@ -140,10 +133,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
-      createSinkTopic(noRowKey.getKafkaTopicName(),
-                      ksqlConfig,
-                      kafkaTopicClient,
-                      shouldBeCompacted(result));
+      createSinkTopic(
+          noRowKey.getKafkaTopicName(),
+          kafkaTopicClient,
+          shouldBeCompacted(result),
+          partitions,
+          replicas);
     }
     result.into(
         noRowKey.getKafkaTopicName(),
@@ -216,15 +211,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void createSinkTopic(
       final String kafkaTopicName,
-      final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final boolean isCompacted
+      final boolean isCompacted,
+      final int numberOfPartitions,
+      final short numberOfReplications
   ) {
-    int numberOfPartitions =
-        (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-    short numberOfReplications =
-        (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-
     final Map<String, ?> config = isCompacted
         ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
         : Collections.emptyMap();

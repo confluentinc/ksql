@@ -41,8 +41,8 @@ public class KsqlConfigTest {
 
     KsqlConfig ksqlConfig = new KsqlConfig(initialProps);
 
-    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(10));
-    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo((short) 3));
+    assertThat(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(10));
+    assertThat(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo((short) 3));
 
   }
 
@@ -89,7 +89,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
             KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-2"));
-    Object result = ksqlConfigClone.getKsqlConfigProps().get(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    String result = ksqlConfigClone.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     assertThat(result, equalTo("test-2"));
   }
 

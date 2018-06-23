@@ -17,7 +17,9 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -32,17 +34,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class StringTimestampExtractionPolicyTest {
 
   private static final String format = "yyyy-MM-DD";
-  private final KsqlConfig config = new KsqlConfig(Collections.singletonMap(
-      KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 1));
+  private final KsqlConfig config = new KsqlConfig(Collections.emptyMap());
 
   private final Map<String, Object> properties = new HashMap<>();
   private final StringTimestampExtractionPolicy policy
       = new StringTimestampExtractionPolicy("field", format);
 
+  @Before
+  public void setup() {
+    config.setKsqlTimestampColumnIndex(1);
+  }
+
   @Test
   public void shouldSetTimestampColumnIndexFromConfig() {
     policy.applyTo(config, properties);
-    assertThat(properties.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
+    assertThat(properties.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
   }
 
   @Test
@@ -55,7 +61,7 @@ public class StringTimestampExtractionPolicyTest {
   @Test
   public void shouldSetFormatInProperties() {
     policy.applyTo(config, properties);
-    assertThat(properties.get(KsqlConfig.STRING_TIMESTAMP_FORMAT),
+    assertThat(properties.get(KsqlConstants.STRING_TIMESTAMP_FORMAT),
         equalTo(format));
   }
 

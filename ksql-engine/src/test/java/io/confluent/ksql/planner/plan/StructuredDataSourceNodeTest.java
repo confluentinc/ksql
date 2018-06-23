@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -123,7 +124,7 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldAddTimestampIndexToConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
+    assertThat(ksqlConfig.getKsqlTimestampColumnIndex(), equalTo(1));
   }
 
   @Test

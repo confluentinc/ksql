@@ -111,19 +111,9 @@ public class WindowingIntTest {
     assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
-
-  @Test
-  public void shouldAggregateCustomUdaf() throws Exception {
-    verifyAggTumbling("CUSTOM_UDAF_TEST", String.format(
-        "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-        "CUSTOM_UDAF_TEST",
-        "ITEMID, COUNT(ITEMID), TEST_UDAF(ORDERUNITS), TEST_UDAF(ORDERUNITS * 10)/COUNT(*)",
-        "TUMBLING ( SIZE 10 SECONDS)"));
-  }
-
+  
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
-
     verifyAggTumbling("TUMBLING_AGGTEST", String.format(
         "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
         "TUMBLING_AGGTEST",

@@ -21,10 +21,12 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.KsqlException;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   private final Map<List<Schema>, KsqlAggregateFunction> aggregateFunctions = new HashMap<>();
@@ -39,6 +41,13 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
-    return aggregateFunctions.get(argTypeList);
+    final KsqlAggregateFunction ksqlAggregateFunction = aggregateFunctions.get(argTypeList);
+    if (ksqlAggregateFunction == null) {
+      throw new KsqlException("There is no aggregate function with name='" + functionName
+          + "' that has arguments of type="
+          + argTypeList.stream().map(schema -> schema.type().getName())
+          .collect(Collectors.joining(",")));
+    }
+    return ksqlAggregateFunction;
   }
 }

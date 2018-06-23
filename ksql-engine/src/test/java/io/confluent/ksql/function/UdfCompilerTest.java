@@ -178,8 +178,8 @@ public class UdfCompilerTest {
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);
     final KafkaMetric metric = metrics.metric(
-        metrics.metricName("ksql-udaf-aggregate-test-udf-createSumLong-count",
-        "ksql-udaf-aggregate-test-udf-createSumLong"));
+        metrics.metricName("aggregate-test-udf-createSumLong-count",
+        "ksql-udaf-test-udf-createSumLong"));
     assertThat(metric.metricValue(), equalTo(2.0));
   }
 

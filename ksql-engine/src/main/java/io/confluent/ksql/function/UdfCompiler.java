@@ -202,7 +202,8 @@ public class UdfCompiler {
     final String functionInfo = "method='" + method.getName()
         + "', functionName='" + functionName + "' UDFClass='" + method.getDeclaringClass() + "'";
     final String invalidClass = "class='%s'"
-        + " is not supported by UDAFs. " + functionInfo;
+        + " is not supported by UDAFs. Valid types are: " + typeConverters.keySet() + " "
+        + functionInfo;
 
     if (!(Udaf.class.equals(method.getReturnType())
         || TableUdaf.class.equals(method.getReturnType()))) {

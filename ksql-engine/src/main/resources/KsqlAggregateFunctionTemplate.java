@@ -49,36 +49,37 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction #ADD_TABLE_AGG{
 
   private void initMetrics(final Optional<Metrics> metrics) {
     if (metrics.isPresent()) {
+      final String groupName = "ksql-udaf-#NAME-#METHOD";
       final Metrics theMetrics = (Metrics)metrics.get();
-      final String aggSensorName = "ksql-udaf-aggregate-#NAME-#METHOD";
+      final String aggSensorName = "aggregate-#NAME-#METHOD";
       if(theMetrics.getSensor(aggSensorName) == null) {
       final Sensor sensor = theMetrics.sensor(aggSensorName);
-        sensor.add(theMetrics.metricName(aggSensorName + "-avg", aggSensorName,
+        sensor.add(theMetrics.metricName(aggSensorName + "-avg", groupName,
         "Average time for an aggregate invocation of #NAME #METHOD udaf"),
         new Avg());
-        sensor.add(theMetrics.metricName(aggSensorName + "-max", aggSensorName,
+        sensor.add(theMetrics.metricName(aggSensorName + "-max", groupName,
         "Max time for an aggregate invocation of #NAME #METHOD udaf"),
         new Max());
-        sensor.add(theMetrics.metricName(aggSensorName + "-count", aggSensorName,
+        sensor.add(theMetrics.metricName(aggSensorName + "-count", groupName,
         "Total number of aggregate invocations of #NAME #METHOD udaf"),
         new Count());
-        sensor.add(theMetrics.metricName(aggSensorName + "-rate", aggSensorName,
+        sensor.add(theMetrics.metricName(aggSensorName + "-rate", groupName,
         "The average number of occurrences of aggregate #NAME #METHOD operation per second udaf"),
         new Rate(TimeUnit.SECONDS, new Count()));
       }
-      final String mergeSensorName = "ksql-udaf-merge-#NAME-#METHOD";
+      final String mergeSensorName = "merge-#NAME-#METHOD";
       if(theMetrics.getSensor(mergeSensorName) == null) {
         final Sensor sensor = theMetrics.sensor(mergeSensorName);
-        sensor.add(theMetrics.metricName(mergeSensorName + "-avg", mergeSensorName,
+        sensor.add(theMetrics.metricName(mergeSensorName + "-avg", groupName,
         "Average time for a merge invocation of #NAME #METHOD udaf"),
         new Avg());
-        sensor.add(theMetrics.metricName(mergeSensorName + "-max", mergeSensorName,
+        sensor.add(theMetrics.metricName(mergeSensorName + "-max", groupName,
         "Max time for a merge invocation of #NAME #METHOD udaf"),
         new Max());
-        sensor.add(theMetrics.metricName(mergeSensorName + "-count", mergeSensorName,
+        sensor.add(theMetrics.metricName(mergeSensorName + "-count", groupName,
         "Total number of merge invocations of #NAME #METHOD udaf"),
         new Count());
-        sensor.add(theMetrics.metricName(mergeSensorName + "-rate", mergeSensorName,
+        sensor.add(theMetrics.metricName(mergeSensorName + "-rate", groupName,
         "The average number of occurrences of merge #NAME #METHOD operation per second udaf"),
         new Rate(TimeUnit.SECONDS, new Count()));
       }

@@ -44,6 +44,31 @@ public class TestUdaf {
     };
   }
 
+  @UdafFactory(description = "sums int")
+  public static TableUdaf<Integer, Long> createSumInt() {
+    return new TableUdaf<Integer, Long>() {
+      @Override
+      public Long undo(final Integer valueToUndo, final Long aggregateValue) {
+        return aggregateValue - valueToUndo;
+      }
+
+      @Override
+      public Long initialize() {
+        return 0L;
+      }
+
+      @Override
+      public Long aggregate(final Integer current, final Long aggregate) {
+        return current + aggregate;
+      }
+
+      @Override
+      public Long merge(final Long aggOne, final Long aggTwo) {
+        return aggOne + aggTwo;
+      }
+    };
+  }
+
   @UdafFactory(description = "sums double")
   public static Udaf<Double, Double> createSumDouble() {
     return new Udaf<Double, Double>() {

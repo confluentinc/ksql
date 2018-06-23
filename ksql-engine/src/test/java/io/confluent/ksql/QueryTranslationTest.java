@@ -36,6 +36,7 @@ import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,6 +54,7 @@ import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -63,7 +65,8 @@ import io.confluent.ksql.util.QueryMetadata;
 public class QueryTranslationTest {
 
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
-  private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+  private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
   private final Map<String, Object> config = new HashMap<String, Object>() {{
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     put("application.id", "KSQL-TEST");
@@ -81,6 +84,14 @@ public class QueryTranslationTest {
   private Query query;
 
   private KsqlEngine ksqlEngine;
+
+  @BeforeClass
+  public static void loadUdfs() {
+    // don't use the actual metastore, aim is just to get the functions into the registry.
+    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
+    // test
+    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+  }
 
   @Before
   public void before() {
@@ -287,7 +298,7 @@ public class QueryTranslationTest {
 
       String test;
       while ((test = reader.readLine()) != null) {
-        if (test.endsWith(".json")) {
+        if (test.endsWith("test-custom-udaf.json")) {
           tests.add(test);
         }
       }

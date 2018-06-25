@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -146,8 +147,6 @@ import static java.util.stream.Collectors.toList;
 
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
-  private static final String DOT = ".";
-  private static final String STRUC_FIELD_REF = "->";
 
   private int selectItemIndex = 0;
 
@@ -636,11 +635,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 )
           )) {
           alias = Optional.of(replaceDotFieldRef(dereferenceExpressionString));
-        } else if (dereferenceExpressionString.contains(STRUC_FIELD_REF)) {
+        } else if (dereferenceExpressionString.contains(KsqlConstants.STRUCT_FIELD_REF)) {
           alias = Optional.of(
               replaceDotFieldRef(
                   dereferenceExpressionString.substring(
-                      dereferenceExpressionString.indexOf(DOT) + 1)));
+                      dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
         } else {
           alias = Optional.of(dereferenceExpression.getFieldName());
         }
@@ -654,8 +653,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
   }
 
-  private String replaceDotFieldRef(String input) {
-    return input.replace(DOT, "_").replace(STRUC_FIELD_REF, "__");
+  private static String replaceDotFieldRef(final String input) {
+    return input.replace(KsqlConstants.DOT, "_").replace(KsqlConstants.STRUCT_FIELD_REF, "__");
   }
 
   @Override

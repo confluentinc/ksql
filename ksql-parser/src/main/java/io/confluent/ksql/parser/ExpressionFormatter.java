@@ -69,6 +69,7 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -235,9 +236,9 @@ public final class ExpressionFormatter {
     protected String visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames) {
       String baseString = process(node.getBase(), unmangleNames);
       if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + "." + formatIdentifier(node.getFieldName());
+        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName());
       }
-      return baseString + "->" + formatIdentifier(node.getFieldName());
+      return baseString + KsqlConstants.STRUCT_FIELD_REF + formatIdentifier(node.getFieldName());
     }
 
     private static String formatQualifiedName(QualifiedName name) {
@@ -245,7 +246,7 @@ public final class ExpressionFormatter {
       for (String part : name.getParts()) {
         parts.add(formatIdentifier(part));
       }
-      return Joiner.on('.').join(parts);
+      return Joiner.on(KsqlConstants.DOT).join(parts);
     }
 
     @Override

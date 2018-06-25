@@ -224,10 +224,13 @@ public abstract class Console implements Closeable {
 
   private static List<List<String>> propertiesRowValues(Map<String, Object> properties) {
     return properties.entrySet().stream()
-        .map(propertyEntry -> Arrays.asList(
-            propertyEntry.getKey(),
-            Objects.toString(propertyEntry.getValue())
-        )).collect(Collectors.toList());
+        .sorted(Map.Entry.comparingByKey())
+        .map(
+            propertyEntry -> Arrays.asList(
+                propertyEntry.getKey(),
+                Objects.toString(propertyEntry.getValue())
+            ))
+        .collect(Collectors.toList());
   }
 
 
@@ -386,13 +389,8 @@ public abstract class Console implements Closeable {
           .withColumnHeaders("Message")
           .withRow(commandStatus.getMessage().split("\n", 2)[0]);
     } else if (ksqlEntity instanceof PropertiesList) {
-      PropertiesList
-          propertiesList =
-          CliUtils.propertiesListWithOverrides(
-              (PropertiesList) ksqlEntity,
-              restClient.getLocalProperties()
-          );
-      Map<String, Object> properties = propertiesList.getProperties();
+      Map<String, Object> properties = CliUtils.propertiesListWithOverrides(
+          (PropertiesList) ksqlEntity);
       tableBuilder
           .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
           .withRows(propertiesRowValues(properties));
@@ -726,21 +724,7 @@ public abstract class Console implements Closeable {
   }
 
   private void printAsJson(Object o) throws IOException {
-    if (o instanceof PropertiesList) {
-      o = CliUtils.propertiesListWithOverrides((PropertiesList) o, restClient.getLocalProperties());
-    } else if (o instanceof KsqlEntityList) {
-      List<KsqlEntity> newEntities = new ArrayList<>();
-      for (KsqlEntity ksqlEntity : (KsqlEntityList) o) {
-        if (ksqlEntity instanceof PropertiesList) {
-          ksqlEntity = CliUtils.propertiesListWithOverrides(
-              (PropertiesList) ksqlEntity,
-              restClient.getLocalProperties()
-          );
-        }
-        newEntities.add(ksqlEntity);
-      }
-      o = newEntities;
-    } else {
+    if (!((o instanceof PropertiesList || (o instanceof KsqlEntityList)))) {
       log.warn(
           "Unexpected result class: '{}' found in printAsJson",
           o.getClass().getCanonicalName()

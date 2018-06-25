@@ -17,7 +17,9 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -31,17 +33,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class LongTimestampExtractionPolicyTest {
 
-  private final KsqlConfig config = new KsqlConfig(Collections.singletonMap(
-      KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 1));
+  private final KsqlConfig config = new KsqlConfig(Collections.emptyMap());
 
   private final Map<String, Object> properties = new HashMap<>();
   private final LongColumnTimestampExtractionPolicy policy
       = new LongColumnTimestampExtractionPolicy("field");
 
+  @Before
+  public void setup() {
+    config.setKsqlTimestampColumnIndex(1);
+  }
+
   @Test
   public void shouldSetTimestampColumnIndexFromConfig() {
     policy.applyTo(config, properties);
-    assertThat(properties.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
+    assertThat(properties.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
   }
 
   @Test

@@ -45,4 +45,7 @@ public class KsqlConstants {
   public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
   public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
+
+  public static final String DOT = ".";
+  public static final String STRUCT_FIELD_REF = "->";
 }

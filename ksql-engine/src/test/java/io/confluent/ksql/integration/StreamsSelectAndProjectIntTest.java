@@ -45,7 +45,7 @@ public class StreamsSelectAndProjectIntTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
+    testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
     testHarness.createTopic(jsonTopicName);
     testHarness.createTopic(avroTopicName);

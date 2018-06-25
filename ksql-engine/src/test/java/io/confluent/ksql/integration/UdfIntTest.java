@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,7 +50,7 @@ public class UdfIntTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
+    testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
     testHarness.createTopic(jsonTopicName);
 
@@ -59,7 +60,7 @@ public class UdfIntTest {
     new UdfLoader(ksqlContext.getMetaStore(),
         TestUtils.tempDirectory(),
         getClass().getClassLoader(),
-        value -> true, new UdfCompiler(), new Metrics(), true, false)
+        value -> true, new UdfCompiler(Optional.empty()), Optional.empty(), true)
         .load();
 
     /**

@@ -17,6 +17,7 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Test;
@@ -28,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,8 +42,8 @@ public class StringTimestampExtractorTest {
   @Test
   public void shouldExtractTimestampFromStringWIthFormat() throws ParseException {
     final Map props = new HashMap() {{
-      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, format);
-      put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
+      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, format);
+      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
     }};
     timestampExtractor.configure(props);
     final String stringTime = "2010-Jan-11";
@@ -59,22 +59,22 @@ public class StringTimestampExtractorTest {
   @Test(expected = ConfigException.class)
   public void shouldThrowIfFormatNotSuppliedDuringConfigure() {
     timestampExtractor.configure(Collections.singletonMap(
-        KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+        KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX,
         0));
   }
 
   @Test(expected = ConfigException.class)
   public void shouldThrowIfColumnIndexNotSet() {
     timestampExtractor.configure(Collections.singletonMap(
-        KsqlConfig.STRING_TIMESTAMP_FORMAT,
+        KsqlConstants.STRING_TIMESTAMP_FORMAT,
         format));
   }
 
   @Test(expected = ConfigException.class)
   public void shouldThrowIfColumnIndexIsNegative() {
     final Map props = new HashMap() {{
-      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, format);
-      put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, -1);
+      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, format);
+      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, -1);
     }};
     timestampExtractor.configure(props);
   }
@@ -83,8 +83,8 @@ public class StringTimestampExtractorTest {
   @Test(expected = ConfigException.class)
   public void shouldThrowOnInvalidFormat() {
     final Map props = new HashMap() {{
-      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, "lahdfl");
-      put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
+      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, "lahdfl");
+      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
     }};
     timestampExtractor.configure(props);
 

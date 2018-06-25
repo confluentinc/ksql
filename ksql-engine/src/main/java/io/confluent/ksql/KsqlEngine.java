@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -129,7 +130,7 @@ public class KsqlEngine implements Closeable {
                     final MetaStore metaStore) {
 
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient(
-        (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
+         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
          metaStore
     );
   }
@@ -328,7 +329,12 @@ public class KsqlEngine implements Closeable {
             tempMetaStoreForParser
         );
         Statement statement = statementInfo.getLeft();
-
+        if (StatementRewriteForStruct.requiresRewrite(statement)) {
+          statement = new StatementRewriteForStruct(
+              statement,
+              statementInfo.getRight())
+              .rewriteForStruct();
+        }
         Pair<String, Statement> queryPair =
             buildSingleQueryAst(
                 statement,
@@ -609,11 +615,10 @@ public class KsqlEngine implements Closeable {
     return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }
 
-  public Map<String, Object> getKsqlConfigProperties() {
-    Map<String, Object> configProperties = new HashMap<>();
-    configProperties.putAll(ksqlConfig.getKsqlConfigProps());
-    configProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
-    return configProperties;
+  public Map<String, Object> getKsqlConfigProperties(Map<String, Object> overwriteProperties) {
+    return ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
+        .getAllProps();
   }
 
   public KsqlConfig getKsqlConfig() {

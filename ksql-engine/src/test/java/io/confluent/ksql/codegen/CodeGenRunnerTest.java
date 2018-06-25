@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -467,6 +468,28 @@ public class CodeGenRunnerTest {
         assertThat(metadata.getExpressionEvaluator()
                 .evaluate(params),
             equalTo("adelaide"));
+    }
+
+    @Test
+    public void shouldHandleFunctionWithNullArgument() {
+        final String query =
+            "SELECT test_udf(col0, NULL) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongString")));
+    }
+
+    @Test
+    public void shouldChoseFunctionWithCorrectNumberOfArgsWhenNullArgument() {
+        final String query =
+            "SELECT test_udf(col0, col0, NULL) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongLongString")));
     }
 
     private List<Object> executeExpression(final String query,

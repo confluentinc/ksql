@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -305,7 +306,7 @@ public class KsqlResource {
           statementText,
           describe(showColumns.getTable().getSuffix(), showColumns.isExtended()));
     } else if (statement instanceof ListProperties) {
-      return listProperties(statementText);
+      return listProperties(statementText, streamsProperties);
     } else if (statement instanceof Explain) {
       Explain explain = (Explain) statement;
       return new QueryDescriptionEntity(
@@ -463,8 +464,17 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  private PropertiesList listProperties(String statementText) {
-    return new PropertiesList(statementText, ksqlEngine.getKsqlConfigProperties());
+  private PropertiesList listProperties(final String statementText,
+                                        final Map<String, Object> overwriteProperties) {
+    final Map<String, Object> engineProperties
+        = ksqlEngine.getKsqlConfigProperties(Collections.emptyMap());
+    final Map<String, Object> mergedProperties
+        = ksqlEngine.getKsqlConfigProperties(overwriteProperties);
+    final List<String> overwritten = mergedProperties.keySet()
+        .stream()
+        .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))
+        .collect(Collectors.toList());
+    return new PropertiesList(statementText, mergedProperties, overwritten);
   }
 
   private KsqlEntity listStreams(String statementText, boolean showDescriptions) {

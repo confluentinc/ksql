@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -122,7 +123,7 @@ public class TopicStream {
       }
     },
     JSON {
-      final ObjectMapper objectMapper = new ObjectMapper();
+      final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
       @Override
       public boolean isFormat(

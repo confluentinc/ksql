@@ -74,4 +74,8 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
   public Schema getReturnType() {
     return returnType;
   }
+
+  public List<Schema> getArgTypes() {
+    return arguments;
+  }
 }

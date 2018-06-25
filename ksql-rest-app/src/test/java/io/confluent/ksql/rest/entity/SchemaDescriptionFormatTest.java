@@ -3,6 +3,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -14,14 +15,14 @@ import static org.junit.Assert.assertThat;
 
 public class SchemaDescriptionFormatTest {
   private ObjectMapper newObjectMapper() {
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.registerModule(new Jdk8Module());
     return objectMapper;
   }
 
   private void shouldSerializeCorrectly(final String descriptionString,
                                         final List<FieldInfo> deserialized) throws IOException {
-    final ObjectMapper objectMapper = newObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     final List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
     final String serialized=  objectMapper.writeValueAsString(deserialized);
     assertThat(
@@ -67,7 +68,7 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = newObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 
@@ -114,7 +115,7 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = newObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 
@@ -149,7 +150,7 @@ public class SchemaDescriptionFormatTest {
         "  }\n" +
         "]";
 
-    final ObjectMapper objectMapper = newObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     final List<FieldInfo> deserialized = objectMapper.readValue(
         descriptionString, new TypeReference<List<FieldInfo>>(){});
 

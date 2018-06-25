@@ -41,6 +41,15 @@ import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
+import io.confluent.ksql.function.udf.url.UrlDecodeParamKudf;
+import io.confluent.ksql.function.udf.url.UrlEncodeParamKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractFragmentKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractHostKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractParameterKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractPathKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractPortKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractProtocolKudf;
+import io.confluent.ksql.function.udf.url.UrlExtractQueryKudf;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -77,6 +86,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addDateTimeFunctions();
     addGeoFunctions();
     addJsonFunctions();
+    addUrlFunctions();
     addStructFieldFetcher();
     addUdafFunctions();
   }
@@ -226,7 +236,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "RANDOM", RandomKudf.class);
     addFunction(random);
 
-
   }
 
 
@@ -298,6 +307,45 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
             Schema.OPTIONAL_FLOAT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
+  }
+
+  private void addUrlFunctions() {
+    KsqlFunction urlEncodeParam = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_encode_param", UrlEncodeParamKudf.class);
+    addFunction(urlEncodeParam);
+
+    KsqlFunction urlDecodeParam = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_decode_param", UrlDecodeParamKudf.class);
+    addFunction(urlDecodeParam);
+
+    KsqlFunction urlProtocol = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_protocol", UrlExtractProtocolKudf.class);
+    addFunction(urlProtocol);
+
+    KsqlFunction urlHost = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_host", UrlExtractHostKudf.class);
+    addFunction(urlHost);
+
+    KsqlFunction urlPort = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_port", UrlExtractPortKudf.class);
+    addFunction(urlPort);
+
+    KsqlFunction urlPath = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_path", UrlExtractPathKudf.class);
+    addFunction(urlPath);
+
+    KsqlFunction urlQuery = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_query", UrlExtractQueryKudf.class);
+    addFunction(urlQuery);
+
+    KsqlFunction urlParameter = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA), "url_extract_parameter",
+        UrlExtractParameterKudf.class);
+    addFunction(urlParameter);
+
+    KsqlFunction urlFragment = new KsqlFunction(Schema.STRING_SCHEMA,
+        Arrays.asList(Schema.STRING_SCHEMA), "url_extract_fragment", UrlExtractFragmentKudf.class);
+    addFunction(urlFragment);
   }
 
   /***************************************

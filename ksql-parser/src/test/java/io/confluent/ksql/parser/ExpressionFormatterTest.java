@@ -43,7 +43,6 @@ import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -168,7 +167,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDereferenceExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'.name"));
+    assertThat(ExpressionFormatter.formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'->name"));
   }
 
   @Test
@@ -211,12 +210,6 @@ public class ExpressionFormatterTest {
 
     assertThat(ExpressionFormatter.formatExpression(functionCall),
         equalTo("function('name') OVER  WINDOW  WINDOW blah  TUMBLING ( SIZE 1 SECONDS ) "));
-  }
-
-  @Test
-  public void shouldFormatLambdaExpression() {
-    final LambdaExpression expression = new LambdaExpression(Arrays.asList("a", "b"), new StringLiteral("something"));
-    assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(a, b) -> 'something'"));
   }
 
   @Test

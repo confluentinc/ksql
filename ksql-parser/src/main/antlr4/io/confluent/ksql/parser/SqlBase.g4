@@ -274,8 +274,6 @@ primaryExpression
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
     | qualifiedName '(' (expression (',' expression)*)? ')' over?                    #functionCall
-    | identifier '->' expression                                                     #lambda
-    | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists
@@ -286,7 +284,8 @@ primaryExpression
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
-    | base=primaryExpression '.' fieldName=identifier                                #dereference
+    | identifier '.' identifier                                                      #columnReference
+    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                   #dereference
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
@@ -640,6 +639,8 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 
+STRUCT_FIELD_REF: '->';
+
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
     ;
@@ -663,11 +664,11 @@ DECIMAL_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' )*
     ;
 
 DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    : DIGIT (LETTER | DIGIT | '_' | '@' )+
     ;
 
 QUOTED_IDENTIFIER

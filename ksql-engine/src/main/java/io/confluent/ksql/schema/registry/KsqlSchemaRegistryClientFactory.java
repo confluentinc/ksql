@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.schema.registry;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.common.network.Mode;
 import org.apache.kafka.common.security.ssl.SslFactory;
 
+import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
@@ -35,10 +38,12 @@ public class KsqlSchemaRegistryClientFactory {
 
   private final SslFactory sslFactory;
   private final Supplier<RestService> serviceSupplier;
+  private final Map<String, Object> schemaRegistryClientConfigs;
 
   public KsqlSchemaRegistryClientFactory(final KsqlConfig config) {
     this(config, () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
-         new SslFactory(Mode.CLIENT));
+         new SslFactory(Mode.CLIENT),
+         config.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
 
     // Force config exception now:
     config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY);
@@ -46,9 +51,11 @@ public class KsqlSchemaRegistryClientFactory {
 
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
                                   final Supplier<RestService> serviceSupplier,
-                                  final SslFactory sslFactory) {
+                                  final SslFactory sslFactory,
+                                  final Map<String, Object> schemaRegistryClientConfigs) {
     this.sslFactory = sslFactory;
     this.serviceSupplier = serviceSupplier;
+    this.schemaRegistryClientConfigs = schemaRegistryClientConfigs;
 
     this.sslFactory
         .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
@@ -61,6 +68,11 @@ public class KsqlSchemaRegistryClientFactory {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }
 
-    return new CachedSchemaRegistryClient(restService, 1000);
+    return new CachedSchemaRegistryClient(restService, 1000, schemaRegistryClientConfigs);
+  }
+
+  // Visible for testing
+  ImmutableMap<String, Object> getSchemaRegistryClientConfigs() {
+    return ImmutableMap.copyOf(schemaRegistryClientConfigs);
   }
 }

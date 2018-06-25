@@ -28,9 +28,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
@@ -41,6 +43,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.testng.AssertJUnit.assertEquals;
 
 /**
  * @author andy
@@ -68,6 +71,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     EasyMock.expect(sslFactory.sslContext()).andReturn(SSL_CONTEXT);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldSetSocketFactoryWhenNoSpecificSslConfig() {
     // Given:
@@ -78,13 +82,15 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory).create();
+        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
+                                            Collections.EMPTY_MAP).create();
 
     // Then:
     assertThat(client, is(notNullValue()));
     EasyMock.verify(restService);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldPickUpNonPrefixedSslConfig() {
     // Given:
@@ -98,13 +104,15 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory).create();
+        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
+                                            Collections.EMPTY_MAP).create();
 
     // Then:
     assertThat(client, is(notNullValue()));
     EasyMock.verify(restService);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldPickUpPrefixedSslConfig() {
     // Given:
@@ -118,11 +126,38 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory).create();
+        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
+                                            Collections.EMPTY_MAP).create();
+
 
     // Then:
     assertThat(client, is(notNullValue()));
     EasyMock.verify(restService);
+  }
+
+
+  @Test
+  public void shouldPassBasicAuthCredentialsToSchemaRegistryClient() {
+    // Given
+    final Map<String, Object> schemaRegistryClientConfigs = ImmutableMap.of(
+        "ksql.schema.registry.basic.auth.credentials.source", "USER_INFO",
+        "ksql.schema.registry.basic.auth.user.info", "username:password"
+    );
+
+    final KsqlConfig config = new KsqlConfig(schemaRegistryClientConfigs);
+
+    final Map<String, Object> expectedConfigs = schemaRegistryClientConfigs.entrySet()
+        .stream()
+        .map((e) -> new AbstractMap.SimpleEntry<>(
+              e.getKey().replaceFirst(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX, ""), e.getValue())
+        )
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    // When:
+    final KsqlSchemaRegistryClientFactory factory = new KsqlSchemaRegistryClientFactory(config);
+
+    // Then:
+    assertEquals(expectedConfigs, factory.getSchemaRegistryClientConfigs());
   }
 
   private void setUpMocksWithExpectedConfig(final Map<String, Object> expectedConfigs) {

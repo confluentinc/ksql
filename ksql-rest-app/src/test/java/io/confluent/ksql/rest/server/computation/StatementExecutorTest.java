@@ -156,7 +156,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KafkaStreams mockStream = mock(KafkaStreams.class);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    final KsqlConfig expectedConfig = ksqlConfig.mergeWithOriginalConfig(
+    final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
         originalConfig.getAllConfigPropsCleaned());
 
     final StatementExecutor statementExecutor = new StatementExecutor(

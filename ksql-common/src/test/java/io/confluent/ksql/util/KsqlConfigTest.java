@@ -84,19 +84,20 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldSetStreamsConfigConsumerPrefixedProperties() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
-  }
-
-  @Test
-  public void shouldSetStreamsConfigProducerUnprefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
             StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
     Object result = ksqlConfig.getKsqlStreamConfigProps().get(
         StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigProducerUnprefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ProducerConfig.BUFFER_MEMORY_CONFIG);
+    assertThat(result, equalTo(1024L));
   }
 
   @Test
@@ -121,19 +122,19 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        Collections.singletonMap(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+    assertThat(result, equalTo(128));
   }
 
   @Test
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
     final Object result
-        = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+        = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+    assertThat(result, equalTo(128));
   }
 
   @Test
@@ -189,7 +190,7 @@ public class KsqlConfigTest {
     Map<String, String> originalProperties = ImmutableMap.of(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "not_the_default");
     KsqlConfig currentConfig = new KsqlConfig(Collections.emptyMap());
-    KsqlConfig compatibleConfig = currentConfig.mergeWithOriginalConfig(originalProperties);
+    KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
     assertThat(
         compatibleConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG),
         equalTo("not_the_default"));
@@ -199,7 +200,7 @@ public class KsqlConfigTest {
   public void shouldUseCurrentValueForCompatibilityInsensitiveConfigs() {
     Map<String, String> originalProperties = Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, "false");
     KsqlConfig currentConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, true));
-    KsqlConfig compatibleConfig = currentConfig.mergeWithOriginalConfig(originalProperties);
+    KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
     assertThat(compatibleConfig.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS), is(true));
   }
 }

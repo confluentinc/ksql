@@ -281,7 +281,7 @@ public class StatementExecutor {
               KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          ksqlConfig.mergeWithOriginalConfig(command.getOriginalProperties()),
+          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
           command.getOverwriteProperties()
       );
       for (QueryMetadata queryMetadata : queryMetadataList) {
@@ -371,7 +371,7 @@ public class StatementExecutor {
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        ksqlConfig.mergeWithOriginalConfig(command.getOriginalProperties()),
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
         command.getOverwriteProperties()
     ).get(0);
 

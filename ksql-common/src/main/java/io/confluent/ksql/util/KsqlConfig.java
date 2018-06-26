@@ -301,11 +301,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       )
   );
 
-  private static Optional<ResolvedConfig> resolveStreamsConfig(String key, final Object value) {
-    if (key.startsWith(KSQL_STREAMS_PREFIX)) {
-      key = key.substring(KSQL_STREAMS_PREFIX.length());
-    }
-    List<Pair<String, AbstractConfig>> configSpecsToTry = ImmutableList.of(
+  private static Optional<ResolvedConfig> resolveStreamsConfig(final String maybePrefixedKey,
+                                                               final Object value) {
+    final String key = maybePrefixedKey.startsWith(KSQL_STREAMS_PREFIX)
+        ? maybePrefixedKey.substring(KSQL_STREAMS_PREFIX.length()) : maybePrefixedKey;
+    final List<Pair<String, AbstractConfig>> configSpecsToTry = ImmutableList.of(
         new Pair<>(StreamsConfig.CONSUMER_PREFIX, CONSUMER_ABSTRACT_CONFIG),
         new Pair<>(StreamsConfig.PRODUCER_PREFIX, PRODUCER_ABSTRACT_CONFIG),
         new Pair<>("", CONSUMER_ABSTRACT_CONFIG),
@@ -331,7 +331,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .forEach(
-            c -> streamsConfigProps.put(c.key, c));
+            resolvedConfig -> streamsConfigProps.put(resolvedConfig.key, resolvedConfig));
   }
 
   private final ImmutableMap<String, ResolvedConfig> ksqlStreamConfigProps;
@@ -392,6 +392,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, String> getKsqlConfigPropsCleaned() {
     final Map<String, String> props = new HashMap<>();
+    // build a properties map with obfuscated values for sensitive configs.
+    // Obfuscation is handled by ConfigDef.convertToString
     configDef(true).names().stream().forEach(
         key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
     );
@@ -400,6 +402,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, String> getKsqlStreamConfigPropsCleaned() {
     final Map<String, String> props = new HashMap<>();
+    // build a properties map with obfuscated values for sensitive configs.
+    // Obfuscation is handled by ConfigDef.convertToString
     ksqlStreamConfigProps.values().forEach(
         resolvedConfig -> props.put(
             resolvedConfig.key,
@@ -410,6 +414,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, String> getAllConfigPropsCleaned() {
     final Map<String, String> allPropsCleaned = new HashMap<>();
+    // build a properties map with obfuscated values for sensitive configs.
+    // Obfuscation is handled by ConfigDef.convertToString
     allPropsCleaned.putAll(getKsqlConfigPropsCleaned());
     allPropsCleaned.putAll(
         getKsqlStreamConfigPropsCleaned().entrySet().stream().collect(
@@ -434,7 +440,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return new KsqlConfig(true, cloneProps, ImmutableMap.copyOf(streamConfigProps));
   }
 
-  public KsqlConfig mergeWithOriginalConfig(final Map<String, String> props) {
+  public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
     final Map<String, Object> mergedProperties = new HashMap<>(values());
     COMPATIBILTY_BREAKING_CONFIG_DEFS.stream()

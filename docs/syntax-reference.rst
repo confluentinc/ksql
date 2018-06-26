@@ -916,6 +916,45 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                             | The length of a string                            |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                        | Convert a string to a masked or obfuscated        |
+|                        |                                                            | version of itself. The optional arguments         |
+|                        |                                                            | following the input string to be masked are the   |
+|                        |                                                            | characters to be substituted for upper-case,      |
+|                        |                                                            | lower-case, numeric and other characters of the   |
+|                        |                                                            | input, respectively. If the mask characters are   |
+|                        |                                                            | omitted then the default values, illustrated in   |
+|                        |                                                            | the example to the left, will be applied.         |
+|                        |                                                            | Set a given mask character to NULL to prevent any |
+|                        |                                                            | masking of that character type.                   |
+|                        |                                                            | For example: ``MASK("My Test $123")`` will return |
+|                        |                                                            | ``Xx-Xxxx--nnn``, applying all default masks.     |
+|                        |                                                            | ``MASK("My Test $123", '*', NULL, '1', NULL)``    |
+|                        |                                                            | will yield ``*y *est $111``.                      |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_LEFT         |  ``MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')``    | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that the first or left-most ``numChars``          |
+|                        |                                                            | characters will not be masked in any way.         |
+|                        |                                                            | For example: ``MASK_KEEP_LEFT("My Test $123", 4)``|
+|                        |                                                            | will return ``My Txxx--nnn``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``   | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that the last or rightt-most ``numChars``         |
+|                        |                                                            | characters will not be masked in any way.         |
+|                        |                                                            | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
+|                        |                                                            | will return ``Xx-Xxxx-$123``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_LEFT              |  ``MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')``         | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that only the first or left-most ``numChars``     |
+|                        |                                                            | characters will have any masking applied to them. |
+|                        |                                                            | For example: ``MASK_LEFT("My Test $123", 4)``     |
+|                        |                                                            | will return ``Xx-Xest $123``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``        | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that only the last or rightt-most ``numChars``    |
+|                        |                                                            | characters will have any masking applied to them. |
+|                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
+|                        |                                                            | will return ``My Test -nnn``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0  |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value         |

@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -60,6 +61,15 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 
 class EndToEndEngineTestUtil {
+  private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
+  static {
+    // don't use the actual metastore, aim is just to get the functions into the registry.
+    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
+    // test
+    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+  }
+
   protected interface SerdeSupplier<T> {
     Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient);
     Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient);
@@ -436,7 +446,7 @@ class EndToEndEngineTestUtil {
   }
 
   static void shouldBuildAndExecuteQuery(final Query query) {
-    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
     final Map<String, Object> config = new HashMap<String, Object>() {{
       put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
       put("application.id", "KSQL-TEST");

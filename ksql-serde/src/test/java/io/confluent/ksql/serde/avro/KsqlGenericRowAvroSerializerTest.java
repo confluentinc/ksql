@@ -23,6 +23,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.errors.DataException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -166,7 +167,7 @@ public class KsqlGenericRowAvroSerializerTest {
     try {
       serializer.serialize("t1", genericRow);
       Assert.fail("Did not fail for incompatible types.");
-    } catch (SerializationException e) {
+    } catch (DataException e) {
     }
 
   }

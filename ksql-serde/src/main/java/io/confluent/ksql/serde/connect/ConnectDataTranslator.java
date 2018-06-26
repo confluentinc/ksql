@@ -27,9 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ConnectDataTranslator {
-  GenericRow toKsqlRow(final Schema schema, final Schema connectSchema,
-                       final Object connectData) {
+public class ConnectDataTranslator implements DataTranslator {
+  private final Schema schema;
+
+  public ConnectDataTranslator(final Schema schema) {
+    this.schema = schema;
+  }
+
+  @Override
+  public GenericRow toKsqlRow(final Schema connectSchema,
+                              final Object connectData) {
     if (!schema.type().equals(Schema.Type.STRUCT)) {
       throw new KsqlException("Schema for a KSQL row should be a struct");
     }
@@ -125,5 +132,13 @@ public class ConnectDataTranslator {
             Collectors.toMap(
                 f -> f.name().toUpperCase(),
                 Field::name));
+  }
+
+  public Struct toConnectRow(GenericRow row) {
+    Struct struct = new Struct(schema);
+    for (int i = 0; i < schema.fields().size(); i++) {
+      struct.put(schema.fields().get(i).name(), row.getColumns().get(i));
+    }
+    return struct;
   }
 }

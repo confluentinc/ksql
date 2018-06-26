@@ -164,9 +164,9 @@ public class UdfCompiler {
 
   @SuppressWarnings("unchecked")
   KsqlAggregateFunction<?, ?> compileAggregate(final Method method,
-                                         final ClassLoader loader,
-                                         final String functionName,
-                                         final String description) {
+                                               final ClassLoader loader,
+                                               final String functionName,
+                                               final String description) {
     final Pair<Type, Type> valueAndAggregateTypes
         = getValueAndAggregateTypes(method, functionName);
     try {

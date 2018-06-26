@@ -49,7 +49,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
         ArrayList::new,
         SchemaBuilder.array(outputSchema).optional().build(),
         Collections.singletonList(outputSchema),
-        "calculates topk Distinct"
+        "Calculates the Topk distinct values for a column, per key."
     );
 
     this.tkVal = tkVal;

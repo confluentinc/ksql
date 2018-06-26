@@ -32,8 +32,8 @@ public class CountKudaf
 
   CountKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "counts records by key"
+        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "Counts records by key."
     );
   }
 

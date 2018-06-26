@@ -50,7 +50,7 @@ public class TopkKudaf<T extends Comparable<? super T>>
         ArrayList::new,
         returnType,
         argumentTypes,
-        "calculates the topk"
+        "Calculates the TopK value for a column, per key."
     );
     this.topKSize = topKSize;
     this.returnType = returnType;

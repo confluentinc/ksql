@@ -32,8 +32,8 @@ public class IntegerSumKudaf
 
   IntegerSumKudaf(String functionName, int argIndexInValue) {
     super(functionName, argIndexInValue, () -> 0, Schema.OPTIONAL_INT32_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
-        "computes the sum for a key"
+        Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+        "Computes the sum for a key."
     );
   }
 

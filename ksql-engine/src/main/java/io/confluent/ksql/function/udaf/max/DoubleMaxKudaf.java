@@ -31,7 +31,7 @@ public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
     super(functionName, argIndexInValue, () -> Double.NEGATIVE_INFINITY,
         Schema.OPTIONAL_FLOAT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "computes the maximum double value for a key"
+        "Computes the maximum double value for a key."
     );
   }
 

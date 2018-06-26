@@ -98,6 +98,11 @@ public class UdfLoader {
     loadUdfs(parentClassLoader, Optional.empty());
     if (loadCustomerUdfs) {
       try {
+        if (!pluginDir.exists() && !pluginDir.isDirectory()) {
+          LOGGER.info("UDFs can't be loaded as as dir {} doesn't exist or is not a directory",
+              pluginDir);
+          return;
+        }
         Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
             .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
             .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));

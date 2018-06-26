@@ -63,6 +63,7 @@ import io.github.lukehutch.fastclasspathscanner.matchprocessor.MethodAnnotationM
 public class UdfLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
+  private static final String UDF_METRIC_GROUP = "ksql-udf";
 
   private final MetaStore metaStore;
   private final File pluginDir;
@@ -140,7 +141,8 @@ public class UdfLoader {
   ) {
     return (theClass) ->  {
       final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-      final List<KsqlAggregateFunction> aggregateFunctions = Arrays.stream(theClass.getMethods())
+      final List<KsqlAggregateFunction<?, ?>> aggregateFunctions
+          = Arrays.stream(theClass.getMethods())
           .filter(method -> method.getAnnotation(UdafFactory.class) != null)
           .filter(method -> {
             if (!Modifier.isStatic(method.getModifiers())) {
@@ -162,7 +164,8 @@ public class UdfLoader {
                   method.getDeclaringClass());
               return Optional.of(compiler.compileAggregate(method,
                   loader,
-                  udafAnnotation.name()
+                  udafAnnotation.name(),
+                  annotation.description()
               ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",
@@ -172,7 +175,7 @@ public class UdfLoader {
                   path,
                   e);
             }
-            return Optional.<KsqlAggregateFunction>empty();
+            return Optional.<KsqlAggregateFunction<?, ?>>empty();
           }).filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toList());
@@ -269,16 +272,16 @@ public class UdfLoader {
     metrics.ifPresent(metrics -> {
       if (metrics.getSensor(sensorName) == null) {
         final Sensor sensor = metrics.sensor(sensorName);
-        sensor.add(metrics.metricName(sensorName + "-avg", sensorName,
+        sensor.add(metrics.metricName(sensorName + "-avg", UDF_METRIC_GROUP,
             "Average time for an invocation of " + udfName + " udf"),
             new Avg());
-        sensor.add(metrics.metricName(sensorName + "-max", sensorName,
+        sensor.add(metrics.metricName(sensorName + "-max", UDF_METRIC_GROUP,
             "Max time for an invocation of " + udfName + " udf"),
             new Max());
-        sensor.add(metrics.metricName(sensorName + "-count", sensorName,
+        sensor.add(metrics.metricName(sensorName + "-count", UDF_METRIC_GROUP,
             "Total number of invocations of " + udfName + " udf"),
             new Count());
-        sensor.add(metrics.metricName(sensorName + "-rate", sensorName,
+        sensor.add(metrics.metricName(sensorName + "-rate", UDF_METRIC_GROUP,
             "The average number of occurrence of " + udfName + " operation per second "
                 + udfName + " udf"),
             new Rate(TimeUnit.SECONDS, new Count()));

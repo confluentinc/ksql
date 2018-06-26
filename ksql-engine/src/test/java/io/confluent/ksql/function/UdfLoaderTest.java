@@ -186,13 +186,13 @@ public class UdfLoaderTest {
     assertThat(kudf, instanceOf(UdfMetricProducer.class));
     final Sensor sensor = metrics.getSensor("ksql-udf-substring");
     assertThat(sensor, not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf")),
         not(nullValue()));
   }
 

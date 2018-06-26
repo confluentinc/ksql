@@ -255,4 +255,14 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   public List<UdfFactory> listFunctions() {
     return functionRegistry.listFunctions();
   }
+
+  @Override
+  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+    return functionRegistry.getAggregateFactory(functionName);
+  }
+
+  @Override
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return functionRegistry.listAggregateFunctions();
+  }
 }

@@ -126,7 +126,8 @@ public class UdfCompilerTest {
     final KsqlAggregateFunction function
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
-        "test-udf"
+        "test-udf",
+        "desc"
     );
     assertThat(function.getInstance(
         new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
@@ -139,7 +140,8 @@ public class UdfCompilerTest {
     final KsqlAggregateFunction function
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
-        "test-udf"
+        "test-udf",
+        "desc"
     );
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
@@ -150,7 +152,8 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLengthString",
         String.class),
         classLoader,
-        "test-udf"
+        "test-udf",
+        "desc"
     );
     final KsqlAggregateFunction instance = function.getInstance(
         new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
@@ -168,7 +171,8 @@ public class UdfCompilerTest {
     final KsqlAggregateFunction function
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
-        "test-udf"
+        "test-udf",
+        "desc"
     );
 
     final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
@@ -209,7 +213,8 @@ public class UdfCompilerTest {
         + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest");
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -217,7 +222,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithLongValTypeDoubleAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createLongDouble"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -225,7 +231,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithDoubleValTypeLongAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createDoubleLong"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -233,7 +240,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithIntegerValTypeStringAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createIntegerString"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -241,7 +249,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithStringValTypeIntegerAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createStringInteger"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -249,7 +258,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithBooleanValTypeListAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBooleanList"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -257,7 +267,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithListValTypeBooleamAggType() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createListBoolean"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -265,7 +276,8 @@ public class UdfCompilerTest {
   public void shouldHandleUdafsWithMapValMapAggTypes() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -273,7 +285,8 @@ public class UdfCompilerTest {
   public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBad"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 
@@ -281,7 +294,8 @@ public class UdfCompilerTest {
   public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createNonStatic"),
         classLoader,
-        "test"
+        "test",
+        "desc"
     );
   }
 

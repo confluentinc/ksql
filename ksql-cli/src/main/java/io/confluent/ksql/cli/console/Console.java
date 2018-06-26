@@ -461,10 +461,11 @@ public abstract class Console implements Closeable {
       tableBuilder.withColumnHeaders("Execution Plan");
       tableBuilder.withRow(executionPlan.getExecutionPlan());
     } else if (ksqlEntity instanceof FunctionNameList) {
-      tableBuilder.withColumnHeaders("Function Name");
+      tableBuilder.withColumnHeaders("Function Name", "Type");
       ((FunctionNameList) ksqlEntity)
-          .getFunctionNames().stream().sorted()
-          .forEach(tableBuilder::withRow);
+          .getFunctions().stream().sorted()
+          .forEach(func -> tableBuilder.withRow(
+              Arrays.asList(func.getName(), func.getType().name().toUpperCase())));
     } else if (ksqlEntity instanceof FunctionDescriptionList) {
       printFunctionDescription((FunctionDescriptionList) ksqlEntity);
       return;
@@ -707,6 +708,7 @@ public abstract class Console implements Closeable {
     writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
     writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
     writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    writer().printf("%-12s: %s%n", "Type", describeFunction.getType().name());
     writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
     writer().printf("%-12s: %n", "Variations");
     final Collection<FunctionInfo> functions = describeFunction.getFunctions();

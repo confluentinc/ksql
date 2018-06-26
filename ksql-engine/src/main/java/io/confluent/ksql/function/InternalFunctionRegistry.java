@@ -136,7 +136,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     aggregateFunctionMap.putIfAbsent(
-        aggregateFunctionFactory.functionName.toUpperCase(),
+        aggregateFunctionFactory.getName().toUpperCase(),
         aggregateFunctionFactory);
   }
 
@@ -150,6 +150,22 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   @Override
   public List<UdfFactory> listFunctions() {
     return new ArrayList<>(ksqlFunctionMap.values());
+  }
+
+  @Override
+  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+    final AggregateFunctionFactory aggregateFunctionFactory
+        = aggregateFunctionMap.get(functionName.toUpperCase());
+    if (aggregateFunctionFactory == null) {
+      throw new KsqlException("Can't find any aggregate functions with the name '"
+          + functionName + "'");
+    }
+    return aggregateFunctionFactory;
+  }
+
+  @Override
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return new ArrayList<>(aggregateFunctionMap.values());
   }
 
   private void addStringFunctions() {

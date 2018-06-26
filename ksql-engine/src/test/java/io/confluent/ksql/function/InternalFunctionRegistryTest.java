@@ -164,6 +164,11 @@ public class InternalFunctionRegistryTest {
               public List<Schema> getArgTypes() {
                 return argTypeList;
               }
+
+              @Override
+              public String getDescription() {
+                return null;
+              }
             };
           }
         });

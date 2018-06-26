@@ -211,6 +211,17 @@ public class UdfLoaderTest {
     metaStore.getUdfFactory("tostring");
   }
 
+  @Test
+  public void shouldNotThrowWhenExtDirDoesntExist() {
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "foo/bar")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
+    final KsqlConfig config
+        = new KsqlConfig(configMap);
+    UdfLoader.newInstance(config, new MetaStoreImpl(new InternalFunctionRegistry()), "").load();
+  }
+
   private UdfLoader createUdfLoader(final MetaStore metaStore,
                                     final boolean loadCustomerUdfs,
                                     final boolean collectMetrics) {

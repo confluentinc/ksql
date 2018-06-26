@@ -145,10 +145,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     final Map<String, Object> expectedConfigs = schemaRegistryClientConfigs.entrySet()
         .stream()
-        .map((e) -> new AbstractMap.SimpleEntry<>(
-              e.getKey().replaceFirst(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX, ""), e.getValue())
-        )
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        .collect(Collectors.toMap(
+            e -> e.getKey().replaceFirst(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX, ""),
+            Map.Entry::getValue
+        ));
 
     // When:
     final KsqlSchemaRegistryClientFactory factory = new KsqlSchemaRegistryClientFactory(config);

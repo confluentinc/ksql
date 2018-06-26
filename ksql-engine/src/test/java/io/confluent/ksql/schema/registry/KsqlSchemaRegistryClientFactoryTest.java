@@ -43,7 +43,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author andy
@@ -71,7 +71,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
     EasyMock.expect(sslFactory.sslContext()).andReturn(SSL_CONTEXT);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldSetSocketFactoryWhenNoSpecificSslConfig() {
     // Given:
@@ -83,14 +82,13 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            Collections.EMPTY_MAP).create();
+                                            Collections.emptyMap()).create();
 
     // Then:
     assertThat(client, is(notNullValue()));
     EasyMock.verify(restService);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPickUpNonPrefixedSslConfig() {
     // Given:
@@ -105,14 +103,13 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            Collections.EMPTY_MAP).create();
+                                            Collections.emptyMap()).create();
 
     // Then:
     assertThat(client, is(notNullValue()));
     EasyMock.verify(restService);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPickUpPrefixedSslConfig() {
     // Given:
@@ -127,7 +124,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            Collections.EMPTY_MAP).create();
+                                            Collections.emptyMap()).create();
 
 
     // Then:

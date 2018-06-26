@@ -33,23 +33,26 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
   private final List<Schema> arguments;
 
   protected final String functionName;
+  private final String description;
 
-  public BaseAggregateFunction(String functionName, Integer argIndexInValue) {
-    this(functionName, argIndexInValue, null, null, null);
+  public BaseAggregateFunction(final String functionName, final Integer argIndexInValue) {
+    this(functionName, argIndexInValue, null, null, null, "");
   }
 
   public BaseAggregateFunction(
-      String functionName,
+      final String functionName,
       final int argIndexInValue,
       final Supplier<A> initialValueSupplier,
       final Schema returnType,
-      final List<Schema> arguments
+      final List<Schema> arguments,
+      final String description
   ) {
     this.argIndexInValue = argIndexInValue;
     this.initialValueSupplier = initialValueSupplier;
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;
+    this.description = description;
   }
 
   public boolean hasSameArgTypes(List<Schema> argTypeList) {
@@ -77,5 +80,10 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
 
   public List<Schema> getArgTypes() {
     return arguments;
+  }
+
+  @Override
+  public String getDescription() {
+    return description;
   }
 }

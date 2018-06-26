@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -679,7 +680,11 @@ public class KsqlEngine implements Closeable {
     );
   }
 
-  public List<UdfFactory> listFunctions() {
+  public List<UdfFactory> listScalarFunctions() {
     return metaStore.listFunctions();
+  }
+
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return metaStore.listAggregateFunctions();
   }
 }

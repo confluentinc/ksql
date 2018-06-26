@@ -42,7 +42,7 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction #ADD_TABLE_AGG{
   public #FUNCTION_CLASS_NAME(final List<Schema> args,
                               final Schema returnType,
                               final Optional<Metrics> metrics) {
-    super("#NAME", -1, null, returnType, args);
+    super("#NAME", -1, null, returnType, args, "#DESCRIPTION");
     this.arguments = args;
     initMetrics(metrics);
   }
@@ -97,7 +97,7 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction #ADD_TABLE_AGG{
                               final Schema returnType,
                               final Optional<Sensor> aggregateSensor,
                               final Optional<Sensor> mergeSensor) {
-    super("#NAME", udafIndex, createSupplier(udaf), returnType, args);
+    super("#NAME", udafIndex, createSupplier(udaf), returnType, args, "#DESCRIPTION");
     this.udaf = udaf;
     this.udafIndex = udafIndex;
     this.aggregateSensor = aggregateSensor;
@@ -124,7 +124,7 @@ public class #FUNCTION_CLASS_NAME extends BaseAggregateFunction #ADD_TABLE_AGG{
     } finally {
       aggregateSensor.ifPresent(new Consumer() {
         public void accept(final Object sensor) {
-        ((Sensor)sensor).record(time.nanoseconds() - start);
+          ((Sensor)sensor).record(time.nanoseconds() - start);
         }
       });
     }

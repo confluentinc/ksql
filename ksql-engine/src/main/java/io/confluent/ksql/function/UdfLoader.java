@@ -97,9 +97,14 @@ public class UdfLoader {
     loadUdfs(parentClassLoader, Optional.empty());
     if (loadCustomerUdfs) {
       try {
-        Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
-            .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
-            .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));
+        if (!pluginDir.exists() && !pluginDir.isDirectory()) {
+          LOGGER.info("UDFs can't be loaded as as dir {} doesn't exist or is not a directory",
+              pluginDir);
+        } else {
+          Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
+              .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
+              .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));
+        }
       } catch (final IOException e) {
         LOGGER.error("Failed to load UDFs from location {}", pluginDir, e);
       }

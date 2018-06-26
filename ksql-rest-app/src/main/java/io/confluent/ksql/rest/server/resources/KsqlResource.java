@@ -597,27 +597,27 @@ public class KsqlResource {
   private QueryMetadata getStatementExecutionPlan(
       Statement statement, String statementText, Map<String, Object> properties) {
 
-    DdlCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
-    if (ddlCommandTask == null) {
+    final KsqlStatementTask ksqlStatementTask = ksqlStatementTasks.get(statement.getClass());
+    if (ksqlStatementTask == null) {
       throw new KsqlException("Cannot FIND execution plan for this statement:" + statement);
     }
-    return ddlCommandTask.execute(statement, statementText, properties);
+    return ksqlStatementTask.execute(statement, statementText, properties);
   }
 
-  private interface DdlCommandTask {
+  private interface KsqlStatementTask {
     QueryMetadata execute(Statement statement, String statementText,
                           Map<String, Object> properties);
   }
 
-  private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
+  private final Map<Class, KsqlStatementTask> ksqlStatementTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
-    ddlCommandTasks.put(Query.class,
+    ksqlStatementTasks.put(Query.class,
         (statement, statementText, properties) ->
             ksqlEngine.getQueryExecutionPlan((Query)statement)
     );
 
-    ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata
           queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
@@ -635,7 +635,7 @@ public class KsqlResource {
       return queryMetadata;
     });
 
-    ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
@@ -652,7 +652,7 @@ public class KsqlResource {
       return queryMetadata;
     });
 
-    ddlCommandTasks.put(InsertInto.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(InsertInto.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery());
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -663,14 +663,14 @@ public class KsqlResource {
       return queryMetadata;
     });
 
-    ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
       RegisterTopicCommand registerTopicCommand =
           new RegisterTopicCommand((RegisterTopic) statement);
       new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand, true);
       return null;
     });
 
-    ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
           new CreateStreamCommand(
               statementText,
@@ -682,7 +682,7 @@ public class KsqlResource {
       return null;
     });
 
-    ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
           new CreateTableCommand(
               statementText,
@@ -694,13 +694,13 @@ public class KsqlResource {
       return null;
     });
 
-    ddlCommandTasks.put(DropTopic.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(DropTopic.class, (statement, statementText, properties) -> {
       DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
       new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand, true);
       return null;
     });
 
-    ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(DropStream.class, (statement, statementText, properties) -> {
       DropStream dropStream = (DropStream) statement;
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           dropStream,
@@ -713,7 +713,7 @@ public class KsqlResource {
       return null;
     });
 
-    ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
+    ksqlStatementTasks.put(DropTable.class, (statement, statementText, properties) -> {
       DropTable dropTable = (DropTable) statement;
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           dropTable,
@@ -726,7 +726,7 @@ public class KsqlResource {
       return null;
     });
 
-    ddlCommandTasks.put(
+    ksqlStatementTasks.put(
         TerminateQuery.class,
         (statement, statementText, properties) -> null
     );

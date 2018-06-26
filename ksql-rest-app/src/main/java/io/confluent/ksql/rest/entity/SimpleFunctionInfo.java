@@ -16,25 +16,31 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 
-public class FunctionNameList extends KsqlEntity {
+public class SimpleFunctionInfo {
 
-  private final Collection<SimpleFunctionInfo> functionNames;
+  private final String name;
+  private final FunctionType type;
 
-  public FunctionNameList(
-      @JsonProperty("statementText") final String statementText,
-      @JsonProperty("functions") final Collection<SimpleFunctionInfo> functions) {
-    super(statementText);
-    this.functionNames = Objects.requireNonNull(functions, "functionNames can't be null");
+  @JsonCreator
+  public SimpleFunctionInfo(
+      @JsonProperty("name") final String name,
+      @JsonProperty("type") final FunctionType type
+  ) {
+    this.name = Objects.requireNonNull(name, "name can't be null");
+    this.type = Objects.requireNonNull(type, "type can't be null");
   }
 
-  public Collection<SimpleFunctionInfo> getFunctions() {
-    return Collections.unmodifiableCollection(functionNames);
+  public String getName() {
+    return name;
+  }
+
+  public FunctionType getType() {
+    return type;
   }
 
   @Override
@@ -45,12 +51,21 @@ public class FunctionNameList extends KsqlEntity {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final FunctionNameList that = (FunctionNameList) o;
-    return Objects.equals(functionNames, that.functionNames);
+    final SimpleFunctionInfo that = (SimpleFunctionInfo) o;
+    return Objects.equals(name, that.name)
+        && type == that.type;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functionNames);
+    return Objects.hash(name, type);
+  }
+
+  @Override
+  public String toString() {
+    return "SimpleFunctionInfo{"
+        + "name='" + name + '\''
+        + ", type=" + type
+        + '}';
   }
 }

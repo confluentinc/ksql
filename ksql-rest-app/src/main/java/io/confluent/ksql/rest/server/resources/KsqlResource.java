@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -27,10 +29,12 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -510,19 +514,45 @@ public class KsqlResource {
   }
 
   private KsqlEntity listFunctions(final String statementText) {
-    final List<UdfFactory> udfFactories = ksqlEngine.listFunctions();
-    return new FunctionNameList(statementText,
-        udfFactories
-            .stream()
-            .map(factory -> factory.getName().toUpperCase())
-            .collect(Collectors.toList())
-    );
+    final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions()
+        .stream()
+        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
+            FunctionType.scalar)).collect(Collectors.toList());
+    all.addAll(ksqlEngine.listAggregateFunctions()
+        .stream()
+        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
+            FunctionType.aggregate))
+        .collect(Collectors.toList()));
+
+    return new FunctionNameList(statementText, all);
   }
 
   private FunctionDescriptionList describeFunction(final String statementText,
                                                    final String functionName) {
-    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
+    if (functionRegistry.isAggregate(functionName)) {
+      final AggregateFunctionFactory aggregateFactory
+          = functionRegistry.getAggregateFactory(functionName);
+      aggregateFactory.eachFunction(function ->
+          listBuilder.add(new FunctionInfo(function.getArgTypes()
+              .stream()
+              .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
+              SchemaUtil.getSqlTypeName(function.getReturnType()),
+              function.getDescription())));
+
+      return new FunctionDescriptionList(statementText,
+          aggregateFactory.getName().toUpperCase(),
+          aggregateFactory.getDescription(),
+          aggregateFactory.getAuthor(),
+          aggregateFactory.getVersion(),
+          aggregateFactory.getPath(),
+          listBuilder.build(),
+          FunctionType.aggregate
+      );
+    }
+
+    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
     udfFactory.eachFunction(function ->
         listBuilder.add(new FunctionInfo(function.getArguments()
             .stream()
@@ -536,8 +566,9 @@ public class KsqlResource {
         udfFactory.getAuthor(),
         udfFactory.getVersion(),
         udfFactory.getPath(),
-        listBuilder.build()
-        );
+        listBuilder.build(),
+        FunctionType.scalar
+    );
   }
 
   private QueryDescription explainQuery(Explain explain, String statementText) {

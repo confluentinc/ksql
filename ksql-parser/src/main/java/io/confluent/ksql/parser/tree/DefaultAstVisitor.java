@@ -161,10 +161,6 @@ public abstract class DefaultAstVisitor<R, C>
     return visitExpression(node, context);
   }
 
-  protected R visitLambdaExpression(LambdaExpression node, C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
     return visitExpression(node, context);
   }

@@ -59,7 +59,6 @@ import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -385,21 +384,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
                     .stream()
                     .map(arg -> (Expression) process(arg, context))
                     .collect(Collectors.toList())
-            )
-        );
-  }
-
-  protected Node visitLambdaExpression(final LambdaExpression node, final Object context) {
-    return node.getLocation()
-        .map(location ->
-            new LambdaExpression(node.getLocation().get(),
-                node.getArguments(),
-                (Expression) process(node.getBody(), context)
-            )
-        )
-        .orElse(
-            new LambdaExpression(node.getArguments(),
-                (Expression) process(node.getBody(), context)
             )
         );
   }

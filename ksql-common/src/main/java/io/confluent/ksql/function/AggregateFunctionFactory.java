@@ -23,7 +23,7 @@ import java.util.List;
 
 public abstract class AggregateFunctionFactory {
 
-  final List<KsqlAggregateFunction> aggregateFunctionList;
+  private final List<KsqlAggregateFunction> aggregateFunctionList;
 
   protected final String functionName;
 

@@ -21,6 +21,7 @@ import org.apache.commons.compress.utils.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -59,7 +60,7 @@ public final class ZipUtil {
       }
 
       input.closeEntry();
-    } catch (final Exception e) {
+    } catch (final IOException e) {
       throw new KsqlException(
           "Failed to unzip '" + sourceFile + "' into '" + outputDir + "'", e);
     }

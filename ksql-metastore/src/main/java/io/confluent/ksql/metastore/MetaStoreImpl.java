@@ -34,7 +34,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.Pair;
 
-public class MetaStoreImpl implements MetaStore, Cloneable {
+public final class MetaStoreImpl implements MetaStore, Cloneable {
 
   private final Map<String, KsqlTopic> topicMap;
   private final Map<String,
@@ -115,9 +115,9 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
           .stream()
           .collect(Collectors.joining(", "));
       throw new KsqlReferentialIntegrityException(
-          String.format("Cannot drop %s. \nThe following queries "
-                        + "read from this source: [%s]. \nThe following "
-                        + "queries write into this source: [%s]. \nYou need to "
+          String.format("Cannot drop %s. %nThe following queries "
+                        + "read from this source: [%s]. %nThe following "
+                        + "queries write into this source: [%s]. %nYou need to "
                         + "terminate them before dropping %s.",
                         sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
     }

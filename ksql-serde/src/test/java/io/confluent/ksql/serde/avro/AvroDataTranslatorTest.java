@@ -17,7 +17,7 @@ import static org.junit.Assert.assertThat;
 
 public class AvroDataTranslatorTest {
   @Test
-  public void shoudRenameStructDereference() {
+  public void shoudRenameSourceDereference() {
     final Schema schema = SchemaBuilder.struct()
         .field("STREAM_NAME.COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
         .optional()

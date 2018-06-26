@@ -134,8 +134,8 @@ public class ConnectDataTranslator implements DataTranslator {
                 Field::name));
   }
 
-  public Struct toConnectRow(GenericRow row) {
-    Struct struct = new Struct(schema);
+  public Struct toConnectRow(final GenericRow row) {
+    final Struct struct = new Struct(schema);
     for (int i = 0; i < schema.fields().size(); i++) {
       struct.put(schema.fields().get(i).name(), row.getColumns().get(i));
     }

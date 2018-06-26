@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.schema.registry;
 
-
 import org.apache.kafka.common.network.Mode;
 import org.apache.kafka.common.security.ssl.SslFactory;
 
@@ -41,7 +40,8 @@ public class KsqlSchemaRegistryClientFactory {
   private final SchemaRegistryClientFactory schemaRegistryClientFactory;
 
   interface SchemaRegistryClientFactory {
-    CachedSchemaRegistryClient create(RestService service, int identityMapCapacity,
+    CachedSchemaRegistryClient create(RestService service,
+                                      int identityMapCapacity,
                                       Map<String, Object> clientConfigs);
   }
 

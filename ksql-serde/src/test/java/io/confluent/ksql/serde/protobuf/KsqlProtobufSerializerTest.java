@@ -238,18 +238,14 @@ public class KsqlProtobufSerializerTest {
     assertThat(resultArrayValues, equalTo(expectedArray));
 
     // Validate embedded message
-//    final List<Object> embeddedMessage = genericRow.getColumnValue(17);
-//    assertThat(embeddedMessage.size(), equalTo(1));
-//    assertThat(embeddedMessage.get(0), equalTo(expectedEmbeddedFieldName));
-//
-//    // Validate Map
-//    final Map<Object, Object> mapValues = genericRow.getColumnValue(18);
-//    assertThat(mapValues.size(), equalTo(3));
-//    assertThat(mapValues.containsKey("Key1"), equalTo(true));
-//    assertThat(mapValues.get("Key1"), equalTo(1));
-//    assertThat(mapValues.containsKey("Key2"), equalTo(true));
-//    assertThat(mapValues.get("Key2"), equalTo(2));
-//    assertThat(mapValues.containsKey("Key3"), equalTo(true));
-//    assertThat(mapValues.get("Key3"), equalTo(3));
+    final SampleProtoBOuterClass.SampleProtoB.Embedded embedded = protoB.getEmbeddedField();
+    assertThat(embedded, notNullValue());
+    assertThat(embedded.getName(), equalTo(expectedEmbeddedFieldName));
+
+    // Validate Map
+    assertThat(protoB.getMapFieldCount(), equalTo(3));
+    assertThat(protoB.getMapFieldOrThrow("Key1"), equalTo(1));
+    assertThat(protoB.getMapFieldOrThrow("Key2"), equalTo(2));
+    assertThat(protoB.getMapFieldOrThrow("Key3"), equalTo(3));
   }
 }

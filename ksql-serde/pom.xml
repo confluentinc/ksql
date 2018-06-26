@@ -41,13 +41,6 @@
             <version>3.5.1</version>
         </dependency>
 
-        <!-- TODO Remove this after no longer translating through json -->
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java-util</artifactId>
-            <version>3.5.1</version>
-        </dependency>
-
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>

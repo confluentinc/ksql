@@ -16,12 +16,8 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
-import com.google.protobuf.MessageOrBuilder;
-import com.google.protobuf.util.JsonFormat;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.serde.protobuf.transformer.ProtobufTransformer;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
@@ -29,9 +25,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class KsqlProtobufSerializer implements Serializer<GenericRow> {

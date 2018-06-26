@@ -20,6 +20,8 @@ import java.util.Map;
 /**
  * Given a Schema definition, this class will transform a given ProtocolBuffer into the corresponding
  * GenericRow representation.
+ *
+ * WIP / Extremely rough.
  */
 public class ProtobufTransformer {
   private final Schema schema;
@@ -190,26 +192,31 @@ public class ProtobufTransformer {
             return;
 
           case MAP:
-            // TODO
-//            final Map mapValue = new HashMap<>();
-//            for (final MapEntry<Object, Object> mapEntry: (Collection<MapEntry>) value) {
-//              mapValue.put(mapEntry.getKey(), mapEntry.getValue());
-//            }
-//            return mapValue;
+            final Message.Builder mapBuilder = builder.newBuilderForField(fieldDescriptor);
+            final Descriptors.FieldDescriptor keyField = mapBuilder.getDescriptorForType().getFields().get(0);
+            final Descriptors.FieldDescriptor valueField = mapBuilder.getDescriptorForType().getFields().get(1);
+
+            for (final Map.Entry entry : ((Map<Object, Object>)value).entrySet()) {
+              builder.addRepeatedField(fieldDescriptor,
+                builder
+                  .newBuilderForField(fieldDescriptor)
+                  .setField(keyField, entry.getKey())
+                  .setField(valueField, entry.getValue())
+                  .build()
+              );
+            }
             return;
 
           case STRUCT:
-//            final List values = new ArrayList<>();
-//            for (final Field subField : field.schema().fields()) {
-//              values.add(
-//                convertField(subField, (MessageOrBuilder) value)
-//              );
-//            }
-//            return values;
+            final Message.Builder structBuilder = builder.newBuilderForField(fieldDescriptor);
+            final Iterator<Object> subValueIterator = ((Collection)value).iterator();
+            for (final Field subField : field.schema().fields()) {
+                buildField(subField, structBuilder, subValueIterator.next());
+            }
+            builder.setField(fieldDescriptor, structBuilder.build());
             return;
         }
       }
     }
-
   }
 }

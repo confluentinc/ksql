@@ -153,7 +153,7 @@ public class KsqlResource {
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
-    this.registerDdlCommandTasks();
+    this.registerKsqlStatementTasks();
   }
 
   @POST
@@ -611,7 +611,7 @@ public class KsqlResource {
 
   private final Map<Class, KsqlStatementTask> ksqlStatementTasks = new HashMap<>();
 
-  private void registerDdlCommandTasks() {
+  private void registerKsqlStatementTasks() {
     ksqlStatementTasks.put(Query.class,
         (statement, statementText, properties) ->
             ksqlEngine.getQueryExecutionPlan((Query)statement)

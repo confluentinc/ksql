@@ -14,6 +14,9 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.UdfDescription;
+
 class Masker {
 
   private static final int DEFAULT_UPPERCASE_MASK = 'X';
@@ -73,5 +76,16 @@ class Masker {
 
   static int getMaskCharacter(final String stringMask) {
     return stringMask == null ? NO_MASK : stringMask.codePointAt(0);
+  }
+
+  static void validateParams(final String udfName, final int numChars) {
+    if (numChars < 0) {
+      throw new KsqlFunctionException(
+          "function " + udfName + " requires a non-negative number of characters to mask or skip");
+    }
+  }
+
+  static String getMaskUdfName(final Object maskObject) {
+    return maskObject.getClass().getAnnotation(UdfDescription.class).name();
   }
 }

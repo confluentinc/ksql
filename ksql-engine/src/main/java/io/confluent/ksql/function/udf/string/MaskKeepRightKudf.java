@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
@@ -24,6 +23,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"
         + " characters with 'x', all digits with 'n', and any other character with '-'.")
 public class MaskKeepRightKudf {
+  private final String udfName = Masker.getMaskUdfName(this);
 
   @Udf(description = "Returns a masked version of the input string. All characters except for the"
       + " last n will be replaced according to the default masking rules.")
@@ -49,7 +49,7 @@ public class MaskKeepRightKudf {
   }
 
   private String doMask(final Masker masker, final String input, final int numChars) {
-    validateParams(numChars);
+    Masker.validateParams(udfName, numChars);
     if (input == null) {
       return null;
     }
@@ -58,12 +58,5 @@ public class MaskKeepRightKudf {
     output.append(masker.mask(input.substring(0, charsToMask)));
     output.append(input.substring(charsToMask));
     return output.toString();
-  }
-
-  private void validateParams(final int numChars) {
-    if (numChars < 0) {
-      throw new KsqlFunctionException(
-          "mask_keep_right requires a non-negative number of characters not to mask");
-    }
   }
 }

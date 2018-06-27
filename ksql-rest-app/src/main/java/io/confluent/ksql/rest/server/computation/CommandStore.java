@@ -101,7 +101,7 @@ public class CommandStore implements Closeable {
     final Command command = new Command(
         statementString,
         overwriteProperties,
-        ksqlConfig.getAllConfigPropsCleaned());
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (Exception e) {

@@ -97,7 +97,25 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibiltyBreakingConfigDef> COMPATIBILTY_BREAKING_CONFIG_DEFS;
+  private static final Collection<CompatibiltyBreakingConfigDef> COMPATIBILTY_BREAKING_CONFIG_DEFS
+      = ImmutableList.of(
+          new CompatibiltyBreakingConfigDef(
+              KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
+              ConfigDef.Type.STRING,
+              KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+              KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+              ConfigDef.Importance.MEDIUM,
+              "Second part of the prefix for persistent queries. For instance if "
+                  + "the prefix is query_ the query name will be ksql_query_1."),
+          new CompatibiltyBreakingConfigDef(
+              KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
+              ConfigDef.Type.STRING,
+              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+              ConfigDef.Importance.MEDIUM,
+              "Suffix for state store names in Tables. For instance if the suffix is "
+                  + "_ksql_statestore the state "
+                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "));
 
   private static class CompatibiltyBreakingConfigDef {
     private final String name;
@@ -129,38 +147,16 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       configDef.define(name, type, defaultValue, importance, documentation);
     }
 
-    void defineOld(ConfigDef configDef) {
+    void defineOld(final ConfigDef configDef) {
       define(configDef, defaultValueOld);
     }
 
-    void defineCurrent(ConfigDef configDef) {
+    void defineCurrent(final ConfigDef configDef) {
       define(configDef, defaultValueCurrent);
     }
   }
 
-  static {
-    COMPATIBILTY_BREAKING_CONFIG_DEFS = ImmutableList.of(
-        new CompatibiltyBreakingConfigDef(
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
-            ConfigDef.Type.STRING,
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
-            ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for persistent queries. For instance if "
-                + "the prefix is query_ the query name will be ksql_query_1."),
-        new CompatibiltyBreakingConfigDef(
-            KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-            ConfigDef.Type.STRING,
-            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-            ConfigDef.Importance.MEDIUM,
-            "Suffix for state store names in Tables. For instance if the suffix is "
-                + "_ksql_statestore the state "
-                + "store name would be ksql_query_1_ksql_statestore _ksql_statestore ")
-    );
-  }
-
-  private static ConfigDef configDef(boolean current) {
+  private static ConfigDef configDef(final boolean current) {
     final ConfigDef configDef = new ConfigDef()
         .define(
             KSQL_SERVICE_ID_CONFIG,
@@ -241,7 +237,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-    for (CompatibiltyBreakingConfigDef compatiblityConfigDef : COMPATIBILTY_BREAKING_CONFIG_DEFS) {
+    for (final CompatibiltyBreakingConfigDef compatiblityConfigDef
+        : COMPATIBILTY_BREAKING_CONFIG_DEFS) {
       if (current) {
         compatiblityConfigDef.defineCurrent(configDef);
       } else {
@@ -390,7 +387,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(props);
   }
 
-  public Map<String, String> getKsqlConfigPropsCleaned() {
+  public Map<String, String> getKsqlConfigPropsWithSecretsObfuscated() {
     final Map<String, String> props = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
@@ -400,7 +397,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(props);
   }
 
-  public Map<String, String> getKsqlStreamConfigPropsCleaned() {
+  public Map<String, String> getKsqlStreamConfigPropsWithSecretsObfuscated() {
     final Map<String, String> props = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
@@ -412,13 +409,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(props);
   }
 
-  public Map<String, String> getAllConfigPropsCleaned() {
+  public Map<String, String> getAllConfigPropsWithSecretsObfuscated() {
     final Map<String, String> allPropsCleaned = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
-    allPropsCleaned.putAll(getKsqlConfigPropsCleaned());
+    allPropsCleaned.putAll(getKsqlConfigPropsWithSecretsObfuscated());
     allPropsCleaned.putAll(
-        getKsqlStreamConfigPropsCleaned().entrySet().stream().collect(
+        getKsqlStreamConfigPropsWithSecretsObfuscated().entrySet().stream().collect(
             Collectors.toMap(
                 e -> KSQL_STREAMS_PREFIX + e.getKey(), Map.Entry::getValue
             )

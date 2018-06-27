@@ -500,9 +500,11 @@ public class KsqlResource {
 
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
-    final Map<String, String> engineProperties = ksqlConfig.getAllConfigPropsCleaned();
+    final Map<String, String> engineProperties
+        = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
     final Map<String, String> mergedProperties
-        = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties).getAllConfigPropsCleaned();
+        = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties)
+            .getAllConfigPropsWithSecretsObfuscated();
     final List<String> overwritten = mergedProperties.keySet()
         .stream()
         .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))

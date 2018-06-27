@@ -147,7 +147,7 @@ public class KsqlConfigTest {
         = (Password) ksqlConfig.getKsqlStreamConfigProps().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
     assertThat(passwordConfig.value(), equalTo(password));
     assertThat(
-        ksqlConfig.getKsqlConfigPropsCleaned().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
+        ksqlConfig.getKsqlConfigPropsWithSecretsObfuscated().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
         not(equalTo(password))
     );
   }

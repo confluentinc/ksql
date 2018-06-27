@@ -214,7 +214,7 @@ class QueryEngine {
         sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
-    DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
+    final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 

@@ -104,16 +104,17 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     }
   }
 
-  private File flushPropertiesToTempFile(Map<String, String> configProps) throws IOException {
-    FileAttribute<Set<PosixFilePermission>> attributes
+  private File flushPropertiesToTempFile(final Map<String, String> configProps) throws IOException {
+    final FileAttribute<Set<PosixFilePermission>> attributes
         = PosixFilePermissions.asFileAttribute(new HashSet<>(
             Arrays.asList(PosixFilePermission.OWNER_WRITE,
                           PosixFilePermission.OWNER_READ)));
-    File configFile = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
+    final File configFile
+        = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
     configFile.deleteOnExit();
 
-    try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
-      Properties clientProps = new Properties();
+    try (final FileOutputStream outputStream = new FileOutputStream(configFile)) {
+      final Properties clientProps = new Properties();
       for (Map.Entry<String, String> property
           : configProps.entrySet()) {
         clientProps.put(property.getKey(), property.getValue());

@@ -17,7 +17,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -32,7 +31,6 @@ import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -77,11 +75,11 @@ public class CommandStoreTest {
     final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final Command originalCommand = new Command(
-        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsCleaned());
+        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final Command dropCommand = new Command(
-        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsCleaned());
+        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final Command latestCommand = new Command(
-        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsCleaned());
+        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
         new ConsumerRecord<>("topic", 0, 0, createId, originalCommand),
@@ -131,7 +129,7 @@ public class CommandStoreTest {
     assertThat(record.key(), equalTo(commandId));
     assertThat(record.value().getStatement(), equalTo(statementText));
     assertThat(record.value().getOverwriteProperties(), equalTo(overrideProperties));
-    assertThat(record.value().getOriginalProperties(), equalTo(ksqlConfig.getAllConfigPropsCleaned()));
+    assertThat(record.value().getOriginalProperties(), equalTo(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
   }
 
 

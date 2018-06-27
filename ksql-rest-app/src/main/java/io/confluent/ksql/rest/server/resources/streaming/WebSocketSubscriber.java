@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   public void onSchema(Schema schema) {
     try {
       session.getBasicRemote().sendText(
-          mapper.writeValueAsString(schema)
+          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))
       );
     } catch (IOException e) {
       log.error("Error sending schema", e);

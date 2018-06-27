@@ -14,20 +14,14 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.serde.connect;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.confluent.ksql.GenericRow;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
-public enum JsonMapper {
-  INSTANCE;
+public interface DataTranslator {
+  GenericRow toKsqlRow(final Schema connectSchema, final Object connectData);
 
-  public final ObjectMapper mapper =
-      new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-
-  JsonMapper() {
-    mapper.registerModule(new Jdk8Module());
-    mapper.registerModule(new StructSerializationModule());
-  }
+  Struct toConnectRow(final GenericRow genericRow);
 }

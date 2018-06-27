@@ -56,13 +56,12 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(Schema schema,
+  public Serde<GenericRow> getGenericRowSerde(final Schema schemaMaybeWithSource,
                                               final KsqlConfig ksqlConfig,
                                               final boolean isInternal,
                                               final SchemaRegistryClient schemaRegistryClient) {
-    if (isInternal) {
-      schema = SchemaUtil.getSchemaWithNoAlias(schema);
-    }
+    final Schema schema = isInternal
+        ? SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource) : schemaMaybeWithSource;
     final Serializer<GenericRow> genericRowSerializer =
         new KsqlConnectSerializer(
             new AvroDataTranslator(schema),

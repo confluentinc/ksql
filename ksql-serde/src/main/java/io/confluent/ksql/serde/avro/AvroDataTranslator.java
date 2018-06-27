@@ -46,7 +46,7 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   @Override
-  public GenericRow toKsqlRow(Schema connectSchema, Object connectObject) {
+  public GenericRow toKsqlRow(final Schema connectSchema, final Object connectObject) {
     final GenericRow avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
     final List<Object> columns = new LinkedList<>();
     for (int i = 0; i < avroCompatibleRow.getColumns().size(); i++) {
@@ -83,11 +83,11 @@ public class AvroDataTranslator implements DataTranslator {
       this(ImmutableList.of(DEFAULT_SCHEMA_NAME_BASE));
     }
 
-    private TypeNameGenerator(Iterable<String> names) {
+    private TypeNameGenerator(final Iterable<String> names) {
       this.names = names;
     }
 
-    TypeNameGenerator with(String name) {
+    TypeNameGenerator with(final String name) {
       return new TypeNameGenerator(Iterables.concat(names, ImmutableList.of(name)));
     }
 
@@ -139,7 +139,7 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   @SuppressWarnings("unchecked")
-  private Object replaceSchema(Schema schema, Object object) {
+  private Object replaceSchema(final Schema schema, final Object object) {
     if (object == null) {
       return null;
     }

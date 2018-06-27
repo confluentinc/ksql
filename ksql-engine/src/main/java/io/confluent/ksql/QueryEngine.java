@@ -209,6 +209,10 @@ class QueryEngine {
       AbstractStreamCreateStatement streamCreateStatementWithSchema =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
+      if (streamCreateStatementWithSchema.getElements().isEmpty()) {
+        throw new KsqlException("The statement or topic schema does not define any columns.");
+      }
+
       if (streamCreateStatementWithSchema != streamCreateStatement) {
         statement = (DdlStatement)streamCreateStatementWithSchema;
         sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);

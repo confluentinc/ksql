@@ -1,9 +1,11 @@
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableList;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
+
 import org.apache.avro.Schema;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,13 +25,13 @@ import java.util.stream.IntStream;
 
 import io.confluent.avro.random.generator.Generator;
 
-import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 
 
 @RunWith(Parameterized.class)
@@ -190,6 +192,7 @@ public class SchemaTranslationTest {
         ImmutableList.of(srcTopic, outputTopic),
         inputRecords,
         outputRecords,
-        Arrays.asList(ddlStatement, csasStatement));
+        Arrays.asList(ddlStatement, csasStatement),
+        EndToEndEngineTestUtil.ExpectedException.none());
   }
 }

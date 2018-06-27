@@ -23,8 +23,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
         + " characters with 'x', all digits with 'n', and any other character with '-'.")
 public class MaskKudf {
 
-  private final String udfName = this.getClass().getAnnotation(UdfDescription.class).name();
-
   @Udf(description = "Returns a masked version of the input string. All characters of the input"
       + " will be replaced according to the default masking rules.")
   public String mask(final String input) {

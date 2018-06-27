@@ -16,13 +16,13 @@
 
 package io.confluent.ksql.rest.client;
 
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.Maps;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.confluent.ksql.rest.util.JsonMapper;
+import org.apache.commons.compress.utils.IOUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import java.io.Closeable;
@@ -57,6 +57,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
@@ -221,37 +222,37 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     private final Response response;
     private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
+    private final InputStreamReader isr;
 
     private StreamedRow bufferedRow;
     private volatile boolean closed = false;
 
-    public QueryStream(Response response) {
+    private QueryStream(final Response response) {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      InputStreamReader isr = new InputStreamReader(
+      this.isr = new InputStreamReader(
           (InputStream) response.getEntity(),
           StandardCharsets.UTF_8
       );
-      QueryStream stream = this;
       this.responseScanner = new Scanner((buf) -> {
         int wait = 1;
         // poll the input stream's readiness between interruptable sleeps
         // this ensures we cannot block indefinitely on read()
         while (true) {
           if (closed) {
-            throw stream.closedIllegalStateException("hasNext()");
+            throw closedIllegalStateException("hasNext()");
           }
           if (isr.ready()) {
             break;
           }
-          synchronized (stream) {
+          synchronized (this) {
             if (closed) {
-              throw stream.closedIllegalStateException("hasNext()");
+              throw closedIllegalStateException("hasNext()");
             }
             try {
               wait = java.lang.Math.min(wait * 2, 200);
-              stream.wait(wait);
+              wait(wait);
             } catch (InterruptedException e) {
               // this is expected
               // just check the closed flag
@@ -318,6 +319,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       }
       responseScanner.close();
       response.close();
+      IOUtils.closeQuietly(isr);
     }
 
     private IllegalStateException closedIllegalStateException(String methodName) {

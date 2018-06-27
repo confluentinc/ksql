@@ -19,19 +19,6 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.FunctionDescriptionList;
-import io.confluent.ksql.rest.entity.FunctionInfo;
-import io.confluent.ksql.rest.entity.FunctionNameList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.rest.entity.QueryDescription;
-import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
-import io.confluent.ksql.rest.entity.QueryDescriptionList;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
-import io.confluent.ksql.rest.entity.SourceDescriptionList;
-import io.confluent.ksql.rest.entity.FieldInfo;
-import io.confluent.ksql.rest.entity.SchemaInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
@@ -58,15 +45,28 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -567,7 +567,7 @@ public abstract class Console implements Closeable {
   private void printWriteQueries(SourceDescription source) {
     if (!source.getWriteQueries().isEmpty()) {
       writer().println(String.format(
-          "\n%-20s\n%-20s",
+          "%n%-20s%n%-20s",
           "Queries that write into this " + source.getType(),
           "-----------------------------------"
       ));
@@ -581,7 +581,7 @@ public abstract class Console implements Closeable {
   private void printExecutionPlan(QueryDescription queryDescription) {
     if (!queryDescription.getExecutionPlan().isEmpty()) {
       writer().println(String.format(
-          "\n%-20s\n%-20s\n%s",
+          "%n%-20s%n%-20s%n%s",
           "Execution plan",
           "--------------",
           queryDescription.getExecutionPlan()
@@ -592,7 +592,7 @@ public abstract class Console implements Closeable {
   private void printTopology(QueryDescription queryDescription) {
     if (!queryDescription.getTopology().isEmpty()) {
       writer().println(String.format(
-          "\n%-20s\n%-20s\n%s",
+          "%n%-20s%n%-20s%n%s",
           "Processing topology",
           "-------------------",
           queryDescription.getTopology()
@@ -604,7 +604,7 @@ public abstract class Console implements Closeable {
     if (queryDescription.getOverriddenProperties().size() > 0) {
       new Table.Builder()
           .withHeaderLine(String.format(
-              "\n%-20s\n%-20s",
+              "%n%-20s%n%-20s",
               "Overridden Properties",
               "---------------------"))
           .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
@@ -632,7 +632,7 @@ public abstract class Console implements Closeable {
     printWriteQueries(source);
 
     writer().println(String.format(
-        "\n%-20s\n%s",
+        "%n%-20s%n%s",
         "Local runtime statistics",
         "------------------------"
     ));
@@ -656,7 +656,7 @@ public abstract class Console implements Closeable {
   private void printQuerySources(QueryDescription query) {
     if (!query.getSources().isEmpty()) {
       writer().println(String.format(
-          "\n%-20s\n%-20s",
+          "%n%-20s%n%-20s",
           "Sources that this query reads from: ",
           "-----------------------------------"
       ));
@@ -670,7 +670,7 @@ public abstract class Console implements Closeable {
   private void printQuerySinks(QueryDescription query) {
     if (!query.getSinks().isEmpty()) {
       writer().println(String.format(
-          "\n%-20s\n%-20s",
+          "%n%-20s%n%-20s",
           "Sinks that this query writes to: ",
           "-----------------------------------"
       ));

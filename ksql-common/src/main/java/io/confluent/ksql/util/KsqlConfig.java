@@ -300,7 +300,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return new KsqlConfig(cloneProps, ImmutableMap.copyOf(streamsConfigOverlay));
   }
 
-  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query */
+  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query
+                When this is removed KsqlConfig becomes immutable(ish)
+                and hence the clone method should be removed.
+   */
 
   private int timestampColumnIndex = -1;
 

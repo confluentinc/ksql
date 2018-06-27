@@ -158,7 +158,7 @@ public class UdfFactory {
         .collect(Collectors.toList());
   }
 
-  private class FunctionParameter {
+  private static class FunctionParameter {
     private final Schema.Type type;
     private final boolean isOptional;
 

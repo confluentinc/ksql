@@ -462,7 +462,7 @@ class EndToEndEngineTestUtil {
     }
 
     private void failDueToMissingException() {
-      final String expectation= StringDescription.toString(expectedException.build());
+      final String expectation = StringDescription.toString(expectedException.build());
       final String message = "Expected test to throw" + expectation;
       fail(message);
     }

@@ -29,6 +29,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -69,8 +70,7 @@ public class TopicStreamTest {
 
     // Then:
     assertThat(result.format, is(Format.AVRO));
-    assertThat(result.formatted,
-               is("01/01/70 00:59:59 GMT, key, {\"str1\": \"My first string\"}\n"));
+    assertThat(result.formatted, endsWith(", key, {\"str1\": \"My first string\"}\n"));
   }
 
   @Test

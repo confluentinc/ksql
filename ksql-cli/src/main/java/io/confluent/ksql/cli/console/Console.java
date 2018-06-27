@@ -463,7 +463,7 @@ public abstract class Console implements Closeable {
     } else if (ksqlEntity instanceof FunctionNameList) {
       tableBuilder.withColumnHeaders("Function Name", "Type");
       ((FunctionNameList) ksqlEntity)
-          .getFunctions()
+          .getFunctions().stream().sorted()
           .forEach(func -> tableBuilder.withRow(
               Arrays.asList(func.getName(), func.getType().name().toUpperCase())));
     } else if (ksqlEntity instanceof FunctionDescriptionList) {

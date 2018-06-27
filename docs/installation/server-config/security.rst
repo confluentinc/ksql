@@ -82,7 +82,7 @@ by adding the following to your KSQL server config.
 
 .. code:: bash
     ksql.schema.registry.basic.auth.credentials.source=USER_INFO
-    ksql.schema.registry.basic.auth.user.info=username:password
+    ksql.schema.registry.schema.registry.basic.auth.user.info=username:password
 
 For more information, see :ref:`schemaregistry_security`.
 

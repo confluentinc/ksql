@@ -15,6 +15,7 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.capture;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -69,6 +70,7 @@ public class KsqlConnectSerializerTest {
     final Schema namedSchema = capturedSchema.getValue();
     assertThat(namedSchema.type(), equalTo(Schema.Type.STRUCT));
     assertThat(namedSchema.name(), notNullValue());
+    final String baseName = namedSchema.name();
     assertThat(namedSchema.field("ARRAY").schema().type(), equalTo(Schema.Type.ARRAY));
     assertThat(namedSchema.field("MAP").schema().type(), equalTo(Schema.Type.MAP));
     assertThat(namedSchema.field("STRUCT").schema().type(), equalTo(Schema.Type.STRUCT));
@@ -79,7 +81,7 @@ public class KsqlConnectSerializerTest {
     assertThat(
         namedArrayInner.field("ARRAY_INNER").schema(),
         equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-    assertThat(namedArrayInner.name(), notNullValue());
+    assertThat(namedArrayInner.name(), equalTo(baseName + "_ARRAY"));
 
     final Schema namedMapInner = namedSchema.field("MAP").schema().valueSchema();
     assertThat(namedMapInner.type(), equalTo(Schema.Type.STRUCT));
@@ -87,15 +89,15 @@ public class KsqlConnectSerializerTest {
     assertThat(
         namedMapInner.field("MAP_INNER").schema(),
         equalTo(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(namedMapInner.name(), notNullValue());
+    assertThat(namedMapInner.name(), equalTo(baseName + "_MAP"));
 
-    final Schema namedStructInner = namedSchema.field("MAP").schema().valueSchema();
+    final Schema namedStructInner = namedSchema.field("STRUCT").schema();
     assertThat(namedStructInner.type(), equalTo(Schema.Type.STRUCT));
     assertThat(namedStructInner.fields().size(), equalTo(1));
     assertThat(
-        namedStructInner.field("MAP_INNER").schema(),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(namedStructInner.name(), notNullValue());
+        namedStructInner.field("STRUCT_INNER").schema(),
+        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(namedStructInner.name(), equalTo(baseName + "_STRUCT"));
 
     final Struct struct = capturedRow.getValue();
     assertThat(struct.schema(), equalTo(namedSchema));

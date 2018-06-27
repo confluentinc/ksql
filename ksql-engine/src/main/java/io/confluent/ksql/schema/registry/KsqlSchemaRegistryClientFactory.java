@@ -19,6 +19,7 @@ package io.confluent.ksql.schema.registry;
 import org.apache.kafka.common.network.Mode;
 import org.apache.kafka.common.security.ssl.SslFactory;
 
+import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
@@ -35,10 +36,24 @@ public class KsqlSchemaRegistryClientFactory {
 
   private final SslFactory sslFactory;
   private final Supplier<RestService> serviceSupplier;
+  private final Map<String, Object> schemaRegistryClientConfigs;
+  private final SchemaRegistryClientFactory schemaRegistryClientFactory;
+
+  interface SchemaRegistryClientFactory {
+    CachedSchemaRegistryClient create(RestService service,
+                                      int identityMapCapacity,
+                                      Map<String, Object> clientConfigs);
+  }
+
 
   public KsqlSchemaRegistryClientFactory(final KsqlConfig config) {
-    this(config, () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
-         new SslFactory(Mode.CLIENT));
+    this(config,
+        () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
+        new SslFactory(Mode.CLIENT),
+        (service, mapCapacity, clientConfigs) -> new CachedSchemaRegistryClient(service,
+                                                                                mapCapacity,
+                                                                                clientConfigs)
+    );
 
     // Force config exception now:
     config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY);
@@ -46,12 +61,17 @@ public class KsqlSchemaRegistryClientFactory {
 
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
                                   final Supplier<RestService> serviceSupplier,
-                                  final SslFactory sslFactory) {
+                                  final SslFactory sslFactory,
+                                  final SchemaRegistryClientFactory schemaRegistryClientFactory) {
     this.sslFactory = sslFactory;
     this.serviceSupplier = serviceSupplier;
+    this.schemaRegistryClientConfigs = config.originalsWithPrefix(
+        KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
     this.sslFactory
         .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
+
+    this.schemaRegistryClientFactory = schemaRegistryClientFactory;
   }
 
   public SchemaRegistryClient create() {
@@ -61,6 +81,6 @@ public class KsqlSchemaRegistryClientFactory {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }
 
-    return new CachedSchemaRegistryClient(restService, 1000);
+    return schemaRegistryClientFactory.create(restService, 1000, schemaRegistryClientConfigs);
   }
 }

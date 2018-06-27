@@ -159,6 +159,16 @@ public class InternalFunctionRegistryTest {
               public Merger getMerger() {
                 return null;
               }
+
+              @Override
+              public List<Schema> getArgTypes() {
+                return argTypeList;
+              }
+
+              @Override
+              public String getDescription() {
+                return null;
+              }
             };
           }
         });

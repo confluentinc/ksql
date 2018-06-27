@@ -19,6 +19,7 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -151,12 +152,14 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     final Struct columnStruct = new Struct(fieldSchema);
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(fieldSchema.fields());
+    final Map<String, String> caseInsensitiveStructFieldNameMap =
+        getCaseInsensitiveStructFieldNameMap(structMap);
     fieldSchema.fields()
         .forEach(
             field -> columnStruct.put(field.name(),
                 enforceFieldType(
                     field.schema(), structMap.get(
-                        caseInsensitiveFieldNameMap.get(field.name())
+                        caseInsensitiveStructFieldNameMap.get(field.name().toUpperCase())
                     ))));
     return columnStruct;
   }
@@ -167,6 +170,16 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         .collect(Collectors.toMap(
             String::toUpperCase,
             name -> name));
+  }
+
+  private Map<String, String> getCaseInsensitiveStructFieldNameMap(
+      final Map<String, Object> structMap
+  ) {
+    return structMap.entrySet().stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey().toUpperCase(),
+            Entry::getKey
+        ));
   }
 
   static class CaseInsensitiveJsonNode {

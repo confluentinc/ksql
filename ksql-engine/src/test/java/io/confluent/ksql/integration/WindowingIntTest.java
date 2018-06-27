@@ -21,6 +21,7 @@ import java.util.Set;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
@@ -46,7 +47,7 @@ public class WindowingIntTest {
     testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);
-
+    UdfLoaderUtil.load(ksqlContext.getMetaStore());
     /*
      * Setup test data - align to the next time unit to support tumbling window alignment
      */
@@ -110,26 +111,22 @@ public class WindowingIntTest {
     assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
-
-
+  
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
+    verifyAggTumbling("TUMBLING_AGGTEST", String.format(
+        "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
+        "TUMBLING_AGGTEST",
+        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*)",
+        "TUMBLING ( SIZE 10 SECONDS)"
+    ));
+  }
 
+  private void verifyAggTumbling(final String streamName, final String query) throws Exception {
     testHarness.publishTestData(topicName, dataProvider, now);
+    ksqlContext.sql(query);
 
-
-    final String streamName = "TUMBLING_AGGTEST";
-
-    final String queryString = String.format(
-            "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-            streamName,
-            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*)",
-            "TUMBLING ( SIZE 10 SECONDS)"
-    );
-
-    ksqlContext.sql(queryString);
-
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
      items **/, 20.0, 100.0));
@@ -142,14 +139,14 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));

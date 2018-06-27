@@ -43,6 +43,12 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.confluent.avro</groupId>
+            <artifactId>avro-random-generator</artifactId>
+            <version>${arg.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

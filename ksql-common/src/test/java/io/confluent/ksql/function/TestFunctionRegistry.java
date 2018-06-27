@@ -67,7 +67,7 @@ public class TestFunctionRegistry implements FunctionRegistry {
 
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    udafs.put(aggregateFunctionFactory.functionName.toUpperCase(), aggregateFunctionFactory);
+    udafs.put(aggregateFunctionFactory.getName().toUpperCase(), aggregateFunctionFactory);
   }
 
   @Override
@@ -78,5 +78,15 @@ public class TestFunctionRegistry implements FunctionRegistry {
   @Override
   public List<UdfFactory> listFunctions() {
     return new ArrayList<>(udfs.values());
+  }
+
+  @Override
+  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+    return udafs.get(functionName.toUpperCase());
+  }
+
+  @Override
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return new ArrayList<>(udafs.values());
   }
 }

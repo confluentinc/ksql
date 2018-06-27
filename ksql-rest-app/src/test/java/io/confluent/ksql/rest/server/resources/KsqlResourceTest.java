@@ -19,7 +19,9 @@ package io.confluent.ksql.rest.server.resources;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -366,11 +368,12 @@ public class KsqlResourceTest {
     );
 
     // not going to check every function
-    assertThat(functionList.getFunctionNames(), hasItems(
-        "TIMESTAMPTOSTRING",
-        "ARRAYCONTAINS",
-        "ARRAYCONTAINS",
-        "CONCAT"));
+    assertThat(functionList.getFunctions(), hasItems(
+        new SimpleFunctionInfo("TIMESTAMPTOSTRING", FunctionType.scalar),
+        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
+        new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
+        new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
+        new SimpleFunctionInfo("MAX", FunctionType.aggregate)));
   }
 
   @Test

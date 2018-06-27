@@ -49,4 +49,6 @@ public interface KsqlAggregateFunction<V, A> {
   Merger<String, A> getMerger();
 
   List<Schema> getArgTypes();
+
+  String getDescription();
 }

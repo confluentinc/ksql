@@ -59,7 +59,7 @@ public final class TopicStream {
     private final DateFormat dateFormat =
         SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
 
-    private Formatter formatter = null;
+    private Formatter formatter;
 
     public RecordFormatter(final SchemaRegistryClient schemaRegistryClient,
                            final String topicName) {

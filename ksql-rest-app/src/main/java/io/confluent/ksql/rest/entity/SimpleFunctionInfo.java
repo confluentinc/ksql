@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
-public class SimpleFunctionInfo {
+public class SimpleFunctionInfo implements Comparable<SimpleFunctionInfo> {
 
   private final String name;
   private final FunctionType type;
@@ -67,5 +67,10 @@ public class SimpleFunctionInfo {
         + "name='" + name + '\''
         + ", type=" + type
         + '}';
+  }
+
+  @Override
+  public int compareTo(final SimpleFunctionInfo other) {
+    return name.compareTo(other.name);
   }
 }

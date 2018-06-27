@@ -124,8 +124,8 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo(128));
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+    assertThat(result, equalTo(128L));
   }
 
   @Test
@@ -134,7 +134,7 @@ public class KsqlConfigTest {
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
     final Object result
         = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
-    assertThat(result, equalTo(128));
+    assertThat(result, equalTo(128L));
   }
 
   @Test

@@ -17,12 +17,9 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.rest.util.StructSerializationModule;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;

@@ -42,6 +42,23 @@
           "timestamp": 0
         }
       ]
+    },
+    {
+      "name": "Json Map filter",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 as SELECT ID FROM TEST WHERE THING['status']='false';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": "{\"id\":1,\"thing\":{\"other\":11,\"status\":false}}"},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": "{\"id\":2,\"thing\":{\"other\":12,\"status\":true}}"},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": "{\"id\":3,\"thing\":{\"other\":13,\"status\":true}}"},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": "{\"id\":4,\"thing\":{\"other\":13,\"status\":\"false\"}}"}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "timestamp": 0, "value": "{\"ID\":1}"},
+        {"topic": "S1", "key": 0, "timestamp": 0, "value": "{\"ID\":4}"}
+      ]
     }
   ]
 }

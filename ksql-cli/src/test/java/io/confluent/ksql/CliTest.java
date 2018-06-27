@@ -541,19 +541,20 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldListFunctions() {
     final List<List<String>> rows = new ArrayList<>();
-    rows.add(Collections.singletonList("TIMESTAMPTOSTRING"));
-    rows.add(Collections.singletonList("EXTRACTJSONFIELD"));
-    rows.add(Collections.singletonList("CONCAT"));
+    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
+    rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
+    rows.add(Arrays.asList("TOPK", "AGGREGATE"));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 
   @Test
-  public void shouldDescribeFunction() throws Exception {
+  public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +
             "Author      : confluent\n" +
             "Version     : \n" +
             "Overview    : \n" +
+            "Type        : scalar\n" +
             "Jar         : internal\n" +
             "Variations  : \n" +
             "\n" +
@@ -562,6 +563,21 @@ public class CliTest extends TestRunner {
             "\tDescription : \n";
 
     localCli.handleLine("describe function timestamptostring;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldDescribeAggregateFunction() throws Exception {
+    final String expectedOutput =
+            "Name        : TOPK\n" +
+            "Author      : confluent\n" +
+            "Version     : \n" +
+            "Overview    : \n" +
+            "Type        : aggregate\n" +
+            "Jar         : internal\n" +
+            "Variations  : \n";
+
+    localCli.handleLine("describe function topk;");
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 

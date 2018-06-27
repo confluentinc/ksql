@@ -29,9 +29,9 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 
-import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -87,7 +87,6 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -148,13 +147,12 @@ import static java.util.stream.Collectors.toList;
 
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
+
   private int selectItemIndex = 0;
 
   private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
   private DataSourceExtractor dataSourceExtractor;
-
-  private final Stack<String> dotStack = new Stack<>();
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
@@ -628,6 +626,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         alias = Optional.of(qualifiedNameReference.getName().getSuffix());
       } else if (selectItemExpression instanceof DereferenceExpression) {
         DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
+        final String dereferenceExpressionString = dereferenceExpression.toString();
         if ((dataSourceExtractor.getJoinLeftSchema() != null) && (
             dataSourceExtractor
                 .getCommonFieldNames()
@@ -635,10 +634,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     dereferenceExpression.getFieldName()
                 )
           )) {
+          alias = Optional.of(replaceDotFieldRef(dereferenceExpressionString));
+        } else if (dereferenceExpressionString.contains(KsqlConstants.STRUCT_FIELD_REF)) {
           alias = Optional.of(
-              dereferenceExpression.getBase().toString()
-              + "_" + dereferenceExpression.getFieldName()
-          );
+              replaceDotFieldRef(
+                  dereferenceExpressionString.substring(
+                      dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
         } else {
           alias = Optional.of(dereferenceExpression.getFieldName());
         }
@@ -650,6 +651,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
     selectItemIndex++;
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
+  }
+
+  private static String replaceDotFieldRef(final String input) {
+    return input.replace(KsqlConstants.DOT, "_").replace(KsqlConstants.STRUCT_FIELD_REF, "__");
   }
 
   @Override
@@ -1158,29 +1163,37 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitDereference(final SqlBaseParser.DereferenceContext context) {
     final String fieldName = getIdentifierText(context.identifier());
-    dotStack.push(fieldName);
     final Expression baseExpression = (Expression) visit(context.base);
-    dotStack.pop();
     return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
   }
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-    final String columnName = getIdentifierText(context.identifier());
+    final String columnName = context.identifier(1) == null
+        ? getIdentifierText(context.identifier(0))
+        : getIdentifierText(context.identifier(1));
+    final String prefixName = context.identifier(1) == null
+        ? null
+        : getIdentifierText(context.identifier(0));
+    if (prefixName != null) {
+      if (!isValidNameOrAlias(prefixName)) {
+        throw new KsqlException(String.format(
+            "'%s' is not a valid stream/table name or alias.", prefixName));
+      }
+      final Expression baseExpression =
+          new QualifiedNameReference(
+              getLocation(context),
+              QualifiedName.of(prefixName)
+          );
+      return new DereferenceExpression(
+          getLocation(context),
+          baseExpression,
+          columnName
+      );
+    }
+
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
-      final boolean sameAsLeft = columnName.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
-          || columnName.equalsIgnoreCase(dataSourceExtractor.getLeftName());
-      final boolean sameAsRight = columnName.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
-          || columnName.equalsIgnoreCase(dataSourceExtractor.getRightName());
-
-      if (!dotStack.empty()
-          && (sameAsLeft || sameAsRight)) {
-        return new QualifiedNameReference(
-            getLocation(context),
-            QualifiedName.of(columnName)
-        );
-      }
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
         throw new KsqlException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
@@ -1200,23 +1213,26 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       } else {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
-    } else {
-      if (!dotStack.empty()
-          && (columnName.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
-          || columnName.equalsIgnoreCase(dataSourceExtractor.getFromName()))) {
-        return new QualifiedNameReference(
-            getLocation(context),
-            QualifiedName.of(columnName)
-        );
-      }
-
-      final Expression baseExpression =
-          new QualifiedNameReference(
-              getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getFromAlias())
-          );
-      return new DereferenceExpression(getLocation(context), baseExpression, columnName);
     }
+    final Expression baseExpression =
+        new QualifiedNameReference(
+            getLocation(context),
+            QualifiedName.of(dataSourceExtractor.getFromAlias())
+        );
+    return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+  }
+
+  private boolean isValidNameOrAlias(final String name) {
+    // If this is join.
+    if (dataSourceExtractor.getJoinLeftSchema() != null) {
+      final boolean sameAsLeft = name.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
+          || name.equalsIgnoreCase(dataSourceExtractor.getLeftName());
+      final boolean sameAsRight = name.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
+          || name.equalsIgnoreCase(dataSourceExtractor.getRightName());
+      return sameAsLeft || sameAsRight;
+    }
+    return ((name.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
+        || name.equalsIgnoreCase(dataSourceExtractor.getFromName())));
   }
 
   @Override
@@ -1278,17 +1294,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         distinct,
         visit(context.expression(), Expression.class)
     );
-  }
-
-  @Override
-  public Node visitLambda(SqlBaseParser.LambdaContext context) {
-    List<String> arguments = context.identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
-
-    Expression body = (Expression) visit(context.expression());
-
-    return new LambdaExpression(arguments, body);
   }
 
 

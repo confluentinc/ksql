@@ -186,13 +186,13 @@ public class UdfLoaderTest {
     assertThat(kudf, instanceOf(UdfMetricProducer.class));
     final Sensor sensor = metrics.getSensor("ksql-udf-substring");
     assertThat(sensor, not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf-substring")),
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf")),
         not(nullValue()));
   }
 
@@ -209,6 +209,17 @@ public class UdfLoaderTest {
     UdfLoader.newInstance(config, metaStore, "").load();
     // will throw if it doesn't exist
     metaStore.getUdfFactory("tostring");
+  }
+
+  @Test
+  public void shouldNotThrowWhenExtDirDoesntExist() {
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "foo/bar")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
+    final KsqlConfig config
+        = new KsqlConfig(configMap);
+    UdfLoader.newInstance(config, new MetaStoreImpl(new InternalFunctionRegistry()), "").load();
   }
 
   private UdfLoader createUdfLoader(final MetaStore metaStore,

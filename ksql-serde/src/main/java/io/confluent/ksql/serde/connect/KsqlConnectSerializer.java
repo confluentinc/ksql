@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.serde.connect;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.common.errors.SerializationException;
@@ -31,13 +33,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class KsqlConnectSerializer implements Serializer<GenericRow> {
-  private static final String DEFAULT_SCHEMA_NAME = "KSQLDefaultSchemaName";
-
   private final Schema schema;
   private final Converter converter;
 
   public KsqlConnectSerializer(final Schema schema, final Converter converter) {
-    this.schema = addNames(schema);
+    this.schema = addNames(schema, new TypeNameGenerator());
     this.converter = converter;
   }
 
@@ -68,12 +68,30 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
   public void close() {
   }
 
-  /*
-   * The following 2 functions are a temporary hack until the Converter API
-   * fixes a bug with supporting anonymous optional structs.
-   */
+  private static class TypeNameGenerator {
+    private static final String DELIMITER = "_";
+    private static final String DEFAULT_SCHEMA_NAME_BASE = "KSQLDefaultSchemaName";
 
-  private Schema addNames(final Schema schema) {
+    private Iterable<String> names;
+
+    TypeNameGenerator() {
+      this(ImmutableList.of(DEFAULT_SCHEMA_NAME_BASE));
+    }
+
+    private TypeNameGenerator(Iterable<String> names) {
+      this.names = names;
+    }
+
+    TypeNameGenerator with(String name) {
+      return new TypeNameGenerator(Iterables.concat(names, ImmutableList.of(name)));
+    }
+
+    public String name() {
+      return String.join(DELIMITER, names);
+    }
+  }
+
+  private Schema addNames(final Schema schema, final TypeNameGenerator typeNameGenerator) {
     final SchemaBuilder schemaBuilder;
     switch (schema.type()) {
       default:
@@ -81,19 +99,19 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
       case STRUCT:
         schemaBuilder = SchemaBuilder.struct();
         if (schema.name() == null) {
-          schemaBuilder.name(DEFAULT_SCHEMA_NAME);
+          schemaBuilder.name(typeNameGenerator.name());
         }
         for (final Field f : schema.fields()) {
-          schemaBuilder.field(f.name(), addNames(f.schema()));
+          schemaBuilder.field(f.name(), addNames(f.schema(), typeNameGenerator.with(f.name())));
         }
         break;
       case ARRAY:
-        schemaBuilder = SchemaBuilder.array(addNames(schema.valueSchema()));
+        schemaBuilder = SchemaBuilder.array(addNames(schema.valueSchema(), typeNameGenerator));
         break;
       case MAP:
         schemaBuilder = SchemaBuilder.map(
-            addNames(schema.keySchema()),
-            addNames(schema.valueSchema()));
+            addNames(schema.keySchema(), typeNameGenerator),
+            addNames(schema.valueSchema(), typeNameGenerator));
         break;
     }
     if (schema.isOptional()) {
@@ -116,7 +134,7 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
         return ((Map<Object, Object>) object).entrySet().stream()
             .collect(
                 Collectors.toMap(
-                    Map.Entry::getKey,
+                    e -> replaceSchema(schema.keySchema(), e.getKey()),
                     e -> replaceSchema(schema.valueSchema(), e.getValue())
                 )
             );

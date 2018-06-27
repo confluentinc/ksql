@@ -31,6 +31,7 @@ public class FunctionDescriptionList extends KsqlEntity {
   private final String version;
   private final Collection<FunctionInfo> functions;
   private final String path;
+  private final FunctionType type;
 
   @JsonCreator
   public FunctionDescriptionList(
@@ -40,7 +41,8 @@ public class FunctionDescriptionList extends KsqlEntity {
       @JsonProperty("author") final String author,
       @JsonProperty("version") final String version,
       @JsonProperty("path") final String path,
-      @JsonProperty("functions") final Collection<FunctionInfo> functions) {
+      @JsonProperty("functions") final Collection<FunctionInfo> functions,
+      @JsonProperty("type") final FunctionType type) {
     super(statementText);
     this.name = Objects.requireNonNull(name, "name can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
@@ -48,6 +50,7 @@ public class FunctionDescriptionList extends KsqlEntity {
     this.version = Objects.requireNonNull(version, "version can't be null");
     this.path = Objects.requireNonNull(path, "path can't be null");
     this.functions = Objects.requireNonNull(functions, "functions can't be null");
+    this.type = Objects.requireNonNull(type, "type can't be null");
   }
 
   public Collection<FunctionInfo> getFunctions() {
@@ -74,6 +77,10 @@ public class FunctionDescriptionList extends KsqlEntity {
     return path;
   }
 
+  public FunctionType getType() {
+    return type;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -88,12 +95,13 @@ public class FunctionDescriptionList extends KsqlEntity {
         && Objects.equals(author, that.author)
         && Objects.equals(version, that.version)
         && Objects.equals(functions, that.functions)
-        && Objects.equals(path, that.path);
+        && Objects.equals(path, that.path)
+        && Objects.equals(type, that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, description, author, version, functions, path);
+    return Objects.hash(name, description, author, version, functions, path, type);
   }
 
   @Override
@@ -105,6 +113,7 @@ public class FunctionDescriptionList extends KsqlEntity {
         + ", version='" + version + '\''
         + ", functions=" + functions
         + ", path='" + path + "'"
+        + ", type='" + type.name() + "'"
         + '}';
   }
 }

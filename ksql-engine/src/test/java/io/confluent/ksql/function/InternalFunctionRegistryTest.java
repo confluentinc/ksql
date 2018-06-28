@@ -18,7 +18,9 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +59,9 @@ public class InternalFunctionRegistryTest {
       "func",
       Func1.class);
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Test
   public void shouldAddFunction() {
     functionRegistry.addFunction(
@@ -94,7 +99,12 @@ public class InternalFunctionRegistryTest {
 
     assertThat(copy.getUdfFactory("func").getFunction(Collections.emptyList()), equalTo(func));
     assertThat(copy.getUdfFactory("func2").getFunction(Collections.emptyList()), equalTo(func2));
-    assertThat(functionRegistry.getUdfFactory("func2"), nullValue());
+    try {
+      functionRegistry.getUdfFactory("func2");
+      fail("should have thrown when function doesn't exist");
+    } catch (final KsqlException e) {
+      // pass
+    }
   }
 
   @Test
@@ -149,6 +159,16 @@ public class InternalFunctionRegistryTest {
               public Merger getMerger() {
                 return null;
               }
+
+              @Override
+              public List<Schema> getArgTypes() {
+                return argTypeList;
+              }
+
+              @Override
+              public String getDescription() {
+                return null;
+              }
             };
           }
         });
@@ -158,9 +178,9 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddFunctionWithSameNameButDifferentReturnTypes() {
     functionRegistry.addFunction(func);
-    assertTrue(functionRegistry.addFunction(
+    functionRegistry.addFunction(
         new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
-            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class)));
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class));
   }
 
   @Test
@@ -169,11 +189,18 @@ public class InternalFunctionRegistryTest {
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class);
 
     functionRegistry.addFunction(func);
-    assertTrue(functionRegistry.addFunction(
-        func2));
+    functionRegistry.addFunction(
+        func2);
     assertThat(functionRegistry.getUdfFactory("func")
-        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA.type())), equalTo(func2));
+        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA)), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.emptyList()), equalTo(func));
+  }
+
+  @Test
+  public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'foo_bar'");
+    functionRegistry.getUdfFactory("foo_bar");
   }
 }

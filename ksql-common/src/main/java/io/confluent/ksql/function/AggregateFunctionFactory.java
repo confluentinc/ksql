@@ -19,23 +19,57 @@ package io.confluent.ksql.function;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+import io.confluent.ksql.function.udf.UdfMetadata;
 
 
 public abstract class AggregateFunctionFactory {
 
-  final List<KsqlAggregateFunction> aggregateFunctionList;
+  private final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList;
+  private final UdfMetadata metadata;
 
-  protected final String functionName;
+  public AggregateFunctionFactory(final String functionName,
+                                  final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList) {
+    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH),
+        aggregateFunctionList);
+  }
 
-  public AggregateFunctionFactory(String functionName,
-                                  List<KsqlAggregateFunction> aggregateFunctionList) {
-    this.functionName = functionName;
-    this.aggregateFunctionList = aggregateFunctionList;
+  public AggregateFunctionFactory(final UdfMetadata metadata,
+                                  final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList) {
+    this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
+    this.aggregateFunctionList = Objects.requireNonNull(aggregateFunctionList,
+        "aggregateFunctionList can't be null");
   }
 
   public abstract KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
 
-  protected List<KsqlAggregateFunction> getAggregateFunctionList() {
+  public String getName() {
+    return metadata.getName();
+  }
+
+  public String getDescription() {
+    return metadata.getDescription();
+  }
+
+  public String getPath() {
+    return metadata.getPath();
+  }
+
+  public String getAuthor() {
+    return metadata.getAuthor();
+  }
+
+  public String getVersion() {
+    return metadata.getVersion();
+  }
+
+  public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?>> consumer) {
+    aggregateFunctionList.forEach(consumer);
+  }
+
+  protected List<KsqlAggregateFunction<?, ?>> getAggregateFunctionList() {
     return aggregateFunctionList;
   }
 }

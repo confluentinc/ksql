@@ -26,31 +26,46 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
- * Used to restrict the classes that can be loaded by user supplied UDFs
+ * Used to restrict the classes that can be loaded by user supplied UDFs.
+ * Parses a file that has a single entry per line. Each entry is a substring of a class or package
+ * that should be blacklisted, for example, given a file with the following contents:
+ * <pre>
+ *   java.lang.Process
+ *   java.lang.Runtime
+ *   javax
+ * </pre>
+ * The blacklist produced would be:
+ * <pre>
+ *   ^(?:java\.lang\.Process|java\.lang\.Runtime|javax)\.?.*$
+ * </pre>
+ * The above blacklist would mean that any classes beginning with java.lang.Process,
+ * java.lang.Runtime, or javax will be in the blacklist.
+ * Blank lines and lines beginning with # are ignored.
  */
 public class Blacklist implements Predicate<String> {
   private static final Logger logger = LoggerFactory.getLogger(Blacklist.class);
-  private static final String EMPTY_BLACKLIST = "^(?)\\.?.*$";
+  private static final String BLACKLIST_ALL = ".*";
+  private static final String BLACKLIST_PREFIX = "^(?:";
+  private static final String BLACKLIST_SUFFIX = ")\\.?.*$";
 
-  private String blackList;
+  private String blackList = BLACKLIST_ALL;
 
   Blacklist(final File inputFile) {
     try {
-      final StringBuilder builder = new StringBuilder("^(?:");
-      Files.readLines(inputFile, Charset.forName(StandardCharsets.UTF_8.name()))
-          .forEach(item -> {
-            final String trimmed = item.trim();
-            if (!(trimmed.isEmpty() || trimmed.startsWith("#"))) {
-              builder.append(trimmed.replaceAll("\\.", "\\\\.")).append("|");
-            }
-          });
-      builder.deleteCharAt(builder.length() - 1);
-      builder.append(")\\.?.*$");
-      this.blackList = builder.toString().equals(EMPTY_BLACKLIST)
-          ? ""
-          : builder.toString();
+      this.blackList = Files.readLines(inputFile, Charset.forName(StandardCharsets.UTF_8.name()))
+          .stream()
+          .map(String::trim)
+          .filter(line -> !line.isEmpty())
+          .filter(line -> !line.startsWith("#"))
+          .map(line -> line.replaceAll("\\.", "\\\\."))
+          .collect(Collectors.joining("|", BLACKLIST_PREFIX, BLACKLIST_SUFFIX));
+
+      if (this.blackList.equals(BLACKLIST_PREFIX + BLACKLIST_SUFFIX)) {
+        this.blackList = "";
+      }
       logger.info("Setting UDF blacklisted classes to: " + blackList);
     } catch (IOException e) {
       logger.error("failed to load resource blacklist from " + inputFile
@@ -60,6 +75,6 @@ public class Blacklist implements Predicate<String> {
 
   @Override
   public boolean test(final String resourceName) {
-    return blackList == null || resourceName.matches(blackList);
+    return resourceName.matches(blackList);
   }
 }

@@ -19,6 +19,9 @@ package io.confluent.ksql.cli.console;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -41,6 +44,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -60,7 +64,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -95,7 +98,6 @@ public abstract class Console implements Closeable {
     this.cliSpecificCommands = new LinkedHashMap<>();
 
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-    new SchemaMapper().registerToObjectMapper(objectMapper);
 
     registerDefaultCommands();
   }
@@ -220,10 +222,13 @@ public abstract class Console implements Closeable {
 
   private static List<List<String>> propertiesRowValues(Map<String, Object> properties) {
     return properties.entrySet().stream()
-        .map(propertyEntry -> Arrays.asList(
-            propertyEntry.getKey(),
-            Objects.toString(propertyEntry.getValue())
-        )).collect(Collectors.toList());
+        .sorted(Map.Entry.comparingByKey())
+        .map(
+            propertyEntry -> Arrays.asList(
+                propertyEntry.getKey(),
+                Objects.toString(propertyEntry.getValue())
+            ))
+        .collect(Collectors.toList());
   }
 
 
@@ -382,13 +387,8 @@ public abstract class Console implements Closeable {
           .withColumnHeaders("Message")
           .withRow(commandStatus.getMessage().split("\n", 2)[0]);
     } else if (ksqlEntity instanceof PropertiesList) {
-      PropertiesList
-          propertiesList =
-          CliUtils.propertiesListWithOverrides(
-              (PropertiesList) ksqlEntity,
-              restClient.getLocalProperties()
-          );
-      Map<String, Object> properties = propertiesList.getProperties();
+      Map<String, Object> properties = CliUtils.propertiesListWithOverrides(
+          (PropertiesList) ksqlEntity);
       tableBuilder
           .withColumnHeaders(PROPERTIES_COLUMN_HEADERS)
           .withRows(propertiesRowValues(properties));
@@ -404,14 +404,14 @@ public abstract class Console implements Closeable {
       printSourceDescription(sourceDescriptionEntity.getSourceDescription());
       return;
     } else if (ksqlEntity instanceof SourceDescriptionList) {
-      printSourceDescriptionList((SourceDescriptionList)ksqlEntity);
+      printSourceDescriptionList((SourceDescriptionList) ksqlEntity);
       return;
     } else if (ksqlEntity instanceof QueryDescriptionEntity) {
       QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) ksqlEntity;
       printQueryDescription(queryDescriptionEntity.getQueryDescription());
       return;
-    } else if (ksqlEntity instanceof  QueryDescriptionList) {
-      printQueryDescriptionList((QueryDescriptionList)ksqlEntity);
+    } else if (ksqlEntity instanceof QueryDescriptionList) {
+      printQueryDescriptionList((QueryDescriptionList) ksqlEntity);
       return;
     } else if (ksqlEntity instanceof TopicDescription) {
       tableBuilder.withColumnHeaders("Topic Name", "Kafka Topic", "Type");
@@ -458,6 +458,15 @@ public abstract class Console implements Closeable {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
       tableBuilder.withColumnHeaders("Execution Plan");
       tableBuilder.withRow(executionPlan.getExecutionPlan());
+    } else if (ksqlEntity instanceof FunctionNameList) {
+      tableBuilder.withColumnHeaders("Function Name", "Type");
+      ((FunctionNameList) ksqlEntity)
+          .getFunctions().stream().sorted()
+          .forEach(func -> tableBuilder.withRow(
+              Arrays.asList(func.getName(), func.getType().name().toUpperCase())));
+    } else if (ksqlEntity instanceof FunctionDescriptionList) {
+      printFunctionDescription((FunctionDescriptionList) ksqlEntity);
+      return;
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",
@@ -692,22 +701,30 @@ public abstract class Console implements Closeable {
         });
   }
 
-  private void printAsJson(Object o) throws IOException {
-    if (o instanceof PropertiesList) {
-      o = CliUtils.propertiesListWithOverrides((PropertiesList) o, restClient.getLocalProperties());
-    } else if (o instanceof KsqlEntityList) {
-      List<KsqlEntity> newEntities = new ArrayList<>();
-      for (KsqlEntity ksqlEntity : (KsqlEntityList) o) {
-        if (ksqlEntity instanceof PropertiesList) {
-          ksqlEntity = CliUtils.propertiesListWithOverrides(
-              (PropertiesList) ksqlEntity,
-              restClient.getLocalProperties()
-          );
+  private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
+    writer().printf("%-12s: %s%n", "Name", describeFunction.getName().toUpperCase());
+    writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
+    writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
+    writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    writer().printf("%-12s: %s%n", "Type", describeFunction.getType().name());
+    writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
+    writer().printf("%-12s: %n", "Variations");
+    final Collection<FunctionInfo> functions = describeFunction.getFunctions();
+    functions.forEach(functionInfo -> {
+          writer().printf("%n\t%-12s: %s%n",
+              "Arguments",
+              functionInfo.getArgumentTypes()
+                  .toString()
+                  .replaceAll("\\[", "")
+                  .replaceAll("]", ""));
+          writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
+          writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
         }
-        newEntities.add(ksqlEntity);
-      }
-      o = newEntities;
-    } else {
+    );
+  }
+
+  private void printAsJson(Object o) throws IOException {
+    if (!((o instanceof PropertiesList || (o instanceof KsqlEntityList)))) {
       log.warn(
           "Unexpected result class: '{}' found in printAsJson",
           o.getClass().getCanonicalName()

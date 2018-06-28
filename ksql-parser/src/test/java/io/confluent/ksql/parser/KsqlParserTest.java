@@ -18,6 +18,9 @@ package io.confluent.ksql.parser;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -27,6 +30,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -39,16 +43,23 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -56,6 +67,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
+
 
 public class KsqlParserTest {
 
@@ -67,6 +81,67 @@ public class KsqlParserTest {
   public void init() {
 
     metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+
+    final Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
+
+    final Schema categorySchema = SchemaBuilder.struct()
+        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional().build();
+
+    final Schema itemInfoSchema = SchemaBuilder.struct()
+        .field("ITEMID", Schema.INT64_SCHEMA)
+        .field("NAME", Schema.STRING_SCHEMA)
+        .field("CATEGORY", categorySchema)
+        .optional().build();
+
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Schema schemaBuilderOrders = schemaBuilder
+        .field("ORDERTIME", Schema.INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ITEMINFO", itemInfoSchema)
+        .field("ORDERUNITS", Schema.INT32_SCHEMA)
+        .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+        .field("ADDRESS", addressSchema)
+        .build();
+
+    KsqlTopic
+        ksqlTopicOrders =
+        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+
+    KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression",
+        "ADDRESS",
+        schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopicOrders);
+
+    metaStore.putTopic(ksqlTopicOrders);
+    metaStore.putSource(ksqlStreamOrders);
+
+    KsqlTopic
+        ksqlTopicItems =
+        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
+    KsqlTable ksqlTableOrders = new KsqlTable(
+        "sqlexpression",
+        "ITEMID",
+        itemInfoSchema,
+        itemInfoSchema.field("ITEMID"),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopicItems,
+        "items",
+        false);
+    metaStore.putTopic(ksqlTopicItems);
+    metaStore.putSource(ksqlTableOrders);
   }
 
   @Test
@@ -222,6 +297,28 @@ public class KsqlParserTest {
     SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
     Assert.assertTrue("testProjection fails", column2.getAlias().get().equalsIgnoreCase("KSQL_COL_2"));
     Assert.assertTrue("testProjection fails", column2.getExpression().toString().equalsIgnoreCase("'test'"));
+
+  }
+
+  @Test
+  public void shouldParseStructFieldAccessCorrectly() {
+    final String simpleQuery = "SELECT iteminfo->category->name, address->street FROM orders WHERE address->state = 'CA';";
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+
+
+    Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
+    final Query query = (Query) statement;
+    assertThat("testSimpleQuery fails", query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    assertThat("testSimpleQuery fails", querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    final SingleColumn singleColumn0 = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn singleColumn1 = (SingleColumn) querySpecification.getSelect().getSelectItems().get(1);
+    assertThat(singleColumn0.getExpression(), instanceOf(FunctionCall.class));
+    final FunctionCall functionCall0 = (FunctionCall) singleColumn0.getExpression();
+    assertThat(functionCall0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(FETCH_FIELD_FROM_STRUCT(ORDERS.ITEMINFO, 'CATEGORY'), 'NAME')"));
+
+    final FunctionCall functionCall1 = (FunctionCall) singleColumn1.getExpression();
+    assertThat(functionCall1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET')"));
 
   }
 
@@ -423,20 +520,18 @@ public class KsqlParserTest {
 
   @Test
   public void testCreateStreamAsSelect() {
-
-    String
-        queryStr =
+    final String queryStr =
         "CREATE STREAM bigorders_json WITH (value_format = 'json', "
         + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
-    Assert.assertTrue("testCreateStreamAsSelect failed.", statement instanceof CreateStreamAsSelect);
+    assertThat( statement, instanceOf(CreateStreamAsSelect.class));
     CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
-    Assert.assertTrue("testCreateTable failed.", createStreamAsSelect.getName().toString().equalsIgnoreCase("bigorders_json"));
-    Assert.assertTrue("testCreateTable failed.", createStreamAsSelect.getQuery().getQueryBody() instanceof QuerySpecification);
+    assertThat(createStreamAsSelect.getName().toString().toLowerCase(), equalTo("bigorders_json"));
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(), instanceOf(QuerySpecification.class));
     QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems().size() == 4);
-    Assert.assertTrue("testCreateTable failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
-    Assert.assertTrue("testCreateTable failed.", ((AliasedRelation)querySpecification.getFrom()).getAlias().equalsIgnoreCase("ORDERS"));
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(8));
+    assertThat(querySpecification.getWhere().get().toString().toUpperCase(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
   }
 
   @Test
@@ -716,5 +811,255 @@ public class KsqlParserTest {
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     ListQueries listQueries = (ListQueries)statement;
     Assert.assertThat(listQueries.getShowExtended(), is(true));
+  }
+
+  @Test
+  public void shouldSetWithinExpressionWithSingleWithin() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
+                                   + "10 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertTrue(join.getWithinExpression().isPresent());
+
+    final WithinExpression withinExpression = join.getWithinExpression().get();
+
+    assertEquals(10L, withinExpression.getBefore());
+    assertEquals(10L, withinExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, withinExpression.getBeforeTimeUnit());
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+
+  @Test
+  public void shouldSetWithinExpressionWithBeforeAndAfter() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
+                                   + "WITHIN (10 seconds, 20 minutes) "
+                                   + "ON TEST1.col1 = ORDERS.ORDERID ;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertTrue(join.getWithinExpression().isPresent());
+
+    final WithinExpression withinExpression = join.getWithinExpression().get();
+
+    assertEquals(10L, withinExpression.getBefore());
+    assertEquals(20L, withinExpression.getAfter());
+    assertEquals(TimeUnit.SECONDS, withinExpression.getBeforeTimeUnit());
+    assertEquals(TimeUnit.MINUTES, withinExpression.getAfterTimeUnit());
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveInnerJoinTypeWithExplicitInnerKeyword() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 INNER JOIN TEST2 "
+                                   + "ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.INNER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveLeftJoinTypeWhenOuterIsSpecified() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT OUTER JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.LEFT, join.getType());
+  }
+
+  @Test
+  public void shouldHaveLeftJoinType() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.LEFT, join.getType());
+  }
+
+  @Test
+  public void shouldHaveOuterJoinType() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.OUTER, join.getType());
+  }
+
+  @Test
+  public void shouldHaveOuterJoinTypeWhenOuterKeywordIsSpecified() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL OUTER JOIN "
+                                   + "TEST2 ON TEST1.col1 = TEST2.col1;";
+
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    assertThat(createStreamAsSelect.getQuery().getQueryBody(),
+               instanceOf(QuerySpecification.class));
+
+    final QuerySpecification specification =
+        (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+
+    assertThat(specification.getFrom(), instanceOf(Join.class));
+
+    final Join join = (Join) specification.getFrom();
+
+    assertEquals(Join.Type.OUTER, join.getType());
+  }
+
+  @Test
+  public void shouldAddPrefixEvenIfColumnNameIsTheSameAsStream() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT address FROM address a;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("A.ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldNotAddPrefixIfStreamNameIsPrefix() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT address.orderid FROM address a;";
+    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("ADDRESS.ORDERID ORDERID"));
+  }
+
+  @Test
+  public void shouldPassIfStreamColumnNameWithAliasIsNotAmbiguous() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT a.address->city FROM address a;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') ADDRESS__CITY"));
+  }
+
+  @Test
+  public void shouldPassIfStreamColumnNameIsNotAmbiguous() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT address.address->city FROM address a;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
+        equalTo("FETCH_FIELD_FROM_STRUCT(ADDRESS.ADDRESS, 'CITY') ADDRESS__CITY"));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldFailJoinQueryParseIfStreamColumnNameWithNoAliasIsAmbiguous() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
+    final List<Statement> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+  }
+
+  @Test
+  public void shouldPassJoinQueryParseIfStreamColumnNameWithAliasIsNotAmbiguous() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT itemid.itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+    Query query = ((CreateStreamAsSelect) statement).getQuery();
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(), equalTo("ITEMID.ITEMID ITEMID_ITEMID"));
   }
 }

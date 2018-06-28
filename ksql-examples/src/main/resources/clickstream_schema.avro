@@ -84,7 +84,7 @@
 
 
           {"name": "time", "type": {
-            "type": "long",
+            "type": "string",
             "format_as_time" : "dd/MMM/yyyy:HH:mm:ss Z",
             "arg.properties": {
               "iteration": { "start": 1, "step": 10}

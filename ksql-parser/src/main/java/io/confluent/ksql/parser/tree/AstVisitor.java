@@ -158,10 +158,6 @@ public abstract class AstVisitor<R, C> {
     return visitExpression(node, context);
   }
 
-  protected R visitLambdaExpression(LambdaExpression node, C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
     return visitExpression(node, context);
   }
@@ -307,6 +303,22 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitWindow(Window node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitWindowExpression(WindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitTumblingWindowExpression(TumblingWindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitHoppingWindowExpression(HoppingWindowExpression node, C context) {
+    return visitNode(node, context);
+  }
+
+  protected R visitSessionWindowExpression(SessionWindowExpression node, C context) {
     return visitNode(node, context);
   }
 

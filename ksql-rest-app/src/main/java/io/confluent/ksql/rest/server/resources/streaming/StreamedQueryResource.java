@@ -16,9 +16,11 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,15 +52,17 @@ public class StreamedQueryResource {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
+  private final ObjectMapper objectMapper;
 
   public StreamedQueryResource(
-      KsqlEngine ksqlEngine,
-      StatementParser statementParser,
-      long disconnectCheckInterval
+      final KsqlEngine ksqlEngine,
+      final StatementParser statementParser,
+      final long disconnectCheckInterval
   ) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
+    this.objectMapper = JsonMapper.INSTANCE.mapper;
   }
 
   @POST
@@ -80,8 +84,12 @@ public class StreamedQueryResource {
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter;
       try {
-        queryStreamWriter =
-            new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+        queryStreamWriter = new QueryStreamWriter(
+            ksqlEngine,
+            disconnectCheckInterval,
+            ksql,
+            clientLocalProperties,
+            objectMapper);
       } catch (KsqlException e) {
         return Errors.badRequest(e);
       }
@@ -113,9 +121,10 @@ public class StreamedQueryResource {
               + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
               topicName)));
     }
-    Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
-    properties.putAll(clientLocalProperties);
-    TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+    final Map<String, Object> properties = ksqlEngine.getKsqlConfig()
+        .cloneWithPropertyOverwrite(clientLocalProperties)
+        .getKsqlStreamConfigProps();
+    final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         ksqlEngine.getSchemaRegistryClient(),
         properties,
         topicName,

@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -80,18 +81,18 @@ public class CliUtils {
     }
   }
 
-  public static PropertiesList propertiesListWithOverrides(
-      PropertiesList propertiesList,
-      Map<String, Object> localProperties
-  ) {
-    Map<String, Object> properties = propertiesList.getProperties();
-    for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
-      properties.put(
-          "(LOCAL OVERRIDE) " + localPropertyEntry.getKey(),
-          localPropertyEntry.getValue()
-      );
-    }
-    return new PropertiesList(propertiesList.getStatementText(), properties);
+  public static Map<String, Object> propertiesListWithOverrides(
+      final PropertiesList propertiesList) {
+    return propertiesList.getProperties().entrySet()
+        .stream()
+        .collect(
+            Collectors.toMap(
+              e ->
+                  propertiesList.getOverwrittenProperties().contains(e.getKey())
+                      ? e.getKey() + " (LOCAL OVERRIDE)" : e.getKey(),
+              Map.Entry::getValue
+            )
+        );
   }
 
   public static String getLocalServerAddress(int portNumber) {

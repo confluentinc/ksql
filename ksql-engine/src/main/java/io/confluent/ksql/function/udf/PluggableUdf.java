@@ -16,28 +16,35 @@
 
 package io.confluent.ksql.function.udf;
 
+import java.util.Objects;
+
 import io.confluent.ksql.function.UdfInvoker;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 
 /**
  * Class to allow conversion from Kudf to UdfInvoker.
  * This may change if we ever get rid of Kudf. As it stands we need
  * to do a conversion from custom UDF -> Kudf so we can support stong
  * typing etc.
- * Will eventually capture metrics.
  */
 public class PluggableUdf implements Kudf {
 
   private final UdfInvoker udf;
   private final Object actualUdf;
 
-  public PluggableUdf(final UdfInvoker udf,
+  public PluggableUdf(final UdfInvoker udfInvoker,
                       final Object actualUdf) {
-    this.udf = udf;
-    this.actualUdf = actualUdf;
+    this.udf = Objects.requireNonNull(udfInvoker, "udfInvoker can't be null");
+    this.actualUdf = Objects.requireNonNull(actualUdf, "actualUdf can't be null");
   }
 
   @Override
   public Object evaluate(final Object... args) {
-    return udf.eval(actualUdf, args);
+    try {
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
+      return udf.eval(actualUdf, args);
+    } finally {
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
+    }
   }
 }

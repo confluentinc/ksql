@@ -11,14 +11,11 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfCompiler;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.function.UdfLoaderTest;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
-import kafka.utils.TestUtils;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,11 +33,7 @@ public class SqlToJavaVisitorTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
-    new UdfLoader(metaStore,
-        TestUtils.tempDir(),
-        UdfLoaderTest.class.getClassLoader(),
-        value -> false,
-        new UdfCompiler(), true).load();
+    UdfLoaderUtil.load(metaStore);
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
@@ -62,10 +55,9 @@ public class SqlToJavaVisitorTest {
   }
 
   private Analysis analyzeQuery(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
+    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }

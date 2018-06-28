@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -56,16 +56,20 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(final Schema schema,
+  public Serde<GenericRow> getGenericRowSerde(final Schema schemaMaybeWithSource,
                                               final KsqlConfig ksqlConfig,
                                               final boolean isInternal,
                                               final SchemaRegistryClient schemaRegistryClient) {
+    final Schema schema = isInternal
+        ? SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource) : schemaMaybeWithSource;
     final Serializer<GenericRow> genericRowSerializer =
-        new KsqlConnectSerializer(schema, getAvroConverter(schemaRegistryClient, ksqlConfig));
+        new KsqlConnectSerializer(
+            new AvroDataTranslator(schema),
+            getAvroConverter(schemaRegistryClient, ksqlConfig));
     final Deserializer<GenericRow> genericRowDeserializer =
         new KsqlConnectDeserializer(
-            schema,
-            getAvroConverter(schemaRegistryClient, ksqlConfig), new ConnectDataTranslator());
+            getAvroConverter(schemaRegistryClient, ksqlConfig),
+            new AvroDataTranslator(schema));
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 }

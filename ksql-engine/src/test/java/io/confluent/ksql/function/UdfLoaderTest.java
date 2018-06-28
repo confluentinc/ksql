@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableMap;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,16 +28,21 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.testng.Assert.fail;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -42,14 +51,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class UdfLoaderTest {
 
   private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-  private final UdfCompiler compiler = new UdfCompiler();
+  private final UdfCompiler compiler = new UdfCompiler(Optional.empty());
   private final ClassLoader parentClassLoader = UdfLoaderTest.class.getClassLoader();
-  private final UdfLoader pluginLoader = new UdfLoader(metaStore,
-      new File("src/test/resources"),
-      parentClassLoader,
-      value -> false,
-      compiler,
-      true);
+  private final Metrics metrics = new Metrics();
+  private final UdfLoader pluginLoader = createUdfLoader(metaStore, true, false);
 
   @Before
   public void before() {
@@ -62,12 +67,25 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
     assertThat(substring1.evaluate("foo", 1), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32, Schema.Type.INT32)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
     assertThat(substring2.evaluate("foo", 1,2), equalTo("o"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldLoadUdafs() {
+    final KsqlAggregateFunction aggregate
+        = metaStore.getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlAggregateFunction<Long, Long> instance = aggregate.getInstance(
+        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
+            Collections.singletonList("udfIndex")));
+    assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
+    assertThat(instance.aggregate(1L, 1L), equalTo(2L));
+    assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));
   }
 
   @Test
@@ -85,9 +103,10 @@ public class UdfLoaderTest {
     final UdfFactory multiply = metaStore.getUdfFactory("multiply");
 
 
-    final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.Type.STRING))
+    final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.STRING_SCHEMA))
         .newInstance();
-    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(Schema.Type.INT32, Schema.Type.INT32))
+    final Kudf multiplyUdf = multiply.getFunction(
+        Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance();
 
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
@@ -96,11 +115,23 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
+    final UdfFactory tostring = metaStore.getUdfFactory("tostring");
+    assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
+  }
+
+  @Test
+  public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+  }
+
+  @Test
   public void shouldPutKsqlFunctionsInParentClassLoader()
       throws NoSuchFieldException, IllegalAccessException {
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     final Kudf kudf = substring.getFunction(
-        Arrays.asList(Schema.Type.STRING, Schema.Type.INT32))
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance();
     assertThat(getActualUdfClassLoader(kudf), equalTo(parentClassLoader));
   }
@@ -117,24 +148,93 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfsInJarDirectoryIfLoadCustomerUdfsFalse() {
+  public void shouldLoadUdfsInKSQLIfLoadCustomerUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in ksql-engine will throw if not found
+    metaStore.getUdfFactory("substring");
+  }
+
+  @Test
+  public void shouldNotLoadCustomUDfsIfLoadCustomUdfsFalse() {
+    final MetaStore metaStore = loadKsqlUdfsOnly();
+    // udf in udf-example.jar
+    try {
+      metaStore.getUdfFactory("tostring");
+      fail("Should have thrown as function doesn't exist");
+    } catch (final KsqlException e) {
+      // pass
+    }
+  }
+
+  private MetaStore loadKsqlUdfsOnly() {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    final UdfLoader pluginLoader = new UdfLoader(metaStore,
+    final UdfLoader pluginLoader = createUdfLoader(metaStore, false, false);
+    pluginLoader.load();
+    return metaStore;
+  }
+
+  @Test
+  public void shouldCollectMetricsWhenMetricCollectionEnabled() {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final UdfLoader pluginLoader = createUdfLoader(metaStore, true, true);
+
+    pluginLoader.load();
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    final KsqlFunction function
+        = substring.getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
+    final Kudf kudf = function.newInstance();
+    assertThat(kudf, instanceOf(UdfMetricProducer.class));
+    final Sensor sensor = metrics.getSensor("ksql-udf-substring");
+    assertThat(sensor, not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf")),
+        not(nullValue()));
+    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf")),
+        not(nullValue()));
+  }
+
+  @Test
+  public void shouldUseConfigForExtDir() {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    // The tostring function is in the udf-example.jar that is found in src/test/resources
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "src/test/resources")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
+    final KsqlConfig config
+        = new KsqlConfig(configMap);
+    UdfLoader.newInstance(config, metaStore, "").load();
+    // will throw if it doesn't exist
+    metaStore.getUdfFactory("tostring");
+  }
+
+  @Test
+  public void shouldNotThrowWhenExtDirDoesntExist() {
+    final ImmutableMap<Object, Object> configMap
+        = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "foo/bar")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+        .build();
+    final KsqlConfig config
+        = new KsqlConfig(configMap);
+    UdfLoader.newInstance(config, new MetaStoreImpl(new InternalFunctionRegistry()), "").load();
+  }
+
+  private UdfLoader createUdfLoader(final MetaStore metaStore,
+                                    final boolean loadCustomerUdfs,
+                                    final boolean collectMetrics) {
+    final Optional<Metrics> optionalMetrics = collectMetrics
+        ? Optional.of(metrics)
+        : Optional.empty();
+    return new UdfLoader(metaStore,
         new File("src/test/resources"),
         parentClassLoader,
         value -> false,
         compiler,
-        false);
-
-    pluginLoader.load();
-    // udf in ksql-engine
-    final UdfFactory function = metaStore.getUdfFactory("substring");
-    // udf in udf-example.jar
-    final UdfFactory toString = metaStore.getUdfFactory("tostring");
-
-    assertThat(function, not(nullValue()));
-    assertThat(toString, nullValue());
-    assertThat(toString, nullValue());
+        optionalMetrics,
+        loadCustomerUdfs);
   }
 
 }

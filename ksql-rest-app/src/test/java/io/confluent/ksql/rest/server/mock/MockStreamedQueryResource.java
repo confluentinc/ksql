@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.mock;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +57,7 @@ public class MockStreamedQueryResource {
 
   public class TestStreamWriter implements StreamingOutput {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
-    ObjectMapper objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
     public void enq(String data) throws InterruptedException { dataq.put(data); }
 

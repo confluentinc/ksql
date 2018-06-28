@@ -20,12 +20,12 @@ import com.google.common.collect.ImmutableMap;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +36,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfCompiler;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -91,11 +90,7 @@ public class CodeGenRunnerTest {
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         // load substring function
-        new UdfLoader(metaStore,
-            TestUtils.tempDirectory(),
-            getClass().getClassLoader(),
-            value -> false, new UdfCompiler(), true)
-            .load();
+        UdfLoaderUtil.load(metaStore);
 
         final Schema schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -475,6 +470,28 @@ public class CodeGenRunnerTest {
             equalTo("adelaide"));
     }
 
+    @Test
+    public void shouldHandleFunctionWithNullArgument() {
+        final String query =
+            "SELECT test_udf(col0, NULL) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongString")));
+    }
+
+    @Test
+    public void shouldChoseFunctionWithCorrectNumberOfArgsWhenNullArgument() {
+        final String query =
+            "SELECT test_udf(col0, col0, NULL) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongLongString")));
+    }
+
     private List<Object> executeExpression(final String query,
                                            final Map<Integer, Object> inputValues) {
         final Analysis analysis = analyzeQuery(query);
@@ -496,9 +513,8 @@ public class CodeGenRunnerTest {
 
     private Analysis analyzeQuery(String queryStr) {
         final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        // Analyze the query to resolve the references and extract oeprations
         final Analysis analysis = new Analysis();
-        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
         analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
     }

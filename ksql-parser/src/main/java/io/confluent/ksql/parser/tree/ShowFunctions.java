@@ -23,15 +23,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 public class ShowFunctions
     extends Statement {
 
-  public ShowFunctions() {
-    this(Optional.empty());
-  }
-
-  public ShowFunctions(NodeLocation location) {
-    this(Optional.of(location));
-  }
-
-  private ShowFunctions(Optional<NodeLocation> location) {
+  public ShowFunctions(Optional<NodeLocation> location) {
     super(location);
   }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,14 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.serde.connect;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import io.confluent.ksql.GenericRow;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
-public class NaturalJoin
-    extends JoinCriteria {
+public interface DataTranslator {
+  GenericRow toKsqlRow(final Schema connectSchema, final Object connectData);
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    return (obj != null) && (getClass() == obj.getClass());
-  }
-
-  @Override
-  public int hashCode() {
-    return 0;
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this).toString();
-  }
+  Struct toConnectRow(final GenericRow genericRow);
 }

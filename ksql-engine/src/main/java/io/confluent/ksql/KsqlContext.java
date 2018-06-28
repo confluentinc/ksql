@@ -37,7 +37,6 @@ public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
   private final KsqlEngine ksqlEngine;
-  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
   public static KsqlContext create(KsqlConfig ksqlConfig) {
@@ -59,15 +58,11 @@ public class KsqlContext {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-    }
-    if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      streamsProperties.put(
-          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-          KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
-      );
+    if (!ksqlConfig.getKsqlStreamConfigProps().containsKey(
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
+      ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(
+          Collections.singletonMap(
+              StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
     }
 
     final KsqlEngine engine = schemaRegistryClient == null
@@ -92,13 +87,13 @@ public class KsqlContext {
   /**
    * Execute the ksql statement in this context.
    */
-  public void sql(String sql) throws Exception {
+  public void sql(String sql) {
     sql(sql, Collections.emptyMap());
   }
 
-  public void sql(String sql, Map<String, Object> overriddenProperties) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql,
-        overriddenProperties);
+  public void sql(String sql, Map<String, Object> overriddenProperties) {
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+        sql, overriddenProperties);
 
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

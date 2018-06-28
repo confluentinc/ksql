@@ -18,6 +18,8 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -54,6 +56,7 @@ import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -128,7 +131,7 @@ public class KsqlEngine implements Closeable {
                     final MetaStore metaStore) {
 
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient(
-        (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
+         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000),
          metaStore
     );
   }
@@ -259,7 +262,8 @@ public class KsqlEngine implements Closeable {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         tempMetaStore,
-        statementList
+        statementList,
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
 
     // Physical plan creation from logical plans.
@@ -291,8 +295,8 @@ public class KsqlEngine implements Closeable {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         metaStore,
-        Collections.singletonList(new Pair<>("", query))
-    );
+        Collections.singletonList(new Pair<>("", query)),
+        ksqlConfig);
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
@@ -326,7 +330,12 @@ public class KsqlEngine implements Closeable {
             tempMetaStoreForParser
         );
         Statement statement = statementInfo.getLeft();
-
+        if (StatementRewriteForStruct.requiresRewrite(statement)) {
+          statement = new StatementRewriteForStruct(
+              statement,
+              statementInfo.getRight())
+              .rewriteForStruct();
+        }
         Pair<String, Statement> queryPair =
             buildSingleQueryAst(
                 statement,
@@ -607,11 +616,10 @@ public class KsqlEngine implements Closeable {
     return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }
 
-  public Map<String, Object> getKsqlConfigProperties() {
-    Map<String, Object> configProperties = new HashMap<>();
-    configProperties.putAll(ksqlConfig.getKsqlConfigProps());
-    configProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
-    return configProperties;
+  public Map<String, Object> getKsqlConfigProperties(Map<String, Object> overwriteProperties) {
+    return ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
+        .getAllProps();
   }
 
   public KsqlConfig getKsqlConfig() {
@@ -670,5 +678,13 @@ public class KsqlEngine implements Closeable {
         new HashMap<>(),
         metaStoreCopy
     );
+  }
+
+  public List<UdfFactory> listScalarFunctions() {
+    return metaStore.listFunctions();
+  }
+
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return metaStore.listAggregateFunctions();
   }
 }

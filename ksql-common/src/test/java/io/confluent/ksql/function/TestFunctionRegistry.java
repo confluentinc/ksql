@@ -18,9 +18,13 @@ package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import io.confluent.ksql.function.udf.UdfMetadata;
 
 
 public class TestFunctionRegistry implements FunctionRegistry {
@@ -33,17 +37,20 @@ public class TestFunctionRegistry implements FunctionRegistry {
   }
 
   @Override
-  public boolean addFunction(final KsqlFunction ksqlFunction) {
-    final String key = ksqlFunction.getFunctionName().toUpperCase();
+  public void addFunction(final KsqlFunction ksqlFunction) {
+    addFunctionFactory(new UdfFactory(
+        ksqlFunction.getKudfClass(),
+        new UdfMetadata(ksqlFunction.getFunctionName(),
+            "",
+            "",
+            "",
+            "")));
+    final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName());
+    udfFactory.addFunction(ksqlFunction);  }
 
-    udfs.compute(key, (s, udf) -> {
-      if (udf == null) {
-        udf = new UdfFactory(key, ksqlFunction.getKudfClass());
-      }
-      udf.addFunction(ksqlFunction);
-      return udf;
-    });
-    return true;
+  @Override
+  public boolean addFunctionFactory(final UdfFactory factory) {
+    return udfs.putIfAbsent(factory.getName().toUpperCase(), factory) == null;
   }
 
   @Override
@@ -60,11 +67,26 @@ public class TestFunctionRegistry implements FunctionRegistry {
 
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    udafs.put(aggregateFunctionFactory.functionName.toUpperCase(), aggregateFunctionFactory);
+    udafs.put(aggregateFunctionFactory.getName().toUpperCase(), aggregateFunctionFactory);
   }
 
   @Override
   public FunctionRegistry copy() {
     return this;
+  }
+
+  @Override
+  public List<UdfFactory> listFunctions() {
+    return new ArrayList<>(udfs.values());
+  }
+
+  @Override
+  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+    return udafs.get(functionName.toUpperCase());
+  }
+
+  @Override
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return new ArrayList<>(udafs.values());
   }
 }

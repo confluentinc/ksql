@@ -16,13 +16,25 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import com.google.common.collect.ImmutableList;
+
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.ShowFunctions;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -37,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -116,6 +129,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
@@ -211,7 +225,8 @@ public class KsqlResource {
 
     if (Stream.of(
         ListTopics.class, ListRegisteredTopics.class, ListStreams.class,
-        ListTables.class, ListQueries.class, ListProperties.class, RunScript.class)
+        ListTables.class, ListQueries.class, ListProperties.class, RunScript.class,
+        ShowFunctions.class, DescribeFunction.class)
         .anyMatch(c -> c.isInstance(statement))) {
       return;
     }
@@ -295,7 +310,7 @@ public class KsqlResource {
           statementText,
           describe(showColumns.getTable().getSuffix(), showColumns.isExtended()));
     } else if (statement instanceof ListProperties) {
-      return listProperties(statementText);
+      return listProperties(statementText, streamsProperties);
     } else if (statement instanceof Explain) {
       Explain explain = (Explain) statement;
       return new QueryDescriptionEntity(
@@ -313,6 +328,10 @@ public class KsqlResource {
           statementWithSchema == statement
               ? statementText : SqlFormatter.formatSql(statementWithSchema),
           statement, streamsProperties);
+    } else if (statement instanceof ShowFunctions) {
+      return listFunctions(statementText);
+    } else if (statement instanceof DescribeFunction) {
+      return describeFunction(statementText, ((DescribeFunction)statement).getFunctionName());
     }
     // This line is unreachable. Once we have distinct exception types we won't need a
     // separate validation phase for each statement and this can go away. For now all
@@ -321,6 +340,8 @@ public class KsqlResource {
     throw new RuntimeException(
         "Unexpected statement of type " + statement.getClass().getSimpleName());
   }
+
+
 
   private boolean isExecutableDdlStatement(Statement statement) {
     return statement instanceof DdlStatement && !(statement instanceof SetProperty);
@@ -447,8 +468,17 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  private PropertiesList listProperties(String statementText) {
-    return new PropertiesList(statementText, ksqlEngine.getKsqlConfigProperties());
+  private PropertiesList listProperties(final String statementText,
+                                        final Map<String, Object> overwriteProperties) {
+    final Map<String, Object> engineProperties
+        = ksqlEngine.getKsqlConfigProperties(Collections.emptyMap());
+    final Map<String, Object> mergedProperties
+        = ksqlEngine.getKsqlConfigProperties(overwriteProperties);
+    final List<String> overwritten = mergedProperties.keySet()
+        .stream()
+        .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))
+        .collect(Collectors.toList());
+    return new PropertiesList(statementText, mergedProperties, overwritten);
   }
 
   private KsqlEntity listStreams(String statementText, boolean showDescriptions) {
@@ -481,6 +511,64 @@ public class KsqlResource {
         ksqlTables.stream()
             .map(SourceInfo.Table::new)
             .collect(Collectors.toList()));
+  }
+
+  private KsqlEntity listFunctions(final String statementText) {
+    final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions()
+        .stream()
+        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
+            FunctionType.scalar)).collect(Collectors.toList());
+    all.addAll(ksqlEngine.listAggregateFunctions()
+        .stream()
+        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
+            FunctionType.aggregate))
+        .collect(Collectors.toList()));
+
+    return new FunctionNameList(statementText, all);
+  }
+
+  private FunctionDescriptionList describeFunction(final String statementText,
+                                                   final String functionName) {
+    final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
+    if (functionRegistry.isAggregate(functionName)) {
+      final AggregateFunctionFactory aggregateFactory
+          = functionRegistry.getAggregateFactory(functionName);
+      aggregateFactory.eachFunction(function ->
+          listBuilder.add(new FunctionInfo(function.getArgTypes()
+              .stream()
+              .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
+              SchemaUtil.getSqlTypeName(function.getReturnType()),
+              function.getDescription())));
+
+      return new FunctionDescriptionList(statementText,
+          aggregateFactory.getName().toUpperCase(),
+          aggregateFactory.getDescription(),
+          aggregateFactory.getAuthor(),
+          aggregateFactory.getVersion(),
+          aggregateFactory.getPath(),
+          listBuilder.build(),
+          FunctionType.aggregate
+      );
+    }
+
+    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
+    udfFactory.eachFunction(function ->
+        listBuilder.add(new FunctionInfo(function.getArguments()
+            .stream()
+            .map(SchemaUtil::getSqlTypeName).collect(Collectors.toList()),
+            SchemaUtil.getSqlTypeName(function.getReturnType()),
+            function.getDescription())));
+
+    return new FunctionDescriptionList(statementText,
+        udfFactory.getName().toUpperCase(),
+        udfFactory.getDescription(),
+        udfFactory.getAuthor(),
+        udfFactory.getVersion(),
+        udfFactory.getPath(),
+        listBuilder.build(),
+        FunctionType.scalar
+    );
   }
 
   private QueryDescription explainQuery(Explain explain, String statementText) {

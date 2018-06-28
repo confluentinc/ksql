@@ -45,6 +45,20 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     this.sizeUnit = sizeUnit;
   }
 
+  public long getGap() {
+    return gap;
+  }
+
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitSessionWindowExpression(this, context);
+  }
+
+
   @Override
   public String toString() {
     return " SESSION ( " + gap + " " + sizeUnit + " ) ";

@@ -120,7 +120,8 @@ public class IntegrationTestHarness {
   private Properties properties() {
     Properties producerConfig = new Properties();
     producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+                       ksqlConfig.getKsqlStreamConfigProps().get(
+                           ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
     return producerConfig;
@@ -230,7 +231,8 @@ public class IntegrationTestHarness {
   private Properties consumerConfig() {
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+                       ksqlConfig.getKsqlStreamConfigProps().get(
+                           ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
                        CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -244,7 +246,7 @@ public class IntegrationTestHarness {
 
 
 
-  public void start() throws Exception {
+  public void start(final Map<String, Object> callerConfigMap) throws Exception {
     embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
     embeddedKafkaCluster.start();
     Map<String, Object> configMap = new HashMap<>();
@@ -255,6 +257,7 @@ public class IntegrationTestHarness {
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
+    configMap.putAll(callerConfigMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());

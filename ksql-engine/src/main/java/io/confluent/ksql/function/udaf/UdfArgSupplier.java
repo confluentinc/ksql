@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.function.udf;
+package io.confluent.ksql.function.udaf;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Schema;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface Udf {
-  String description();
+import java.util.List;
+import java.util.Optional;
+
+import io.confluent.ksql.function.KsqlAggregateFunction;
+
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+/*
+ * Used during when creating UDAFS from the ext dir
+ */
+public interface UdfArgSupplier {
+  KsqlAggregateFunction apply(final List<Schema> args,
+                              final Schema returnType,
+                              final Optional<Metrics> metrics);
 }

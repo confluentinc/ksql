@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.codegen;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -56,6 +56,13 @@ public class CodeGenRunner {
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
+
+  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
+      "org.apache.kafka.connect.data.Struct",
+      "java.util.HashMap",
+      "java.util.Map",
+      "java.util.List",
+      "java.util.ArrayList");
 
   public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
@@ -93,7 +100,7 @@ public class CodeGenRunner {
 
     IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-
+    ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
     ee.setParameters(parameterNames, parameterTypes);
 
     Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
@@ -124,10 +131,10 @@ public class CodeGenRunner {
       this.expressionTypeManager = expressionTypeManager;
     }
 
-    private void addParameter(Optional<Field> schemaField) {
-      schemaField.ifPresent(f -> parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(f.schema()),
-          f.name().replace(".", "_"))));
+    private void addParameter(final Field schemaField) {
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.schema()),
+          schemaField.name().replace(".", "_")));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -137,11 +144,11 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       final int functionNumber = functionCounter++;
-      final List<Type> argumentTypes = new ArrayList<>();
+      final List<Schema> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionType(argExpr));
+        argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
@@ -191,7 +198,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      addParameter(schemaField);
+      addParameter(schemaField.get());
       return null;
     }
 
@@ -202,14 +209,22 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
-      String arrayBaseName = node.getBase().toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields: " + arrayBaseName);
+    protected Object visitSubscriptExpression(
+        final SubscriptExpression node,
+        final Object context
+    ) {
+      if (node.getBase() instanceof FunctionCall) {
+        process(node.getBase(), context);
+      } else {
+        final String arrayBaseName = node.getBase().toString();
+        final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
+            .orElseThrow(
+                () -> {
+                  return new RuntimeException("Cannot find the select "
+                 + "field in the available fields: " + arrayBaseName);
+                });
+        addParameter(schemaField);
       }
-      addParameter(schemaField);
       process(node.getIndex(), context);
       return null;
     }
@@ -221,7 +236,7 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      addParameter(schemaField);
+      addParameter(schemaField.get());
       return null;
     }
 

@@ -28,11 +28,14 @@ import io.confluent.ksql.util.KsqlException;
 
 public class KsqlFunction {
 
+  static final String INTERNAL_PATH = "internal";
   private final Schema returnType;
   private final List<Schema> arguments;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
   private final Supplier<Kudf> udfSupplier;
+  private final String description;
+  private final String pathLoadedFrom;
 
   public KsqlFunction(final Schema returnType,
                       final List<Schema> arguments,
@@ -46,7 +49,7 @@ public class KsqlFunction {
              + kudfClass
              + " for function "  + functionName, e);
       }
-    });
+    }, "", INTERNAL_PATH);
 
   }
 
@@ -54,16 +57,19 @@ public class KsqlFunction {
                final List<Schema> arguments,
                final String functionName,
                final Class<? extends Kudf> kudfClass,
-               final Supplier<Kudf> udfSupplier) {
-    Objects.requireNonNull(returnType, "returnType can't be null");
-    Objects.requireNonNull(arguments, "arguments can't be null");
-    Objects.requireNonNull(functionName, "functionName can't be null");
-    Objects.requireNonNull(kudfClass, "kudfClass can't be null");
-    this.returnType = returnType;
-    this.arguments = arguments;
-    this.functionName = functionName;
-    this.kudfClass = kudfClass;
-    this.udfSupplier = udfSupplier;
+               final Supplier<Kudf> udfSupplier,
+               final String description,
+               final String pathLoadedFrom) {
+    this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
+    this.arguments = Objects.requireNonNull(arguments, "arguments can't be null");
+    this.functionName = Objects.requireNonNull(functionName, "functionName can't be null");
+    this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass can't be null");
+    this.udfSupplier = Objects.requireNonNull(udfSupplier, "udfSupplier can't be null");
+    this.description = Objects.requireNonNull(description, "description can't be null");
+    if (arguments.stream().anyMatch(Objects::isNull)) {
+      throw new IllegalArgumentException("KSQL Function can't have null argument types");
+    }
+    this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom can't be null");
   }
 
   public Schema getReturnType() {
@@ -78,9 +84,16 @@ public class KsqlFunction {
     return functionName;
   }
 
+  public String getDescription() {
+    return description;
+  }
 
   public Class<? extends Kudf> getKudfClass() {
     return kudfClass;
+  }
+
+  public String getPathLoadedFrom() {
+    return pathLoadedFrom;
   }
 
   @Override
@@ -95,12 +108,13 @@ public class KsqlFunction {
     return Objects.equals(returnType, that.returnType)
         && Objects.equals(arguments, that.arguments)
         && Objects.equals(functionName, that.functionName)
-        && Objects.equals(kudfClass, that.kudfClass);
+        && Objects.equals(kudfClass, that.kudfClass)
+        && Objects.equals(pathLoadedFrom, that.pathLoadedFrom);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass);
+    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom);
   }
 
   @Override
@@ -110,6 +124,8 @@ public class KsqlFunction {
         + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass
+        + ", description='" + description + "'"
+        + ", pathLoadedFrom='" + pathLoadedFrom + "'"
         + '}';
   }
 

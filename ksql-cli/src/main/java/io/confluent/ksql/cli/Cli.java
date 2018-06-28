@@ -35,7 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,7 +64,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
@@ -380,13 +378,9 @@ public class Cli implements Closeable, AutoCloseable {
     return consecutiveStatements;
   }
 
-  private void listProperties(String statementText) throws IOException {
-    KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-    PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
-    propertiesList.getProperties().putAll(restClient.getLocalProperties());
-    terminal.printKsqlEntityList(
-        Collections.singletonList(propertiesList)
-    );
+  private void listProperties(final String statementText) throws IOException {
+    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
+    terminal.printKsqlEntityList(ksqlEntityList);
   }
 
   private void printKsqlResponse(RestResponse<KsqlEntityList> response) throws IOException {

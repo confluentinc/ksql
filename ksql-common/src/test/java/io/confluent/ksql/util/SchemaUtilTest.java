@@ -451,7 +451,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
     assertThat(SchemaUtil.getSchemaFromType(boolean.class),
-        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
+        equalTo(Schema.BOOLEAN_SCHEMA));
   }
 
   @Test
@@ -463,7 +463,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetIntegerSchemaForIntPrimitiveClass() {
     assertThat(SchemaUtil.getSchemaFromType(int.class),
-        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+        equalTo(Schema.INT32_SCHEMA));
   }
 
   @Test
@@ -475,7 +475,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetLongSchemaForLongPrimitiveClass() {
     assertThat(SchemaUtil.getSchemaFromType(long.class),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+        equalTo(Schema.INT64_SCHEMA));
   }
   
   @Test
@@ -487,7 +487,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetFloatSchemaForDoublePrimitiveClass() {
     assertThat(SchemaUtil.getSchemaFromType(double.class),
-        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+        equalTo(Schema.FLOAT64_SCHEMA));
   }
 
   @Test

@@ -19,6 +19,7 @@ import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -121,8 +122,21 @@ public class TopicStreamTest {
             "}";
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
-
-
     assertFalse(Format.JSON.isFormat("topic", record, schemaRegistryClient));
+  }
+
+  @Test
+  public void shouldHandleNullValues() throws Exception {
+    final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+    replay(schemaRegistryClient);
+
+    final ConsumerRecord<String, Bytes> record
+        = new ConsumerRecord<>("topic", 1, 1, "key", null);
+
+    final String[] printedData = Format.STRING.print(record).split(",");
+    assertEquals(3, printedData.length);
+    assertEquals("key", printedData[1].trim());
+    assertEquals("null", printedData[2].trim());
+
   }
 }

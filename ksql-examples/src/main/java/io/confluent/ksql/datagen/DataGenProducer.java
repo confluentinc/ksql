@@ -107,7 +107,8 @@ public abstract class DataGenProducer {
   }
 
 
-  public Pair<String, GenericRow> generateOneGenericRow(
+  // For test purpose.
+  protected Pair<String, GenericRow> generateOneGenericRow(
       final Generator generator,
       final AvroData avroData,
       final Schema avroSchema,
@@ -138,7 +139,7 @@ public abstract class DataGenProducer {
       final boolean isSession = field.schema().getProp("session") != null;
       final boolean isSessionSiblingIntHash =
           field.schema().getProp("session-sibling-int-hash") != null;
-      String timeFormatFromLong = field.schema().getProp("format_as_time");
+      final String timeFormatFromLong = field.schema().getProp("format_as_time");
 
       if (isSession) {
         final String currentValue = (String) randomAvroMessage.get(field.name());
@@ -180,7 +181,7 @@ public abstract class DataGenProducer {
       }
     }
 
-    String keyString = avroData.toConnectData(randomAvroMessage.getSchema().getField(key).schema(),
+    final String keyString = avroData.toConnectData(randomAvroMessage.getSchema().getField(key).schema(),
         randomAvroMessage.get(key)).value().toString();
 
     return new Pair<>(keyString, new GenericRow(genericRowValues));

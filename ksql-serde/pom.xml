@@ -64,30 +64,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.1</version>
-                <configuration>
-                    <args>
-                        <!--
-                           In combination with Scala 2.11, `-Xexperimental` enables SAM
-                           for Java 8 lambda support.  Make sure `kafka.scala.version`
-                           is set to `2.11`, not `2.10`.
-                        -->
-                        <arg>-Xexperimental</arg>
-                    </args>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>

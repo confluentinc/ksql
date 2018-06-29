@@ -22,7 +22,7 @@ import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.cli.Options;
 
 import static org.junit.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 public class OptionsTest {
 

@@ -136,7 +136,7 @@ public class TopicStreamTest {
     final String[] printedData = Format.STRING.print(record).split(",");
     assertEquals(3, printedData.length);
     assertEquals("key", printedData[1].trim());
-    assertEquals("null", printedData[2].trim());
+    assertEquals("NULL", printedData[2].trim());
 
   }
 }

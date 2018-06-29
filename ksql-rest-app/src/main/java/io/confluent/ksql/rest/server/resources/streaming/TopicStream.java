@@ -188,8 +188,8 @@ public class TopicStream {
     }
 
     String print(final ConsumerRecord<String, Bytes> record) throws IOException {
-      final String key = record.key() != null ? record.key() : "null";
-      final String value = record.value() != null ? record.value().toString() : "null";
+      final String key = record.key() != null ? record.key() : "NULL";
+      final String value = record.value() != null ? record.value().toString() : "NULL";
       return dateFormat.format(new Date(record.timestamp())) + " , " + key
           + " , " + value + "\n";
     }

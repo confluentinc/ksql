@@ -10,51 +10,53 @@
   "tests": [
     {
       "name": "calculate aggregation on a table",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) FROM TEST GROUP BY REGION;"
+        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) AS COUNT FROM TEST GROUP BY REGION;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,alice,east", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,bob,east", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,carol,west", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3,dave,west", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,bob,west", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "carol", "REGION": "west"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "dave", "REGION": "west"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "west"}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": null, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": "east,1", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": "east,2", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": "west,1", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": "west,2", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": "east,1", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": "west,3", "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": "west,2", "timestamp": 0}
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 2}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 1}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}, "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}, "timestamp": 0}
       ]
     },
     {
       "name": "table aggregations with having",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) FROM TEST GROUP BY REGION HAVING count(*) > 2;"
+        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) AS COUNT FROM TEST GROUP BY REGION HAVING count(*) > 2;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,alice,east", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,bob,east", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,dave,east", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3,carol,west", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "4,ed,west", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,dave,west", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "east"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "carol", "REGION": "west"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": {"ID": 4, "NAME": "ed", "REGION": "west"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "west"}, "timestamp": 0},
         {"topic": "test_topic", "key": 3, "value": null, "timestamp": 0}
       ],
       "outputs": [
         {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
         {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": "east,3", "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 3}, "timestamp": 0},
         {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0},
         {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0},
         {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": "west,3", "timestamp": 0},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}, "timestamp": 0},
         {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0}
       ]
     }

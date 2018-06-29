@@ -10,86 +10,90 @@
   "tests": [
     {
       "name": "topk integer",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 99}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 7}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,0]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,99,0]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,99,7]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100,100,99]}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[0]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,0]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,99,0]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,99,7]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,100,99]}, "timestamp": 0}
       ]
     },
     {
       "name": "topk long",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 2147483648}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 99}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 7}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,99]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,99]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2147483648,100,100]}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,99]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,99]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,100]}, "timestamp": 0}
       ]
     },
     {
       "name": "topk double",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 2147483648.9}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100.5}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 99.9}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 7.3}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100.5}", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648.9}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99.9}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7.3}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2.1474836489E9]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2.1474836489E9,100.5]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2.1474836489E9,100.5,99.9]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2.1474836489E9,100.5,99.9]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[2.1474836489E9,100.5,100.5]}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,100.5]}, "timestamp": 0}
       ]
     },
     {
       "name": "topk string",
+      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"a\"}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"b\"}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"c\"}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"b\"}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": \"d\"}", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "a"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "c"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "d"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"a\"]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"b\",\"a\"]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"c\",\"b\",\"a\"]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"c\",\"b\",\"b\"]}", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[\"d\",\"c\",\"b\"]}", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["a"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["b","a"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["c","b","a"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["c","b","b"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["d","c","b"]}, "timestamp": 0}
       ]
     }
   ]

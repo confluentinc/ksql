@@ -181,7 +181,8 @@ public abstract class DataGenProducer {
       }
     }
 
-    final String keyString = avroData.toConnectData(randomAvroMessage.getSchema().getField(key).schema(),
+    final String keyString = avroData.toConnectData(
+        randomAvroMessage.getSchema().getField(key).schema(),
         randomAvroMessage.get(key)).value().toString();
 
     return new Pair<>(keyString, new GenericRow(genericRowValues));

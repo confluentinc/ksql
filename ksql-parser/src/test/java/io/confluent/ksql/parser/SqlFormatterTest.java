@@ -237,6 +237,5 @@ public class SqlFormatterTest {
         + "FROM ADDRESS A\n"
         + "  \n"));
   }
-
 }
 

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.Random;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
@@ -60,5 +61,10 @@ public class DataGenProducerTest {
     assertThat(rowPair.getLeft(), instanceOf(String.class));
     assertThat(rowPair.getRight().getColumns().size(), equalTo(5));
     assertThat(rowPair.getRight().getColumns().get(4), instanceOf(Struct.class));
+    final Struct struct = (Struct) rowPair.getRight().getColumns().get(4);
+    assertThat(struct.schema().fields().size(), equalTo(3));
+    assertThat(struct.schema().field("city").schema().type(), equalTo(Type.STRING));
+    assertThat(struct.schema().field("state").schema().type(), equalTo(Type.STRING));
+    assertThat(struct.schema().field("zipcode").schema().type(), equalTo(Type.INT64));
   }
 }

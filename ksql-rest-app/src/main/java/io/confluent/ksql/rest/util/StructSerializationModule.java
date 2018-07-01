@@ -45,7 +45,7 @@ public class StructSerializationModule extends SimpleModule {
         final SerializerProvider serializerProvider
     ) throws IOException {
       struct.validate();
-      jsonGenerator.writeRaw(
+      jsonGenerator.writeObject(
           new String(jsonConverter.fromConnectData("", struct.schema(), struct),
               StandardCharsets.UTF_8));
     }

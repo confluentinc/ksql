@@ -16,14 +16,26 @@
 
 package io.confluent.ksql.serde.avro;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroConverter;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -200,5 +212,343 @@ public class KsqlGenericRowAvroDeserializerTest {
     }
 
     return kafkaAvroSerializer.serialize(topicName, avroRecord);
+  }
+
+  private void shouldDeserializeTypeCorrectly(final org.apache.avro.Schema avroSchema,
+                                              final Object avroValue,
+                                              final Schema ksqlSchema) {
+    shouldDeserializeTypeCorrectly(avroSchema, avroValue, ksqlSchema, avroValue);
+  }
+
+  private void shouldDeserializeTypeCorrectly(final org.apache.avro.Schema avroSchema,
+                                              final Object avroValue,
+                                              final Schema ksqlSchema,
+                                              final Object ksqlValue) {
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
+    final org.apache.avro.Schema avroRecordSchema = org.apache.avro.SchemaBuilder.record("test_row")
+        .fields()
+        .name("field0")
+        .type(avroSchema)
+        .noDefault()
+        .endRecord();
+    final Schema ksqlRecordSchema = SchemaBuilder.struct().field("field0", ksqlSchema).build();
+
+    final GenericRecord avroRecord = new GenericData.Record(avroRecordSchema);
+    avroRecord.put("field0", avroValue);
+
+    final Map map = new HashMap();
+    map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
+    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "");
+    final KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
+
+    byte[] bytes = kafkaAvroSerializer.serialize("test-topic", avroRecord);
+
+    final Deserializer<GenericRow> deserializer =
+        new KsqlAvroTopicSerDe().getGenericRowSerde(
+            ksqlRecordSchema, ksqlConfig, false, schemaRegistryClient).deserializer();
+
+    final GenericRow row = deserializer.deserialize("test-topic", bytes);
+
+    assertThat(row.getColumns().size(), equalTo(1));
+    assertThat(row.getColumns().get(0), equalTo(ksqlValue));
+  }
+
+  @Test
+  public void shouldDeserializeBooleanToBoolean() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN),
+        false,
+        Schema.OPTIONAL_BOOLEAN_SCHEMA
+    );
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN),
+        true,
+        Schema.OPTIONAL_BOOLEAN_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeIntToInt() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT),
+        123,
+        Schema.OPTIONAL_INT32_SCHEMA);
+  }
+
+  @Test
+  public void shouldDeserializeIntToBigint() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT),
+        123L,
+        Schema.OPTIONAL_INT64_SCHEMA);
+  }
+
+  @Test
+  public void shouldDeserializeLongToBigint() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG),
+        ((long) Integer.MAX_VALUE) * 32,
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeFloatToDouble() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.FLOAT),
+        (float) 1.25,
+        Schema.OPTIONAL_FLOAT64_SCHEMA,
+        1.25
+    );
+  }
+
+  @Test
+  public void shouldDeserializeDoubleToDouble() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE),
+        1.234567890123456789,
+        Schema.OPTIONAL_FLOAT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeStringToString() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
+        "foobarbizbazboz",
+        Schema.OPTIONAL_STRING_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeEnumToString() {
+    final org.apache.avro.Schema enumSchema = org.apache.avro.Schema.createEnum(
+        "enum",
+        "doc",
+        "namespace",
+        ImmutableList.of("V0", "V1", "V2"));
+    shouldDeserializeTypeCorrectly(
+        enumSchema,
+        new GenericData.EnumSymbol(enumSchema, "V1"),
+        Schema.OPTIONAL_STRING_SCHEMA,
+        "V1");
+
+  }
+
+  @Test
+  public void shouldDeserializeRecordToStruct() {
+    final org.apache.avro.Schema recordSchema = org.apache.avro.SchemaBuilder.record("record")
+        .fields()
+        .name("inner1")
+        .type(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING))
+        .noDefault()
+        .name("inner2")
+        .type(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT))
+        .noDefault()
+        .endRecord();
+    final GenericRecord record = new GenericData.Record(recordSchema);
+    record.put("inner1", "foobar");
+    record.put("inner2", 123456);
+
+    final Schema structSchema = SchemaBuilder.struct()
+        .field("inner1", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("inner2", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional()
+        .build();
+    final Struct struct = new Struct(structSchema);
+    struct.put("inner1", "foobar");
+    struct.put("inner2", 123456);
+
+    shouldDeserializeTypeCorrectly(recordSchema, record, structSchema, struct);
+  }
+
+  @Test
+  public void shouldDeserializeNullValue() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.SchemaBuilder.unionOf().nullType().and().intType().endUnion(),
+        null,
+        Schema.OPTIONAL_INT32_SCHEMA);
+  }
+
+  @Test
+  public void shouldDeserializeArrayToArray() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.SchemaBuilder.array().items().intType(),
+        ImmutableList.of(1, 2, 3, 4, 5, 6),
+        SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build()
+    );
+  }
+
+  @Test
+  public void shouldDeserializeMapToMap() {
+    shouldDeserializeTypeCorrectly(
+        org.apache.avro.SchemaBuilder.map().values().intType(),
+        ImmutableMap.of("one", 1, "two", 2, "three", 3),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build()
+    );
+  }
+
+  @Test
+  public void shouldDeserializeDateToInteger() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.date().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().intType()),
+        (int) ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.now()),
+        Schema.OPTIONAL_INT32_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeDateToBigint() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.date().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().intType()),
+        ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.now()),
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimeMicrosToBigint() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.timeMicros().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().longType()),
+        ChronoUnit.MICROS.between(
+            LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
+            LocalDateTime.now()),
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimeMillisToBigint() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.timeMillis().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().intType()),
+        ChronoUnit.MILLIS.between(
+            LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
+            LocalDateTime.now()),
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimestampToInteger() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.timestampMicros().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().longType()),
+        ChronoUnit.MICROS.between(
+            LocalDateTime.of(LocalDate.ofEpochDay(0), LocalTime.MIDNIGHT),
+            LocalDateTime.now()),
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimestampToBigint() {
+    shouldDeserializeTypeCorrectly(
+        LogicalTypes.timestampMillis().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().longType()),
+        ChronoUnit.MILLIS.between(
+            LocalDateTime.of(LocalDate.ofEpochDay(0), LocalTime.MIDNIGHT),
+            LocalDateTime.now()),
+        Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeUnionToStruct() {
+    final org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.unionOf()
+        .intType().and()
+        .stringType()
+        .endUnion();
+    final Schema ksqlSchema = SchemaBuilder.struct()
+        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("string", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional()
+        .build();
+    final Struct ksqlValue = new Struct(ksqlSchema).put("string", "foobar");
+    shouldDeserializeTypeCorrectly(avroSchema, "foobar", ksqlSchema, ksqlValue);
+  }
+
+  private void shouldDeserializeConnectTypeCorrectly(final Schema connectSchema,
+                                                     final Object connectValue,
+                                                     final Schema ksqlSchema,
+                                                     final Object ksqlValue) {
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
+    final Schema connectRecordSchema = SchemaBuilder.struct()
+        .field("field0", connectSchema)
+        .build();
+    final Struct connectRecord = new Struct(connectRecordSchema);
+    connectRecord.put("field0", connectValue);
+
+    final AvroConverter converter = new AvroConverter(schemaRegistryClient);
+    converter.configure(
+        ImmutableMap.of(
+            AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
+        ),
+        false
+    );
+
+    final byte[] bytes = converter.fromConnectData("topic", connectRecordSchema, connectRecord);
+
+    final Schema ksqlRecordSchema = SchemaBuilder.struct()
+        .field("field0", ksqlSchema)
+        .optional()
+        .build();
+
+    final Deserializer<GenericRow> deserializer =
+        new KsqlAvroTopicSerDe().getGenericRowSerde(
+            ksqlRecordSchema, ksqlConfig, false, schemaRegistryClient).deserializer();
+
+    final GenericRow row = deserializer.deserialize("topic", bytes);
+
+    assertThat(row.getColumns().size(), equalTo(1));
+    assertThat(row.getColumns().get(0), equalTo(ksqlValue));
+  }
+
+  @Test
+  public void shouldDeserializeConnectInt8ToInteger() {
+    shouldDeserializeConnectTypeCorrectly(
+        Schema.INT8_SCHEMA,
+        (byte) 32,
+        Schema.OPTIONAL_INT32_SCHEMA,
+        32
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectInt16ToInteger() {
+    shouldDeserializeConnectTypeCorrectly(
+        Schema.INT16_SCHEMA,
+        (short) 16384,
+        Schema.OPTIONAL_INT32_SCHEMA,
+        16384
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectInt8ToBigint() {
+    shouldDeserializeConnectTypeCorrectly(
+        Schema.INT8_SCHEMA,
+        (byte) 32,
+        Schema.OPTIONAL_INT64_SCHEMA,
+        32L
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectInt16ToBigint() {
+    shouldDeserializeConnectTypeCorrectly(
+        Schema.INT16_SCHEMA,
+        (short) 16384,
+        Schema.OPTIONAL_INT64_SCHEMA,
+        16384L
+    );
   }
 }

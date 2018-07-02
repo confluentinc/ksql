@@ -18,16 +18,22 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ConnectDataTranslator implements DataTranslator {
+  private static final String PATH_SEPARATOR = "->";
+
   private final Schema schema;
 
   public ConnectDataTranslator(final Schema schema) {
@@ -40,7 +46,7 @@ public class ConnectDataTranslator implements DataTranslator {
     if (!schema.type().equals(Schema.Type.STRUCT)) {
       throw new KsqlException("Schema for a KSQL row should be a struct");
     }
-    final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData);
+    final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData, "");
     if (rowStruct == null) {
       return null;
     }
@@ -52,63 +58,148 @@ public class ConnectDataTranslator implements DataTranslator {
     );
   }
 
+  private RuntimeException createTypeMismatchException(final String pathStr,
+                                                       final Schema schema,
+                                                       final Schema connectSchema) {
+    throw new DataException(
+        String.format(
+            "Cannot deserialize type %s as type %s for field %s",
+            connectSchema.type().getName(),
+            schema.type().getName(),
+            pathStr));
+  }
+
+  private void validateType(final String pathStr,
+                            final Schema schema,
+                            final Schema connectSchema,
+                            final Schema.Type... validTypes) {
+    Arrays.asList(validTypes).stream()
+        .filter(connectSchema.type()::equals)
+        .findFirst()
+        .orElseThrow(
+            () -> createTypeMismatchException(pathStr, schema, connectSchema));
+  }
+
+  private void validateType(final String pathStr,
+                            final Schema schema,
+                            final Schema connectSchema) {
+    validateType(pathStr, schema, connectSchema, schema.type());
+  }
+
+  private void validateSchema(final String pathStr,
+                              final Schema schema,
+                              final Schema connectSchema) {
+    switch (schema.type()) {
+      case BOOLEAN:
+      case STRING:
+      case ARRAY:
+      case MAP:
+      case STRUCT:
+        validateType(pathStr, schema, connectSchema);
+        break;
+      case INT64:
+        validateType(
+            pathStr, schema, connectSchema,
+            Schema.Type.INT64, Schema.Type.INT32, Schema.Type.INT16, Schema.Type.INT8);
+        break;
+      case INT32:
+        validateType(
+            pathStr, schema, connectSchema,
+            Schema.Type.INT32, Schema.Type.INT16, Schema.Type.INT8);
+        break;
+      case FLOAT64:
+        validateType(pathStr, schema, connectSchema, Schema.Type.FLOAT32, Schema.Type.FLOAT64);
+        break;
+      default:
+        throw new RuntimeException(
+            "Unexpected data type seen in schema: " + schema.type().getName());
+    }
+  }
+
+  private Object maybeConvertLogicalType(final Schema connectSchema, final Object connectValue) {
+    if (connectSchema.name() == null) {
+      return connectValue;
+    }
+    switch  (connectSchema.name()) {
+      case Date.LOGICAL_NAME:
+        return Date.fromLogical(connectSchema, (java.util.Date) connectValue);
+      case Time.LOGICAL_NAME:
+        return Time.fromLogical(connectSchema, (java.util.Date) connectValue);
+      case Timestamp.LOGICAL_NAME:
+        return Timestamp.fromLogical(connectSchema, (java.util.Date) connectValue);
+      default:
+        return connectValue;
+    }
+  }
+
   @SuppressWarnings("unchecked")
-  private Object toKsqlValue(final Schema schema, final Schema connectSchema,
-                             final Object connectValue) {
+  private Object toKsqlValue(final Schema schema,
+                             final Schema connectSchema,
+                             final Object connectValue,
+                             final String pathStr) {
     // Map a connect value+schema onto the schema expected by KSQL. For now this involves:
     // - handling case insensitivity for struct field names
     // - setting missing values to null
-
     if (connectSchema == null) {
       return null;
     }
-    if (!schema.type().equals(connectSchema.type())) {
-      throw new DataException(
-          String.format(
-              "Cannot deserialize type %s as type %s",
-              connectSchema.type().getName(),
-              schema.type().getName()));
-    }
+    validateSchema(pathStr, schema, connectSchema);
     if (connectValue == null) {
       return null;
     }
-    if (schema.type().isPrimitive()) {
-      return connectValue;
+    final Object convertedValue = maybeConvertLogicalType(connectSchema, connectValue);
+    switch (schema.type()) {
+      case INT64:
+        return ((Number) convertedValue).longValue();
+      case INT32:
+        return ((Number) convertedValue).intValue();
+      case FLOAT64:
+        return ((Number) convertedValue).doubleValue();
+      case ARRAY:
+        return toKsqlArray(
+            schema.valueSchema(), connectSchema.valueSchema(), (List) convertedValue, pathStr);
+      case MAP:
+        return toKsqlMap(
+            schema.keySchema(), connectSchema.keySchema(),
+            schema.valueSchema(), connectSchema.valueSchema(), (Map) convertedValue, pathStr);
+      case STRUCT:
+        return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
+      default:
+        return convertedValue;
     }
-    if (schema.type().equals(Schema.Type.ARRAY)) {
-      return toKsqlArray(schema.valueSchema(), connectSchema.valueSchema(), (List) connectValue);
-    }
-    if (schema.type().equals(Schema.Type.MAP)) {
-      return toKsqlMap(
-          schema.keySchema(), connectSchema.keySchema(),
-          schema.valueSchema(), connectSchema.valueSchema(), (Map) connectValue);
-    }
-    if (schema.type().equals(Schema.Type.STRUCT)) {
-      return toKsqlStruct(schema, connectSchema, (Struct) connectValue);
-    }
-    throw new RuntimeException("Unexpected data type seen in schema: " + schema.type().getName());
   }
 
   private List toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
-                           final List<Object> connectArray) {
+                           final List<Object> connectArray, final String pathStr) {
     return connectArray.stream()
-        .map(o -> toKsqlValue(valueSchema, connectValueSchema, o))
+        .map(o -> toKsqlValue(
+            valueSchema, connectValueSchema, o, pathStr + PATH_SEPARATOR + "ARRAY"))
         .collect(Collectors.toList());
   }
 
   private Map toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
                         final Schema valueSchema, final Schema connectValueSchema,
-                        final Map<String, Object> connectMap) {
+                        final Map<String, Object> connectMap, final String pathStr) {
     return connectMap.entrySet().stream()
         .collect(
             Collectors.toMap(
-                e -> toKsqlValue(keySchema, connectKeySchema, e.getKey()),
-                e -> toKsqlValue(valueSchema, connectValueSchema, e.getValue())
+                e -> toKsqlValue(
+                    keySchema,
+                    connectKeySchema,
+                    e.getKey(),
+                    pathStr + PATH_SEPARATOR + "MAP_KEY"),
+                e -> toKsqlValue(
+                    valueSchema,
+                    connectValueSchema,
+                    e.getValue(),
+                    pathStr + PATH_SEPARATOR + "MAP_VAL")
             ));
   }
 
-  private Struct toKsqlStruct(final Schema schema, final Schema connectSchema,
-                              final Struct connectStruct) {
+  private Struct toKsqlStruct(final Schema schema,
+                              final Schema connectSchema,
+                              final Struct connectStruct,
+                              final String pathStr) {
     // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, String> caseInsensitiveFieldNameMap
@@ -122,7 +213,13 @@ public class ConnectDataTranslator implements DataTranslator {
             caseInsensitiveFieldNameMap.get(fieldNameUppercase));
         final Schema fieldSchema = connectSchema.field(
             caseInsensitiveFieldNameMap.get(fieldNameUppercase)).schema();
-        ksqlStruct.put(field.name(), toKsqlValue(field.schema(), fieldSchema, fieldValue));
+        ksqlStruct.put(
+            field.name(),
+            toKsqlValue(
+                field.schema(),
+                fieldSchema,
+                fieldValue,
+                pathStr + PATH_SEPARATOR + field.name()));
       }
     }
     return ksqlStruct;

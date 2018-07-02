@@ -126,7 +126,7 @@ The class below creates an Aggregate UDF named ``my_sum``. The UDF can be invoke
   as the return type is ``TableUdaf`` and therefore supports the ``undo`` operation.
 - with an Integer column returning the aggregated value as Long (BIGINT).
 - with a Double column, returning the aggregated value as Double.
-- with a String (VARCHAR) and an initializer that is a String, returning the aggregated string length
+- with a String (VARCHAR) and an initializer that is a String (VARCHAR), returning the aggregated String (VARCHAR) length
   as a Long (BIGINT)
 
 .. code:: java
@@ -321,7 +321,7 @@ Usage
 =====
 
 Once your UDFs are deployed you can call them in the same way you would invoke any of the KSQL
-built-in functions, for example, using the ``multiply`` example above:
+built-in functions. The function names are case-insensitive. For example, using the ``multiply`` example above:
 
 .. code:: sql
 

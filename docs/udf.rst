@@ -74,16 +74,16 @@ The ``@UdfDescription`` annotation is applied at the class level and has four fi
 +------------+------------------------------+---------+
 | Field      | Description                  | Required|
 +============+==============================+=========+
-| name       | The name of the function(s)  | Y       |
+| name       | The name of the function(s)  | Yes     |
 |            | represented by this class.   |         |
 +------------+------------------------------+---------+
-| description| A string describing generally| Y       |
+| description| A string describing generally| Yes     |
 |            | what the function(s) in this |         |
 |            | class do.                    |         |
 +------------+------------------------------+---------+
-| author     | The author of the UDF.       | N       |
+| author     | The author of the UDF.       | No      |
 +------------+------------------------------+---------+
-| version    | The version of the UDF.      | N       |
+| version    | The version of the UDF.      | No      |
 +------------+------------------------------+---------+
 
 
@@ -236,16 +236,16 @@ The ``@UdafDescription`` annotation is applied at the class level and has four f
 +------------+------------------------------+---------+
 | Field      | Description                  | Required|
 +============+==============================+=========+
-| name       | The name of the function(s)  | Y       |
+| name       | The name of the function(s)  | Yes     |
 |            | represented by this class.   |         |
 +------------+------------------------------+---------+
-| description| A string describing generally| Y       |
+| description| A string describing generally| Yes     |
 |            | what the function(s) in this |         |
 |            | class do.                    |         |
 +------------+------------------------------+---------+
-| author     | The author of the UDF.       | N       |
+| author     | The author of the UDF.       | No      |
 +------------+------------------------------+---------+
-| version    | The version of the UDF.      | N       |
+| version    | The version of the UDF.      | No      |
 +------------+------------------------------+---------+
 
 

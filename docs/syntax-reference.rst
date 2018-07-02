@@ -531,6 +531,19 @@ Example of describing a table with extended information:
      failed-messages:         0      last-failed:       n/a
     (Statistics of the local KSQL server interaction with the Kafka topic IP_SUM)
 
+DESCRIBE FUNCTION
+-----------------
+
+**Synopsis**
+
+.. code:: sql
+
+    DESCRIBE FUNCTION function_name;
+
+**Description**
+
+Provides a description of a function including an input parameters and the return type.
+
 
 EXPLAIN
 -------
@@ -792,6 +805,18 @@ Example:
     SELECT user_id
       FROM users
       WHERE user_id LIKE 'santa%';
+
+SHOW FUNCTIONS
+--------------
+
+**Synopsis**
+
+.. code:: sql
+    SHOW | LIST FUNCTIONS;
+
+**Description**
+
+List the available scalar and aggregate functions available.
 
 .. _show-topics:
 

@@ -18,10 +18,10 @@ package io.confluent.ksql.rest.util;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -29,6 +29,7 @@ import org.apache.kafka.connect.json.JsonConverter;
 public class StructSerializationModule extends SimpleModule {
 
   private static final JsonConverter jsonConverter = new JsonConverter();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   public StructSerializationModule() {
     super();
@@ -46,8 +47,7 @@ public class StructSerializationModule extends SimpleModule {
     ) throws IOException {
       struct.validate();
       jsonGenerator.writeObject(
-          new String(jsonConverter.fromConnectData("", struct.schema(), struct),
-              StandardCharsets.UTF_8));
+          objectMapper.readTree(jsonConverter.fromConnectData("", struct.schema(), struct)));
     }
   }
 

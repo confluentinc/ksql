@@ -73,7 +73,7 @@ public class StructSerializationModuleTest {
 
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(address);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("\"{\\\"NUMBER\\\":101,\\\"STREET\\\":\\\"University Ave.\\\",\\\"CITY\\\":\\\"Palo Alto\\\",\\\"STATE\\\":\\\"CA\\\",\\\"ZIPCODE\\\":94301}\""));
+    assertThat(jsonString, equalTo("{\"NUMBER\":101,\"STREET\":\"University Ave.\",\"CITY\":\"Palo Alto\",\"STATE\":\"CA\",\"ZIPCODE\":94301}"));
   }
 
   @Test
@@ -88,7 +88,7 @@ public class StructSerializationModuleTest {
     item.put("CATEGORY", category);
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(item);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("\"{\\\"ITEMID\\\":1,\\\"NAME\\\":\\\"ICE CREAM\\\",\\\"CATEGORY\\\":{\\\"ID\\\":1,\\\"NAME\\\":\\\"Food\\\"}}\""));
+    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}}"));
   }
 
   @Test
@@ -103,7 +103,7 @@ public class StructSerializationModuleTest {
     item.put("CATEGORY", null);
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(item);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("\"{\\\"ITEMID\\\":1,\\\"NAME\\\":\\\"ICE CREAM\\\",\\\"CATEGORY\\\":null}\""));
+    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}"));
   }
 
   @Test
@@ -126,6 +126,6 @@ public class StructSerializationModuleTest {
 
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(list);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("[\"Hello\",1,1,1.0,\"{\\\"ITEMID\\\":1,\\\"NAME\\\":\\\"ICE CREAM\\\",\\\"CATEGORY\\\":null}\"]"));
+    assertThat(jsonString, equalTo("[\"Hello\",1,1,1.0,{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}]"));
   }
 }

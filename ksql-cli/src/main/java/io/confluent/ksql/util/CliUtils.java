@@ -90,7 +90,7 @@ public class CliUtils {
               e ->
                   propertiesList.getOverwrittenProperties().contains(e.getKey())
                       ? e.getKey() + " (LOCAL OVERRIDE)" : e.getKey(),
-              Map.Entry::getValue
+              e -> e.getValue() == null ? "null" : e.getValue()
             )
         );
   }

@@ -18,6 +18,12 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,16 +56,19 @@ public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
 
   public StreamedQueryResource(
+      final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final long disconnectCheckInterval
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
@@ -86,6 +95,7 @@ public class StreamedQueryResource {
       QueryStreamWriter queryStreamWriter;
       try {
         queryStreamWriter = new QueryStreamWriter(
+            ksqlConfig,
             ksqlEngine,
             disconnectCheckInterval,
             ksql,
@@ -122,12 +132,9 @@ public class StreamedQueryResource {
               + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
               topicName)));
     }
-    final Map<String, Object> properties = ksqlEngine.getKsqlConfig()
-        .cloneWithPropertyOverwrite(clientLocalProperties)
-        .getKsqlStreamConfigProps();
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         ksqlEngine.getSchemaRegistryClient(),
-        properties,
+        ksqlConfig.getKsqlStreamConfigProps(),
         topicName,
         printTopic.getIntervalValue(),
         disconnectCheckInterval,

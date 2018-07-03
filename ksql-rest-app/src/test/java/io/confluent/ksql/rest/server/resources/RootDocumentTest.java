@@ -38,20 +38,6 @@ import static org.junit.Assert.*;
 public class RootDocumentTest {
 
   @Test
-  public void shouldRedirectToUI() throws Exception {
-    // Given:
-    final RootDocument doc = new RootDocument();
-    final UriInfo uriInfo = uriInfo("http://something");
-
-    // When:
-    final Response response = doc.get(uriInfo);
-
-    // Then:
-    assertThat(response.getStatus(), is(HttpStatus.TEMPORARY_REDIRECT_307));
-    assertThat(response.getLocation().toString(), is("http://something/index.html"));
-  }
-
-  @Test
   public void shouldRedirectToInfoIfNoUI() throws Exception {
     // Given:
     final RootDocument doc = new RootDocument();

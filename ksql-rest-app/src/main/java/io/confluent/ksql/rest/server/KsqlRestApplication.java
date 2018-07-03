@@ -127,8 +127,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      VersionCheckerAgent versionCheckerAgent,
-      ServerInfo serverInfo
+      VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlConfig = ksqlConfig;
@@ -254,8 +253,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
 
-    final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
-
     String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
         restConfig.getCommandTopic(ksqlServiceId);
@@ -356,8 +353,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionCheckerAgent,
-        new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
+        versionCheckerAgent
     );
   }
 

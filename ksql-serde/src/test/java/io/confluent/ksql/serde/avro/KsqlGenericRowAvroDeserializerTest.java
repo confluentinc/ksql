@@ -242,7 +242,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "");
     final KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
 
-    byte[] bytes = kafkaAvroSerializer.serialize("test-topic", avroRecord);
+    final byte[] bytes = kafkaAvroSerializer.serialize("test-topic", avroRecord);
 
     final Deserializer<GenericRow> deserializer =
         new KsqlAvroTopicSerDe().getGenericRowSerde(

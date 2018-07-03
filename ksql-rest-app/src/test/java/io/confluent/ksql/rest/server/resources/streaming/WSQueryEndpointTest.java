@@ -11,8 +11,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
@@ -36,6 +35,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
 import static org.easymock.EasyMock.anyObject;
@@ -45,7 +45,6 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -60,7 +59,7 @@ public class WSQueryEndpointTest {
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
 
-  @BeforeMethod
+  @Before
   public void setUp() {
     mocks = new LinkedList();
     ksqlConfig = addMock(KsqlConfig.class);
@@ -170,6 +169,8 @@ public class WSQueryEndpointTest {
         .anyTimes();
 
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
+    queryMetadata.setLimitHandler(anyObject());
+    expectLastCall().once();
     expect(queryMetadata.getKafkaStreams()).andReturn(kafkaStreams).anyTimes();
     expect(queryMetadata.getQueryApplicationId()).andReturn("foo").anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQ).anyTimes();
@@ -180,16 +181,10 @@ public class WSQueryEndpointTest {
     expectLastCall().once();
 
     final Capture<Runnable> captured = Capture.newInstance();
-    expect(
-        exec.scheduleWithFixedDelay(
-            capture(captured), eq(0L), eq(500L), eq(TimeUnit.MILLISECONDS)))
-        .andReturn(future);
-
-    future.addListener(anyObject(), same(exec));
-    expectLastCall();
+    expect(exec.submit(capture(captured))).andReturn(future).anyTimes();
 
     // result expectations
-    basic.sendText(objectMapper.writeValueAsString(schema));
+    basic.sendText(objectMapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
     expectLastCall().once();
     for (KeyValue<String, GenericRow> row : rows) {
       async.sendText(

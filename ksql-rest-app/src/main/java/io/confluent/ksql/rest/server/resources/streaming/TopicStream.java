@@ -64,7 +64,7 @@ public class TopicStream {
       return StreamSupport
           .stream(records.records(topicName).spliterator(), false)
           .map((record) -> {
-            if (record == null) {
+            if (record == null || record.value() == null) {
               return null;
             }
             if (format == Format.UNDEFINED) {

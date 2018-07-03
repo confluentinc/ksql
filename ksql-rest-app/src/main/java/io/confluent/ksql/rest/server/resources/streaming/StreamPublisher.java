@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,17 +39,20 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
 
   private static final Logger log = LoggerFactory.getLogger(StreamPublisher.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queryString;
   private final Map<String, Object> clientLocalProperties;
   private final ListeningScheduledExecutorService exec;
 
   public StreamPublisher(
+      KsqlConfig ksqlConfig,
       KsqlEngine ksqlEngine,
       ListeningScheduledExecutorService exec,
       String queryString,
       Map<String, Object> clientLocalProperties
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.exec = exec;
     this.queryString = queryString;
@@ -59,8 +63,8 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
   public synchronized void subscribe(Flow.Subscriber<Collection<StreamedRow>> subscriber) {
     QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
         queryString,
-        clientLocalProperties
-    ).get(0);
+        ksqlConfig,
+        clientLocalProperties).get(0);
 
     StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 

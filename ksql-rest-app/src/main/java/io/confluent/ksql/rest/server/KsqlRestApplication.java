@@ -109,6 +109,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
   private static final String EXPANDED_FOLDER = "/expanded";
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final RootDocument rootDocument;
@@ -129,6 +130,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   private KsqlRestApplication(
       KsqlEngine ksqlEngine,
+      KsqlConfig ksqlConfig,
       KsqlRestConfig config,
       CommandRunner commandRunner,
       RootDocument rootDocument,
@@ -136,10 +138,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
       boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent,
-      ServerInfo serverInfo
+      VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.commandRunner = commandRunner;
     this.rootDocument = rootDocument;
@@ -148,7 +150,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.ksqlResource = ksqlResource;
 
     this.versionCheckerAgent = versionCheckerAgent;
-    this.serverInfo = serverInfo;
+    this.serverInfo = new ServerInfo(
+        Version.getVersion(),
+        getKafkaClusterId(ksqlConfig),
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
 
@@ -254,6 +259,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                 @SuppressWarnings("unchecked")
                 public <T> T getEndpointInstance(Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
+                      ksqlConfig,
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
@@ -283,13 +289,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       isUiEnabled = false;
     }
 
-    KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
-
-    final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
 
     String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
@@ -353,6 +357,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     StatementExecutor statementExecutor = new StatementExecutor(
+        ksqlConfig,
         ksqlEngine,
         statementParser
     );
@@ -366,11 +371,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
+        ksqlConfig,
         ksqlEngine,
         statementParser,
         restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
     KsqlResource ksqlResource = new KsqlResource(
+        ksqlConfig,
         ksqlEngine,
         commandStore,
         statementExecutor,
@@ -381,6 +388,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     return new KsqlRestApplication(
         ksqlEngine,
+        ksqlConfig,
         restConfig,
         commandRunner,
         rootDocument,
@@ -388,8 +396,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         streamedQueryResource,
         ksqlResource,
         isUiEnabled,
-        versionCheckerAgent,
-        new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
+        versionCheckerAgent
     );
   }
 

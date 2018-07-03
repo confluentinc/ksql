@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -32,9 +33,11 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.eq;
 
 public class StandaloneExecutorTest {
 
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final KsqlEngine engine = EasyMock.niceMock(KsqlEngine.class);
   private final UdfLoader udfLoader = EasyMock.niceMock(UdfLoader.class);
   private final String query = "select * from bar;";
@@ -43,7 +46,7 @@ public class StandaloneExecutorTest {
   @Before
   public void before() throws IOException {
     final String queriesFile = TestUtils.tempFile().getPath();
-    executor = new StandaloneExecutor(engine, queriesFile, udfLoader);
+    executor = new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
     try(final FileOutputStream out = new FileOutputStream(queriesFile)) {
       out.write(query.getBytes(StandardCharsets.UTF_8));
     }
@@ -51,7 +54,8 @@ public class StandaloneExecutorTest {
 
   @Test
   public void shouldCreateQueries() {
-    EasyMock.expect(engine.createQueries(query + "\n")).andReturn(Collections.emptyList());
+    EasyMock.expect(engine.createQueries(query + "\n", ksqlConfig))
+        .andReturn(Collections.emptyList());
     EasyMock.replay(engine);
 
     executor.start();
@@ -62,7 +66,8 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldExecutePersistentQueries() {
     final PersistentQueryMetadata query = EasyMock.niceMock(PersistentQueryMetadata.class);
-    EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
+    EasyMock.expect(engine.createQueries(anyString(), eq(ksqlConfig)))
+        .andReturn(Collections.singletonList(query));
     query.start();
     EasyMock.expectLastCall();
     EasyMock.replay(query, engine);
@@ -75,7 +80,8 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldNotExecuteNonPersistentQueries() {
     final QueryMetadata query = EasyMock.createMock(QueryMetadata.class);
-    EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
+    EasyMock.expect(engine.createQueries(anyString(), eq(ksqlConfig)))
+        .andReturn(Collections.singletonList(query));
     EasyMock.expect(query.getStatementString()).andReturn("");
     EasyMock.replay(query, engine);
 

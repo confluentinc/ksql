@@ -97,6 +97,7 @@ public class SecureIntegrationTest {
           .build();
 
   private QueryId queryId;
+  private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
@@ -258,7 +259,7 @@ public class SecureIntegrationTest {
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
+    ksqlConfig = new KsqlConfig(ksqlConfigs);
     ksqlEngine = new KsqlEngine(ksqlConfig);
 
     execInitCreateStreamQueries();
@@ -334,7 +335,8 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(
+        ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   private void executePersistentQuery(final String queryString,
@@ -342,7 +344,7 @@ public class SecureIntegrationTest {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(query, Collections.emptyMap()).get(0);
+        .buildMultipleQueries(query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

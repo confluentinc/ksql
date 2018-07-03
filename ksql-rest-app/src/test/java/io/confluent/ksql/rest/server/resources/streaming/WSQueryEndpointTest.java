@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -49,6 +50,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class WSQueryEndpointTest {
+  private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private StatementParser statementParser;
   private ListeningScheduledExecutorService exec;
@@ -60,11 +62,13 @@ public class WSQueryEndpointTest {
   @Before
   public void setUp() {
     mocks = new LinkedList();
+    ksqlConfig = addMock(KsqlConfig.class);
     ksqlEngine = addMock(KsqlEngine.class);
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
-    wsQueryEndpoint = new WSQueryEndpoint(objectMapper, statementParser, ksqlEngine, exec);
+    wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec);
     session = addMock(Session.class);
   }
 
@@ -160,7 +164,7 @@ public class WSQueryEndpointTest {
 
     expect(statementParser.parseSingleStatement(statement)).andReturn(query).anyTimes();
 
-    expect(ksqlEngine.buildMultipleQueries(statement, properties))
+    expect(ksqlEngine.buildMultipleQueries(statement, ksqlConfig, properties))
         .andReturn(Collections.singletonList(queryMetadata))
         .anyTimes();
 

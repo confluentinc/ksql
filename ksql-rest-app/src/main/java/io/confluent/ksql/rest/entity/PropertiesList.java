@@ -24,13 +24,13 @@ import java.util.Map;
 import java.util.Objects;
 
 public class PropertiesList extends KsqlEntity {
-  private final Map<String, Object> properties;
+  private final Map<String, ?> properties;
   private final List<String> overwrittenProperties;
 
   @JsonCreator
   public PropertiesList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("properties") Map<String, Object> properties,
+      @JsonProperty("properties") Map<String, ?> properties,
       @JsonProperty("overwrittenProperties") List<String> overwrittenProperties
   ) {
     super(statementText);
@@ -38,7 +38,7 @@ public class PropertiesList extends KsqlEntity {
     this.overwrittenProperties = overwrittenProperties;
   }
 
-  public Map<String, Object> getProperties() {
+  public Map<String, ?> getProperties() {
     return properties;
   }
 

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -39,6 +40,7 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.util.KsqlConfig;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
@@ -138,17 +140,20 @@ public class KsqlResource {
 
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandStore commandStore;
   private final StatementExecutor statementExecutor;
   private final long distributedCommandResponseTimeout;
 
   public KsqlResource(
+      KsqlConfig ksqlConfig,
       KsqlEngine ksqlEngine,
       CommandStore commandStore,
       StatementExecutor statementExecutor,
       long distributedCommandResponseTimeout
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
@@ -316,7 +321,8 @@ public class KsqlResource {
       return new QueryDescriptionEntity(
           statementText, explainQuery(explain, statementText));
     } else if (statement instanceof RunScript) {
-      return distributeStatement(statementText, statement, streamsProperties);
+      return distributeStatement(
+          statementText, statement, streamsProperties, ksqlConfig);
     } else if (isExecutableDdlStatement(statement)
                || statement instanceof CreateAsSelect
                || statement instanceof InsertInto
@@ -327,7 +333,7 @@ public class KsqlResource {
       return distributeStatement(
           statementWithSchema == statement
               ? statementText : SqlFormatter.formatSql(statementWithSchema),
-          statement, streamsProperties);
+          statement, streamsProperties, ksqlConfig);
     } else if (statement instanceof ShowFunctions) {
       return listFunctions(statementText);
     } else if (statement instanceof DescribeFunction) {
@@ -350,10 +356,15 @@ public class KsqlResource {
   private CommandStatusEntity distributeStatement(
       String statementText,
       Statement statement,
-      Map<String, Object> streamsProperties
+      Map<String, Object> propertyOverrides,
+      KsqlConfig ksqlConfig
   ) throws KsqlException {
     CommandId commandId =
-        commandStore.distributeStatement(statementText, statement, streamsProperties);
+        commandStore.distributeStatement(
+            statementText,
+            statement,
+            ksqlConfig,
+            propertyOverrides);
     CommandStatus commandStatus;
     try {
       commandStatus = statementExecutor.registerQueuedStatement(commandId)
@@ -377,13 +388,13 @@ public class KsqlResource {
 
   private KafkaTopicsList listTopics(String statementText) {
     KafkaTopicClient client = ksqlEngine.getTopicClient();
-    try (KafkaConsumerGroupClient kafkaConsumerGroupClient = new KafkaConsumerGroupClientImpl(
-        ksqlEngine.getKsqlConfig())) {
+    try (KafkaConsumerGroupClient kafkaConsumerGroupClient
+             = new KafkaConsumerGroupClientImpl(ksqlConfig)) {
       return KafkaTopicsList.build(
           statementText,
           getKsqlTopics(),
           client.describeTopics(client.listNonInternalTopicNames()),
-          ksqlEngine.getKsqlConfig(),
+          ksqlConfig,
           kafkaConsumerGroupClient
       );
     }
@@ -468,12 +479,32 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
+  private ImmutableMap<String, Object> getAllProps(KsqlConfig ksqlConfig) {
+    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    builder.putAll(ksqlConfig.values().entrySet().stream()
+        .filter(e -> e.getValue() != null)
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue))
+    );
+    builder.putAll(ksqlConfig.getKsqlStreamConfigProps().entrySet().stream()
+        .filter(e -> e.getValue() != null)
+        .collect(
+            Collectors.toMap(
+                e -> KsqlConfig.KSQL_STREAMS_PREFIX + e.getKey(),
+                Map.Entry::getValue)));
+    return builder.build();
+  }
+
+
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
-    final Map<String, Object> engineProperties
-        = ksqlEngine.getKsqlConfigProperties(Collections.emptyMap());
-    final Map<String, Object> mergedProperties
-        = ksqlEngine.getKsqlConfigProperties(overwriteProperties);
+    final Map<String, String> engineProperties
+        = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+    final Map<String, String> mergedProperties
+        = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties)
+            .getAllConfigPropsWithSecretsObfuscated();
     final List<String> overwritten = mergedProperties.keySet()
         .stream()
         .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))
@@ -614,13 +645,15 @@ public class KsqlResource {
   private void registerDdlCommandTasks() {
     ddlCommandTasks.put(Query.class,
         (statement, statementText, properties) ->
-            ksqlEngine.getQueryExecutionPlan((Query)statement)
+            ksqlEngine.getQueryExecutionPlan((Query)statement, ksqlConfig)
     );
 
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata
           queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
+          ksqlEngine.getQueryExecutionPlan(
+              ((CreateStreamAsSelect) statement).getQuery(),
+              ksqlConfig);
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
                                 + "use CREATE TABLE AS SELECT statement instead.");
@@ -637,7 +670,9 @@ public class KsqlResource {
 
     ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
+          ksqlEngine.getQueryExecutionPlan(
+              ((CreateTableAsSelect) statement).getQuery(),
+              ksqlConfig);
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
                                 + "use CREATE STREAM AS SELECT statement instead.");
@@ -654,7 +689,7 @@ public class KsqlResource {
 
     ddlCommandTasks.put(InsertInto.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery());
+          ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery(), ksqlConfig);
       if (queryMetadata instanceof PersistentQueryMetadata) {
         new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());

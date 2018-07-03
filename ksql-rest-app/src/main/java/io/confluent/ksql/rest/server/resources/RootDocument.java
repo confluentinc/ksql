@@ -34,8 +34,8 @@ public class RootDocument {
 
   private final String postFix;
 
-  public RootDocument(boolean uiEnabled) {
-    this.postFix = uiEnabled ? "index.html" : "info";
+  public RootDocument() {
+    this.postFix = "info";
   }
 
   @GET

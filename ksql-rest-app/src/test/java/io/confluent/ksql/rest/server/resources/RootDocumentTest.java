@@ -40,7 +40,7 @@ public class RootDocumentTest {
   @Test
   public void shouldRedirectToUI() throws Exception {
     // Given:
-    final RootDocument doc = new RootDocument(true);
+    final RootDocument doc = new RootDocument();
     final UriInfo uriInfo = uriInfo("http://something");
 
     // When:
@@ -54,7 +54,7 @@ public class RootDocumentTest {
   @Test
   public void shouldRedirectToInfoIfNoUI() throws Exception {
     // Given:
-    final RootDocument doc = new RootDocument(false);
+    final RootDocument doc = new RootDocument();
     final UriInfo uriInfo = uriInfo("http://some/proxy");
 
     // When:

@@ -1,18 +1,17 @@
 .. _ksql-udfs:
 
-KSQL User Defined Function Reference
-====================================
+KSQL Custom Function Reference (UDF & UDAF)
+==========================================+
 
-KSQL supports creating User Defined Functions (UDFs) via custom jars that are
-uploaded to the ext/ directory of the KSQL installation. Scalar and aggregate functions
-are supported.
+KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAF) via custom jars that are
+uploaded to the ``ext/`` directory of the KSQL installation.
 At start up time KSQL scans the jars in the directory looking for any classes that annotated
-with ``@UdfDescription`` (scalar functions) or ``@UdafDescription`` (aggregate functions).
+with ``@UdfDescription`` (UDF) or ``@UdafDescription`` (UDAF).
 Classes annotated with ``@UdfDescription`` are scanned for any public methods that are annotated
 with ``@Udf``. Classes annotated with ``@UdafDescription`` are scanned for any public static methods
-that are annotated with ``@UdafFactory``. Each UDF that is found is parsed and, if successful, loaded into KSQL.
+that are annotated with ``@UdafFactory``. Each UD(A)F that is found is parsed and, if successful, loaded into KSQL.
 
-Each UDF instance has its own child-first ``ClassLoader`` that is isolated from other UDFs. If you
+Each UD(A)F instance has its own child-first ``ClassLoader`` that is isolated from other UD(A)Fs. If you
 need to use any third-party libraries with your UDFs then they should also be part of your jar, i.e.,
 you should create an "uber-jar". The classes in your uber-jar will be loaded in preference to any
 classes on the KSQL classpath excluding anything vital to the running of KSQL, i.e., classes that are
@@ -21,27 +20,28 @@ to other classes via a blacklist. The blacklist file is ``resource-blacklist.txt
 any classes or packages that you want blacklisted from UDF use, for example you may not
 want a UDF to be able to fork processes. Further details on how to blacklist are available below.
 
-=============
-Creating UDFs
-=============
+================
+Creating UD(A)Fs
+================
 
-Scalar UDF
-----------
+UDFs
+----
 
-To create a Scalar UDF you need to create a class that is annotated with ``@UdfDescription``.
+To create a UDF you need to create a class that is annotated with ``@UdfDescription``.
 Each method in the class that represents a UDF must be public and annotated with ``@Udf``. The class
-you create represents a collection of scalar UDFs all with the same name but may have different
+you create represents a collection of UDFs all with the same name but may have different
 arguments and return types.
 
 
-Example Scalar UDF class
-~~~~~~~~~~~~~~~~~~~~~~~~
+Example UDF class
+~~~~~~~~~~~~~~~~~
 
-The class below creates a UDF named ``multiply``. As can be seen this UDF can be invoked in three
-different ways:
+The class below creates a UDF named ``multiply``. The name of the UDF is provided in the ``name``
+parameter of the ``UdfDescription`` annotation. This name is case-insensitive and is what can be
+used to call the UDF. As can be seen this UDF can be invoked in three different ways:
 
-- with two int parameters returning a long result.
-- with two long parameters returning a long result.
+- with two int parameters returning a long (BIGINT) result.
+- with two long (BIGINT) parameters returning a long (BIGINT) result.
 - with two double parameters returning a double result.
 
 .. code:: java
@@ -69,12 +69,14 @@ different ways:
 
 UdfDescription Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-The ``@UdfDescription`` annotation is applied at the class level and has four fields, two of which are required:
+The ``@UdfDescription`` annotation is applied at the class level and has four fields, two of which are required.
+The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE FUNCTION <function>`` commands.
 
 +------------+------------------------------+---------+
 | Field      | Description                  | Required|
 +============+==============================+=========+
-| name       | The name of the function(s)  | Yes     |
+| name       | The case-insensitive name of | Yes     |
+|            | the UDF(s)                   |         |
 |            | represented by this class.   |         |
 +------------+------------------------------+---------+
 | description| A string describing generally| Yes     |
@@ -108,26 +110,28 @@ of the UDF does, for example:
     public String substring(final String value, final int startIndex, final int endIndex)
 
 
-Aggregate UDFs
---------------
-To create an Aggregate UDF you need to create a class that is annotated with ``@UdafDescription``.
+UDAFs
+-----
+To create a UDAF you need to create a class that is annotated with ``@UdafDescription``.
 Each method in the class that is used as a factory for creating an aggregation must be ``public static``,
 be annotated with ``@UdafFactory``, and must return either ``Udaf`` or ``TableUdaf``. The class
-you create represents a collection of aggregate UDFs all with the same name but may have different
+you create represents a collection of UDAFs all with the same name but may have different
 arguments and return types.
 
 
-Example Scalar UDF class
-~~~~~~~~~~~~~~~~~~~~~~~~
+Example UDAF class
+~~~~~~~~~~~~~~~~~~
 
-The class below creates an Aggregate UDF named ``my_sum``. The UDF can be invoked in four ways:
+The class below creates a UDAF named ``my_sum``. The name of the UDAF is provided in the ``name``
+parameter of the ``UdafDescription`` annotation. This name is case-insensitive and is what can be
+used to call the UDAF. The UDAF can be invoked in four ways:
 
 - With a Long (BIGINT) column, returning the aggregated value as Long (BIGINT). Can also be used to support table aggregations
   as the return type is ``TableUdaf`` and therefore supports the ``undo`` operation.
 - with an Integer column returning the aggregated value as Long (BIGINT).
 - with a Double column, returning the aggregated value as Double.
 - with a String (VARCHAR) and an initializer that is a String (VARCHAR), returning the aggregated String (VARCHAR) length
-  as a Long (BIGINT)
+  as a Long (BIGINT).
 
 .. code:: java
 
@@ -231,12 +235,14 @@ The class below creates an Aggregate UDF named ``my_sum``. The UDF can be invoke
 
 UdafDescription Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-The ``@UdafDescription`` annotation is applied at the class level and has four fields, two of which are required:
+The ``@UdafDescription`` annotation is applied at the class level and has four fields, two of which are required.
+The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE FUNCTION <function>`` commands.
 
 +------------+------------------------------+---------+
 | Field      | Description                  | Required|
 +============+==============================+=========+
-| name       | The name of the function(s)  | Yes     |
+| name       | The case-insensitive name of | Yes     |
+|            | the UDAF(s)                  |         |
 |            | represented by this class.   |         |
 +------------+------------------------------+---------+
 | description| A string describing generally| Yes     |
@@ -306,14 +312,16 @@ Note: Complex types other than List and Map are not currently supported
 Deploying
 =========
 
-To deploy your UDFs you need to create a jar containing all of the classes required by the UDFs.
+To deploy your UD(A)Fs you need to create a jar containing all of the classes required by the UD(A)Fs.
 If you depend on third-party libraries then this should be an uber-jar containing those libraries.
 Once the jar is created you need to deploy it to each KSQL server instance. The jar should be copied
 to the ``ext/`` directory that is part of the KSQL distribution. The ``ext/`` directory can be configured
 via the ``ksql.extension.dir``.
 
-The jars in the ``ext`` directory are only scanned at start-up, so you will need to restart your
+The jars in the ``ext/`` directory are only scanned at start-up, so you will need to restart your
 KSQL server instances to pick up new UDFs.
+
+
 
 
 =====
@@ -332,11 +340,16 @@ built-in functions. The function names are case-insensitive. For example, using 
 
 
 
-============
-Blacklisting
-============
+=================
+UDFs and Security
+=================
 
-You can blacklist classes and packages such that they can't be used from a UDF. There is small
+Blacklisting
+------------
+
+In some deployment environments it may be necessary to restrict the classes that UD(A)Fs have access
+to as they may represent a security risk. To reduce the attack surface of KSQL UD(A)Fs you can optionally
+blacklist classes and packages such that they can't be used from a UD(A)F. There is small
 blacklist that is found in the file ``resource-blacklist.txt`` that is in the ``ext/`` directory.
 This file contains an entry per line, where each line is a class or package that should be blacklisted.
 The matching of the names is based on a regular expression, so if you have an entry, ``java.lang.Process``
@@ -350,6 +363,22 @@ This would match any paths that begin with java.lang.Process, i.e., java.lang.Pr
 Any blank lines or lines beginning with ``#`` are ignored. If the file is not present then all classes
 are blacklisted.
 
+Security Manager
+----------------
+
+By default KSQL installs a simple java security manager for UD(A)F execution. The security manager
+blocks attempts by any UD(A)Fs to fork processes from the KSQL server. It also prevents them from
+calling ``System.exit(..)``.
+
+The security manager can be disabled by setting ``ksql.udf.enable.security.manager`` to false.
+
+Disabling UDF Functionality
+---------------------------
+
+You can disable the loading of all UDFs in the ``ext/`` directory by setting ``ksql.udfs.enabled`` to
+``false``. By default they are enabled.
+
+
 =================
 Metric Collection
 =================
@@ -359,9 +388,3 @@ This defaults to ``false`` and is generally not recommended for production usage
 will be collected on each invocation and will introduce some overhead to processing time.
 
 
-=========
-Disabling
-=========
-
-You can disable the loading of all UDFs in the ``ext`` directory by setting ``ksql.udfs.enabled`` to
-``false``. By default they are enabled.

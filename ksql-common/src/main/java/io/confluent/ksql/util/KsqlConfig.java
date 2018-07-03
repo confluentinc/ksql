@@ -248,33 +248,39 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return configDef;
   }
 
-  private static class ResolvedConfig {
-    final ConfigDef.Type type;
+  private static class ConfigValue {
+    final Optional<ConfigDef.Type> type;
     final String key;
     final Object value;
 
-    private ResolvedConfig(final ConfigDef.Type type, final String key, final Object value) {
-      this.type = type;
+    private ConfigValue(final ConfigDef.Type type, final String key, final Object value) {
+      this.type = Optional.ofNullable(type);
       this.key = key;
       this.value = value;
     }
+
+    static ConfigValue resolved(final ConfigDef.Type type, final String key, final Object value) {
+      return new ConfigValue(type, key, value);
+    }
+
+    static ConfigValue unresolved(final String key, final Object value) {
+      return new ConfigValue(null, key, value);
+    }
   }
 
-  private static Optional<ResolvedConfig> resolveConfig(final String prefix,
-                                                        final AbstractConfig abstractConfig,
-                                                        final String key,
-                                                        final Object value) {
+  private static ConfigValue resolveConfig(final String prefix,
+                                           final AbstractConfig abstractConfig,
+                                           final String key,
+                                           final Object value) {
     if (!key.startsWith(prefix)) {
-      return Optional.empty();
+      return ConfigValue.unresolved(key, value);
     }
     final String keyNoPrefix = key.substring(prefix.length());
     if (abstractConfig.values().containsKey(keyNoPrefix)) {
       final ConfigDef.Type type = abstractConfig.typeOf(keyNoPrefix);
-      return Optional.of(
-          new ResolvedConfig(
-              type, key, ConfigDef.parseType(keyNoPrefix, value, type)));
+      return ConfigValue.resolved(type, key, ConfigDef.parseType(keyNoPrefix, value, type));
     }
-    return Optional.empty();
+    return ConfigValue.unresolved(key, value);
   }
 
   private static final AbstractConfig CONSUMER_ABSTRACT_CONFIG = new ConsumerConfig(
@@ -298,10 +304,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       )
   );
 
-  private static Optional<ResolvedConfig> resolveStreamsConfig(final String maybePrefixedKey,
-                                                               final Object value) {
+  private static Optional<ConfigValue> resolveStreamsConfig(final String maybePrefixedKey,
+                                                            final Object value) {
     final String key = maybePrefixedKey.startsWith(KSQL_STREAMS_PREFIX)
         ? maybePrefixedKey.substring(KSQL_STREAMS_PREFIX.length()) : maybePrefixedKey;
+    if (key.startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
+      return Optional.empty();
+    }
     final List<Pair<String, AbstractConfig>> configSpecsToTry = ImmutableList.of(
         new Pair<>(StreamsConfig.CONSUMER_PREFIX, CONSUMER_ABSTRACT_CONFIG),
         new Pair<>(StreamsConfig.PRODUCER_PREFIX, PRODUCER_ABSTRACT_CONFIG),
@@ -310,28 +319,28 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         new Pair<>("", STREAMS_ABSTRACT_CONFIG)
     );
     for (Pair<String, AbstractConfig> spec : configSpecsToTry) {
-      final Optional<ResolvedConfig> resolvedConfig
+      final ConfigValue configValue
           = resolveConfig(spec.getLeft(), spec.getRight(), key, value);
-      if (resolvedConfig.isPresent()) {
-        return resolvedConfig;
+      if (configValue.type.isPresent()) {
+        return Optional.of(configValue);
       }
     }
-    return Optional.empty();
+    return Optional.of(ConfigValue.unresolved(key, value));
   }
 
   private static void applyStreamsConfig(
       final Map<String, ?> props,
-      final Map<String, ResolvedConfig> streamsConfigProps) {
+      final Map<String, ConfigValue> streamsConfigProps) {
     props.entrySet()
         .stream()
         .map(e -> resolveStreamsConfig(e.getKey(), e.getValue()))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .forEach(
-            resolvedConfig -> streamsConfigProps.put(resolvedConfig.key, resolvedConfig));
+            configValue -> streamsConfigProps.put(configValue.key, configValue));
   }
 
-  private final ImmutableMap<String, ResolvedConfig> ksqlStreamConfigProps;
+  private final ImmutableMap<String, ConfigValue> ksqlStreamConfigProps;
 
   public KsqlConfig(final Map<?, ?> props) {
     this(true, props);
@@ -357,7 +366,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
           LogMetricAndContinueExceptionHandler.class
       );
     }
-    final Map<String, ResolvedConfig> streamConfigProps = new HashMap<>();
+    final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
     applyStreamsConfig(streamsConfigDefaults, streamConfigProps);
     applyStreamsConfig(originals(), streamConfigProps);
     this.ksqlStreamConfigProps = ImmutableMap.copyOf(streamConfigProps);
@@ -365,14 +374,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   private KsqlConfig(final boolean current,
                      final Map<String, ?> values,
-                     final ImmutableMap<String, ResolvedConfig> ksqlStreamConfigProps) {
+                     final ImmutableMap<String, ConfigValue> ksqlStreamConfigProps) {
     super(configDef(current), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
   public Map<String, Object> getKsqlStreamConfigProps() {
     final Map<String, Object> props = new HashMap<>();
-    for (ResolvedConfig config : ksqlStreamConfigProps.values()) {
+    for (ConfigValue config : ksqlStreamConfigProps.values()) {
       props.put(config.key, config.value);
     }
     return Collections.unmodifiableMap(props);
@@ -381,9 +390,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
-        .filter(resolvedConfig -> AdminClientConfig.configNames().contains(resolvedConfig.key))
+        .filter(configValue -> AdminClientConfig.configNames().contains(configValue.key))
         .forEach(
-            resolvedConfig -> props.put(resolvedConfig.key, resolvedConfig.value));
+            configValue -> props.put(configValue.key, configValue.value));
     return Collections.unmodifiableMap(props);
   }
 
@@ -401,11 +410,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     final Map<String, String> props = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
-    ksqlStreamConfigProps.values().forEach(
-        resolvedConfig -> props.put(
-            resolvedConfig.key,
-            ConfigDef.convertToString(resolvedConfig.value, resolvedConfig.type))
-    );
+    ksqlStreamConfigProps.values().stream()
+        // we must only return props for which we could resolve a type
+        .filter(configValue -> configValue.type.isPresent())
+        .forEach(
+            configValue -> props.put(
+                configValue.key,
+                ConfigDef.convertToString(configValue.value, configValue.type.get()))
+        );
     return Collections.unmodifiableMap(props);
   }
 
@@ -431,7 +443,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
     final Map<String, Object> cloneProps = new HashMap<>(values());
     cloneProps.putAll(props);
-    final Map<String, ResolvedConfig> streamConfigProps = new HashMap<>();
+    final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
     applyStreamsConfig(getKsqlStreamConfigProps(), streamConfigProps);
     applyStreamsConfig(props, streamConfigProps);
     return new KsqlConfig(true, cloneProps, ImmutableMap.copyOf(streamConfigProps));

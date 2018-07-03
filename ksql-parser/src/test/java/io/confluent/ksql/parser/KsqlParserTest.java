@@ -68,7 +68,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertTrue;
-import static org.testng.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 
 public class KsqlParserTest {

@@ -68,7 +68,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.testng.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class SchemaKTableTest {
 

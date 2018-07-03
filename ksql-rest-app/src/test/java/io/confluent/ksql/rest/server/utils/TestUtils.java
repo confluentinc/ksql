@@ -20,6 +20,7 @@ package io.confluent.ksql.rest.server.utils;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -38,9 +39,10 @@ public class TestUtils {
   public List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
 
-    Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
-                                       + "(value_format = 'json', "
-                                       + "kafka_topic='pageview_topic_json');", new HashMap<>());
+    Command topicCommand = new Command(
+        "REGISTER TOPIC pageview_topic WITH "
+            + "(value_format = 'json', kafka_topic='pageview_topic_json');",
+        Collections.emptyMap(), Collections.emptyMap());
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(topicCommandId, topicCommand));
 
@@ -48,13 +50,13 @@ public class TestUtils {
     Command csCommand = new Command("CREATE STREAM pageview "
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
                                     + "WITH (registered_topic = 'pageview_topic');",
-                                    new HashMap<>());
+                                    Collections.emptyMap(), Collections.emptyMap());
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csCommandId, csCommand));
 
     Command csasCommand = new Command("CREATE STREAM user1pv "
                                       + " AS select * from pageview WHERE userid = 'user1';",
-                                      new HashMap<>());
+                                      Collections.emptyMap(), Collections.emptyMap());
 
     CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csasCommandId, csasCommand));
@@ -64,7 +66,7 @@ public class TestUtils {
                                       + " AS select * from pageview window tumbling(size 5 "
                                       + "second) WHERE userid = "
                                       + "'user1' group by pageid;",
-                                      new HashMap<>());
+                                      Collections.emptyMap(), Collections.emptyMap());
 
     CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));
@@ -77,7 +79,7 @@ public class TestUtils {
                                             final SchemaRegistryClient schemaRegistryClient) {
     class TestKsqlEngine extends KsqlEngine {
       private TestKsqlEngine() {
-        super(ksqlConfig,
+        super(
             topicClient,
             schemaRegistryClient,
             new MetaStoreImpl(new InternalFunctionRegistry()));

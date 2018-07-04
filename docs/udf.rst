@@ -1,7 +1,7 @@
 .. _ksql-udfs:
 
 KSQL Custom Function Reference (UDF & UDAF)
-==========================================+
+===========================================
 
 KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAF) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
@@ -321,7 +321,13 @@ via the ``ksql.extension.dir``.
 The jars in the ``ext/`` directory are only scanned at start-up, so you will need to restart your
 KSQL server instances to pick up new UDFs.
 
-
+It is important to ensure that you deploy the custom jars to each server instance. Failure to do so
+will result in errors when processing any statements that try to use these functions. The errors
+may go unnoticed in the KSQL CLI if the KSQL server instance it is connected to has the jar installed,
+but one or more other KSQL servers don't have it installed. In these cases the errors will appear
+in the ksql logs. The servers that don't have the jars will stop processing any queries using
+the custom UD(A)Fs. Processing will continue, but it will be restricted to only the servers with the
+correct jars installed.
 
 
 =====
@@ -340,17 +346,19 @@ built-in functions. The function names are case-insensitive. For example, using 
 
 
 
-=================
-UDFs and Security
-=================
+==================================
+KSQL Custom Functions and Security
+==================================
 
 Blacklisting
 ------------
 
 In some deployment environments it may be necessary to restrict the classes that UD(A)Fs have access
 to as they may represent a security risk. To reduce the attack surface of KSQL UD(A)Fs you can optionally
-blacklist classes and packages such that they can't be used from a UD(A)F. There is small
+blacklist classes and packages such that they can't be used from a UD(A)F. There is an example
 blacklist that is found in the file ``resource-blacklist.txt`` that is in the ``ext/`` directory.
+All the entries in it are commented out, but it demonstrates how you can use the blacklist.
+
 This file contains an entry per line, where each line is a class or package that should be blacklisted.
 The matching of the names is based on a regular expression, so if you have an entry, ``java.lang.Process``
 
@@ -360,8 +368,14 @@ The matching of the names is based on a regular expression, so if you have an en
 
 This would match any paths that begin with java.lang.Process, i.e., java.lang.Process, java.lang.ProcessBuilder etc.
 
-Any blank lines or lines beginning with ``#`` are ignored. If the file is not present then all classes
-are blacklisted.
+If you want to blacklist a single class, i.e., ``java.lang.Compiler``, then you would add:
+
+.. code:: txt
+
+    java.lang.Compiler$
+
+Any blank lines or lines beginning with ``#`` are ignored. If the file is not present, or is empty, then
+no classes are blacklisted.
 
 Security Manager
 ----------------
@@ -372,8 +386,8 @@ calling ``System.exit(..)``.
 
 The security manager can be disabled by setting ``ksql.udf.enable.security.manager`` to false.
 
-Disabling UDF Functionality
----------------------------
+Disabling KSQL Custom Functions
+-------------------------------
 
 You can disable the loading of all UDFs in the ``ext/`` directory by setting ``ksql.udfs.enabled`` to
 ``false``. By default they are enabled.

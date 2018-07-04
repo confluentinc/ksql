@@ -19,7 +19,6 @@ package io.confluent.ksql.serde.avro;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Collections;

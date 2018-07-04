@@ -22,7 +22,6 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.ShowFunctions;

@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -125,8 +124,8 @@ public class CliTest extends TestRunner {
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-    restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
-        EasyMock.mock(VersionCheckerAgent.class)
+    restServer = KsqlRestApplication.buildApplication(restServerConfig,
+                                                      EasyMock.mock(VersionCheckerAgent.class)
     );
 
     restServer.start();

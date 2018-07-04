@@ -60,13 +60,13 @@ public class BlacklistTest {
 
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
-  public void shouldBlacklistEverythingIfFailsToLoadFile() {
+  public void shouldNotBlacklistAnythingIfFailsToLoadFile() {
     blacklistFile.delete();
     final Blacklist blacklist = new Blacklist(this.blacklistFile);
-    assertTrue(blacklist.test("java.lang.Process"));
-    assertTrue(blacklist.test("java.util.List"));
-    assertTrue(blacklist.test("java.lang.ProcessEnvironment"));
-    assertTrue(blacklist.test("java.lang.Class"));
+    assertFalse(blacklist.test("java.lang.Process"));
+    assertFalse(blacklist.test("java.util.List"));
+    assertFalse(blacklist.test("java.lang.ProcessEnvironment"));
+    assertFalse(blacklist.test("java.lang.Class"));
   }
 
   @SuppressWarnings("ResultOfMethodCallIgnored")

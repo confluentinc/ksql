@@ -73,17 +73,11 @@ public class ConnectDataTranslator implements DataTranslator {
                             final Schema schema,
                             final Schema connectSchema,
                             final Schema.Type... validTypes) {
-    Arrays.asList(validTypes).stream()
+    Arrays.stream(validTypes)
         .filter(connectSchema.type()::equals)
         .findFirst()
         .orElseThrow(
             () -> createTypeMismatchException(pathStr, schema, connectSchema));
-  }
-
-  private void validateType(final String pathStr,
-                            final Schema schema,
-                            final Schema connectSchema) {
-    validateType(pathStr, schema, connectSchema, schema.type());
   }
 
   private void validateSchema(final String pathStr,
@@ -95,7 +89,7 @@ public class ConnectDataTranslator implements DataTranslator {
       case ARRAY:
       case MAP:
       case STRUCT:
-        validateType(pathStr, schema, connectSchema);
+        validateType(pathStr, schema, connectSchema, schema.type());
         break;
       case INT64:
         validateType(

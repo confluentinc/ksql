@@ -72,7 +72,7 @@ public class Blacklist implements Predicate<String> {
       }
       logger.info("Setting UDF blacklisted classes to: " + blackList);
     } catch (final IOException e) {
-      logger.info("Failed to load resource blacklist from {}"
+      logger.warn("Failed to load resource blacklist from {}"
           + " no classes will be blacklisted", inputFile);
     }
   }

@@ -319,13 +319,13 @@ to the ``ext/`` directory that is part of the KSQL distribution. The ``ext/`` di
 via the ``ksql.extension.dir``.
 
 The jars in the ``ext/`` directory are only scanned at start-up, so you will need to restart your
-KSQL server instances to pick up new UDFs.
+KSQL server instances to pick up new UD(A)Fs.
 
 It is important to ensure that you deploy the custom jars to each server instance. Failure to do so
 will result in errors when processing any statements that try to use these functions. The errors
 may go unnoticed in the KSQL CLI if the KSQL server instance it is connected to has the jar installed,
 but one or more other KSQL servers don't have it installed. In these cases the errors will appear
-in the ksql server log. The error would look something like:
+in the KSQL server log (ksql.log) . The error would look something like:
 
 .. code:: txt
 
@@ -342,7 +342,7 @@ correct jars installed.
 Usage
 =====
 
-Once your UDFs are deployed you can call them in the same way you would invoke any of the KSQL
+Once your UD(A)Fs are deployed you can call them in the same way you would invoke any of the KSQL
 built-in functions. The function names are case-insensitive. For example, using the ``multiply`` example above:
 
 .. code:: sql

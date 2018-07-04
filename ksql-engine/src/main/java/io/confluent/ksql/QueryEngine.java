@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.StatementWithInferredSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -206,13 +207,11 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      AbstractStreamCreateStatement streamCreateStatementWithSchema =
-          maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
+      final StatementWithInferredSchema statementWithInferredSchema
+          = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
-      if (streamCreateStatementWithSchema != streamCreateStatement) {
-        statement = (DdlStatement)streamCreateStatementWithSchema;
-        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
-      }
+      statement = (DdlStatement) statementWithInferredSchema.getStatement();
+      sqlExpression = statementWithInferredSchema.getStatementText();
     }
     final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
@@ -240,8 +239,9 @@ class QueryEngine {
     );
   }
 
-  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
-      AbstractStreamCreateStatement streamCreateStatement
+  private StatementWithInferredSchema maybeAddFieldsFromSchemaRegistry(
+      AbstractStreamCreateStatement streamCreateStatement,
+      final String statementText
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
       String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
@@ -273,10 +273,7 @@ class QueryEngine {
           newProperties
       );
     }
-    return AvroUtil.checkAndSetAvroSchema(
-        streamCreateStatement,
-        new HashMap<>(),
-        ksqlEngine.getSchemaRegistryClient());
+    return StatementWithInferredSchema.forStatement(
+        streamCreateStatement, statementText, new HashMap<>(), ksqlEngine.getSchemaRegistryClient());
   }
-
 }

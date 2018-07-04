@@ -23,6 +23,7 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Collections;
+import java.util.Objects;
 
 public class AvroSchemaTranslator extends ConnectSchemaTranslator {
   public static Schema toKsqlSchema(final String avroSchemaString) {
@@ -35,8 +36,8 @@ public class AvroSchemaTranslator extends ConnectSchemaTranslator {
   @Override
   protected Schema toKsqlFieldSchema(final Schema connectSchema) {
     if (connectSchema.type().equals(Schema.Type.STRUCT)
-        && connectSchema.name().equals(AvroData.AVRO_TYPE_UNION)) {
-      throw new KsqlException("Union type not supported");
+        && Objects.equals(connectSchema.name(), AvroData.AVRO_TYPE_UNION)) {
+      throw new UnsupportedTypeException("Union type not supported");
     }
     return super.toKsqlFieldSchema(connectSchema);
   }

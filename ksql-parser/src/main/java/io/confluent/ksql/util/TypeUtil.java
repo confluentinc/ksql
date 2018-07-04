@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.TableElement;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -101,6 +103,4 @@ public class TypeUtil {
     }
     return structSchemaBuilder.optional().build();
   }
-
-
 }

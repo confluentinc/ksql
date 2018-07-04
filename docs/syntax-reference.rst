@@ -956,29 +956,30 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                    | Description                                       |
 +========================+============================================================+===================================================+
-| ABS                    | ``ABS(col1)``                                              | The absolute value of a value                     |
+| ABS                    | ``ABS(col1)``                                              | The absolute value of a value.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
 |                        |                                                            | value contains in it.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value                            |
+| CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings                           |
+| CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
-|                        |                                                            | the field that matches                            |
+|                        |                                                            | the field that matches.  However, in many cases   |
+|                        |                                                            | a better option is to use the ``STRUCT`` type.    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value                              |
+| FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points,              |
 |                        |               lat2, lon2,                                  | each specified in decimal degrees.                |
 |                        |               unit)``                                      | An optional final parameter can                   |
 |                        |                                                            | be used to specify either                         |
-|                        |                                                            | 'KM'(default) or 'Miles'                          |
+|                        |                                                            | 'KM'(default) or 'Miles'.                         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase                     |
+| LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LEN                    |  ``LEN(col1)``                                             | The length of a string                            |
+| LEN                    |  ``LEN(col1)``                                             | The length of a string.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                        | Convert a string to a masked or obfuscated        |
 |                        |                                                            | version of itself. The optional arguments         |
@@ -1019,29 +1020,29 @@ Scalar functions
 |                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
 |                        |                                                            | will return ``My Test -nnn``.                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0  |
+| RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value         |
+| ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value.        |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given              |
 |                        |                                                            | format into the BIGINT value                      |
 |                        |                                                            | that represents the millisecond timestamp. Single |
 |                        |                                                            | quotes in the timestamp format can be escaped with|
-|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'       |
+|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices                                           |
+|                        |                                                            | indices.                                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |
 |                        |                                                            | the given format. Single quotes in the            |
 |                        |                                                            | timestamp format can be escaped with '', for      |
-|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'               |
+|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |
-|                        |                                                            | a string                                          |
+|                        |                                                            | a string.                                         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase                     |
+| UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 
 ===================

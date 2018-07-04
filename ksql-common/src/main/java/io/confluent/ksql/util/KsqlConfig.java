@@ -416,8 +416,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .forEach(
             configValue -> props.put(
                 configValue.key,
-                ConfigDef.convertToString(configValue.value, configValue.type.get()))
-        );
+                ConfigDef.convertToString(configValue.value, configValue.type.get())));
     return Collections.unmodifiableMap(props);
   }
 

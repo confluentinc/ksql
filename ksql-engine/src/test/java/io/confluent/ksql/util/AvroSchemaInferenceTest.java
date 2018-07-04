@@ -27,8 +27,6 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.util.StatementWithInferredSchema;
-import io.confluent.ksql.util.TypeUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -40,58 +38,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class AvroSchemaInferenceTest {
-  private Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
-    final SchemaBuilder builder = SchemaBuilder.struct();
-    for (TableElement tableElement : statement.getElements()) {
-      builder.field(
-          tableElement.getName(),
-          TypeUtil.getTypeSchema(tableElement.getType())
-      );
-    }
-    return builder.build();
-  }
-
-  private void shouldInferSchema(final org.apache.avro.Schema avroStreamSchema,
-                                 final Schema ksqlStreamSchema) {
-    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-
-    try {
-      schemaRegistryClient.register("test-value", avroStreamSchema);
-    } catch (IOException | RestClientException e) {
-      throw new RuntimeException(e);
-    }
-
-    final String statementText
-        = "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='avro');";
-    final KsqlParser parser = new KsqlParser();
-    final Statement statement = parser.buildAst(statementText, metaStore).get(0);
-
-    final StatementWithInferredSchema inferred
-        = StatementWithInferredSchema.forStatement(
-            statement, statementText, new HashMap<>(), schemaRegistryClient);
-
-    final Statement statementWithSchema
-        = parser.buildAst(inferred.getStatementText(), metaStore).get(0);
-    final Schema inferredSchema = getSchemaForDdlStatement(
-        (AbstractStreamCreateStatement) statementWithSchema);
-    assertThat(inferredSchema, equalTo(ksqlStreamSchema));
-  }
-
-  private void shouldInferType(final org.apache.avro.Schema avroSchema,
-                               final Schema ksqlSchema) {
-    final org.apache.avro.Schema avroStreamSchema
-        = org.apache.avro.SchemaBuilder.record("stream")
-        .fields()
-        .name("field0").type(avroSchema).noDefault()
-        .endRecord();
-    final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
-    if (ksqlSchema != null) {
-      ksqlStreamSchemaBuilder.field("FIELD0", ksqlSchema).build();
-    }
-    shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());
-  }
-
   @Test
   public void shouldInferIntAsInteger() {
     shouldInferType(
@@ -283,14 +229,6 @@ public class AvroSchemaInferenceTest {
     );
   }
 
-  private void shouldInferConnectType(final Schema connectSchema,
-                                      final Schema ksqlSchema) {
-    shouldInferType(
-        new AvroData(1).fromConnectSchema(connectSchema),
-            ksqlSchema
-    );
-  }
-
   @Test
   public void shouldInferInt8AsInteger() {
     shouldInferConnectType(Schema.INT8_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA);
@@ -386,5 +324,65 @@ public class AvroSchemaInferenceTest {
     shouldInferSchema(
         new AvroData(1).fromConnectSchema(connectSchema),
         ksqlSchema);
+  }
+
+  private Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
+    final SchemaBuilder builder = SchemaBuilder.struct();
+    for (TableElement tableElement : statement.getElements()) {
+      builder.field(
+          tableElement.getName(),
+          TypeUtil.getTypeSchema(tableElement.getType())
+      );
+    }
+    return builder.build();
+  }
+
+  private void shouldInferSchema(final org.apache.avro.Schema avroStreamSchema,
+                                 final Schema ksqlStreamSchema) {
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
+    try {
+      schemaRegistryClient.register("test-value", avroStreamSchema);
+    } catch (IOException | RestClientException e) {
+      throw new RuntimeException(e);
+    }
+
+    final String statementText
+        = "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='avro');";
+    final KsqlParser parser = new KsqlParser();
+    final Statement statement = parser.buildAst(statementText, metaStore).get(0);
+
+    final StatementWithSchema inferred
+        = StatementWithSchema.forStatement(
+        statement, statementText, new HashMap<>(), schemaRegistryClient);
+
+    final Statement statementWithSchema
+        = parser.buildAst(inferred.getStatementText(), metaStore).get(0);
+    final Schema inferredSchema = getSchemaForDdlStatement(
+        (AbstractStreamCreateStatement) statementWithSchema);
+    assertThat(inferredSchema, equalTo(ksqlStreamSchema));
+  }
+
+  private void shouldInferType(final org.apache.avro.Schema avroSchema,
+                               final Schema ksqlSchema) {
+    final org.apache.avro.Schema avroStreamSchema
+        = org.apache.avro.SchemaBuilder.record("stream")
+        .fields()
+        .name("field0").type(avroSchema).noDefault()
+        .endRecord();
+    final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
+    if (ksqlSchema != null) {
+      ksqlStreamSchemaBuilder.field("FIELD0", ksqlSchema).build();
+    }
+    shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());
+  }
+
+  private void shouldInferConnectType(final Schema connectSchema,
+                                      final Schema ksqlSchema) {
+    shouldInferType(
+        new AvroData(1).fromConnectSchema(connectSchema),
+        ksqlSchema
+    );
   }
 }

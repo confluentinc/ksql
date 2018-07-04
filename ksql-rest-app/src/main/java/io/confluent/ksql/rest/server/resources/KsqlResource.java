@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StatementWithInferredSchema;
+import io.confluent.ksql.util.StatementWithSchema;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
@@ -253,8 +254,8 @@ public class KsqlResource {
         || statement instanceof CreateAsSelect
         || statement instanceof InsertInto
         || statement instanceof TerminateQuery) {
-      final StatementWithInferredSchema statementWithSchema
-          = StatementWithInferredSchema.forStatement(
+      final StatementWithSchema statementWithSchema
+          = StatementWithSchema.forStatement(
               statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
       getStatementExecutionPlan(
           statementWithSchema.getStatement(),
@@ -328,8 +329,8 @@ public class KsqlResource {
                || statement instanceof InsertInto
                || statement instanceof TerminateQuery
     ) {
-      final StatementWithInferredSchema statementWithSchema
-          = StatementWithInferredSchema.forStatement(
+      final StatementWithSchema statementWithSchema
+          = StatementWithSchema.forStatement(
               statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
       return distributeStatement(
           statementWithSchema.getStatementText(),

@@ -19,6 +19,7 @@ package io.confluent.ksql;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StatementWithInferredSchema;
+import io.confluent.ksql.util.StatementWithSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -205,11 +206,11 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      final StatementWithInferredSchema statementWithInferredSchema
+      final StatementWithSchema statementWithSchema
           = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
-      statement = (DdlStatement) statementWithInferredSchema.getStatement();
-      sqlExpression = statementWithInferredSchema.getStatementText();
+      statement = (DdlStatement) statementWithSchema.getStatement();
+      sqlExpression = statementWithSchema.getStatementText();
     }
     final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
@@ -237,26 +238,26 @@ class QueryEngine {
     );
   }
 
-  private StatementWithInferredSchema maybeAddFieldsFromSchemaRegistry(
-      AbstractStreamCreateStatement streamCreateStatement,
+  private StatementWithSchema maybeAddFieldsFromSchemaRegistry(
+      final AbstractStreamCreateStatement streamCreateStatement,
       final String statementText
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-      String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
+      final String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
           streamCreateStatement
               .getProperties()
               .get(DdlConfig.TOPIC_NAME_PROPERTY)
               .toString()
               .toUpperCase()
       );
-      KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
+      final KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
       if (ksqlTopic == null) {
         throw new KsqlException(String.format(
             "Could not find %s topic in the metastore.",
             ksqlRegisteredTopicName
         ));
       }
-      Map<String, Expression> newProperties = new HashMap<>();
+      final Map<String, Expression> newProperties = new HashMap<>();
       newProperties.put(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic.getKafkaTopicName())
       );
@@ -266,13 +267,20 @@ class QueryEngine {
               ksqlTopic.getKsqlTopicSerDe().getSerDe().toString()
           )
       );
-      streamCreateStatement = streamCreateStatement.copyWith(
+      final AbstractStreamCreateStatement statementWithProperties = streamCreateStatement.copyWith(
           streamCreateStatement.getElements(),
-          newProperties
+          newProperties);
+      return StatementWithSchema.forStatement(
+          statementWithProperties,
+          SqlFormatter.formatSql(statementWithProperties),
+          new HashMap<>(),
+          ksqlEngine.getSchemaRegistryClient()
       );
     }
-    return StatementWithInferredSchema.forStatement(
-        streamCreateStatement, statementText, new HashMap<>(),
+    return StatementWithSchema.forStatement(
+        streamCreateStatement,
+        statementText,
+        new HashMap<>(),
         ksqlEngine.getSchemaRegistryClient());
   }
 }

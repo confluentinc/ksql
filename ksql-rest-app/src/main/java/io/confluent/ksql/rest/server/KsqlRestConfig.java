@@ -55,17 +55,6 @@ public class KsqlRestConfig extends RestConfig {
           "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
-  public static final String
-          UI_ENABLED_CONFIG = "ksql.server.ui.enabled";
-  public static final ConfigDef.Type
-          UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final String
-          UI_ENABLED_DEFAULT = "true";
-  public static final ConfigDef.Importance
-          UI_ENABLED_IMPORTANCE = ConfigDef.Importance.LOW;
-  public static final String
-          UI_ENABLED_DOC =
-          "Flag to disable the KQL UI. It is enabled by default";
   public static final String INSTALL_DIR_CONFIG = "ksql.server.install.dir";
   public static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
@@ -92,12 +81,6 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
-    ).define(
-        UI_ENABLED_CONFIG,
-        UI_ENABLED_TYPE,
-        UI_ENABLED_DEFAULT,
-        UI_ENABLED_IMPORTANCE,
-        UI_ENABLED_DOC
     ).define(
         INSTALL_DIR_CONFIG,
         ConfigDef.Type.STRING,
@@ -151,9 +134,5 @@ public class KsqlRestConfig extends RestConfig {
         ksqlServiceId,
         COMMAND_TOPIC_SUFFIX
     );
-  }
-
-  public boolean isUiEnabled() {
-    return getBoolean(UI_ENABLED_CONFIG);
   }
 }

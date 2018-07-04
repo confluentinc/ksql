@@ -325,7 +325,15 @@ It is important to ensure that you deploy the custom jars to each server instanc
 will result in errors when processing any statements that try to use these functions. The errors
 may go unnoticed in the KSQL CLI if the KSQL server instance it is connected to has the jar installed,
 but one or more other KSQL servers don't have it installed. In these cases the errors will appear
-in the ksql logs. The servers that don't have the jars will stop processing any queries using
+in the ksql server log. The error would look something like:
+
+.. code:: txt
+
+    [2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.StatementExecutor:210)
+    io.confluent.ksql.util.KsqlException: Can't find any functions with the name 'TOSTRING'
+
+
+The servers that don't have the jars will not process any queries using
 the custom UD(A)Fs. Processing will continue, but it will be restricted to only the servers with the
 correct jars installed.
 

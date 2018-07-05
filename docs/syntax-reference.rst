@@ -966,8 +966,19 @@ Scalar functions
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
-|                        |                                                            | the field that matches.  However, in many cases   |
-|                        |                                                            | a better option is to use the ``STRUCT`` type.    |
+|                        |                                                            | the field that matches.                           |
+|                        |                                                            |                                                   |
+|                        |                                                            | Example where EXTRACTJSONFIELD is needed:         |
+|                        |                                                            |                                                   |
+|                        |                                                            | ``{"foo": \"{\"bar\": \"quux\"}\"}``              |
+|                        |                                                            |                                                   |
+|                        |                                                            | However, in cases where the column is really an   |
+|                        |                                                            | object but declared as a STRING you can use the   |
+|                        |                                                            | ``STRUCT`` type, which is easier to work with.    |
+|                        |                                                            |                                                   |
+|                        |                                                            | Example where ``STRUCT`` will work:               |
+|                        |                                                            |                                                   |
+|                        |                                                            | ``{"foo": {"bar": "quux"}}``                      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

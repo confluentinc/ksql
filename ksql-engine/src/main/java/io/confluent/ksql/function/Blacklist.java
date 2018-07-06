@@ -47,13 +47,17 @@ import java.util.stream.Collectors;
  */
 public class Blacklist implements Predicate<String> {
   private static final Logger logger = LoggerFactory.getLogger(Blacklist.class);
-  private static final String BLACKLIST_ALL = ".*";
+  private static final String BLACKLIST_NONE = "";
   private static final String BLACKLIST_PREFIX = "^(?:";
   private static final String BLACKLIST_SUFFIX = ")\\.?.*$";
 
-  private String blackList = BLACKLIST_ALL;
+  private String blackList = BLACKLIST_NONE;
 
   Blacklist(final File inputFile) {
+    if (!inputFile.exists()) {
+      logger.info("Blacklist file: {} not found. No classes will be blacklisted", inputFile);
+      return;
+    }
     try {
       this.blackList = Files.readLines(inputFile, Charset.forName(StandardCharsets.UTF_8.name()))
           .stream()
@@ -64,12 +68,12 @@ public class Blacklist implements Predicate<String> {
           .collect(Collectors.joining("|", BLACKLIST_PREFIX, BLACKLIST_SUFFIX));
 
       if (this.blackList.equals(BLACKLIST_PREFIX + BLACKLIST_SUFFIX)) {
-        this.blackList = "";
+        this.blackList = BLACKLIST_NONE;
       }
       logger.info("Setting UDF blacklisted classes to: " + blackList);
-    } catch (IOException e) {
-      logger.error("failed to load resource blacklist from " + inputFile
-          + " all classes will be blacklisted");
+    } catch (final IOException e) {
+      logger.warn("Failed to load resource blacklist from {}"
+          + " no classes will be blacklisted", inputFile);
     }
   }
 

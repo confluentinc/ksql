@@ -28,6 +28,7 @@ import org.hamcrest.core.IsEqual;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -138,7 +139,16 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldCleanStreamsProperties() {
+  public void shouldSetMonitoringInterceptorConfigProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        "confluent.monitoring.interceptor.topic", "foo"));
+    final Object result
+        = ksqlConfig.getKsqlStreamConfigProps().get("confluent.monitoring.interceptor.topic");
+    assertThat(result, equalTo("foo"));
+  }
+
+  @Test
+  public void shouldObfuscateSecretStreamsProperties() {
     final String password = "super-secret-password";
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         SslConfigs.SSL_KEY_PASSWORD_CONFIG, password
@@ -150,6 +160,14 @@ public class KsqlConfigTest {
         ksqlConfig.getKsqlConfigPropsWithSecretsObfuscated().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
         not(equalTo(password))
     );
+  }
+
+  @Test
+  public void shouldFilterPropertiesForWhichTypeUnknown() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap("you.shall.not.pass", "wizard"));
+    assertThat(
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated().keySet(),
+        not(hasItem("you.shall.not.pass")));
   }
 
   @Test

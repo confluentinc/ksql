@@ -33,17 +33,14 @@ public class ConnectSchemaTranslator {
   }
 
   public Schema toKsqlSchema(final Schema schema) {
-    final KsqlException nonStructRootError = new KsqlException(
-        "KSQL stream/table schema must be structured");
     try {
       final Schema rowSchema = toKsqlFieldSchema(schema);
       if (rowSchema.type() != Schema.Type.STRUCT) {
-        throw nonStructRootError;
+        throw new KsqlException("KSQL stream/table schema must be structured");
       }
       return rowSchema;
     } catch (UnsupportedTypeException e) {
-      log.error("Unsupported type at root of schema: %s", e.getMessage());
-      throw nonStructRootError;
+      throw new KsqlException("Unsupported type at root of schema: " + e.getMessage(), e);
     }
   }
 

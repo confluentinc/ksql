@@ -548,7 +548,7 @@ class EndToEndEngineTestUtil {
       case LONG:
         // Ensure that smaller long values match the value spec from the test file.
         // The json deserializer uses Integer for any number less than Integer.MAX_VALUE.
-        if (((Long)avro) < Integer.MAX_VALUE) {
+        if (((Long)avro) < Integer.MAX_VALUE && ((Long)avro) > Integer.MIN_VALUE) {
           return ((Long)avro).intValue();
         }
         return avro;

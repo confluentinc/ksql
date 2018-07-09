@@ -117,8 +117,11 @@ public class UdfLoader {
   private void loadUdfs(final ClassLoader loader, final Optional<Path> path) {
     final String pathLoadedFrom
         = path.map(Path::toString).orElse(KsqlFunction.INTERNAL_PATH);
-    new FastClasspathScanner()
-        .overrideClassLoaders(loader)
+    final FastClasspathScanner fastClasspathScanner = new FastClasspathScanner();
+    if (loader != parentClassLoader) {
+      fastClasspathScanner.overrideClassLoaders(loader);
+    }
+    fastClasspathScanner
         .ignoreParentClassLoaders()
         // if we are loading from the parent classloader then restrict the name space to only
         // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar

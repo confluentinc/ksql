@@ -319,6 +319,7 @@ public class PhysicalPlanBuilder {
     return String.format("%s_%d", original, System.currentTimeMillis());
   }
 
+  @SuppressWarnings("unchecked")
   private void updateListProperty(Map<String, Object> properties, String key, Object value) {
     Object obj = properties.getOrDefault(key, new LinkedList<String>());
     List valueList;
@@ -330,7 +331,9 @@ public class PhysicalPlanBuilder {
       String asString = (String) obj;
       valueList = new LinkedList<>(Arrays.asList(asString.split("\\s*,\\s*")));
     } else if (obj instanceof List) {
-      valueList = (List) obj;
+      // The incoming list could be an instance of an immutable list. So we create a modifiable
+      // List out of it to ensure that it is mutable.
+      valueList = new LinkedList<>((List) obj);
     } else {
       throw new KsqlException("Expecting list or string for property: " + key);
     }

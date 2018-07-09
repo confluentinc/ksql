@@ -90,5 +90,6 @@ KSQL CLI
     capacity-planning
     tutorials/index
     syntax-reference
+    udf
     api
     faq

@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,7 @@ public class WSQueryEndpoint {
 
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
 
+  private final KsqlConfig ksqlConfig;
   private final ObjectMapper mapper;
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
@@ -64,11 +66,13 @@ public class WSQueryEndpoint {
   private WebSocketSubscriber subscriber;
 
   public WSQueryEndpoint(
+      KsqlConfig ksqlConfig,
       ObjectMapper mapper,
       StatementParser statementParser,
       KsqlEngine ksqlEngine,
       ListeningScheduledExecutorService exec
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.mapper = mapper;
     this.statementParser = statementParser;
     this.ksqlEngine = ksqlEngine;
@@ -121,7 +125,7 @@ public class WSQueryEndpoint {
             new WebSocketSubscriber<>(session, mapper);
         this.subscriber = streamSubscriber;
 
-        new StreamPublisher(ksqlEngine, exec, queryString, clientLocalProperties)
+        new StreamPublisher(ksqlConfig, ksqlEngine, exec, queryString, clientLocalProperties)
             .subscribe(streamSubscriber);
       } else if (statement instanceof PrintTopic) {
         PrintTopic printTopic = (PrintTopic) statement;
@@ -140,7 +144,7 @@ public class WSQueryEndpoint {
         new PrintPublisher(
             exec,
             ksqlEngine.getSchemaRegistryClient(),
-            ksqlEngine.getKsqlConfigProperties(),
+            ksqlConfig.getKsqlStreamConfigProps(),
             topicName,
             printTopic.getFromBeginning()
         ).subscribe(topicSubscriber);

@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -125,8 +124,8 @@ public class CliTest extends TestRunner {
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-    restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
-        EasyMock.mock(VersionCheckerAgent.class)
+    restServer = KsqlRestApplication.buildApplication(restServerConfig,
+                                                      EasyMock.mock(VersionCheckerAgent.class)
     );
 
     restServer.start();
@@ -189,10 +188,10 @@ public class CliTest extends TestRunner {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
-    configMap.put("application.id", "KSQL");
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     return configMap;
   }
@@ -206,7 +205,9 @@ public class CliTest extends TestRunner {
   private static Map<String, Object> validStartUpConfigs() {
     // TODO: these configs should be set with other configs on start-up, rather than setup later.
     Map<String, Object> startConfigs = genDefaultConfigMap();
-    startConfigs.put("num.stream.threads", 4);
+    startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+    startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
+    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
 
     startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
     startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
@@ -217,7 +218,10 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
-    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class.getName());
+    startConfigs.put(
+        KsqlConfig.KSQL_STREAMS_PREFIX
+            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
 
@@ -536,19 +540,21 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldListFunctions() {
     final List<List<String>> rows = new ArrayList<>();
-    rows.add(Collections.singletonList("TIMESTAMPTOSTRING"));
-    rows.add(Collections.singletonList("EXTRACTJSONFIELD"));
-    rows.add(Collections.singletonList("CONCAT"));
+    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
+    rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
+    rows.add(Arrays.asList("TOPK", "AGGREGATE"));
     testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 
   @Test
-  public void shouldDescribeFunction() throws Exception {
+  public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +
             "Author      : confluent\n" +
             "Version     : \n" +
             "Overview    : \n" +
+            "Type        : scalar\n" +
+            "Jar         : internal\n" +
             "Variations  : \n" +
             "\n" +
             "\tArguments   : BIGINT, VARCHAR\n" +
@@ -556,6 +562,21 @@ public class CliTest extends TestRunner {
             "\tDescription : \n";
 
     localCli.handleLine("describe function timestamptostring;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldDescribeAggregateFunction() throws Exception {
+    final String expectedOutput =
+            "Name        : TOPK\n" +
+            "Author      : confluent\n" +
+            "Version     : \n" +
+            "Overview    : \n" +
+            "Type        : aggregate\n" +
+            "Jar         : internal\n" +
+            "Variations  : \n";
+
+    localCli.handleLine("describe function topk;");
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 

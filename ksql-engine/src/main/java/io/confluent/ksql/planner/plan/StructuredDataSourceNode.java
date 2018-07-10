@@ -153,8 +153,7 @@ public class StructuredDataSourceNode
       final SchemaRegistryClient schemaRegistryClient
   ) {
     if (!(getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy)) {
-      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          getTimeStampColumnIndex());
+      ksqlConfig.setKsqlTimestampColumnIndex(getTimeStampColumnIndex());
     }
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();

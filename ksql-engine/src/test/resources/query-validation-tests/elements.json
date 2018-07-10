@@ -1,0 +1,88 @@
+{
+  "tests": [
+    {
+      "name": "validate JSON fails without elements",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The statement or topic schema does not define any columns."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "validate DELIMITED fails without elements",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The statement or topic schema does not define any columns."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "validate AVRO ok without elements",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO"
+        },
+        {
+          "name": "S",
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
+      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+    },
+    {
+      "name": "validate AVRO ok with elements",
+      "statements": [
+        "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO"
+        },
+        {
+          "name": "S",
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
+      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+    },
+    {
+      "name": "validate AVRO uses null for unknown element",
+      "statements": [
+        "CREATE STREAM TEST (c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO"
+        },
+        {
+          "name": "S",
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
+      "outputs": [{"topic": "S", "key": 0, "value": {"UNKNOWN": null, "C1": 4}, "timestamp": 0}]
+    }
+  ]
+}

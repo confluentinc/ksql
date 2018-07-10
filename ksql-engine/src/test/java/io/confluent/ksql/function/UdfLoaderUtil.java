@@ -16,18 +16,20 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.test.TestUtils;
+
+import java.util.Optional;
 
 import io.confluent.ksql.metastore.MetaStore;
 
-public class UdfLoaderUtil {
+public final class UdfLoaderUtil {
+  private UdfLoaderUtil() {}
 
   public static void load(final MetaStore metaStore) {
     new UdfLoader(metaStore,
         TestUtils.tempDirectory(),
         UdfLoaderUtil.class.getClassLoader(),
-        value -> false, new UdfCompiler(), new Metrics(), true, false)
+        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true)
         .load();
   }
 }

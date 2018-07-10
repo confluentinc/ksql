@@ -24,16 +24,16 @@ import java.util.Objects;
 
 public class FunctionNameList extends KsqlEntity {
 
-  private final Collection<String> functionNames;
+  private final Collection<SimpleFunctionInfo> functionNames;
 
   public FunctionNameList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("functionNames") final Collection<String> functions) {
+      @JsonProperty("functions") final Collection<SimpleFunctionInfo> functions) {
     super(statementText);
     this.functionNames = Objects.requireNonNull(functions, "functionNames can't be null");
   }
 
-  public Collection<String> getFunctionNames() {
+  public Collection<SimpleFunctionInfo> getFunctions() {
     return Collections.unmodifiableCollection(functionNames);
   }
 

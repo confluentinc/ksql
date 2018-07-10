@@ -81,12 +81,15 @@ public class MetricCollectors {
     collectorMap.clear();
   }
 
-  static String addCollector(String id, MetricCollector collector) {
-    while (collectorMap.containsKey(id)) {
-      id += "-" + collectorMap.size();
+  static String addCollector(final String id, final MetricCollector collector) {
+    final StringBuilder builtId = new StringBuilder(id);
+    while (collectorMap.containsKey(builtId.toString())) {
+      builtId.append("-").append(collectorMap.size());
     }
-    collectorMap.put(id, collector);
-    return id;
+
+    final String finalId = builtId.toString();
+    collectorMap.put(finalId, collector);
+    return finalId;
   }
 
   static void remove(String id) {

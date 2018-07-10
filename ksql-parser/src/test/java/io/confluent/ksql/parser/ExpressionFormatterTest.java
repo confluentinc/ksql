@@ -17,9 +17,15 @@
 
 package io.confluent.ksql.parser;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.parser.tree.Array;
+import io.confluent.ksql.parser.tree.Map;
+import io.confluent.ksql.parser.tree.PrimitiveType;
+import io.confluent.ksql.parser.tree.Struct;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.util.Pair;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +49,6 @@ import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -168,7 +173,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDereferenceExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'.name"));
+    assertThat(ExpressionFormatter.formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'->name"));
   }
 
   @Test
@@ -211,12 +216,6 @@ public class ExpressionFormatterTest {
 
     assertThat(ExpressionFormatter.formatExpression(functionCall),
         equalTo("function('name') OVER  WINDOW  WINDOW blah  TUMBLING ( SIZE 1 SECONDS ) "));
-  }
-
-  @Test
-  public void shouldFormatLambdaExpression() {
-    final LambdaExpression expression = new LambdaExpression(Arrays.asList("a", "b"), new StringLiteral("something"));
-    assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(a, b) -> 'something'"));
   }
 
   @Test
@@ -355,4 +354,28 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(new InListExpression(Collections.singletonList(new StringLiteral("a")))), equalTo("('a')"));
   }
 
+  @Test
+  public void shouldFormatStruct() {
+    final Struct struct
+        = new Struct(
+            ImmutableList.of(
+                new Pair<>("field1", new PrimitiveType(Type.KsqlType.INTEGER)),
+                new Pair<>("field2", new PrimitiveType(Type.KsqlType.STRING))
+            ));
+    assertThat(
+        ExpressionFormatter.formatExpression(struct),
+        equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
+  }
+
+  @Test
+  public void shouldFormatMap() {
+    final Map map = new Map(new PrimitiveType(Type.KsqlType.BIGINT));
+    assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));
+  }
+
+  @Test
+  public void shouldFormatArray() {
+    final Array array = new Array(new PrimitiveType(Type.KsqlType.BOOLEAN));
+    assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
+  }
 }

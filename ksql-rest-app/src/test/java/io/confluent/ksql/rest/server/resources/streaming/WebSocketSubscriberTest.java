@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.Capture;
@@ -37,18 +38,13 @@ import javax.websocket.RemoteEndpoint.Async;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 
 import static org.junit.Assert.assertEquals;
 
 public class WebSocketSubscriberTest {
 
-  private static final ObjectMapper mapper = new ObjectMapper();
-
-  static {
-    new SchemaMapper().registerToObjectMapper(mapper);
-  }
+  private static final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
 
   private final Subscription subscription = EasyMock.mock(Subscription.class);
   private final Session session = EasyMock.mock(Session.class);
@@ -135,10 +131,13 @@ public class WebSocketSubscriberTest {
                             .build());
     subscriber.close();
 
-    assertEquals("{\"type\":\"struct\",\"fields\":["
-                 + "{\"type\":\"string\",\"optional\":false,\"field\":\"currency\"},"
-                 + "{\"type\":\"float\",\"optional\":true,\"field\":\"amount\"}],"
-                 + "\"optional\":false}", schema.getValue());
+    assertEquals(
+        "[" +
+            "{\"name\":\"currency\"," +
+            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
+            "{\"name\":\"amount\"," +
+            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}]"
+        , schema.getValue());
     assertEquals("Unable to send schema", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.PROTOCOL_ERROR, reason.getValue().getCloseCode());
 

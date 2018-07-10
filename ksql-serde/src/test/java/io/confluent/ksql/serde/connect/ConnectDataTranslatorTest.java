@@ -16,12 +16,16 @@
 
 package io.confluent.ksql.serde.connect;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.avro.AvroDataTranslator;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
+import org.apache.kafka.connect.storage.Converter;
+import org.easymock.Capture;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,16 +33,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ConnectDataTranslatorTest {
-  final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator();
-
   @Test
   public void shouldTranslateStructCorrectly() {
     final Schema structSchema = SchemaBuilder
@@ -59,7 +67,8 @@ public class ConnectDataTranslatorTest {
     structColumn.put("BIGINT", 456L);
     connectStruct.put("STRUCT", structColumn);
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, rowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
 
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), instanceOf(Struct.class));
@@ -89,7 +98,8 @@ public class ConnectDataTranslatorTest {
     inner2.put("FIELD", 456);
     connectStruct.put("ARRAY", Arrays.asList(inner1, inner2));
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, rowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
 
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), instanceOf(List.class));
@@ -119,7 +129,8 @@ public class ConnectDataTranslatorTest {
     inner2.put("FIELD", 456);
     connectStruct.put("MAP", ImmutableMap.of("k1", inner1, "k2", inner2));
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, rowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
 
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), instanceOf(Map.class));
@@ -144,8 +155,10 @@ public class ConnectDataTranslatorTest {
     final Struct badData = new Struct(badSchema);
     badData.put("FIELD", "fubar");
 
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(schema);
+
     try {
-      connectToKsqlTranslator.toKsqlRow(schema, badSchema, badData);
+      connectToKsqlTranslator.toKsqlRow(badSchema, badData);
       Assert.fail("Translation failed to detect bad connect type");
     } catch (DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
@@ -180,8 +193,8 @@ public class ConnectDataTranslatorTest {
     structColumn.put("iNt", 123);
     connectStruct.put("STRUCT", structColumn);
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(
-        rowSchema, dataRowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct);
 
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), instanceOf(Struct.class));
@@ -218,8 +231,10 @@ public class ConnectDataTranslatorTest {
     structColumn.put("INT", "123");
     connectStruct.put("STRUCT", structColumn);
 
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+
     try {
-      connectToKsqlTranslator.toKsqlRow(rowSchema, dataRowSchema, connectStruct);
+      connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct);
       Assert.fail("Translation failed to check nested field");
     } catch (DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
@@ -236,8 +251,8 @@ public class ConnectDataTranslatorTest {
 
     final Struct connectStruct = new Struct(rowSchema);
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(
-        rowSchema, rowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), is(nullValue()));
   }
@@ -263,8 +278,8 @@ public class ConnectDataTranslatorTest {
     final Struct connectStruct = new Struct(dataRowSchema);
     connectStruct.put("OTHER", 123);
 
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(
-        rowSchema, rowSchema, connectStruct);
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), is(nullValue()));
   }

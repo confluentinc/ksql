@@ -40,6 +40,7 @@ import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
+import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -76,6 +77,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
     addDateTimeFunctions();
     addGeoFunctions();
     addJsonFunctions();
+    addStructFieldFetcher();
     addUdafFunctions();
   }
 
@@ -95,7 +97,9 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         new UdfMetadata(ksqlFunction.getFunctionName(),
             ksqlFunction.getDescription(),
             "confluent",
-            "")));
+            "",
+            KsqlFunction.INTERNAL_PATH
+            )));
     final UdfFactory udfFactory = ksqlFunctionMap.get(ksqlFunction.getFunctionName().toUpperCase());
     udfFactory.addFunction(ksqlFunction);
   }
@@ -131,8 +135,8 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    aggregateFunctionMap.put(
-        aggregateFunctionFactory.functionName.toUpperCase(),
+    aggregateFunctionMap.putIfAbsent(
+        aggregateFunctionFactory.getName().toUpperCase(),
         aggregateFunctionFactory);
   }
 
@@ -146,6 +150,22 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   @Override
   public List<UdfFactory> listFunctions() {
     return new ArrayList<>(ksqlFunctionMap.values());
+  }
+
+  @Override
+  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+    final AggregateFunctionFactory aggregateFunctionFactory
+        = aggregateFunctionMap.get(functionName.toUpperCase());
+    if (aggregateFunctionFactory == null) {
+      throw new KsqlException("Can't find any aggregate functions with the name '"
+          + functionName + "'");
+    }
+    return aggregateFunctionFactory;
+  }
+
+  @Override
+  public List<AggregateFunctionFactory> listAggregateFunctions() {
+    return new ArrayList<>(aggregateFunctionMap.values());
   }
 
   private void addStringFunctions() {
@@ -294,6 +314,21 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         Arrays.asList(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
             Schema.OPTIONAL_FLOAT64_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class));
+  }
+
+  /***************************************
+   * Struct Field Extractor functions      *
+   ****************************************/
+
+  private void addStructFieldFetcher() {
+    final KsqlFunction fetchFieldFromStruct = new KsqlFunction(
+        SchemaBuilder.struct().optional().build(),
+        Arrays.asList(
+            SchemaBuilder.struct().optional().build(),
+            Schema.STRING_SCHEMA),
+        FetchFieldFromStruct.FUNCTION_NAME,
+        FetchFieldFromStruct.class);
+    addFunction(fetchFieldFromStruct);
   }
 
   private void addUdafFunctions() {

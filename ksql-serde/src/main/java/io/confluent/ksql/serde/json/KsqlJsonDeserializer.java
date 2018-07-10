@@ -19,7 +19,6 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -35,6 +34,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.util.SerdeUtils;
@@ -149,34 +150,40 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       final Schema fieldSchema,
       final Map<String, Object> structMap) {
     final Struct columnStruct = new Struct(fieldSchema);
-    final Map<String, String> caseInsensitiveFieldNameMap =
-        getCaseInsensitiveFieldNameMap(fieldSchema.fields());
+    final Map<String, String> caseInsensitiveStructFieldNameMap =
+        getCaseInsensitiveStructFieldNameMap(structMap);
     fieldSchema.fields()
         .forEach(
             field -> columnStruct.put(field.name(),
                 enforceFieldType(
                     field.schema(), structMap.get(
-                        caseInsensitiveFieldNameMap.get(field.name())
+                        caseInsensitiveStructFieldNameMap.get(field.name().toUpperCase())
                     ))));
     return columnStruct;
   }
 
-  private Map<String, String> getCaseInsensitiveFieldNameMap(final List<Field> fields) {
-    return fields.stream()
-        .map(Field::name)
+  private Map<String, String> getCaseInsensitiveStructFieldNameMap(
+      final Map<String, Object> structMap
+  ) {
+    return structMap.entrySet().stream()
         .collect(Collectors.toMap(
-            String::toUpperCase,
-            name -> name));
+            e -> e.getKey().toUpperCase(),
+            Entry::getKey
+        ));
   }
 
-  static class CaseInsensitiveJsonNode {
+  @Override
+  public void close() {
+  }
 
-    Map<String, String> keyMap = new HashMap<>();
+  private static class CaseInsensitiveJsonNode {
 
-    CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      Iterator<String> fieldNames = jsonNode.fieldNames();
+    private final Map<String, String> keyMap = new HashMap<>();
+
+    private CaseInsensitiveJsonNode(final JsonNode jsonNode) {
+      final Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
-        String fieldName = fieldNames.next();
+        final String fieldName = fieldNames.next();
         if (fieldName.startsWith("@")) {
           if (fieldName.length() == 1) {
             throw new KsqlException("Field name cannot be '@'.");
@@ -188,12 +195,5 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
       }
     }
-
-  }
-
-
-  @Override
-  public void close() {
-
   }
 }

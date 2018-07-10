@@ -1,0 +1,56 @@
+{
+  "comments": [
+    "This is testing that we can load and execute custom udafs"
+  ],
+  "tests": [
+    {
+      "name": "test_udaf group by",
+      "statements": [
+      "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='DELIMITED', key='ID');",
+      "CREATE TABLE S2 as SELECT id, test_udaf(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-2147483647", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2000", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147483642", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,106", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,406", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147481642", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147481542", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "test_udaf on a table",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,alice,east", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "1,bob,east", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "2,carol,west", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "3,dave,west", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "1,bob,west", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": null, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "east,0", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "east,1", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,2", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,5", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "east,0", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,6", "timestamp": 0},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,5", "timestamp": 0}
+      ]
+    }
+  ]
+}

@@ -19,6 +19,8 @@ package io.confluent.ksql.rest.server.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -73,6 +75,7 @@ public class StreamedQueryResourceTest {
   public void shouldReturn400OnBadStatement() throws Exception {
     String queryString = "SELECT * FROM test_stream;";
 
+    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
@@ -84,7 +87,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlEngine, mockStatementParser, 1000);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
     Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -100,6 +103,7 @@ public class StreamedQueryResourceTest {
   public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
     String queryString = "SELECT * FROM test_stream;";
 
+    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
@@ -108,13 +112,13 @@ public class StreamedQueryResourceTest {
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Query.class));
 
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()))
+    expect(mockKsqlEngine.buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()))
         .andThrow(new KsqlException("some msg only the engine would use"));
 
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlEngine, mockStatementParser, 1000);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
     Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -179,6 +183,7 @@ public class StreamedQueryResourceTest {
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
+    KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
@@ -192,7 +197,7 @@ public class StreamedQueryResourceTest {
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
+    expect(mockKsqlEngine.buildMultipleQueries(queryString, mockKsqlConfig, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
@@ -202,7 +207,8 @@ public class StreamedQueryResourceTest {
 
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(mockKsqlEngine, mockStatementParser, 1000);
+    StreamedQueryResource testResource = new StreamedQueryResource(
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
     Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));
@@ -226,7 +232,7 @@ public class StreamedQueryResourceTest {
     queryWriterThread.start();
 
     Scanner responseScanner = new Scanner(responseInputStream);
-    ObjectMapper objectMapper = new ObjectMapper();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     for (int i = 0; i != NUM_ROWS; i++) {
       if (!responseScanner.hasNextLine()) {
         throw new Exception("Response input stream failed to have expected line available");

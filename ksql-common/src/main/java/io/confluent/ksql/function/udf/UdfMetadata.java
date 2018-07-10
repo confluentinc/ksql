@@ -23,15 +23,19 @@ public class UdfMetadata {
   private final String description;
   private final String author;
   private final String version;
+  private final String path;
 
   public UdfMetadata(final String name,
                      final String description,
                      final String author,
-                     final String version) {
+                     final String version,
+                     final String path
+  ) {
     this.name = Objects.requireNonNull(name, "name cant be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     this.author = Objects.requireNonNull(author, "author can't be null");
     this.version = Objects.requireNonNull(version, "version can't be null");
+    this.path = Objects.requireNonNull(path, "path can't be null");
   }
 
   public String getName() {
@@ -50,6 +54,10 @@ public class UdfMetadata {
     return version;
   }
 
+  public String getPath() {
+    return path;
+  }
+
   @Override
   public String toString() {
     return "UdfMetadata{"
@@ -57,6 +65,7 @@ public class UdfMetadata {
         + ", description='" + description + '\''
         + ", author='" + author + '\''
         + ", version='" + version + '\''
+        + ", path='" + path + "'"
         + '}';
   }
 }

@@ -16,8 +16,12 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.rest.util.StructSerializationModule;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -85,9 +89,13 @@ public class QueryStreamWriterTest {
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
   private OutputNode.LimitHandler limitHandler;
+  private ObjectMapper objectMapper;
 
   @Before
   public void setUp() {
+
+    objectMapper = JsonMapper.INSTANCE.mapper;
+
     ehCapture = newCapture();
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
@@ -103,7 +111,7 @@ public class QueryStreamWriterTest {
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
 
-    expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject()))
+    expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
@@ -177,10 +185,13 @@ public class QueryStreamWriterTest {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
     writer = new QueryStreamWriter(
+        new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
         1000,
         "a KSQL statement",
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        objectMapper
+        );
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

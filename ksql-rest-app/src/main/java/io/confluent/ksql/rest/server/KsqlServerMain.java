@@ -82,7 +82,6 @@ public class KsqlServerMain {
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     return KsqlRestApplication.buildApplication(
         restConfig,
-        restConfig.isUiEnabled(),
         new KsqlVersionCheckerAgent()
     );
   }

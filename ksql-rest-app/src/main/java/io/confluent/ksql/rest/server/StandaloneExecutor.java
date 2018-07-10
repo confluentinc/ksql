@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -47,14 +45,17 @@ public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-  StandaloneExecutor(final KsqlEngine ksqlEngine,
+  StandaloneExecutor(final KsqlConfig ksqlConfig,
+                     final KsqlEngine ksqlEngine,
                      final String queriesFile,
                      final UdfLoader udfLoader) {
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
@@ -90,17 +91,11 @@ public class StandaloneExecutor implements Executable {
                                           final String queriesFile,
                                           final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(
-          StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
-    }
-
     final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);
-    return new StandaloneExecutor(ksqlEngine, queriesFile, udfLoader);
+    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader);
   }
 
   private void showWelcomeMessage() {
@@ -120,7 +115,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries, ksqlConfig);
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

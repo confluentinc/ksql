@@ -17,15 +17,14 @@
 package io.confluent.ksql.rest.server;
 
 
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -33,20 +32,15 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Console;
-import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,7 +70,6 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
@@ -91,7 +84,6 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -109,17 +101,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
-  private static final String EXPANDED_FOLDER = "/expanded";
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
-  private final boolean isUiEnabled;
-  private final String uiFolder;
-
   private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;
@@ -131,17 +120,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   private KsqlRestApplication(
       KsqlEngine ksqlEngine,
+      KsqlConfig ksqlConfig,
       KsqlRestConfig config,
       CommandRunner commandRunner,
       RootDocument rootDocument,
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent,
-      ServerInfo serverInfo
+      VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.commandRunner = commandRunner;
     this.rootDocument = rootDocument;
@@ -150,13 +139,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.ksqlResource = ksqlResource;
 
     this.versionCheckerAgent = versionCheckerAgent;
-    this.serverInfo = serverInfo;
+    this.serverInfo = new ServerInfo(
+        Version.getVersion(),
+        getKafkaClusterId(ksqlConfig),
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
-
-    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
-    this.uiFolder = isUiEnabled ? ksqlInstallDir + "/ui" : null;
-    this.isUiEnabled = isUiEnabled;
   }
 
   @Override
@@ -169,23 +157,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     config.register(new KsqlExceptionMapper());
   }
 
-  @Override
-  public ResourceCollection getStaticResources() {
-    log.info("User interface enabled: {}", isUiEnabled);
-    if (isUiEnabled) {
-      try {
-        return new ResourceCollection(
-            Resource.newResource(new File(this.uiFolder, EXPANDED_FOLDER).getCanonicalFile()));
-      } catch (Exception e) {
-        log.error("Unable to load ui from {}. You can disable the ui by setting {} to false",
-            this.uiFolder + EXPANDED_FOLDER,
-            KsqlRestConfig.UI_ENABLED_CONFIG,
-            e);
-      }
-    }
-
-    return super.getStaticResources();
-  }
 
   @Override
   public void start() throws Exception {
@@ -217,26 +188,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(getJsonMapper());
+    JacksonMessageBodyProvider jsonProvider =
+        new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
-    if (isUiEnabled) {
-      loadUiWar();
-      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
-    }
-  }
-
-  @Override
-  protected ObjectMapper getJsonMapper() {
-    // superclass creates a new json mapper on every call
-    // we should probably ony create one per application
-    ObjectMapper jsonMapper = super.getJsonMapper();
-    new SchemaMapper().registerToObjectMapper(jsonMapper);
-    jsonMapper.registerModule(new Jdk8Module());
-    return jsonMapper;
   }
 
   @Override
@@ -251,7 +209,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                   .build()
           )
       );
-      final ObjectMapper mapper = getJsonMapper();
+
       final StatementParser statementParser = new StatementParser(ksqlEngine);
 
       container.addEndpoint(
@@ -265,7 +223,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                 @SuppressWarnings("unchecked")
                 public <T> T getEndpointInstance(Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
-                      mapper,
+                      ksqlConfig,
+                      JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
                       exec
@@ -282,25 +241,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   public static KsqlRestApplication buildApplication(
       KsqlRestConfig restConfig,
-      boolean isUiEnabled,
       VersionCheckerAgent versionCheckerAgent
   )
       throws Exception {
 
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
-    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
-      log.warn("System property {} is not set. User interface will be disabled",
-               KsqlRestConfig.INSTALL_DIR_CONFIG);
-      isUiEnabled = false;
-    }
 
-    KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
-
-    final String kafkaClusterId = getKafkaClusterId(ksqlConfig);
 
     String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     String commandTopic =
@@ -364,6 +315,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     StatementExecutor statementExecutor = new StatementExecutor(
+        ksqlConfig,
         ksqlEngine,
         statementParser
     );
@@ -373,15 +325,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         commandStore
     );
 
-    RootDocument rootDocument = new RootDocument(isUiEnabled);
+    RootDocument rootDocument = new RootDocument();
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
+        ksqlConfig,
         ksqlEngine,
         statementParser,
         restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
     KsqlResource ksqlResource = new KsqlResource(
+        ksqlConfig,
         ksqlEngine,
         commandStore,
         statementExecutor,
@@ -392,15 +346,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     return new KsqlRestApplication(
         ksqlEngine,
+        ksqlConfig,
         restConfig,
         commandRunner,
         rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        isUiEnabled,
-        versionCheckerAgent,
-        new ServerInfo(Version.getVersion(), kafkaClusterId, ksqlServiceId)
+        versionCheckerAgent
     );
   }
 
@@ -464,27 +417,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
   }
 
-  private void loadUiWar() {
-    final File uiFolder = new File(this.uiFolder);
-    log.info("Loading UI-WAR from {}", uiFolder.getAbsolutePath());
-
-    final File[] files = uiFolder
-        .listFiles((dir, name) -> name.endsWith(".war"));
-
-    if (files != null) {
-      Arrays.stream(files).forEach(war -> KsqlRestApplication.unzipWar(war, uiFolder));
-    }
-  }
-
-  private static void unzipWar(final File warFile, final File uiFolder) {
-    try {
-      ZipUtil.unzip(warFile, new File(uiFolder, EXPANDED_FOLDER));
-      log.info("Expand WAR file '{}'", warFile.getPath());
-    } catch (final Exception e) {
-      log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);
-    }
-  }
-
   private static <T> Serializer<T> getJsonSerializer(boolean isKey) {
     Serializer<T> result = new KafkaJsonSerializer<>();
     result.configure(Collections.emptyMap(), isKey);
@@ -526,12 +458,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     writer.println("To access the KSQL CLI, run:");
     writer.println("ksql " + listener);
     writer.println();
-
-    if (isUiEnabled) {
-      writer.println("To access the UI, point your browser at:");
-      writer.printf(listener + "/index.html");
-      writer.println();
-    }
 
     writer.flush();
   }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,16 +28,14 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -60,11 +59,11 @@ public class StructuredDataSourceNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.STRING_SCHEMA)
-      .field("field2", Schema.STRING_SCHEMA)
-      .field("field3", Schema.STRING_SCHEMA)
-      .field("timestamp", Schema.INT64_SCHEMA)
-      .field("key", Schema.STRING_SCHEMA)
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
@@ -86,7 +85,7 @@ public class StructuredDataSourceNodeTest {
     return node.buildStream(builder,
         ksqlConfig,
         new FakeKafkaTopicClient(),
-        new FunctionRegistry(),
+        new InternalFunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
@@ -125,12 +124,12 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldAddTimestampIndexToConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
+    assertThat(ksqlConfig.getKsqlTimestampColumnIndex(), equalTo(1));
   }
 
   @Test
   public void shouldExtracKeyField() {
-    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.STRING_SCHEMA)));
+    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA)));
   }
 
   @Test

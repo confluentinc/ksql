@@ -168,6 +168,10 @@ The supported column data types are:
 -  ``VARCHAR`` (or ``STRING``)
 -  ``ARRAY<ArrayType>`` (JSON and AVRO only)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
+-  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
+   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
+   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
+   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -241,6 +245,10 @@ The supported column data types are:
 -  ``VARCHAR`` (or ``STRING``)
 -  ``ARRAY<ArrayType>`` (JSON and AVRO only)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
+-  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
+   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
+   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
+   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -440,6 +448,34 @@ The WITH clause supports the following properties:
     :start-line: 2
     :end-line: 6
 
+.. _insert-into:
+
+INSERT INTO
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    INSERT INTO stream_name
+      SELECT select_expr [., ...]
+      FROM from_stream
+      [ WHERE condition ]
+      [ PARTITION BY column_name ];
+
+**Description**
+
+Stream the result of the SELECT query into an existing stream and its underlying topic.
+
+The schema and partitioning column produced by the query must match the stream's schema
+and key, respectively. If the schema and partitioning column are incompatible with the
+stream, then the statement will return an error.
+
+stream_name and from_item must both refer to a Stream. Tables are not supported.
+
+Records written into the stream are not timestamp-ordered with respect to other queries.
+Therefore, the topic partitions of the output stream may contain out-of-order records even
+if the source stream for the query is ordered by timestamp.
 
 DESCRIBE
 --------
@@ -503,6 +539,19 @@ Example of describing a table with extended information:
      failed-messages:         0      last-failed:       n/a
     (Statistics of the local KSQL server interaction with the Kafka topic IP_SUM)
 
+DESCRIBE FUNCTION
+-----------------
+
+**Synopsis**
+
+.. code:: sql
+
+    DESCRIBE FUNCTION function_name;
+
+**Description**
+
+Provides a description of a function including an input parameters and the return type.
+
 
 EXPLAIN
 -------
@@ -556,14 +605,14 @@ Example of explaining a running query:
 
 .. _drop-stream:
 
-DROP STREAM [IF EXISTS]
+DROP STREAM [IF EXISTS] [DELETE TOPIC];
 -----------------------
 
 **Synopsis**
 
 .. code:: sql
 
-    DROP STREAM stream_name [DELETE TOPIC];
+    DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 
 **Description**
 
@@ -576,7 +625,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 
 .. _drop-table:
 
-DROP TABLE [IF EXISTS]
+DROP TABLE [IF EXISTS] [DELETE TOPIC];
 ----------------------
 
 **Synopsis**
@@ -630,7 +679,8 @@ SELECT
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
-      [ HAVING having_expression ];
+      [ HAVING having_expression ]
+      [ LIMIT count ];
 
 **Description**
 
@@ -655,6 +705,16 @@ Example:
     SELECT * FROM pageviews
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
+
+A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
+
+Example:
+
+.. code:: sql
+
+    SELECT * FROM pageviews LIMIT 5;
+
+If no limit is supplied the query will run until terminated, streaming back all results to the console.
 
 **Tip:** If you want to select older data, you can configure KSQL to query the stream from the beginning.  You must
 run this configuration before running the query:
@@ -754,6 +814,18 @@ Example:
       FROM users
       WHERE user_id LIKE 'santa%';
 
+SHOW FUNCTIONS
+--------------
+
+**Synopsis**
+
+.. code:: sql
+    SHOW | LIST FUNCTIONS;
+
+**Description**
+
+List the available scalar and aggregate functions available.
+
 .. _show-topics:
 
 SHOW TOPICS
@@ -846,6 +918,62 @@ they are explicitly terminated.
 
 (To terminate a non-persistent query use ``Ctrl-C`` in the CLI.)
 
+.. _operators:
+
+=========
+Operators
+=========
+
+KSQL supports the following operators in value expressions:
+
+The explanation for each operator includes a supporting example based on the following table:
+
+.. code:: sql
+
+  CREATE TABLE USERS (
+      USERID BIGINT
+      FIRST_NAME STRING,
+      LAST_NAME STRING,
+      NICKNAMES ARRAY<STRING>,
+      ADDRESS STRUCT<STREET_NAME STRING, NUMBER INTEGER>
+  ) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO', KEY='USERID');
+
+- Arithmetic (``+,-,/,*,%``) The usual arithmetic operators may be applied to numeric types
+  (INT, BIGINT, DOUBLE)
+
+.. code:: sql
+
+  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
+
+- Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
+
+.. code:: sql
+
+  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
+
+- Source Dereference (``.``) The source dereference operator can be used to specify columns
+  by dereferencing the source stream or table.
+
+.. code:: sql
+
+  SELECT USERS.FIRST_NAME FROM USERS;
+
+- Field Dereference (``->``) The field dereference operator is used to dereference a field
+  within a struct.
+
+.. code:: sql
+
+  SELECT ADDRESS->STREET_NAME FROM USERS;
+
+- Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
+  an array index or a map key.
+
+.. code:: sql
+
+  SELECT NICKNAMES[0] FROM USERS;
+
+.. _funtions:
+
 ================
 Scalar functions
 ================
@@ -853,47 +981,104 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                    | Description                                       |
 +========================+============================================================+===================================================+
-| ABS                    | ``ABS(col1)``                                              | The absolute value of a value                     |
+| ABS                    | ``ABS(col1)``                                              | The absolute value of a value.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
 |                        |                                                            | value contains in it.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value                            |
+| CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings                           |
+| CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
-|                        |                                                            | the field that matches                            |
+|                        |                                                            | the field that matches.                           |
+|                        |                                                            |                                                   |
+|                        |                                                            | Example where EXTRACTJSONFIELD is needed:         |
+|                        |                                                            |                                                   |
+|                        |                                                            | ``{"foo": \"{\"bar\": \"quux\"}\"}``              |
+|                        |                                                            |                                                   |
+|                        |                                                            | However, in cases where the column is really an   |
+|                        |                                                            | object but declared as a STRING you can use the   |
+|                        |                                                            | ``STRUCT`` type, which is easier to work with.    |
+|                        |                                                            |                                                   |
+|                        |                                                            | Example where ``STRUCT`` will work:               |
+|                        |                                                            |                                                   |
+|                        |                                                            | ``{"foo": {"bar": "quux"}}``                      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value                              |
+| FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase                     |
+| GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points,              |
+|                        |               lat2, lon2,                                  | each specified in decimal degrees.                |
+|                        |               unit)``                                      | An optional final parameter can                   |
+|                        |                                                            | be used to specify either                         |
+|                        |                                                            | 'KM'(default) or 'Miles'.                         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LEN                    |  ``LEN(col1)``                                             | The length of a string                            |
+| LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0  |
+| LEN                    |  ``LEN(col1)``                                             | The length of a string.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value         |
+| MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                        | Convert a string to a masked or obfuscated        |
+|                        |                                                            | version of itself. The optional arguments         |
+|                        |                                                            | following the input string to be masked are the   |
+|                        |                                                            | characters to be substituted for upper-case,      |
+|                        |                                                            | lower-case, numeric and other characters of the   |
+|                        |                                                            | input, respectively. If the mask characters are   |
+|                        |                                                            | omitted then the default values, illustrated in   |
+|                        |                                                            | the example to the left, will be applied.         |
+|                        |                                                            | Set a given mask character to NULL to prevent any |
+|                        |                                                            | masking of that character type.                   |
+|                        |                                                            | For example: ``MASK("My Test $123")`` will return |
+|                        |                                                            | ``Xx-Xxxx--nnn``, applying all default masks.     |
+|                        |                                                            | ``MASK("My Test $123", '*', NULL, '1', NULL)``    |
+|                        |                                                            | will yield ``*y *est $111``.                      |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_LEFT         |  ``MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')``    | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that the first or left-most ``numChars``          |
+|                        |                                                            | characters will not be masked in any way.         |
+|                        |                                                            | For example: ``MASK_KEEP_LEFT("My Test $123", 4)``|
+|                        |                                                            | will return ``My Txxx--nnn``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``   | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that the last or rightt-most ``numChars``         |
+|                        |                                                            | characters will not be masked in any way.         |
+|                        |                                                            | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
+|                        |                                                            | will return ``Xx-Xxxx-$123``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_LEFT              |  ``MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')``         | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that only the first or left-most ``numChars``     |
+|                        |                                                            | characters will have any masking applied to them. |
+|                        |                                                            | For example: ``MASK_LEFT("My Test $123", 4)``     |
+|                        |                                                            | will return ``Xx-Xest $123``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``        | Similar to the ``MASK`` function above, except    |
+|                        |                                                            | that only the last or rightt-most ``numChars``    |
+|                        |                                                            | characters will have any masking applied to them. |
+|                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
+|                        |                                                            | will return ``My Test -nnn``.                     |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0. |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value.        |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given              |
 |                        |                                                            | format into the BIGINT value                      |
 |                        |                                                            | that represents the millisecond timestamp. Single |
 |                        |                                                            | quotes in the timestamp format can be escaped with|
-|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'       |
+|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices                                           |
+|                        |                                                            | indices.                                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |
 |                        |                                                            | the given format. Single quotes in the            |
 |                        |                                                            | timestamp format can be escaped with '', for      |
-|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'               |
+|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |
-|                        |                                                            | a string                                          |
+|                        |                                                            | a string.                                         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase                     |
+| UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 
 ===================

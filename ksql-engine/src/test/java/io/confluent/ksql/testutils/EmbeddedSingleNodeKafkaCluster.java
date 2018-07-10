@@ -18,12 +18,12 @@ package io.confluent.ksql.testutils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.Resource;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -139,9 +140,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     if (broker != null) {
       broker.stop();
     }
-    if (authorizer != null) {
-      authorizer.close();
-    }
+    authorizer.close();
     try {
       if (zookeeper != null) {
         zookeeper.stop();
@@ -236,7 +235,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    */
   public void addUserAcl(final String username,
                          final AclPermissionType permission,
-                         final Resource resource,
+                         final ResourcePattern resource,
                          final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
@@ -254,7 +253,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         ResourceType$.MODULE$.fromJava(resource.resourceType());
 
     final kafka.security.auth.Resource scalaResource =
-        new kafka.security.auth.Resource(scalaResType, resource.name());
+        new kafka.security.auth.Resource(scalaResType, resource.name(), resource.patternType());
 
     authorizer.addAcls(scalaAcls, scalaResource);
 
@@ -286,7 +285,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     try {
       final String jaasConfigContent = createJaasConfigContent();
       final File jaasConfig = TestUtils.tempFile();
-      Files.write(jaasConfigContent, jaasConfig, StandardCharsets.UTF_8);
+      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
 
       System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jaasConfig.getAbsolutePath());
       System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
@@ -311,7 +310,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final Map<String, Object> brokerConfig = new HashMap<>();
     private final Map<String, Object> clientConfig = new HashMap<>();
 
-    public Builder() {
+    Builder() {
       brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), SimpleAclAuthorizer.class.getName());
       brokerConfig.put(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(), true);
       brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
@@ -328,9 +327,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(), SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
       brokerConfig.putAll(ServerKeyStore.keyStoreProps());
+      brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());
+      clientConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
       return this;
     }
 

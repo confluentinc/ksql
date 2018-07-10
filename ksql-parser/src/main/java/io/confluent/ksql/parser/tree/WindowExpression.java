@@ -29,8 +29,10 @@ public class WindowExpression extends Node {
     this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
-  protected WindowExpression(Optional<NodeLocation> location, String windowName,
-                             KsqlWindowExpression ksqlWindowExpression) {
+  public WindowExpression(
+      final Optional<NodeLocation> location,
+      final String windowName,
+      final KsqlWindowExpression ksqlWindowExpression) {
     super(location);
     this.windowName = windowName;
     this.ksqlWindowExpression = ksqlWindowExpression;
@@ -38,6 +40,10 @@ public class WindowExpression extends Node {
 
   public KsqlWindowExpression getKsqlWindowExpression() {
     return ksqlWindowExpression;
+  }
+
+  public String getWindowName() {
+    return windowName;
   }
 
   @Override
@@ -62,6 +68,10 @@ public class WindowExpression extends Node {
     return " WINDOW " + windowName + " " + ksqlWindowExpression.toString();
   }
 
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitWindowExpression(this, context);
+  }
 
   public static TimeUnit getWindowUnit(String windowUnitString) {
     try {

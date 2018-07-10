@@ -17,27 +17,21 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.rest.entity.Versions;
-import org.apache.kafka.streams.KeyValue;
+import io.confluent.ksql.util.KsqlConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -49,40 +43,41 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.util.QueuedQueryMetadata;
 
 @ServerEndpoint(value = "/query")
 public class WSQueryEndpoint {
 
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
-  private static final int WS_STREAMS_POLL_DELAY_MS = 500;
 
-  final ObjectMapper mapper;
-  final StatementParser statementParser;
-  final KsqlEngine ksqlEngine;
-  final ListeningScheduledExecutorService exec;
+  private final KsqlConfig ksqlConfig;
+  private final ObjectMapper mapper;
+  private final StatementParser statementParser;
+  private final KsqlEngine ksqlEngine;
+  private final ListeningScheduledExecutorService exec;
+
+  private WebSocketSubscriber subscriber;
 
   public WSQueryEndpoint(
+      KsqlConfig ksqlConfig,
       ObjectMapper mapper,
       StatementParser statementParser,
       KsqlEngine ksqlEngine,
       ListeningScheduledExecutorService exec
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.mapper = mapper;
     this.statementParser = statementParser;
     this.ksqlEngine = ksqlEngine;
     this.exec = exec;
   }
-
-  private volatile QueuedQueryMetadata queryMetadata;
-  private volatile ListenableScheduledFuture future;
 
   @OnOpen
   public void onOpen(Session session, EndpointConfig endpointConfig) {
@@ -93,7 +88,10 @@ public class WSQueryEndpoint {
         Versions.KSQL_V1_WS_PARAM, Arrays.asList(Versions.KSQL_V1_WS));
     if (versionParam.size() != 1 || !versionParam.get(0).equals(Versions.KSQL_V1_WS)) {
       log.debug("Received invalid api version: {}", String.join(",", versionParam));
-      closeSession(session, new CloseReason(CloseCodes.CANNOT_ACCEPT,"Invalid version in request"));
+      closeSession(
+          session,
+          new CloseReason(CloseCodes.CANNOT_ACCEPT, "Invalid version in request")
+      );
       return;
     }
 
@@ -118,91 +116,55 @@ public class WSQueryEndpoint {
       return;
     }
 
-    Map<String, Object> clientLocalProperties =
-        Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
-
-    if (!(statement instanceof Query)) {
-      closeSession(session, new CloseReason(
-          CloseCodes.CANNOT_ACCEPT, String.format(
-          "Statement type `%s' not supported for this resource",
-          statement.getClass().getName()
-      )));
-      return;
-    }
-
     try {
-      queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
-          queryString,
-          clientLocalProperties
-      ).get(0);
+      if (statement instanceof Query) {
+        Map<String, Object> clientLocalProperties =
+            Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
 
-      try {
-        session.getBasicRemote().sendText(
-            mapper.writeValueAsString(queryMetadata.getResultSchema())
-        );
-      } catch (IOException e) {
-        log.error("Error sending schema", e);
-        closeSession(session, new CloseReason(
-            CloseCodes.PROTOCOL_ERROR,
-            "Unable to send schema"
-        ));
-        closeAndRemoveQuery();
-        return;
-      }
+        WebSocketSubscriber<StreamedRow> streamSubscriber =
+            new WebSocketSubscriber<>(session, mapper);
+        this.subscriber = streamSubscriber;
 
-      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler((thread, e) -> {
-        log.error("streams exception in session {}", session.getId(), e);
-        closeSession(session, new CloseReason(
-            CloseCodes.UNEXPECTED_CONDITION,
-            "streams exception"
-        ));
-      });
-      log.info("Running query {}", queryMetadata.getQueryApplicationId());
-      queryMetadata.getKafkaStreams().start();
+        new StreamPublisher(ksqlConfig, ksqlEngine, exec, queryString, clientLocalProperties)
+            .subscribe(streamSubscriber);
+      } else if (statement instanceof PrintTopic) {
+        PrintTopic printTopic = (PrintTopic) statement;
+        final String topicName = printTopic.getTopic().toString();
 
-      future = exec.scheduleWithFixedDelay(() -> {
-        List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
-        queryMetadata.getRowQueue().drainTo(rows);
-
-        for (KeyValue<String, GenericRow> row : rows) {
-          try {
-            String buffer = mapper.writeValueAsString(new StreamedRow(row.value));
-            session.getAsyncRemote().sendText(
-                buffer, result -> {
-                  if (!result.isOK()) {
-                    log.warn(
-                        "Error sending websocket message for session {}",
-                        session.getId(),
-                        result.getException()
-                    );
-                  }
-                });
-          } catch (JsonProcessingException e) {
-            log.warn("Error serializing row in session {}", session.getId(), e);
-          }
+        if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+          closeSession(session, new CloseReason(
+                  CloseCodes.CANNOT_ACCEPT,
+                  "topic does not exist"
+          ));
+          return;
         }
-      }, 0, WS_STREAMS_POLL_DELAY_MS, TimeUnit.MILLISECONDS);
+        WebSocketSubscriber<String> topicSubscriber = new WebSocketSubscriber<>(session, mapper);
+        this.subscriber = topicSubscriber;
 
-      future.addListener(this::closeAndRemoveQuery, exec);
+        new PrintPublisher(
+            exec,
+            ksqlEngine.getSchemaRegistryClient(),
+            ksqlConfig.getKsqlStreamConfigProps(),
+            topicName,
+            printTopic.getFromBeginning()
+        ).subscribe(topicSubscriber);
+      } else {
+        closeSession(session, new CloseReason(
+            CloseCodes.CANNOT_ACCEPT, String.format(
+            "Statement type `%s' not supported for this resource",
+            statement.getClass().getName()
+        )));
+      }
     } catch (Exception e) {
       log.error("Error initializing query in session {}", session.getId(), e);
       closeSession(session, new CloseReason(
           CloseCodes.UNEXPECTED_CONDITION,
           "error initializing query"
       ));
-      closeAndRemoveQuery();
     }
   }
 
-  private void closeAndRemoveQuery() {
-    if (queryMetadata != null) {
-      log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-      queryMetadata.close();
-      ksqlEngine.removeTemporaryQuery(queryMetadata);
-    }
-  }
-
-  private static void closeSession(Session session, CloseReason reason) {
+  static void closeSession(Session session, CloseReason reason) {
     try {
       session.close(reason);
     } catch (IOException e) {
@@ -217,19 +179,20 @@ public class WSQueryEndpoint {
 
   @OnClose
   public void onClose(Session session, CloseReason closeReason) {
+    if (subscriber != null) {
+      subscriber.close();
+    }
     log.debug(
         "Closing websocket session {} ({}): {}",
         session.getId(),
         closeReason.getCloseCode(),
         closeReason.getReasonPhrase()
     );
-    if (future != null) {
-      future.cancel(true);
-    }
   }
 
   @OnError
   public void onError(Session session, Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
   }
+
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public class ServerInfoTest {
 
   @Test
   public void testSerializeDeserialize() throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     byte[] bytes = mapper.writeValueAsBytes(serverInfo);
     ServerInfo deserializedServerInfo = mapper.readValue(bytes, ServerInfo.class);
     Assert.assertThat(serverInfo, equalTo(deserializedServerInfo));

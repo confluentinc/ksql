@@ -7,14 +7,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>5.0.0-SNAPSHOT</version>
+        <version>5.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>5.0.0-SNAPSHOT</version>
+    <version>5.1.0-SNAPSHOT</version>
 
     <licenses>
         <license>
@@ -25,6 +25,7 @@
     </licenses>
 
     <modules>
+        <module>ksql-udf</module>
         <module>ksql-common</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
@@ -38,6 +39,8 @@
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
         <module>ksql-package</module>
+        <module>cp-ksql-cli</module>
+        <module>cp-ksql-server</module>
     </modules>
 
     <repositories>
@@ -84,6 +87,7 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <hamcrest.version>1.3</hamcrest.version>
+        <avro.random.generator.version>0.2.1</avro.random.generator.version>
     </properties>
 
     <dependencyManagement>
@@ -93,6 +97,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -290,12 +300,6 @@
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>net.alchim31.maven</groupId>
-                    <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.3.1</version>
-                </plugin>
-
-                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${exec-maven-plugin.version}</version>
@@ -322,10 +326,7 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-    </build>
-    <reporting>
-        <plugins>
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
@@ -335,8 +336,28 @@
                     <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
                     <xmlOutput>true</xmlOutput>
                     <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                    <effort>Max</effort>
+                    <threshold>Max</threshold>
+                    <failOnError>true</failOnError>
                 </configuration>
+                <executions>
+                    <!--
+                    Ensures that FindBugs inspects source code when project is compiled.
+                -->
+                    <execution>
+                        <id>analyze-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+        </plugins>
+    </build>
+    <reporting>
+        <plugins>
+
         </plugins>
     </reporting>
 </project>

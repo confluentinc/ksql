@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udaf.topk;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,55 +28,89 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
 public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
+  private static final String NAME = "TOPK";
   private final int topKSize;
 
   public TopKAggregateFunctionFactory() {
-    this(0);
+    super(NAME, createFunctions());
+    this.topKSize = 0;
   }
 
-  public TopKAggregateFunctionFactory(int topKSize) {
-    super("TOPK", Collections.emptyList());
+  TopKAggregateFunctionFactory(final int topKSize) {
+    super(NAME, Collections.emptyList());
     this.topKSize = topKSize;
   }
 
+  // Just used to populate the function registry with info on the available functions
+  private static List<KsqlAggregateFunction<?,?>> createFunctions() {
+    return Arrays.asList(new TopkKudaf<>(
+            NAME,
+            -1,
+            0,
+            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            Integer.class),
+        new TopkKudaf<>(
+            NAME,
+            -1,
+            0,
+            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+            Long.class),
+        new TopkKudaf<>(
+            NAME,
+            -1,
+            0,
+            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+            Double.class),
+        new TopkKudaf<>(
+            NAME,
+            -1,
+            0,
+            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+            String.class));
+  }
+
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argumentType) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argumentType) {
     if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
-    Schema argSchema = argumentType.get(0);
+    final Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:
         return new TopkKudaf<>(
-            functionName,
+            NAME,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-            Collections.singletonList(Schema.INT32_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
             Integer.class);
       case INT64:
         return new TopkKudaf<>(
-            functionName,
+            NAME,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-            Collections.singletonList(Schema.INT64_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
             Long.class);
       case FLOAT64:
         return new TopkKudaf<>(
-            functionName,
+            NAME,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-            Collections.singletonList(Schema.FLOAT64_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
             Double.class);
       case STRING:
         return new TopkKudaf<>(
-            functionName,
+            NAME,
             -1,
             topKSize,
-            SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-            Collections.singletonList(Schema.STRING_SCHEMA),
+            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+            Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
             String.class);
       default:
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)

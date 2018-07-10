@@ -1,0 +1,14 @@
+# Classes/Packages that aren't allowed to be loaded by UDFs.
+# if a class name ends with $ it will only match that class
+# otherwise it will match anything beginning with the string.
+
+# For example, the following line would match only the java.lang.Compiler class.
+#java.lang.Compiler$
+
+# The following line would match any classes that begin with java.lang.Compiler
+#java.lang.Compiler
+
+# The following line would match any classes that are in the java.lang.invoke package
+#java.lang.invoke
+
+

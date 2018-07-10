@@ -42,7 +42,7 @@ import io.confluent.common.utils.Time;
 
 public class ConsumerCollector implements MetricCollector {
 
-  private final Map<String, TopicSensors> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<ConsumerRecord>> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private String groupId;

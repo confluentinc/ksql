@@ -20,18 +20,18 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
 public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
 
   DoubleMaxKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Double.NEGATIVE_INFINITY, Schema.FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+    super(functionName, argIndexInValue, () -> Double.NEGATIVE_INFINITY,
+        Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "Computes the maximum double value for a key."
     );
   }
 
@@ -54,9 +54,8 @@ public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleMaxKudaf(functionName, udafIndex);
+  public KsqlAggregateFunction<Double, Double> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new DoubleMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

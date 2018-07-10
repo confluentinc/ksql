@@ -20,9 +20,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Query;
@@ -44,7 +44,7 @@ public class SetParentVisitorTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
   }
 
   private Statement getAstWithParent(String sql) {
@@ -57,7 +57,7 @@ public class SetParentVisitorTest {
   }
 
   @Test
-  public void shouldSetParentsCorrectlyForSimpleQuery() throws Exception {
+  public void shouldSetParentsCorrectlyForSimpleQuery() {
     Statement statement = getAstWithParent("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
 
     Assert.assertFalse(statement.getParent().isPresent());
@@ -73,7 +73,7 @@ public class SetParentVisitorTest {
   }
 
   @Test
-  public void shouldSetParentsCorrectlyForQueryWithUDF() throws Exception {
+  public void shouldSetParentsCorrectlyForQueryWithUDF() {
     Statement statement = getAstWithParent("SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;");
     Query query = (Query) statement;
     QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -84,7 +84,7 @@ public class SetParentVisitorTest {
   }
 
   @Test
-  public void shouldSetParentsCorrectlyForCreateStreamAsSelect() throws Exception {
+  public void shouldSetParentsCorrectlyForCreateStreamAsSelect() {
     Statement statement = getAstWithParent("CREATE STREAM bigorders_json WITH (value_format = 'json', "
                                            + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;");
 

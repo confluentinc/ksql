@@ -66,6 +66,7 @@ public class JsonFormatTest {
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
   private MetaStore metaStore;
+  private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
@@ -82,7 +83,7 @@ public class JsonFormatTest {
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
 
-    KsqlConfig ksqlConfig = new KsqlConfig(configMap);
+    ksqlConfig = new KsqlConfig(configMap);
     ksqlEngine = new KsqlEngine(ksqlConfig);
     topicClient = ksqlEngine.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
@@ -104,7 +105,7 @@ public class JsonFormatTest {
     topicProducer
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
-    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
+    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
     GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
@@ -131,9 +132,9 @@ public class JsonFormatTest {
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(usersTableStr, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(messageStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(usersTableStr, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(messageStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -263,7 +264,7 @@ public class JsonFormatTest {
 
   private void executePersistentQuery(String queryString) throws Exception {
     final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+        .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();

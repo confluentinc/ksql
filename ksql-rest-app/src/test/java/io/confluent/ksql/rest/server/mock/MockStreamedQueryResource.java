@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -32,10 +36,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 
 @Path("/query")
@@ -55,7 +57,7 @@ public class MockStreamedQueryResource {
 
   public class TestStreamWriter implements StreamingOutput {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
-    ObjectMapper objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
     public void enq(String data) throws InterruptedException { dataq.put(data); }
 
@@ -65,7 +67,7 @@ public class MockStreamedQueryResource {
       List<Object> rowColumns = new java.util.LinkedList<Object>();
       rowColumns.add(data);
       GenericRow row = new GenericRow(rowColumns);
-      objectMapper.writeValue(out, new StreamedRow(row));
+      objectMapper.writeValue(out, StreamedRow.row(row));
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
     }

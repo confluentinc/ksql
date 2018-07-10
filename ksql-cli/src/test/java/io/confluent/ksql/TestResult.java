@@ -59,6 +59,11 @@ public abstract class TestResult {
       seal();
     }
 
+    private OrderedResult(List<List<String>> rows) {
+      this();
+      data.addAll(rows);
+    }
+
     @Override
     public String toString() {
       return data.toString();
@@ -115,6 +120,10 @@ public abstract class TestResult {
 
   static OrderedResult build(Object... cols) {
     return new OrderedResult(StringUtil.join(", ", Arrays.asList(cols)));
+  }
+
+  static OrderedResult build(List<List<String>> rows) {
+    return new OrderedResult(rows);
   }
 
   static OrderedResult build() { return new OrderedResult(); }

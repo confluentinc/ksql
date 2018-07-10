@@ -15,6 +15,7 @@
  **/
 package io.confluent.ksql.integration;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -34,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +66,7 @@ public class EndToEndIntegrationTest {
 
   private static final Logger log = LoggerFactory.getLogger(EndToEndIntegrationTest.class);
   private IntegrationTestHarness testHarness;
+  private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
 
   private PageViewDataProvider pageViewDataProvider;
@@ -82,13 +83,11 @@ public class EndToEndIntegrationTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
-    Map<String, Object> streamsConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
-    streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    testHarness.start(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
-    KsqlConfig ksqlconfig = new KsqlConfig(streamsConfig);
+    ksqlConfig = testHarness.ksqlConfig.clone();
 
-    ksqlEngine = new KsqlEngine(ksqlconfig);
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -103,11 +102,11 @@ public class EndToEndIntegrationTest {
         format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
                "userid varchar) WITH (kafka_topic='%s', value_format='JSON', key = 'userid');",
                userTable,
-               usersTopic), Collections.emptyMap());
+               usersTopic), ksqlConfig, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(
         format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
                "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream,
-               pageViewTopic), Collections.emptyMap());
+               pageViewTopic), ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -290,7 +289,7 @@ public class EndToEndIntegrationTest {
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries =
-        ksqlEngine.buildMultipleQueries(formatted, Collections.emptyMap());
+        ksqlEngine.buildMultipleQueries(formatted, ksqlConfig, Collections.emptyMap());
 
     queries.forEach(QueryMetadata::start);
 

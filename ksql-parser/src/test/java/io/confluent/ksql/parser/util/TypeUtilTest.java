@@ -38,26 +38,26 @@ public class TypeUtilTest {
 
   @Test
   public void shouldGetCorrectPrimitiveKsqlType() throws Exception {
-    Type type0 = TypeUtil.getKsqlType(Schema.BOOLEAN_SCHEMA);
+    Type type0 = TypeUtil.getKsqlType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     assertThat(type0.getKsqlType(), equalTo(Type.KsqlType.BOOLEAN));
 
-    Type type1 = TypeUtil.getKsqlType(Schema.INT32_SCHEMA);
+    Type type1 = TypeUtil.getKsqlType(Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(type1.getKsqlType(), equalTo(Type.KsqlType.INTEGER));
 
-    Type type2 = TypeUtil.getKsqlType(Schema.FLOAT64_SCHEMA);
+    Type type2 = TypeUtil.getKsqlType(Schema.OPTIONAL_FLOAT64_SCHEMA);
     assertThat(type2.getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
 
-    Type type3 = TypeUtil.getKsqlType(Schema.STRING_SCHEMA);
+    Type type3 = TypeUtil.getKsqlType(Schema.OPTIONAL_STRING_SCHEMA);
     assertThat(type3.getKsqlType(), equalTo(Type.KsqlType.STRING));
 
-    Type type4 = TypeUtil.getKsqlType(Schema.INT64_SCHEMA);
+    Type type4 = TypeUtil.getKsqlType(Schema.OPTIONAL_INT64_SCHEMA);
     assertThat(type4.getKsqlType(), equalTo(Type.KsqlType.BIGINT));
   }
 
   @Test
   public void shouldGetCorrectArrayKsqlType() throws Exception {
 
-    Schema arraySchema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build();
+    Schema arraySchema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     Type type = TypeUtil.getKsqlType(arraySchema);
     assertThat(type.getKsqlType(), equalTo(Type.KsqlType.ARRAY));
     assertThat(type, instanceOf(Array.class));
@@ -67,7 +67,7 @@ public class TypeUtilTest {
   @Test
   public void shouldGetCorrectMapKsqlType() throws Exception {
 
-    Schema mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).build();
+    Schema mapSchema = SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     Type type = TypeUtil.getKsqlType(mapSchema);
     assertThat(type.getKsqlType(), equalTo(Type.KsqlType.MAP));
     assertThat(type, instanceOf(Map.class));
@@ -78,25 +78,25 @@ public class TypeUtilTest {
   @Test
   public void shouldGetCorrectStructKsqlType() throws Exception {
 
-    Schema arraySchema = SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build();
+    Schema arraySchema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     Type type4 = TypeUtil.getKsqlType(arraySchema);
     assertThat(type4.getKsqlType(), equalTo(Type.KsqlType.ARRAY));
     assertThat(type4, instanceOf(Array.class));
     assertThat(((Array) type4).getItemType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
 
-    Schema mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).build();
+    Schema mapSchema = SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     Type type5 = TypeUtil.getKsqlType(mapSchema);
     assertThat(type5.getKsqlType(), equalTo(Type.KsqlType.MAP));
     assertThat(type5, instanceOf(Map.class));
     assertThat(((Map) type5).getValueType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
 
     Schema structSchema1 = SchemaBuilder.struct()
-        .field("COL1", Schema.FLOAT64_SCHEMA)
-        .field("COL2", Schema.STRING_SCHEMA)
-        .field("COL3", Schema.BOOLEAN_SCHEMA)
+        .field("COL1", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("COL4", arraySchema)
         .field("COL5", mapSchema)
-        .build();
+        .optional().build();
     Type type6 = TypeUtil.getKsqlType(structSchema1);
     assertThat(type6.getKsqlType(), equalTo(Type.KsqlType.STRUCT));
     assertThat(type6, instanceOf(Struct.class));
@@ -111,9 +111,9 @@ public class TypeUtilTest {
                                                                                         .MAP));
 
     Schema structSchema2 = SchemaBuilder.struct()
-        .field("COL1", Schema.FLOAT64_SCHEMA)
-        .field("COL2", Schema.STRING_SCHEMA)
-        .field("COL3", Schema.BOOLEAN_SCHEMA)
+        .field("COL1", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("COL4", arraySchema)
         .field("COL5", mapSchema)
         .field("COL6", structSchema1)
@@ -140,22 +140,22 @@ public class TypeUtilTest {
   public void shouldGetCorrectPrimitiveSchema() throws Exception {
 
     Schema schema1 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
-    assertThat(schema1, equalTo(Schema.INT64_SCHEMA));
+    assertThat(schema1, equalTo(Schema.OPTIONAL_INT64_SCHEMA));
 
     Schema schema2 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BOOLEAN));
-    assertThat(schema2, equalTo(Schema.BOOLEAN_SCHEMA));
+    assertThat(schema2, equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
 
     Schema schema3 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.INTEGER));
-    assertThat(schema3, equalTo(Schema.INT32_SCHEMA));
+    assertThat(schema3, equalTo(Schema.OPTIONAL_INT32_SCHEMA));
 
     Schema schema4 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.DOUBLE));
-    assertThat(schema4, equalTo(Schema.FLOAT64_SCHEMA));
+    assertThat(schema4, equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
 
     Schema schema5 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.STRING));
-    assertThat(schema5, equalTo(Schema.STRING_SCHEMA));
+    assertThat(schema5, equalTo(Schema.OPTIONAL_STRING_SCHEMA));
 
     Schema schema6 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
-    assertThat(schema6, equalTo(Schema.INT64_SCHEMA));
+    assertThat(schema6, equalTo(Schema.OPTIONAL_INT64_SCHEMA));
 
   }
 

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -33,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -43,8 +44,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
-
-
   private final KTable<?, GenericRow> ktable;
   private final boolean isWindowed;
 
@@ -116,8 +115,8 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
-    return new QueuedSchemaKStream(this, limit);
+  public QueuedSchemaKStream toQueue() {
+    return new QueuedSchemaKStream(this);
   }
 
   @SuppressWarnings("unchecked")
@@ -184,7 +183,7 @@ public class SchemaKTable extends SchemaKStream {
             new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
         Serialized.with(keySerde, valSerde));
 
-    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,
@@ -193,4 +192,80 @@ public class SchemaKTable extends SchemaKStream {
         functionRegistry,
         schemaRegistryClient);
   }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable join(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    final KTable joinedKTable =
+        ktable.join(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable leftJoin(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    final KTable joinedKTable =
+        ktable.leftJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable outerJoin(
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+
+    final KTable joinedKTable =
+        ktable.outerJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        false,
+        Type.JOIN,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
 }

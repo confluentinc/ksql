@@ -16,11 +16,11 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -49,16 +49,17 @@ public class KsqlContextTest {
 
   @Test
   public void shouldRunSimpleStatements() throws Exception {
+    KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     KsqlEngine ksqlEngine = mock(KsqlEngine.class);
 
-    expect(ksqlEngine.buildMultipleQueries(statement1, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement1, ksqlConfig, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());
-    expect(ksqlEngine.buildMultipleQueries(statement2, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement2, ksqlConfig, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
     replay(ksqlEngine);
 
-    KsqlContext ksqlContext = new KsqlContext(ksqlEngine);
+    KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
 

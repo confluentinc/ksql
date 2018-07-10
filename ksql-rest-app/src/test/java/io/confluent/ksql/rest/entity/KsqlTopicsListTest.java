@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.util.JsonMapper;
 import org.junit.Test;
 
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
@@ -30,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 public class KsqlTopicsListTest {
   @Test
   public void testSerde() throws Exception {
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KsqlTopicsList expected = new KsqlTopicsList(
         "SHOW TOPICS;",
         ImmutableList.of(new KsqlTopicInfo("ksqltopic", "kafkatopic", DataSourceSerDe.JSON))

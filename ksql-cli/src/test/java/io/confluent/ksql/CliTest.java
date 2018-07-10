@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -30,6 +31,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -122,8 +124,7 @@ public class CliTest extends TestRunner {
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-
-    restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+    restServer = KsqlRestApplication.buildApplication(restServerConfig,
                                                       EasyMock.mock(VersionCheckerAgent.class)
     );
 
@@ -162,14 +163,14 @@ public class CliTest extends TestRunner {
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
     testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
-                                                "1", "0", "0")));
+        "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-  
+
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
@@ -187,10 +188,11 @@ public class CliTest extends TestRunner {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
-    configMap.put("application.id", "KSQL");
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
+    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
+    configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     return configMap;
   }
 
@@ -203,7 +205,9 @@ public class CliTest extends TestRunner {
   private static Map<String, Object> validStartUpConfigs() {
     // TODO: these configs should be set with other configs on start-up, rather than setup later.
     Map<String, Object> startConfigs = genDefaultConfigMap();
-    startConfigs.put("num.stream.threads", 4);
+    startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+    startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
+    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
 
     startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
     startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
@@ -214,7 +218,10 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
-    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class.getName());
+    startConfigs.put(
+        KsqlConfig.KSQL_STREAMS_PREFIX
+            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
 
@@ -231,7 +238,7 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no -1));
+    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no - 1));
 
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));
@@ -260,7 +267,6 @@ public class CliTest extends TestRunner {
   public void testPrint() throws InterruptedException {
 
     Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-
     wait.start();
     Thread.sleep(1000);
     wait.interrupt();
@@ -305,7 +311,20 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectStar() {
+  public void shouldPrintCorrectSchemaForDescribeStream() {
+    List<List<String>> rows = new ArrayList<>();
+    rows.add(Arrays.asList("ORDERTIME", "BIGINT"));
+    rows.add(Arrays.asList("ORDERID", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("ITEMID", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("ORDERUNITS", "DOUBLE"));
+    rows.add(Arrays.asList("TIMESTAMP", "VARCHAR(STRING)"));
+    rows.add(Arrays.asList("PRICEARRAY", "ARRAY<DOUBLE>"));
+    rows.add(Arrays.asList("KEYVALUEMAP", "MAP<STRING, DOUBLE>"));
+    test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
+  }
+
+  @Test
+  public void testSelectStar() throws Exception {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),
@@ -316,49 +335,57 @@ public class CliTest extends TestRunner {
   @Test
   public void testSelectProject() {
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
-        Double[]{100.0,
-        110.99,
-        90.0 })));
-    expectedResults.put("2", new GenericRow(Arrays.asList("ITEM_2", 20.0, new
-        Double[]{10.0,
-        10.99,
-        9.0 })));
+    expectedResults.put("1", new GenericRow(
+        Arrays.asList(
+            "ITEM_1",
+            10.0,
+            new Double[]{100.0, 110.99, 90.0})));
+    expectedResults.put("2", new GenericRow(
+        Arrays.asList(
+            "ITEM_2",
+            20.0,
+            new Double[]{10.0, 10.99, 9.0})));
 
-    expectedResults.put("3", new GenericRow(Arrays.asList("ITEM_3", 30.0, new
-        Double[]{10.0,
-        10.99,
-        91.0 })));
+    expectedResults.put("3", new GenericRow(
+        Arrays.asList(
+            "ITEM_3",
+            30.0,
+            new Double[]{10.0, 10.99, 91.0})));
 
-    expectedResults.put("4", new GenericRow(Arrays.asList("ITEM_4", 40.0, new
-        Double[]{10.0,
-        140.99,
-        94.0 })));
+    expectedResults.put("4", new GenericRow(
+        Arrays.asList(
+            "ITEM_4",
+            40.0,
+            new Double[]{10.0, 140.99, 94.0})));
 
-    expectedResults.put("5", new GenericRow(Arrays.asList("ITEM_5", 50.0, new
-        Double[]{160.0,
-        160.99,
-        98.0 })));
+    expectedResults.put("5", new GenericRow(
+        Arrays.asList(
+            "ITEM_5",
+            50.0,
+            new Double[]{160.0, 160.99, 98.0})));
 
-    expectedResults.put("6", new GenericRow(Arrays.asList("ITEM_6", 60.0, new
-        Double[]{1000.0,
-        1100.99,
-        900.0 })));
+    expectedResults.put("6", new GenericRow(
+        Arrays.asList(
+            "ITEM_6",
+            60.0,
+            new Double[]{1000.0, 1100.99, 900.0})));
 
-    expectedResults.put("7", new GenericRow(Arrays.asList("ITEM_7", 70.0, new
-        Double[]{1100.0,
-        1110.99,
-        190.0 })));
+    expectedResults.put("7", new GenericRow(
+        Arrays.asList(
+            "ITEM_7",
+            70.0,
+            new Double[]{1100.0, 1110.99, 190.0})));
 
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 80.0, new
-        Double[]{1100.0,
-        1110.99,
-        970.0 })));
+    expectedResults.put("8", new GenericRow(
+        Arrays.asList(
+            "ITEM_8",
+            80.0,
+            new Double[]{1100.0, 1110.99, 970.0})));
 
     Schema resultSchema = SchemaBuilder.struct()
-        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
+        .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
 
     testCreateStreamAsSelect(
@@ -375,19 +402,21 @@ public class CliTest extends TestRunner {
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
-    expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0,
-        "2018-01-08",
-        new Double[]{1100.0,
-            1110.99,
-            970.0 },
-        mapField)));
+    expectedResults.put("8", new GenericRow(
+        Arrays.asList(
+            8,
+            "ORDER_6",
+            "ITEM_8",
+            80.0,
+            "2018-01-08",
+            new Double[]{1100.0, 1110.99, 970.0},
+            mapField)));
 
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'",
         orderDataProvider.schema(),
         expectedResults
-        );
+    );
   }
 
   @Test
@@ -468,7 +497,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
     EasyMock.replay(mockRestClient);
-    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -495,7 +524,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -506,5 +535,55 @@ public class CliTest extends TestRunner {
     Assert.assertThat(
         terminal.getOutputString(),
         containsString("Minimum supported client version: 1.0"));
+  }
+
+  @Test
+  public void shouldListFunctions() {
+    final List<List<String>> rows = new ArrayList<>();
+    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
+    rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
+    rows.add(Arrays.asList("TOPK", "AGGREGATE"));
+    testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
+  }
+
+  @Test
+  public void shouldDescribeScalarFunction() throws Exception {
+    final String expectedOutput =
+        "Name        : TIMESTAMPTOSTRING\n" +
+            "Author      : confluent\n" +
+            "Version     : \n" +
+            "Overview    : \n" +
+            "Type        : scalar\n" +
+            "Jar         : internal\n" +
+            "Variations  : \n" +
+            "\n" +
+            "\tArguments   : BIGINT, VARCHAR\n" +
+            "\tReturns     : VARCHAR\n" +
+            "\tDescription : \n";
+
+    localCli.handleLine("describe function timestamptostring;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldDescribeAggregateFunction() throws Exception {
+    final String expectedOutput =
+            "Name        : TOPK\n" +
+            "Author      : confluent\n" +
+            "Version     : \n" +
+            "Overview    : \n" +
+            "Type        : aggregate\n" +
+            "Jar         : internal\n" +
+            "Variations  : \n";
+
+    localCli.handleLine("describe function topk;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantFindFunction() throws Exception {
+    localCli.handleLine("describe function foobar;");
+    final String expectedOutput = "Can't find any functions with the name 'foobar'";
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 }

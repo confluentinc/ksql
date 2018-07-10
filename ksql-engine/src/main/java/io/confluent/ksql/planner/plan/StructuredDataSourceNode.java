@@ -19,6 +19,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -47,7 +48,6 @@ import javax.annotation.concurrent.Immutable;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
@@ -153,8 +153,7 @@ public class StructuredDataSourceNode
       final SchemaRegistryClient schemaRegistryClient
   ) {
     if (!(getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy)) {
-      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          getTimeStampColumnIndex());
+      ksqlConfig.setKsqlTimestampColumnIndex(getTimeStampColumnIndex());
     }
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();

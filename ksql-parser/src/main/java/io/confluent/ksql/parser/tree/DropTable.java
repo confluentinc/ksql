@@ -31,14 +31,7 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
     this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropTable(NodeLocation location,
-                   QualifiedName tableName,
-                   boolean ifExists,
-                   boolean deleteTopic) {
-    this(Optional.of(location), tableName, ifExists, deleteTopic);
-  }
-
-  private DropTable(Optional<NodeLocation> location,
+  public DropTable(Optional<NodeLocation> location,
                     QualifiedName tableName,
                     boolean ifExists,
                     boolean deleteTopic) {

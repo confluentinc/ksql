@@ -51,7 +51,7 @@ public class JoinIntTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
-    testHarness.start();
+    testHarness.start(Collections.emptyMap());
     Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
     ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     // turn caching off to improve join consistency

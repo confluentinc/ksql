@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -36,8 +38,8 @@ import io.confluent.ksql.util.QueryMetadata;
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
   public static KsqlContext create(KsqlConfig ksqlConfig) {
@@ -59,29 +61,29 @@ public class KsqlContext {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-    }
-    if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      streamsProperties.put(
-          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-          KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
-      );
+    if (!ksqlConfig.getKsqlStreamConfigProps().containsKey(
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
+      ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(
+          Collections.singletonMap(
+              StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
     }
 
-    final KsqlEngine engine = schemaRegistryClient == null
-                              ? new KsqlEngine(ksqlConfig, clientSupplier)
-                              : new KsqlEngine(ksqlConfig, schemaRegistryClient, clientSupplier);
+    final KsqlEngine engine = new KsqlEngine(
+        new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
+        schemaRegistryClient == null
+            ? new KsqlSchemaRegistryClientFactory(ksqlConfig).create() : schemaRegistryClient,
+        clientSupplier
+    );
 
-    return new KsqlContext(engine);
+    return new KsqlContext(ksqlConfig, engine);
   }
 
   /**
    * Create a KSQL context object with the given properties.
    * A KSQL context has it's own metastore valid during the life of the object.
    */
-  KsqlContext(final KsqlEngine ksqlEngine) {
+  KsqlContext(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
   }
 
@@ -92,13 +94,13 @@ public class KsqlContext {
   /**
    * Execute the ksql statement in this context.
    */
-  public void sql(String sql) throws Exception {
+  public void sql(String sql) {
     sql(sql, Collections.emptyMap());
   }
 
-  public void sql(String sql, Map<String, Object> overriddenProperties) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql,
-        overriddenProperties);
+  public void sql(String sql, Map<String, Object> overriddenProperties) {
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+        sql, ksqlConfig, overriddenProperties);
 
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

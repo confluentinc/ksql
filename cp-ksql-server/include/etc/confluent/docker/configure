@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# Copyright 2017 Confluent Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o nounset \
+    -o errexit \
+    -o verbose \
+    -o xtrace
+
+dub ensure-atleast-one KSQL_BOOTSTRAP_SERVERS KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS
+
+dub path /etc/"${COMPONENT}"/ writable
+
+if [[ -n "${KSQL_JMX_OPTS-}" ]]
+then
+  if [[ ! $KSQL_JMX_OPTS == *"com.sun.management.jmxremote.rmi.port"*  ]]
+  then
+    echo "KSQL_OPTS should contain the 'com.sun.management.jmxremote.rmi.port' property. It is required for accessing the JMX metrics externally. Also remember to map the JMX port so that it is accessible from outside the container."
+  fi
+fi
+
+dub template "/etc/confluent/docker/${COMPONENT}.properties.template" "/etc/${COMPONENT}/${COMPONENT}.properties"
+dub template "/etc/confluent/docker/log4j.properties.template" "/etc/${COMPONENT}/log4j.properties"
+
+# Ensure that KSQL picks up the correct log4j properties file
+export KSQL_LOG4J_OPTS=-Dlog4j.configuration=file:/etc/${COMPONENT}/log4j.properties

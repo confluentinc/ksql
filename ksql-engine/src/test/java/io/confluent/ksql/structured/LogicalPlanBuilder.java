@@ -23,7 +23,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
@@ -37,20 +37,20 @@ public class LogicalPlanBuilder {
 
   private final MetaStore metaStore;
   private final KsqlParser parser = new KsqlParser();
-  private final FunctionRegistry functionRegistry = new FunctionRegistry();
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   public LogicalPlanBuilder(final MetaStore metaStore) {
     this.metaStore = metaStore;
   }
 
   public PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = parser.buildAst(queryStr, metaStore);
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
+    final List<Statement> statements = parser.buildAst(queryStr, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
+    final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
         (functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));

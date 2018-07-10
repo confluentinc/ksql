@@ -1,11 +1,13 @@
 package io.confluent.ksql.integration;
 
 
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -32,8 +34,6 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
@@ -121,7 +121,8 @@ public class IntegrationTestHarness {
   private Properties properties() {
     Properties producerConfig = new Properties();
     producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+                       ksqlConfig.getKsqlStreamConfigProps().get(
+                           ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
     return producerConfig;
@@ -231,7 +232,8 @@ public class IntegrationTestHarness {
   private Properties consumerConfig() {
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+                       ksqlConfig.getKsqlStreamConfigProps().get(
+                           ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
                        CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -244,8 +246,24 @@ public class IntegrationTestHarness {
   EmbeddedSingleNodeKafkaCluster embeddedKafkaCluster = null;
 
 
+  public static class DummyProducerInterceptor implements ProducerInterceptor {
 
-  public void start() throws Exception {
+    public void onAcknowledgement(RecordMetadata rm, Exception e) {
+    }
+
+    public ProducerRecord onSend(ProducerRecord producerRecords) {
+      return producerRecords;
+    }
+
+    public void close() {
+    }
+
+    public void configure(Map<String, ?> map) {
+    }
+  }
+
+
+  public void start(final Map<String, Object> callerConfigMap) throws Exception {
     embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
     embeddedKafkaCluster.start();
     Map<String, Object> configMap = new HashMap<>();
@@ -256,6 +274,8 @@ public class IntegrationTestHarness {
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
+    configMap.put("producer.interceptor.classes", DummyProducerInterceptor.class.getName());
+    configMap.putAll(callerConfigMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
@@ -293,9 +313,9 @@ public class IntegrationTestHarness {
       case JSON:
         return new KsqlJsonSerializer(schema);
       case AVRO:
-        return new KsqlGenericRowAvroSerializer(schema,
-                                                this.schemaRegistryClient,
-                                                new KsqlConfig(Collections.emptyMap()));
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).serializer();
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
       default:
@@ -307,11 +327,11 @@ public class IntegrationTestHarness {
                                                    DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
-        return new KsqlJsonDeserializer(schema);
+        return new KsqlJsonDeserializer(schema, false);
       case AVRO:
-        return new KsqlGenericRowAvroDeserializer(schema,
-                                                  this.schemaRegistryClient,
-                                                  false);
+        return new KsqlAvroTopicSerDe().getGenericRowSerde(
+            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+        ).deserializer();
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);
       default:

@@ -20,18 +20,17 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
 
 public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
 
   LongMinKudaf(String functionName, int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.INT64_SCHEMA,
-          Collections.singletonList(Schema.INT64_SCHEMA)
+    super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "Computes the minimum long value for a key."
     );
   }
 
@@ -54,9 +53,8 @@ public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
-                                                       List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongMinKudaf(functionName, udafIndex);
+  public KsqlAggregateFunction<Long, Long> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new LongMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

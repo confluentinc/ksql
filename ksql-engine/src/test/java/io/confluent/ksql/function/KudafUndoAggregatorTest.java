@@ -18,9 +18,7 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -28,7 +26,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -44,19 +41,19 @@ public class KudafUndoAggregatorTest {
         .field("bar", SchemaBuilder.string().build())
         .field("baz", SchemaBuilder.int32().build())
         .build();
-    FunctionRegistry functionRegistry = new FunctionRegistry();
+    InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     aggValToValColumnMap.put(0, 1);
     aggValToValColumnMap.put(1, 0);
     Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
     Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
-    List<Expression> expressions = Collections.singletonList(
-        new QualifiedNameReference(QualifiedName.of("baz")));
-    KsqlAggregateFunction functionInfo = functionRegistry.getAggregateFunction(
-        "SUM", expressions, schema);
+    KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
+        "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
-        2, (TableAggregationFunction)functionInfo.getInstance(expressionNames, expressions));
+        2, (TableAggregationFunction)functionInfo.getInstance(
+            new AggregateFunctionArguments(expressionNames, Collections.singletonList("baz"))
+        ));
 
     GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
     GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));

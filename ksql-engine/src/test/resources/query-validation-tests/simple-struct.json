@@ -1,0 +1,402 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate.",
+    "This test run queries on a stream with super nested schema. It will test different struct types and how queries can access nested fields in structs."
+  ],
+  "tests": [
+    {
+      "name": "simple struct select star",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM s1 AS SELECT * FROM orders;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2.0,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4.0,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6.0,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"itemid\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3.0,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5.0,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "key": 0,
+          "value": "{\"ORDERTIME\":1528224275715,\"ORDERID\":1,\"ITEMID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2.0,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"ADDRESS\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S1",
+          "key": 100,
+          "value": "{\"ORDERTIME\":1528224280668,\"ORDERID\":2,\"ITEMID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4.0,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"ADDRESS\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S1",
+          "key": 101,
+          "value": "{\"ORDERTIME\":1528224281566,\"ORDERID\":3,\"ITEMID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6.0,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"ADDRESS\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S1",
+          "key": 101,
+          "value": "{\"ORDERTIME\":1528224285603,\"ORDERID\":4,\"ITEMID\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3.0,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"ADDRESS\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S1",
+          "key": 101,
+          "value": "{\"ORDERTIME\":1528224286568,\"ORDERID\":5,\"ITEMID\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5.0,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"ADDRESS\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select filter",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM S2 AS SELECT itemid->name FROM orders where itemid->name = 'Item_6';"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"itemid\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 100,
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 101,
+          "value": "{\"ITEMID__NAME\":\"Item_6\"}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select filter 2",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM S3 AS SELECT itemid->category->id, address->street , address->zipcode as zipcode, address->state as state FROM orders WHERE address->state LIKE '%_9';"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"itemid\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S3",
+          "key": 101,
+          "value": "{\"ITEMID__CATEGORY__ID\":2,\"ADDRESS__STREET\":\"STREET_3\",\"ZIPCODE\":287,\"STATE\":\"STATE_9\"}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select filter 3",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM S4 AS SELECT itemid->itemid, itemid as iid, itemid->category->name as catname FROM orders WHERE itemid->itemid = 6 OR itemid->category->name = 'Food';"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"itemid\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S4",
+          "key": 0,
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S4",
+          "key": 100,
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S4",
+          "key": 101,
+          "value": "{\"ITEMID__ITEMID\":6,\"IID\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"CATNAME\":\"Produce\"}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S4",
+          "key": 101,
+          "value": "{\"ITEMID__ITEMID\":2,\"IID\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"CATNAME\":\"Food\"}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select filter 4",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM S5 as SELECT itemid->itemid * 10 as itemid, concat(itemid->category->name, '_HELLO') as cname, len(address->state) as state_length FROM orders WHERE address->state LIKE '%1' OR address->state LIKE '%9';"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":4,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"}},\"ORDERUNITS\":6,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"itemid\":{\"ITEMID\":2,\"NAME\":\"Item_2\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}},\"ORDERUNITS\":3,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S5",
+          "key": 0,
+          "value": "{\"ITEMID\":60,\"CNAME\":\"Food_HELLO\",\"STATE_LENGTH\":7}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S5",
+          "key": 101,
+          "value": "{\"ITEMID\":60,\"CNAME\":\"Produce_HELLO\",\"STATE_LENGTH\":7}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select woth nulls",
+      "statements": [
+        "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='json');",
+        "CREATE STREAM S6 as SELECT itemid->itemid * 10 as itemid, itemid->category->id as catid, itemid->category as cat FROM orders;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"ordertime\":1528224275715,\"orderid\":1,\"itemid\":{\"NAME\":\"Item_6\",\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"}},\"ORDERUNITS\":2,\"ARRAYCOL\":[6.27276558443913,8.720822816653817,4.904955205015469,0.28466518164817933,5.276269704236784],\"MAPCOL\":{\"key1\":2.706938954083115,\"key2\":5.878674158377773,\"key3\":3.8688222734507915},\"address\":{\"NUMBER\":376,\"STREET\":\"STREET_4\",\"CITY\":\"CITY_0\",\"STATE\":\"STATE_1\",\"ZIPCODE\":621}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "{\"ordertime\":1528224280668,\"orderid\":2,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\"},\"ORDERUNITS\":4,\"ARRAYCOL\":[5.028181423106411,4.223556791057725,7.503771637501132,1.8346470572995977,8.628168574256188],\"MAPCOL\":{\"key1\":7.997268326700826,\"key2\":7.886688738692968,\"key3\":0.08025583241041634},\"address\":{\"NUMBER\":29,\"STREET\":\"STREET_5\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_6\",\"ZIPCODE\":46}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224281566,\"orderid\":3,\"itemid\":{\"ITEMID\":6,\"NAME\":\"Item_6\",\"CATEGORY\":{\"NAME\":\"Produce\"}},\"ORDERUNITS\":6,\"ARRAYCOL\":[9.404053021473551,2.005832055529364,0.16252060679229574,8.030440873506674,2.6822009490877683],\"MAPCOL\":{\"key1\":3.908548556676262,\"key2\":4.76749034853443,\"key3\":8.232202829012866},\"address\":{\"NUMBER\":219,\"STREET\":\"STREET_3\",\"CITY\":\"CITY_9\",\"STATE\":\"STATE_9\",\"ZIPCODE\":287}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224285603,\"orderid\":4,\"ORDERUNITS\":3,\"ARRAYCOL\":[9.887072401304447,5.217021497196517,5.604857288119519,4.628527278923561,6.367135367927281],\"MAPCOL\":{\"key1\":3.966253991851106,\"key2\":8.690191464522353,\"key3\":8.58507015716884},\"address\":{\"NUMBER\":380,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_3\",\"STATE\":\"STATE_5\",\"ZIPCODE\":866}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "{\"ordertime\":1528224286568,\"orderid\":5,\"itemid\":{\"ITEMID\":5,\"NAME\":\"Item_5\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"}},\"ORDERUNITS\":5,\"ARRAYCOL\":[1.6856668854084866,3.4970511301361484,9.143163282671962,2.196065628133206,4.343961390870502],\"MAPCOL\":{\"key1\":6.688854425726891,\"key2\":1.3876747586974092,\"key3\":4.9160189684727},\"address\":{\"NUMBER\":294,\"STREET\":\"STREET_8\",\"CITY\":\"CITY_6\",\"STATE\":\"STATE_3\",\"ZIPCODE\":724}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S6",
+          "key": 0,
+          "value": "{\"ITEMID\":null,\"CATID\":2,\"CAT\":{\"ID\":2,\"NAME\":\"Food\"}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S6",
+          "key": 100,
+          "value": "{\"ITEMID\":60,\"CATID\":null,\"CAT\":null}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S6",
+          "key": 101,
+          "value": "{\"ITEMID\":60,\"CATID\":null,\"CAT\":{\"ID\":null,\"NAME\":\"Produce\"}}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S6",
+          "key": 101,
+          "value": "{\"ITEMID\":null,\"CATID\":null,\"CAT\":null}",
+          "timestamp": 0
+        },
+        {
+          "topic": "S6",
+          "key": 101,
+          "value": "{\"ITEMID\":50,\"CATID\":1,\"CAT\":{\"ID\":1,\"NAME\":\"Produce\"}}",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "simple struct select for ambiguity",
+      "statements": [
+        "CREATE STREAM s (s STRUCT<s VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM S7 as SELECT s as s1, s.s as s2, s->s as s3, s.s->s as s4 FROM s;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "{\"s\":{\"s\":\"Item_6\"}}",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S7",
+          "key": 0,
+          "value": "{\"S1\":{\"S\":\"Item_6\"},\"S2\":{\"S\":\"Item_6\"},\"S3\":\"Item_6\",\"S4\":\"Item_6\"}",
+          "timestamp": 0
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -39,9 +41,8 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
@@ -54,15 +55,13 @@ import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 class QueryEngine {
 
@@ -79,8 +78,8 @@ class QueryEngine {
 
   List<Pair<String, PlanNode>> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<Pair<String, Statement>> statementList
-  ) {
+      final List<Pair<String, Statement>> statementList,
+      final KsqlConfig config) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
@@ -91,7 +90,7 @@ class QueryEngine {
         PlanNode logicalPlan = buildQueryLogicalPlan(
             statementQueryPair.getLeft(),
             (Query) statementQueryPair.getRight(),
-            tempMetaStore
+            tempMetaStore, config
         );
         logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
       } else {
@@ -104,13 +103,14 @@ class QueryEngine {
   }
 
   private PlanNode buildQueryLogicalPlan(
-      String sqlExpression,
+      final String sqlExpression,
       final Query query,
-      final MetaStore tempMetaStore
-  ) {
+      final MetaStore tempMetaStore,
+      final KsqlConfig config) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
-        ksqlEngine.getFunctionRegistry()
+        ksqlEngine.getFunctionRegistry(),
+        config
     );
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -138,15 +138,10 @@ class QueryEngine {
     return logicalPlan;
   }
 
-  private TimestampExtractionPolicy getTimestampExtractionPolicy(final OutputNode outputNode) {
-    return outputNode.getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy
-        ? outputNode.getTheSourceNode().getTimestampExtractionPolicy()
-        : outputNode.getTimestampExtractionPolicy();
-  }
-
   List<QueryMetadata> buildPhysicalPlans(
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
@@ -165,12 +160,11 @@ class QueryEngine {
         }
         handleDdlStatement(
             statementPlanPair.getLeft(),
-            (DdlStatement) statement,
-            overriddenProperties
+            (DdlStatement) statement
         );
       } else {
         buildQueryPhysicalPlan(
-            physicalPlans, statementPlanPair,
+            physicalPlans, statementPlanPair, ksqlConfig,
             overriddenProperties, clientSupplier, updateMetastore
         );
       }
@@ -182,6 +176,7 @@ class QueryEngine {
   private void buildQueryPhysicalPlan(
       final List<QueryMetadata> physicalPlans,
       final Pair<String, PlanNode> statementPlanPair,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
       final boolean updateMetastore
@@ -192,7 +187,7 @@ class QueryEngine {
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
-        ksqlEngine.getKsqlConfig().cloneWithPropertyOverwrite(overriddenProperties),
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
         ksqlEngine.getTopicClient(),
         ksqlEngine.getFunctionRegistry(),
         overriddenProperties,
@@ -206,23 +201,24 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(
-      String sqlExpression, DdlStatement statement,
-      final Map<String, Object> overriddenProperties
-  ) {
+  DdlCommandResult handleDdlStatement(String sqlExpression, DdlStatement statement) {
 
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      Pair<DdlStatement, String> avroCheckResult =
+      AbstractStreamCreateStatement streamCreateStatementWithSchema =
           maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
 
-      if (avroCheckResult.getRight() != null) {
-        statement = avroCheckResult.getLeft();
-        sqlExpression = avroCheckResult.getRight();
+      if (streamCreateStatementWithSchema.getElements().isEmpty()) {
+        throw new KsqlException("The statement or topic schema does not define any columns.");
+      }
+
+      if (streamCreateStatementWithSchema != streamCreateStatement) {
+        statement = (DdlStatement)streamCreateStatementWithSchema;
+        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
-    DdlCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
+    final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 
@@ -233,7 +229,7 @@ class QueryEngine {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
       }
     }
 
@@ -248,7 +244,7 @@ class QueryEngine {
     );
   }
 
-  private Pair<DdlStatement, String> maybeAddFieldsFromSchemaRegistry(
+  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
       AbstractStreamCreateStatement streamCreateStatement
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
@@ -281,20 +277,10 @@ class QueryEngine {
           newProperties
       );
     }
-    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(
-            streamCreateStatement,
-            new HashMap<>(),
-            ksqlEngine.getSchemaRegistryClient()
-        );
-    if (avroCheckResult.getRight() != null) {
-      if (avroCheckResult.getLeft() instanceof CreateStream) {
-        return new Pair<>((CreateStream) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      } else if (avroCheckResult.getLeft() instanceof CreateTable) {
-        return new Pair<>((CreateTable) avroCheckResult.getLeft(), avroCheckResult.getRight());
-      }
-    }
-    return new Pair<>(null, null);
+    return AvroUtil.checkAndSetAvroSchema(
+        streamCreateStatement,
+        new HashMap<>(),
+        ksqlEngine.getSchemaRegistryClient());
   }
 
 }

@@ -16,14 +16,11 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
-
 import io.confluent.ksql.parser.tree.DdlStatement;
 
 public interface DdlCommandFactory {
   DdlCommand create(
       String sqlExpression,
-      final DdlStatement ddlStatement,
-      final Map<String, Object> properties
+      final DdlStatement ddlStatement
   );
 }

@@ -1,0 +1,16 @@
+log4j.rootLogger={{ env["KSQL_LOG4J_ROOT_LOGLEVEL"] | default('INFO') }}, default.file
+
+log4j.appender.default.file=io.confluent.ksql.util.TimestampLogFileAppender
+log4j.appender.default.file.ImmediateFlush=true
+log4j.appender.default.file.append=false
+
+log4j.appender.default.file.file=/var/log/{{ env["COMPONENT"] }}/cli-%timestamp.log
+log4j.appender.default.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.default.file.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
+
+{% if env['KSQL_LOG4J_LOGGERS'] %}
+{% set loggers = parse_log4j_loggers(env['KSQL_LOG4J_LOGGERS']) %}
+{% for logger,loglevel in loggers.iteritems() %}
+log4j.logger.{{logger}}={{loglevel}}, stdout
+{% endfor %}
+{% endif %}

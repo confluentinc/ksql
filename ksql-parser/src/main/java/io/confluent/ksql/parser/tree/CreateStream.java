@@ -39,12 +39,7 @@ public class CreateStream extends AbstractStreamCreateStatement implements DdlSt
     this(Optional.empty(), name, elements, notExists, properties);
   }
 
-  public CreateStream(NodeLocation location, QualifiedName name, List<TableElement> elements,
-                     boolean notExists, Map<String, Expression> properties) {
-    this(Optional.of(location), name, elements, notExists, properties);
-  }
-
-  private CreateStream(Optional<NodeLocation> location, QualifiedName name,
+  public CreateStream(Optional<NodeLocation> location, QualifiedName name,
                       List<TableElement> elements, boolean notExists,
                       Map<String, Expression> properties) {
     super(location);

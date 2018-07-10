@@ -18,7 +18,10 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.util.EntityUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -40,7 +43,6 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
-import io.confluent.ksql.rest.entity.FieldSchemaInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -48,6 +50,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -60,6 +63,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
@@ -85,14 +89,23 @@ public class ConsoleTest {
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new GenericRow(ImmutableList.of("col_1", "col_2")));
+    StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
     terminal.printStreamedRow(row);
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
-    StreamedRow row = new StreamedRow(new FakeException());
-    terminal.printStreamedRow(row);
+    final FakeException exception = new FakeException();
+
+    terminal.printStreamedRow(StreamedRow.error(exception));
+
+    assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
+  }
+
+  @Test
+  public void testPrintFinalMessageStreamedRow() throws IOException {
+    terminal.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
   @Test
@@ -103,12 +116,14 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<RunningQuery> queries = new ArrayList<>();
-    queries.add(new RunningQuery("select * from t1", Collections.singleton("Test"), "0"));
+    queries.add(
+        new RunningQuery(
+            "select * from t1", Collections.singleton("Test"), new EntityQueryId("0")));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
           new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
-          new PropertiesList("e", properties),
+          new PropertiesList("e", properties, Collections.emptyList()),
           new Queries("e", queries),
           new SourceDescriptionEntity(
               "e",
@@ -148,18 +163,11 @@ public class ConsoleTest {
     }
   }
 
-  private List<FieldSchemaInfo> buildTestSchema(int size) {
+  private List<FieldInfo> buildTestSchema(int size) {
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
     }
-
-    List<FieldSchemaInfo> res = new ArrayList<>();
-    List<Field> fields = dataSourceBuilder.build().fields();
-    for (Field field : fields) {
-      res.add(new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldType(field)));
-    }
-
-    return res;
+    return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
   }
 }

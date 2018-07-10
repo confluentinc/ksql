@@ -35,7 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,7 +64,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
@@ -90,7 +88,7 @@ public class Cli implements Closeable, AutoCloseable {
   private final Long streamedQueryRowLimit;
   private final Long streamedQueryTimeoutMs;
 
-  final KsqlRestClient restClient;
+  private final KsqlRestClient restClient;
   private final Console terminal;
 
   public Cli(
@@ -123,11 +121,11 @@ public class Cli implements Closeable, AutoCloseable {
       if (restResponse.isErroneous()) {
         KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
-          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
+          writer.format("This CLI version no longer supported: %s%n%n", ksqlError);
           return;
         }
         writer.format(
-            "Couldn't connect to the KSQL server: %s\n\n", ksqlError.getMessage());
+            "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
@@ -380,13 +378,9 @@ public class Cli implements Closeable, AutoCloseable {
     return consecutiveStatements;
   }
 
-  private void listProperties(String statementText) throws IOException {
-    KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-    PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
-    propertiesList.getProperties().putAll(restClient.getLocalProperties());
-    terminal.printKsqlEntityList(
-        Collections.singletonList(propertiesList)
-    );
+  private void listProperties(final String statementText) throws IOException {
+    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
+    terminal.printKsqlEntityList(ksqlEntityList);
   }
 
   private void printKsqlResponse(RestResponse<KsqlEntityList> response) throws IOException {
@@ -428,13 +422,7 @@ public class Cli implements Closeable, AutoCloseable {
               try {
                 StreamedRow row = queryStream.next();
                 terminal.printStreamedRow(row);
-                if (row.getErrorMessage() != null) {
-                  // got an error in the stream, which means we have reached the end.
-                  // the stream interface that queryStream uses isn't smart enough to figure
-                  // out when the socket is closed, so just break here since we know there will
-                  // be nothing more to read.
-                  LOGGER.debug("Going to stop reading results for row {} since there was an error"
-                               + " in the response stream: {}", row, row.getErrorMessage());
+                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
                   break;
                 }
               } catch (IOException exception) {

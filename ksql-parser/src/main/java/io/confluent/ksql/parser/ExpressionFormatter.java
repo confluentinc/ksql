@@ -41,10 +41,10 @@ import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
-import io.confluent.ksql.parser.tree.LambdaExpression;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -69,6 +69,7 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -104,21 +105,20 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitArray(Array node, Boolean unmangleNames) {
-      return "ARRAY <" + process(node.getItemType(), unmangleNames) + ">";
+      return "ARRAY<" + process(node.getItemType(), unmangleNames) + ">";
     }
 
     @Override
     protected String visitMap(Map node, Boolean unmangleNames) {
-      return "MAP < VARCHAR , " + process(node.getValueType(), unmangleNames) + ">";
+      return "MAP<VARCHAR, " + process(node.getValueType(), unmangleNames) + ">";
     }
 
     @Override
     protected String visitStruct(Struct node, Boolean unmangleNames) {
-      return "STRUCT <" + Joiner.on(", ").join(node.getItems().stream()
-                                                .map((child) ->
-                                                         child.getLeft()
-                                                         + process(child.getRight(), unmangleNames))
-                                                .collect(toList())) + ">";
+      return "STRUCT<" + Joiner.on(", ").join(node.getItems().stream()
+          .map((child) ->
+              child.getLeft() + " " + process(child.getRight(), unmangleNames))
+          .collect(toList())) + ">";
     }
 
     @Override
@@ -158,6 +158,11 @@ public final class ExpressionFormatter {
     @Override
     protected String visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
       return Long.toString(node.getValue());
+    }
+
+    @Override
+    protected String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
+      return Integer.toString(node.getValue());
     }
 
     @Override
@@ -229,7 +234,10 @@ public final class ExpressionFormatter {
     @Override
     protected String visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames) {
       String baseString = process(node.getBase(), unmangleNames);
-      return baseString + "." + formatIdentifier(node.getFieldName());
+      if (node.getBase() instanceof QualifiedNameReference) {
+        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName());
+      }
+      return baseString + KsqlConstants.STRUCT_FIELD_REF + formatIdentifier(node.getFieldName());
     }
 
     private static String formatQualifiedName(QualifiedName name) {
@@ -237,7 +245,7 @@ public final class ExpressionFormatter {
       for (String part : name.getParts()) {
         parts.add(formatIdentifier(part));
       }
-      return Joiner.on('.').join(parts);
+      return Joiner.on(KsqlConstants.DOT).join(parts);
     }
 
     @Override
@@ -265,17 +273,6 @@ public final class ExpressionFormatter {
         builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
       }
 
-      return builder.toString();
-    }
-
-    @Override
-    protected String visitLambdaExpression(LambdaExpression node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
-
-      builder.append('(');
-      Joiner.on(", ").appendTo(builder, node.getArguments());
-      builder.append(") -> ");
-      builder.append(process(node.getBody(), unmangleNames));
       return builder.toString();
     }
 

@@ -18,13 +18,10 @@ import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
 import org.junit.Before;
 import org.junit.Test;
-
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.Session;
-
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;

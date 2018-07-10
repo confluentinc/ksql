@@ -16,36 +16,112 @@
 
 package io.confluent.ksql.util;
 
-import org.junit.Test;
-import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
+import org.apache.kafka.common.errors.RetriableException;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ExecutorWithRetriesTest {
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Test
-  public void shouldNotFailOnExistingResource() throws Exception{
-    FakeKafkaTopicClient client = new FakeKafkaTopicClient();
-    client.createTopic("foo", 1, (short) 1);
-    ExecutorWithRetries.execute((Supplier<Future<Void>>)() -> {
-      client.deleteTopics(Collections.singletonList("bar"));
-      return CompletableFuture.completedFuture(null);
+  public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
+    expectedException.expect(ExecutionException.class);
+    expectedException.expectMessage("I will never succeed");
+
+    ExecutorWithRetries.execute(() -> {
+      final CompletableFuture<Void> f = new CompletableFuture<>();
+      f.completeExceptionally(new TestRetriableException("I will never succeed"));
+      return f;
     });
-    assertThat(client.isTopicExists("foo"), equalTo(true));
   }
 
   @Test
-  public void shouldSuccedOnMissingResource() throws Exception{
-    FakeKafkaTopicClient client = new FakeKafkaTopicClient();
-    client.createTopic("foo", 1, (short) 1);
-    ExecutorWithRetries.execute((Supplier<Future<Void>>)() -> {
-      client.deleteTopics(Collections.singletonList("foo"));
-      return CompletableFuture.completedFuture(null);
+  public void shouldRetryAndSucceed() throws Exception {
+    final AtomicInteger counts = new AtomicInteger(5);
+
+    ExecutorWithRetries.execute(() -> {
+      if (counts.decrementAndGet() == 0) {
+        return CompletableFuture.completedFuture(null);
+      }
+
+      final CompletableFuture<Void> f = new CompletableFuture<>();
+      f.completeExceptionally(new TestRetriableException("I will never succeed"));
+      return f;
     });
-    assertThat(client.isTopicExists("foo"), equalTo(false));
+  }
+
+  @Test
+  public void shouldReturnValue() throws Exception {
+    final String expectedValue = "should return this";
+
+    assertThat(ExecutorWithRetries.execute(() -> CompletableFuture.completedFuture(expectedValue)),
+        is(expectedValue));
+  }
+
+  @Test
+  public void shouldNotRetryOnNonRetryableException() throws Exception {
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("First non-retry exception");
+
+    final AtomicBoolean firstCall = new AtomicBoolean(true);
+
+    ExecutorWithRetries.execute(() -> {
+      final CompletableFuture<Void> f = new CompletableFuture<>();
+
+      if (firstCall.get()) {
+        firstCall.set(false);
+        f.completeExceptionally(new RuntimeException("First non-retry exception"));
+      } else {
+        f.completeExceptionally(new RuntimeException("Test should not retry"));
+      }
+
+      return f;
+    });
+  }
+
+  @Test
+  public void shouldNotRetryIfSupplierThrowsNonRetryableException() throws Exception {
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("First non-retry exception");
+
+    final AtomicBoolean firstCall = new AtomicBoolean(true);
+
+    ExecutorWithRetries.execute(() -> {
+      if (firstCall.get()) {
+        firstCall.set(false);
+        throw new RuntimeException("First non-retry exception");
+      }
+
+      throw new RuntimeException("Test should not retry");
+    });
+  }
+
+  @Test
+  public void shouldRetryIfSupplierThrowsRetryableException() throws Exception {
+    final AtomicInteger counts = new AtomicInteger(5);
+
+    ExecutorWithRetries.execute(() -> {
+      if (counts.decrementAndGet() == 0) {
+        return CompletableFuture.completedFuture(null);
+      }
+
+      throw new TestRetriableException("Test should retry");
+    });
+  }
+
+  private static final class TestRetriableException extends RetriableException {
+    private TestRetriableException(final String msg) {
+      super(msg);
+    }
   }
 }

@@ -19,15 +19,17 @@ package io.confluent.ksql.util;
 import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-public class ExecutorWithRetries {
+public final class ExecutorWithRetries {
 
   private static final int NUM_RETRIES = 5;
   private static final int RETRY_BACKOFF_MS = 500;
   private static final Logger log = LoggerFactory.getLogger(ExecutorWithRetries.class);
+
+  private ExecutorWithRetries(){
+  }
 
   public static <T> T execute(final Supplier<? extends Future<T>> supplier) throws Exception {
     int retries = 0;
@@ -38,10 +40,16 @@ public class ExecutorWithRetries {
           Thread.sleep(RETRY_BACKOFF_MS);
         }
         return supplier.get().get();
-      } catch (ExecutionException e) {
-        if (e.getCause() instanceof RetriableException) {
+      } catch (Exception e) {
+        if (e instanceof RetriableException
+            || e.getCause() instanceof RetriableException) {
           retries++;
           log.info("Retrying request due to retriable exception. Retry no: " + retries, e);
+          lastException = e;
+        } else if (e instanceof KsqlException
+            || e.getCause() instanceof KsqlException) {
+          retries++;
+          log.info("Retrying request due to ksql exception. Retry no: " + retries, e);
           lastException = e;
         } else if (e.getCause() instanceof Exception) {
           throw (Exception) e.getCause();

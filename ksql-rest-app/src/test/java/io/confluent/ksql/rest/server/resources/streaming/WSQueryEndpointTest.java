@@ -16,8 +16,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
@@ -57,7 +57,7 @@ public class WSQueryEndpointTest {
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
 
-  @BeforeMethod
+  @Before
   public void setUp() {
     mocks = new LinkedList();
     ksqlEngine = addMock(KsqlEngine.class);

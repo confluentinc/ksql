@@ -48,6 +48,9 @@ public class AvroDataTranslator implements DataTranslator {
   @Override
   public GenericRow toKsqlRow(final Schema connectSchema, final Object connectObject) {
     final GenericRow avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+    if (avroCompatibleRow == null) {
+      return null;
+    }
     final List<Object> columns = new LinkedList<>();
     for (int i = 0; i < avroCompatibleRow.getColumns().size(); i++) {
       columns.add(

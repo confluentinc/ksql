@@ -59,6 +59,9 @@ public class ConnectDataTranslator implements DataTranslator {
     // - handling case insensitivity for struct field names
     // - setting missing values to null
 
+    if (connectSchema == null) {
+      return null;
+    }
     if (!schema.type().equals(connectSchema.type())) {
       throw new DataException(
           String.format(

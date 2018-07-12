@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -245,6 +246,22 @@ public class IntegrationTestHarness {
   EmbeddedSingleNodeKafkaCluster embeddedKafkaCluster = null;
 
 
+  public static class DummyProducerInterceptor implements ProducerInterceptor {
+
+    public void onAcknowledgement(RecordMetadata rm, Exception e) {
+    }
+
+    public ProducerRecord onSend(ProducerRecord producerRecords) {
+      return producerRecords;
+    }
+
+    public void close() {
+    }
+
+    public void configure(Map<String, ?> map) {
+    }
+  }
+
 
   public void start(final Map<String, Object> callerConfigMap) throws Exception {
     embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
@@ -257,6 +274,7 @@ public class IntegrationTestHarness {
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
+    configMap.put("producer.interceptor.classes", DummyProducerInterceptor.class.getName());
     configMap.putAll(callerConfigMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);

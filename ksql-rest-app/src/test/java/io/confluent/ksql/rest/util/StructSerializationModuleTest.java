@@ -19,6 +19,8 @@ package io.confluent.ksql.rest.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -102,5 +104,28 @@ public class StructSerializationModuleTest {
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(item);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
     assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}"));
+  }
+
+  @Test
+  public void shouldSerializeStructInsideListCorrectly() throws JsonProcessingException {
+    final Struct category = new Struct(categorySchema);
+    category.put("ID", 1L);
+    category.put("NAME", "Food");
+
+    final Struct item = new Struct(itemInfoSchema);
+    item.put("ITEMID", 1L);
+    item.put("NAME", "ICE CREAM");
+    item.put("CATEGORY", null);
+
+    final List<Object> list = new ArrayList<>();
+    list.add("Hello");
+    list.add(1);
+    list.add(1L);
+    list.add(1.0);
+    list.add(item);
+
+    final byte[] serializedBytes = objectMapper.writeValueAsBytes(list);
+    final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
+    assertThat(jsonString, equalTo("[\"Hello\",1,1,1.0,{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}]"));
   }
 }

@@ -478,10 +478,12 @@ class EndToEndEngineTestUtil {
 
   private static TopologyTestDriver buildStreamsTopology(final Query query,
                                                          final KsqlEngine ksqlEngine,
+                                                         final KsqlConfig ksqlConfig,
                                                          final Properties streamsProperties) {
     final List<QueryMetadata> queries = new ArrayList<>();
     query.statements().forEach(
-        q -> queries.addAll(ksqlEngine.buildMultipleQueries(q, query.properties()))
+        q -> queries.addAll(
+            ksqlEngine.buildMultipleQueries(q, ksqlConfig, query.properties()))
     );
     return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),
         streamsProperties,
@@ -507,6 +509,8 @@ class EndToEndEngineTestUtil {
 
   static void shouldBuildAndExecuteQuery(final Query query) {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
     final Map<String, Object> config = new HashMap<String, Object>() {{
       put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
       put("application.id", "KSQL-TEST");
@@ -516,18 +520,17 @@ class EndToEndEngineTestUtil {
       put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     }};
     final Properties streamsProperties = new Properties();
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-
     streamsProperties.putAll(config);
+    final KsqlConfig ksqlConfig = new KsqlConfig(config);
 
     try (final KsqlEngine ksqlEngine = new KsqlEngine(
-        new KsqlConfig(config),
         new FakeKafkaTopicClient(),
         schemaRegistryClient,
         metaStore
     )) {
       query.initializeTopics(ksqlEngine);
-      final TopologyTestDriver testDriver = buildStreamsTopology(query, ksqlEngine, streamsProperties);
+      final TopologyTestDriver testDriver
+          = buildStreamsTopology(query, ksqlEngine, ksqlConfig, streamsProperties);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);
 

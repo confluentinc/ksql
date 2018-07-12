@@ -66,6 +66,7 @@ public class EndToEndIntegrationTest {
 
   private static final Logger log = LoggerFactory.getLogger(EndToEndIntegrationTest.class);
   private IntegrationTestHarness testHarness;
+  private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
 
   private PageViewDataProvider pageViewDataProvider;
@@ -84,9 +85,9 @@ public class EndToEndIntegrationTest {
     testHarness = new IntegrationTestHarness();
     testHarness.start(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
-    KsqlConfig ksqlconfig = testHarness.ksqlConfig.clone();
+    ksqlConfig = testHarness.ksqlConfig.clone();
 
-    ksqlEngine = new KsqlEngine(ksqlconfig);
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -101,11 +102,11 @@ public class EndToEndIntegrationTest {
         format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
                "userid varchar) WITH (kafka_topic='%s', value_format='JSON', key = 'userid');",
                userTable,
-               usersTopic), Collections.emptyMap());
+               usersTopic), ksqlConfig, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(
         format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
                "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream,
-               pageViewTopic), Collections.emptyMap());
+               pageViewTopic), ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -288,7 +289,7 @@ public class EndToEndIntegrationTest {
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries =
-        ksqlEngine.buildMultipleQueries(formatted, Collections.emptyMap());
+        ksqlEngine.buildMultipleQueries(formatted, ksqlConfig, Collections.emptyMap());
 
     queries.forEach(QueryMetadata::start);
 

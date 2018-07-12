@@ -20,7 +20,7 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class WithinExpressionTest {
 

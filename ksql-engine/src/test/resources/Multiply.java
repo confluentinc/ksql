@@ -26,17 +26,17 @@ import io.confluent.ksql.function.udf.UdfDescription;
 @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
 public class Multiply {
 
-  @Udf
+  @Udf(description = "multiply two ints")
   public long multiply(final int v1, final int v2) {
     return v1 * v2;
   }
 
-  @Udf
+  @Udf(description = "multiply two longs")
   public long multiply(final long v1, final long v2) {
     return v1 * v2;
   }
 
-  @Udf
+  @Udf(description = "multiply two doubles")
   public double multiply(final double v1, double v2) {
     return v1 * v2;
   }

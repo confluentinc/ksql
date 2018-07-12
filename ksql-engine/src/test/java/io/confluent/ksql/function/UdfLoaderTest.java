@@ -42,7 +42,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.testng.Assert.fail;
+import static org.junit.Assert.fail;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.

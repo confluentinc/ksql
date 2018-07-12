@@ -16,28 +16,28 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
 @JsonSubTypes({})
 public class Command {
-  private String statement;
-  private Map<String, Object> ksqlProperties;
+  private final String statement;
+  private final Map<String, Object> overwriteProperties;
+  private final Map<String, String> originalProperties;
 
-  public Command(String statement,
-                 Map<String, Object> ksqlProperties
-  ) {
+  @JsonCreator
+  public Command(@JsonProperty("statement") final String statement,
+                 @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
+                 @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
-    this.ksqlProperties = ksqlProperties;
-  }
-
-  public Command() {
-    this.statement = "";
-    this.ksqlProperties = null;
+    this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
+    this.originalProperties = originalProperties == null
+        ? Collections.emptyMap() : Collections.unmodifiableMap(originalProperties);
   }
 
   @JsonProperty("statement")
@@ -45,42 +45,35 @@ public class Command {
     return statement;
   }
 
-  public void setStatement(String statement) {
-    this.statement = statement;
-  }
-
   @JsonProperty("streamsProperties")
-  public Map<String, Object> getKsqlProperties() {
-    return new HashMap<>(ksqlProperties);
+  public Map<String, Object> getOverwriteProperties() {
+    return Collections.unmodifiableMap(overwriteProperties);
   }
 
-  public void setKsqlProperties(Map<String, Object> ksqlProperties) {
-    this.ksqlProperties = ksqlProperties;
+  @JsonProperty("originalProperties")
+  public Map<String, String> getOriginalProperties() {
+    return originalProperties;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Command)) {
-      return false;
-    }
-    Command command = (Command) o;
-    return Objects.equals(getStatement(), command.getStatement())
-        && Objects.equals(getKsqlProperties(), command.getKsqlProperties());
+    return
+        o instanceof Command
+        && Objects.equals(statement, ((Command)o).statement)
+        && Objects.equals(overwriteProperties, ((Command)o).overwriteProperties)
+        && Objects.equals(originalProperties, ((Command)o).originalProperties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, ksqlProperties);
+    return Objects.hash(statement, overwriteProperties, originalProperties);
   }
 
   @Override
   public String toString() {
     return "Command{"
         + "statement='" + statement + '\''
-        + ", ksqlProperties=" + ksqlProperties
+        + ", overwriteProperties=" + overwriteProperties
         + '}';
   }
 }

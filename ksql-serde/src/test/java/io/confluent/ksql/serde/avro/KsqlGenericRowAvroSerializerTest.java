@@ -235,11 +235,11 @@ public class KsqlGenericRowAvroSerializerTest {
   public void shouldSerializeBoolean() {
     shouldSerializeTypeCorrectly(
         Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        true,
+        false,
         org.apache.avro.SchemaBuilder.builder().booleanType());
     shouldSerializeTypeCorrectly(
         Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        false,
+        true,
         org.apache.avro.SchemaBuilder.builder().booleanType());
   }
 

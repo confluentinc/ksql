@@ -127,7 +127,10 @@ The Schema Registry URL path to connect KSQL to.
 ksql.service.id
 ---------------
 
-The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. The service ID is also used as
+The service ID of the KSQL server. This is used to define the KSQL cluster membership of a KSQL server instance. If multiple KSQL
+servers have the same ``ksql.service.id`` they will form a cluster and share the workload. 
+
+By default, the service ID of KSQL servers is ``default_``. The service ID is also used as
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 

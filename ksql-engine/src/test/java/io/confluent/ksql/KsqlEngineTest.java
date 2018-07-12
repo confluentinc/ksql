@@ -1,4 +1,4 @@
-ksql-engine/src/main/java/io/confluent/ksql/QueryEngine.java/*
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -260,6 +260,7 @@ public class KsqlEngineTest {
     ksqlEngine.getSchemaRegistryClient().register("bar-value", schema);
     ksqlEngine.buildMultipleQueries(
         "create stream bar with (value_format='avro', kafka_topic='bar');",
+        ksqlConfig,
         Collections.emptyMap());
 
     final StructuredDataSource source = ksqlEngine.getMetaStore().getSource("BAR");

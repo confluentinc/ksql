@@ -40,7 +40,6 @@ import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.StatementWithInferredSchema;
 import io.confluent.ksql.util.StatementWithSchema;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;

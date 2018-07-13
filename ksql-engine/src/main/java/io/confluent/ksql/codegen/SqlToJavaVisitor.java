@@ -298,10 +298,10 @@ public class SqlToJavaVisitor {
     private String nullCheckPrefix(ComparisonExpression.Type type) {
       switch (type) {
         case IS_DISTINCT_FROM:
-          return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
-              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
+          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
+              + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
         default:
-          return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
+          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
       }
     }
 

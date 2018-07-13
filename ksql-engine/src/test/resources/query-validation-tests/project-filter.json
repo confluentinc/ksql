@@ -42,6 +42,41 @@
           "timestamp": 0
         }
       ]
+    },
+    {
+      "name": "project and negative filter",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT name, id FROM test where id < -100;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,zero,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "-101,101,0.0",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S2",
+          "key": 101,
+          "value": "101,-101",
+          "timestamp": 0
+        }
+      ]
     }
   ]
 }

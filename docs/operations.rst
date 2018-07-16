@@ -108,3 +108,69 @@ KSQL doesn’t clean up its internal topics?
 ------------------------------------------
 Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
+---------------------------------------
+KSQL CLI doesn’t connect to KSQL server 
+---------------------------------------
+The following warning may occur when you start the KSQL CLI.   
+
+.. code:: bash
+
+    **************** WARNING ******************
+    Remote server address may not be valid:
+    Error issuing GET to KSQL server
+
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+    *******************************************
+
+Also, you may see a similar error when you create a KSQL query by using the
+CLI.
+
+.. code:: bash
+
+    Error issuing POST to KSQL server
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+
+In both cases, the CLI can't connect to the KSQL server. The connection failure
+may be caused by the KSQL server not listening on the correct port, which is
+port ``8088`` by default.
+
+Use the following command to check the process that's listening on port ``8088``.
+
+.. code:: bash
+
+    netstat -anv | egrep -w .*8088.*LISTEN
+
+Your output should resemble:
+
+.. code:: bash
+
+    tcp4  0 0  *.8088       *.*    LISTEN      131072 131072    46314      0
+
+In this example, ``46314`` is the PID of the process that's listening on port
+``8088``. Run the following command to get info on the process.
+
+.. code:: bash
+
+    ps -wwwp <pid>
+
+Your output should resemble:
+
+.. code:: bash
+
+    io.confluent.ksql.rest.server.KsqlServerMain ./config/ksql-server.properties
+
+If the ``KsqlServerMain`` process isn't shown, stop the process that's running
+on port ``8088`` and restart |cp|.
+
+----------------------
+Check KSQL server logs 
+----------------------
+If you're still having trouble, check the KSQL server logs for errors. 
+
+.. code:: bash
+
+    confluent log ksql-server
+
+

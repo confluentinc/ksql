@@ -90,6 +90,9 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
     final Map<String, Object> valueMap = (Map) schemaAndValue.value();
+    if (valueMap == null) {
+      return null;
+    }
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();

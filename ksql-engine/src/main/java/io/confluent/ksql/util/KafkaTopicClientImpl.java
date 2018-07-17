@@ -291,8 +291,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (topicDescription.partitions().size() != numPartitions
         || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
-              "A Kafka topic with the name '%s' already exists, with different partition/replica configuration than " +
-                      "required. KSQL expects %d partitions (topic has %d), and %d replication factor (topic has %d).",
+              "A Kafka topic with the name '%s' already exists, with different partition/replica "
+              + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
+              + "replication factor (topic has %d).",
               topic,
               numPartitions,
               topicDescription.partitions().size(),

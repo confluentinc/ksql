@@ -230,6 +230,8 @@ Similar to Kafka Streams, KSQL throughput scales well as resources are added, if
   lowering the data retention configuration for that underlying stream topic.
 - Increase the number of partitions in the input topic.
 
+To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``. 
+
 How to Know When to Scale
 +++++++++++++++++++++++++
 

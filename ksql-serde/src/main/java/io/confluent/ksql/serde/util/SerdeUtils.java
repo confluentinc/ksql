@@ -20,7 +20,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
 public class SerdeUtils {
-
   public static boolean toBoolean(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {

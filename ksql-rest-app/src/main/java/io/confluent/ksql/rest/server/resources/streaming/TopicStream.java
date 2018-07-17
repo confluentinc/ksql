@@ -71,6 +71,7 @@ public final class TopicStream {
       return StreamSupport
           .stream(records.records(topicName).spliterator(), false)
           .filter(Objects::nonNull)
+          .filter(r -> r.value() != null)
           .map((record) -> {
             if (formatter == null) {
               formatter = getFormatter(record);
@@ -100,7 +101,7 @@ public final class TopicStream {
     }
   }
 
-  private interface Formatter {
+  interface Formatter {
 
     String print(ConsumerRecord<String, Bytes> consumerRecord) throws IOException;
 
@@ -206,9 +207,10 @@ public final class TopicStream {
 
           @Override
           public String print(final ConsumerRecord<String, Bytes> record) {
-            final String key = record.key() != null ? record.key() : "null";
+            final String key = record.key() != null ? record.key() : "NULL";
+            final String value = record.value() != null ? record.value().toString() : "NULL";
             return dateFormat.format(new Date(record.timestamp())) + " , " + key
-                   + " , " + record.value().toString() + "\n";
+                   + " , " + value + "\n";
           }
 
           @Override

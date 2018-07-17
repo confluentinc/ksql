@@ -12,9 +12,13 @@ import org.apache.kafka.common.utils.Bytes;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -29,10 +33,15 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TopicStreamTest {
 
@@ -120,6 +129,36 @@ public class TopicStreamTest {
 
     // Then:
     assertThat(result.format, is(not(Format.JSON)));
+  }
+
+  @Test
+  public void shouldFilterNullValues() {
+    replay(schemaRegistryClient);
+
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        "some-topic", 1, 1, "key", null);
+    final RecordFormatter formatter =
+        new RecordFormatter(schemaRegistryClient, "some-topic");
+    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
+        ImmutableMap.of(new TopicPartition("some-topic", 1),
+            ImmutableList.of(record)));
+
+    assertThat(formatter.format(records), empty());
+  }
+
+  @Test
+  public void shouldHandleNullValuesFromSTRINGPrint() throws IOException {
+    final DateFormat dateFormat =
+        SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
+
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        "some-topic", 1, 1, "key", null);
+
+    final String formatted =
+        Format.STRING.maybeGetFormatter(
+            "some-topic", record, null, dateFormat).get().print(record);
+
+    assertThat(formatted, endsWith(", key , NULL\n"));
   }
 
   private Result getFormatter(final String data) {

@@ -161,6 +161,20 @@ public class SqlFormatterTest {
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }
 
+  @Test
+  public void shouldFormatCreateWithEmptySchema() {
+    CreateStream createStream = new CreateStream(
+        QualifiedName.of("TEST"),
+        Collections.emptyList(),
+        false,
+        Collections.singletonMap(
+            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
+            new StringLiteral("topic_test")
+        ));
+    String sql = SqlFormatter.formatSql(createStream);
+    String expectedSql = "CREATE STREAM TEST \n WITH (KAFKA_TOPIC='topic_test');";
+    assertThat(sql, equalTo(expectedSql));
+  }
 
   @Test
   public void shouldFormatLeftJoinWithWithin() {

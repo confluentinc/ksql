@@ -64,7 +64,7 @@ public class TopicStream {
       return StreamSupport
           .stream(records.records(topicName).spliterator(), false)
           .map((record) -> {
-            if (record == null) {
+            if (record == null || record.value() == null) {
               return null;
             }
             if (format == Format.UNDEFINED) {
@@ -187,10 +187,11 @@ public class TopicStream {
       return false;
     }
 
-    String print(ConsumerRecord<String, Bytes> record) throws IOException {
-      String key = record.key() != null ? record.key() : "null";
+    String print(final ConsumerRecord<String, Bytes> record) throws IOException {
+      final String key = record.key() != null ? record.key() : "NULL";
+      final String value = record.value() != null ? record.value().toString() : "NULL";
       return dateFormat.format(new Date(record.timestamp())) + " , " + key
-          + " , " + record.value().toString() + "\n";
+          + " , " + value + "\n";
     }
 
   }

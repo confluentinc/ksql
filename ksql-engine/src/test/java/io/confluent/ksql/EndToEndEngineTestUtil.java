@@ -200,6 +200,9 @@ class EndToEndEngineTestUtil {
 
     @Override
     public Object deserialize(final String topicName, final byte[] data) {
+      if (data == null) {
+        return null;
+      }
       try {
         return new ObjectMapper().readValue(data, Map.class);
       } catch (Exception e) {
@@ -219,6 +222,9 @@ class EndToEndEngineTestUtil {
 
     @Override
     public byte[] serialize(final String topicName, final Object spec) {
+      if (spec == null) {
+        return null;
+      }
       try {
         return new ObjectMapper().writeValueAsBytes(spec);
       } catch (Exception e) {
@@ -546,10 +552,15 @@ class EndToEndEngineTestUtil {
     }
     switch (schema.getType()) {
       case INT:
+        return Integer.valueOf(spec.toString());
       case LONG:
+        return Long.valueOf(spec.toString());
       case STRING:
+        return spec.toString();
       case DOUBLE:
+        return Double.valueOf(spec.toString());
       case FLOAT:
+        return Float.valueOf(spec.toString());
       case BOOLEAN:
         return spec;
       case ARRAY:
@@ -593,10 +604,16 @@ class EndToEndEngineTestUtil {
     }
     switch (schema.getType()) {
       case INT:
-      case LONG:
-      case DOUBLE:
       case FLOAT:
+      case DOUBLE:
       case BOOLEAN:
+        return avro;
+      case LONG:
+        // Ensure that smaller long values match the value spec from the test file.
+        // The json deserializer uses Integer for any number less than Integer.MAX_VALUE.
+        if (((Long)avro) < Integer.MAX_VALUE && ((Long)avro) > Integer.MIN_VALUE) {
+          return ((Long)avro).intValue();
+        }
         return avro;
       case STRING:
         return avro.toString();

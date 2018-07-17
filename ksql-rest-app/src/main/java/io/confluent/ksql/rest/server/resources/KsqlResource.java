@@ -22,7 +22,6 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.ShowFunctions;
@@ -41,6 +40,7 @@ import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.StatementWithSchema;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
@@ -253,12 +253,12 @@ public class KsqlResource {
         || statement instanceof CreateAsSelect
         || statement instanceof InsertInto
         || statement instanceof TerminateQuery) {
-      Statement statementWithSchema = maybeAddFieldsFromSchemaRegistry(
-          statement, streamsProperties);
+      final StatementWithSchema statementWithSchema
+          = StatementWithSchema.forStatement(
+              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
       getStatementExecutionPlan(
-          statementWithSchema,
-          statementWithSchema == statement
-              ? statementText : SqlFormatter.formatSql(statementWithSchema),
+          statementWithSchema.getStatement(),
+          statementWithSchema.getStatementText(),
           streamsProperties);
     } else {
       throw new KsqlRestException(
@@ -328,12 +328,14 @@ public class KsqlResource {
                || statement instanceof InsertInto
                || statement instanceof TerminateQuery
     ) {
-      Statement statementWithSchema = maybeAddFieldsFromSchemaRegistry(
-          statement, streamsProperties);
+      final StatementWithSchema statementWithSchema
+          = StatementWithSchema.forStatement(
+              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
       return distributeStatement(
-          statementWithSchema == statement
-              ? statementText : SqlFormatter.formatSql(statementWithSchema),
-          statement, streamsProperties, ksqlConfig);
+          statementWithSchema.getStatementText(),
+          statementWithSchema.getStatement(),
+          streamsProperties,
+          ksqlConfig);
     } else if (statement instanceof ShowFunctions) {
       return listFunctions(statementText);
     } else if (statement instanceof DescribeFunction) {

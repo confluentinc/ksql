@@ -20,21 +20,40 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectSchemaTranslator {
-  public Schema toKsqlSchema(final Schema schema) {
-    final Schema rowSchema = toKsqlFieldSchema(schema);
-    if (rowSchema.type() != Schema.Type.STRUCT) {
-      throw new KsqlException("KSQL stream/table schema must be structured");
+  private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
+
+  protected static class UnsupportedTypeException extends RuntimeException {
+    public UnsupportedTypeException(final String error) {
+      super(error);
     }
-    return rowSchema;
+  }
+
+  public Schema toKsqlSchema(final Schema schema) {
+    try {
+      final Schema rowSchema = toKsqlFieldSchema(schema);
+      if (rowSchema.type() != Schema.Type.STRUCT) {
+        throw new KsqlException("KSQL stream/table schema must be structured");
+      }
+      return rowSchema;
+    } catch (UnsupportedTypeException e) {
+      throw new KsqlException("Unsupported type at root of schema: " + e.getMessage(), e);
+    }
   }
 
   protected Schema toKsqlFieldSchema(final Schema schema) {
     switch (schema.type()) {
+      case INT8:
+      case INT16:
       case INT32:
-      case INT64:
+        return Schema.OPTIONAL_INT32_SCHEMA;
+      case FLOAT32:
       case FLOAT64:
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
+      case INT64:
       case STRING:
       case BOOLEAN:
         return SchemaBuilder.type(schema.type()).optional().build();
@@ -45,15 +64,15 @@ public class ConnectSchemaTranslator {
       case STRUCT:
         return toKsqlStructSchema(schema);
       default:
-        throw new KsqlException(
-            String.format("Unsupported Schema type: %s", schema.type().getName()));
+        throw new UnsupportedTypeException(
+            String.format("Unsupported type: %s", schema.type().getName()));
     }
   }
 
   private Schema toKsqlMapSchema(final Schema schema) {
     final Schema keySchema = toKsqlFieldSchema(schema.keySchema());
     if (!keySchema.type().equals(Schema.Type.STRING)) {
-      throw new KsqlException("Map key must be of type STRING");
+      throw new UnsupportedTypeException("Map key must be of type STRING");
     }
     return SchemaBuilder.map(
         keySchema,
@@ -70,9 +89,11 @@ public class ConnectSchemaTranslator {
   private Schema toKsqlStructSchema(final Schema schema) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
-      final Schema fieldSchema = toKsqlFieldSchema(field.schema());
-      if (fieldSchema != null) {
+      try {
+        final Schema fieldSchema = toKsqlFieldSchema(field.schema());
         schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+      } catch (UnsupportedTypeException e) {
+        log.error("Error inferring schema at field %s: %s", field.name(), e.getMessage());
       }
     }
     return schemaBuilder.optional().build();

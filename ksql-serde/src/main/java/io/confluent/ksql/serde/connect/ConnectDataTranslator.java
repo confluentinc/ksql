@@ -163,6 +163,7 @@ public class ConnectDataTranslator implements DataTranslator {
       case STRUCT:
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
       case STRING:
+        // use String.valueOf to convert various int types and Boolean to string
         return String.valueOf(convertedValue);
       default:
         return convertedValue;

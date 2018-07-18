@@ -87,15 +87,18 @@ public class AvroUtil {
       return abstractStreamCreateStatementCopy;
 
     } catch (final Exception e) {
-      throw new KsqlException("KSQL does not currently support the Avro schema for topic "+kafkaTopicName+
-              ".\nReason: " + e.getMessage()+"\n\n"+
-              "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular reason is already\n"+
-              "known, and if not log a new issue. Please include the full Avro schema that you are trying to use."
+      throw new KsqlException("Unable to verify if the Avro schema for topic " + kafkaTopicName
+              + " is compatible with KSQL.\nReason: " + e.getMessage() + "\n\n"
+              + "Please see https://github.com/confluentinc/ksql/issues/ to see if this "
+              + "particular reason is already\n"
+              + "known, and if not log a new issue. Please include the full Avro schema "
+              + "that you are trying to use."
       );
     }
   }
 
-  private static SchemaMetadata getSchemaMetadata(final AbstractStreamCreateStatement abstractStreamCreateStatement,
+  private static SchemaMetadata getSchemaMetadata(final AbstractStreamCreateStatement
+                                                          abstractStreamCreateStatement,
                                                   final SchemaRegistryClient schemaRegistryClient,
                                                   final String kafkaTopicName) {
     try {
@@ -106,23 +109,27 @@ public class AvroUtil {
       );
     } catch (final RestClientException e) {
       if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
-        throw new KsqlException("Avro schema for message values on topic " + kafkaTopicName +
-                " does not exist in the Schema Registry.\n"+
-                "Subject: " + kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX + "\n\n" +
-                "Possible causes include:\n" +
-                "- The topic itself does not exist\n"+
-                "\t-> Use SHOW TOPICS; to check\n" +
-                "- Messages on the topic are not Avro serialized\n" +
-                "\t-> Use PRINT '"+ kafkaTopicName+"' FROM BEGINNING; to verify\n" +
-                "- Messages on the topic have not been serialized using the Confluent Schema Registry Avro serializer\n" +
-                "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html\n" +
-                "- The schema is registered on a different instance of the Schema Registry\n" +
-                "\t-> Use the REST API to list available subjects\n\t   https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n"
+        throw new KsqlException("Avro schema for message values on topic " + kafkaTopicName
+                + " does not exist in the Schema Registry.\n"
+                + "Subject: " + kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX + "\n\n"
+                + "Possible causes include:\n"
+                + "- The topic itself does not exist\n"
+                + "\t-> Use SHOW TOPICS; to check\n"
+                + "- Messages on the topic are not Avro serialized\n"
+                + "\t-> Use PRINT '" + kafkaTopicName + "' FROM BEGINNING; to verify\n"
+                + "- Messages on the topic have not been serialized using the Confluent Schema "
+                + "Registry Avro serializer\n"
+                + "\t-> See " + KsqlConstants.DOC_URL_SR_SERIALISER + "\n"
+                + "- The schema is registered on a different instance of the Schema Registry\n"
+                + "\t-> Use the REST API to list available subjects\n\t"
+                + KsqlConstants.DOC_URL_SR_REST_GETSUBJECTS + "\n"
                 );
       }
-      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName + " request failed.\n", e);
+      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName
+              + " request failed.\n", e);
     } catch (final Exception e) {
-      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName + " request failed.\n", e);
+      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName
+              + " request failed.\n", e);
     }
   }
 

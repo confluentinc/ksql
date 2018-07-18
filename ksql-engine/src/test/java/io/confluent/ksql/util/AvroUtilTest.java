@@ -103,7 +103,7 @@ public class AvroUtilTest {
   public void shouldThrowIfAvroSchemaNotCompatibleWithKsql() throws Exception {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-            "KSQL does not currently support the Avro schema for topic s1_topic.\n" +
+            "Unable to verify if the Avro schema for topic s1_topic is compatible with KSQL.\n" +
                     "Reason: No name in schema: {\"type\":\"record\"}\n" +
                     "\n" +
                     "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular reason is already\n" +
@@ -136,8 +136,8 @@ public class AvroUtilTest {
                     "- Messages on the topic have not been serialized using the Confluent Schema Registry Avro serializer\n" +
                     "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html\n" +
                     "- The schema is registered on a different instance of the Schema Registry\n" +
-                    "\t-> Use the REST API to list available subjects\n" +
-                    "\t   https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n");
+                    "\t-> Use the REST API to list available subjects\n\t" +
+                    "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n");
 
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString()))

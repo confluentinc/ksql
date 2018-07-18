@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -25,7 +24,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 
 public class ConnectSchemaTranslatorTest {
@@ -160,30 +158,29 @@ public class ConnectSchemaTranslatorTest {
   }
 
   @Test
-  public void shouldThrowOnNonStringMapKey() {
+  public void shouldTranslateMapWithNonStringKey() {
     final Schema connectSchema = SchemaBuilder
         .struct()
-        .field("map", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .field("mapfield", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    try {
-      schemaTranslator.toKsqlSchema(connectSchema);
-      fail("Schema translator should fail on seeing a BYTES field");
-    } catch (KsqlException e) {
-    }
+    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+
+    assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
+    final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
+    assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
+    assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(mapSchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
-  public void shouldThrowOnUnsupportedType() {
+  public void shouldIgnoreUnsupportedType() {
     final Schema connectSchema = SchemaBuilder
         .struct()
         .field("bytesField", Schema.BYTES_SCHEMA)
         .build();
 
-    try {
-      schemaTranslator.toKsqlSchema(connectSchema);
-      fail("Schema translator should fail on seeing a BYTES field");
-    } catch (KsqlException e) {
-    }
+    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.fields().size(), equalTo(0));
   }
 }

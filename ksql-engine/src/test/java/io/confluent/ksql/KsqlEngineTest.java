@@ -19,6 +19,7 @@ package io.confluent.ksql;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.tree.Map;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
@@ -49,10 +50,12 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -245,6 +248,29 @@ public class KsqlEngineTest {
     ksqlEngine.buildMultipleQueries("DROP STREAM bar;", ksqlConfig, Collections.emptyMap());
     assertThat(topicClient.isTopicExists("BAR"), equalTo(true));
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+  }
+
+  @Test
+  public void shouldInferSchemaIfNotPresent() throws Exception {
+    final Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("field").type().intType().noDefault()
+        .endRecord();
+    topicClient.createTopic("bar", 1, (short) 1);
+    ksqlEngine.getSchemaRegistryClient().register("bar-value", schema);
+    ksqlEngine.buildMultipleQueries(
+        "create stream bar with (value_format='avro', kafka_topic='bar');",
+        ksqlConfig,
+        Collections.emptyMap());
+
+    final StructuredDataSource source = ksqlEngine.getMetaStore().getSource("BAR");
+    final org.apache.kafka.connect.data.Schema ksqlSchema = source.getSchema();
+    assertThat(ksqlSchema.fields().size(), equalTo(3));
+    assertThat(ksqlSchema.fields().get(2).name(), equalTo("FIELD"));
+    assertThat(
+        ksqlSchema.fields().get(2).schema(),
+        equalTo(org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(source.getSqlExpression(), containsString("(FIELD INTEGER)"));
   }
 
   @Test

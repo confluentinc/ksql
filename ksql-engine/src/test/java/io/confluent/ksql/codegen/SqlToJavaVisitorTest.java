@@ -131,4 +131,15 @@ public class SqlToJavaVisitorTest {
             + "((String) CONCAT_2.evaluate(\"-\","
             + " ((String) SUBSTRING_3.evaluate(TEST1_COL1, Integer.parseInt(\"4\"), Integer.parseInt(\"5\")))))))"));
   }
+
+  @Test
+  public void shouldGenerateCorrectCodeForComparisonWithNegativeNumbers() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col3 > -10.0;");
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
+  }
+
 }

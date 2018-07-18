@@ -43,12 +43,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.util.KsqlException;
 
 @Path("/query")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})

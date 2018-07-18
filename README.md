@@ -1,4 +1,5 @@
-# ![KSQL rocket](ksq-lrocket.png) KSQL - Streaming SQL for Apache Kafka
+# ![KSQL rocket](ksq-lrocket.png) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fconfluentinc%2Fksql.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fconfluentinc%2Fksql?ref=badge_shield)
+KSQL - Streaming SQL for Apache Kafka
 
 > **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
 
@@ -146,3 +147,6 @@ Contributions to the code, examples, documentation, etc. are very much appreciat
 The project is [licensed](LICENSE) under the Apache License, version 2.0.
 
 *Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/).*
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fconfluentinc%2Fksql.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fconfluentinc%2Fksql?ref=badge_large)

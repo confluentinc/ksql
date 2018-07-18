@@ -62,11 +62,16 @@ public class IntegrationTestHarness {
 
   public SchemaRegistryClient schemaRegistryClient;
 
-  public static final AtomicInteger consumedCount = new AtomicInteger(0);
-  public static final AtomicInteger producedCount = new AtomicInteger(0);
+  private final AtomicInteger consumedCount;
+  private final AtomicInteger producedCount;
+
+  private static IntegrationTestHarness THIS;
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
+    THIS = this;
+    consumedCount = new AtomicInteger(0);
+    producedCount = new AtomicInteger(0);
   }
 
   public KafkaTopicClient topicClient() {
@@ -255,7 +260,7 @@ public class IntegrationTestHarness {
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
 
     public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
-      consumedCount.updateAndGet((current) -> current + consumerRecords.count());
+      THIS.consumedCount.updateAndGet((current) -> current + consumerRecords.count());
       return consumerRecords;
     }
 
@@ -276,7 +281,7 @@ public class IntegrationTestHarness {
     }
 
     public ProducerRecord onSend(final ProducerRecord producerRecord) {
-      producedCount.incrementAndGet();
+      THIS.producedCount.incrementAndGet();
       return producerRecord;
     }
 
@@ -332,6 +337,14 @@ public class IntegrationTestHarness {
                                      dataSourceSerDe),
                        timestamp);
 
+  }
+
+  public int getConsumedCount() {
+    return consumedCount.intValue();
+  }
+
+  public int getProducedCount() {
+    return producedCount.intValue();
   }
 
   private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {

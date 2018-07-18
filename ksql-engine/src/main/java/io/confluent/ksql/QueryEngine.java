@@ -17,7 +17,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StatementWithSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

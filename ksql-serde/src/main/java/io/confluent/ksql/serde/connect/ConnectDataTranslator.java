@@ -85,11 +85,15 @@ public class ConnectDataTranslator implements DataTranslator {
                               final Schema connectSchema) {
     switch (schema.type()) {
       case BOOLEAN:
-      case STRING:
       case ARRAY:
       case MAP:
       case STRUCT:
         validateType(pathStr, schema, connectSchema, schema.type());
+        break;
+      case STRING:
+        validateType(pathStr, schema, connectSchema,
+            Schema.Type.INT8, Schema.Type.INT16, Schema.Type.INT32, Schema.Type.INT64,
+            Schema.Type.BOOLEAN, Schema.Type.STRING);
         break;
       case INT64:
         validateType(
@@ -158,6 +162,9 @@ public class ConnectDataTranslator implements DataTranslator {
             schema.valueSchema(), connectSchema.valueSchema(), (Map) convertedValue, pathStr);
       case STRUCT:
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
+      case STRING:
+        // use String.valueOf to convert various int types and Boolean to string
+        return String.valueOf(convertedValue);
       default:
         return convertedValue;
     }

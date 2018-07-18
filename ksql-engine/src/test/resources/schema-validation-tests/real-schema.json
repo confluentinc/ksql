@@ -1,7 +1,7 @@
 {
   "tests": [
     {
-      "name": "connect schema (twitter)",
+      "name": "connect example schema (twitter)",
       "schema": {
         "type": "record",
         "name": "Status",

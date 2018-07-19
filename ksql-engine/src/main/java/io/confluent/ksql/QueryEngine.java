@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.StatementWithSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -41,7 +42,6 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
@@ -56,8 +56,6 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.util.AvroUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -206,16 +204,14 @@ class QueryEngine {
     if (statement instanceof AbstractStreamCreateStatement) {
       AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
           statement;
-      AbstractStreamCreateStatement streamCreateStatementWithSchema =
-          maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
+      final StatementWithSchema statementWithSchema
+          = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
-      if (streamCreateStatementWithSchema.getElements().isEmpty()) {
+      statement = (DdlStatement) statementWithSchema.getStatement();
+      sqlExpression = statementWithSchema.getStatementText();
+
+      if (((AbstractStreamCreateStatement) statement).getElements().isEmpty()) {
         throw new KsqlException("The statement or topic schema does not define any columns.");
-      }
-
-      if (streamCreateStatementWithSchema != streamCreateStatement) {
-        statement = (DdlStatement)streamCreateStatementWithSchema;
-        sqlExpression = SqlFormatter.formatSql(streamCreateStatementWithSchema);
       }
     }
     final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
@@ -244,25 +240,26 @@ class QueryEngine {
     );
   }
 
-  private AbstractStreamCreateStatement maybeAddFieldsFromSchemaRegistry(
-      AbstractStreamCreateStatement streamCreateStatement
+  private StatementWithSchema maybeAddFieldsFromSchemaRegistry(
+      final AbstractStreamCreateStatement streamCreateStatement,
+      final String statementText
   ) {
     if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-      String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
+      final String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
           streamCreateStatement
               .getProperties()
               .get(DdlConfig.TOPIC_NAME_PROPERTY)
               .toString()
               .toUpperCase()
       );
-      KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
+      final KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
       if (ksqlTopic == null) {
         throw new KsqlException(String.format(
             "Could not find %s topic in the metastore.",
             ksqlRegisteredTopicName
         ));
       }
-      Map<String, Expression> newProperties = new HashMap<>();
+      final Map<String, Expression> newProperties = new HashMap<>();
       newProperties.put(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic.getKafkaTopicName())
       );
@@ -272,15 +269,20 @@ class QueryEngine {
               ksqlTopic.getKsqlTopicSerDe().getSerDe().toString()
           )
       );
-      streamCreateStatement = streamCreateStatement.copyWith(
+      final AbstractStreamCreateStatement statementWithProperties = streamCreateStatement.copyWith(
           streamCreateStatement.getElements(),
-          newProperties
+          newProperties);
+      return StatementWithSchema.forStatement(
+          statementWithProperties,
+          SqlFormatter.formatSql(statementWithProperties),
+          new HashMap<>(),
+          ksqlEngine.getSchemaRegistryClient()
       );
     }
-    return AvroUtil.checkAndSetAvroSchema(
+    return StatementWithSchema.forStatement(
         streamCreateStatement,
+        statementText,
         new HashMap<>(),
         ksqlEngine.getSchemaRegistryClient());
   }
-
 }

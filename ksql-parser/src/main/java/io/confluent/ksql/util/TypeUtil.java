@@ -101,6 +101,4 @@ public class TypeUtil {
     }
     return structSchemaBuilder.optional().build();
   }
-
-
 }

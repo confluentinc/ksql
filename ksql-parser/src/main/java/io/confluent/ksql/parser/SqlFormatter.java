@@ -337,7 +337,7 @@ public final class SqlFormatter {
       if (!node.getElements().isEmpty()) {
         builder.append("(");
         boolean addComma = false;
-        for (TableElement tableElement: node.getElements()) {
+        for (TableElement tableElement : node.getElements()) {
           if (addComma) {
             builder.append(", ");
           } else {
@@ -347,8 +347,11 @@ public final class SqlFormatter {
               .append(" ")
               .append(tableElement.getType());
         }
-        builder.append(")").append(" WITH (");
-        addComma = false;
+        builder.append(")");
+      }
+      if (!node.getProperties().isEmpty()) {
+        builder.append(" WITH (");
+        boolean addComma = false;
         for (Map.Entry property: node.getProperties().entrySet()) {
           if (addComma) {
             builder.append(", ");

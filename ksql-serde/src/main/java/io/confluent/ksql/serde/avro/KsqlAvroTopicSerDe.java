@@ -61,7 +61,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
                                               final boolean isInternal,
                                               final SchemaRegistryClient schemaRegistryClient) {
     final Schema schema = isInternal
-        ? SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource) : schemaMaybeWithSource;
+        ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer =
         new KsqlConnectSerializer(
             new AvroDataTranslator(schema),

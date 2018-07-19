@@ -1,7 +1,6 @@
 package io.confluent.ksql.integration;
 
 
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -34,6 +33,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
@@ -46,6 +46,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
 
 
+@SuppressWarnings("unchecked")
 public class IntegrationTestHarness {
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;

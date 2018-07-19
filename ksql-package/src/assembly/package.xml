@@ -45,6 +45,14 @@
                 <include>*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.parent.basedir}/ksql-examples/src/main/resources</directory>
+            <outputDirectory>resources/example-schemas</outputDirectory>
+            <includes>
+                <include>*.avro</include>
+            </includes>
+        </fileSet>
+
     </fileSets>
     <dependencySets>
         <dependencySet>

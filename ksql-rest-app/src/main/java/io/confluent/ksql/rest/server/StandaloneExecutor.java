@@ -18,8 +18,20 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
@@ -32,7 +44,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -115,20 +129,74 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries, ksqlConfig);
-    for (final QueryMetadata queryMetadata : queryMetadataList) {
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMd.start();
+    final List<Pair<String, Statement>> statementPairs =
+        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
+    final Map<String, Object> configProperties = new HashMap<>();
+    for (Pair<String, Statement> statementPair: statementPairs) {
+      final String statementString = statementPair.getLeft();
+      final Statement statement = statementPair.getRight();
+      if (statement instanceof SetProperty) {
+        final SetProperty setProperty = (SetProperty) statement;
+        configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+      } else if (statement instanceof UnsetProperty) {
+        final UnsetProperty unsetProperty = (UnsetProperty) statement;
+        configProperties.remove(unsetProperty.getPropertyName());
+      } else if (statement instanceof AbstractStreamCreateStatement) {
+        ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
+      } else if (statement instanceof CreateAsSelect || statement instanceof InsertInto) {
+        handlePersistentQuery(statement, statementString, configProperties);
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
-            + "%nOnly CREATE statements can run in standalone mode.",
-            queryMetadata.getStatementString()
+                + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
+                + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
+            statementString
         );
         System.err.println(message);
         log.warn(message);
       }
+    }
+
+  }
+
+  private void handlePersistentQuery(
+      final Statement statement,
+      final String statementString,
+      final Map<String, Object> configProperties) {
+    final Query query;
+    if (statement instanceof CreateAsSelect) {
+      query = ((CreateAsSelect) statement).getQuery();
+    } else if (statement instanceof InsertInto) {
+      query = ((InsertInto) statement).getQuery();
+    } else {
+      throw new KsqlException("Only CSAS/CTAS and INSERT INTO are persistent queries: "
+          + statementString);
+    }
+
+    final QueryMetadata queryMetadata =
+        ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+    if (statement instanceof CreateAsSelect) {
+      validateCsasCtas(queryMetadata, (CreateAsSelect) statement);
+    }
+    final List<QueryMetadata> queryMetadataList =
+        ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
+    if (queryMetadataList.isEmpty()
+        || !(queryMetadataList.get(0) instanceof PersistentQueryMetadata)) {
+      throw new KsqlException("Could not build the query: " + statementString);
+    }
+    queryMetadataList.get(0).start();
+  }
+
+  private void validateCsasCtas(final QueryMetadata queryMetadata,
+      final CreateAsSelect createAsSelect) {
+    if (createAsSelect instanceof CreateStreamAsSelect
+        && queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+      throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. "
+          + "Please use CREATE TABLE AS SELECT statement instead.");
+    } else if (createAsSelect instanceof CreateTableAsSelect
+        && queryMetadata.getDataSourceType() == DataSourceType.KSTREAM) {
+      throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. "
+          + "Please use CREATE STREAM AS SELECT statement instead.");
     }
   }
 

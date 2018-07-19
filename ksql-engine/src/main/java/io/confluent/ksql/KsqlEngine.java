@@ -312,6 +312,34 @@ public class KsqlEngine implements Closeable {
     }
   }
 
+  public List<PreparedStatement> parseStatements(
+      final String queriesString,
+      final MetaStore tempMetaStore,
+      final boolean queriesOnly
+  ) {
+    try {
+      final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
+      final KsqlParser ksqlParser = new KsqlParser();
+
+      final List<PreparedStatement> statements = ksqlParser.buildAst(
+          queriesString,
+          tempMetaStoreForParser,
+          stmt -> buildSingleQueryAst(
+              stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
+
+      if (queriesOnly) {
+        return statements
+            .stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+      } else {
+        return statements;
+      }
+    } catch (Exception e) {
+      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
+    }
+  }
+
   private PreparedStatement buildSingleQueryAst(
       final Statement statement,
       final String statementString,

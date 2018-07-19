@@ -36,23 +36,36 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -385,4 +398,37 @@ public class KsqlEngineTest {
 
     verify(mockKsqlSerde);
   }
+
+  @Test
+  public void shouldParseMultipleStatements() {
+    final String statementsString = readStatementsFromFile(
+        "src/test/resources/SampleMultilineStatements.sql");
+
+    final List<PreparedStatement> parsedStatements =
+        ksqlEngine.parseStatements(statementsString, new MetaStoreImpl(new TestFunctionRegistry()), false);
+    assertThat(parsedStatements.size(), equalTo(7));
+    assertThat(parsedStatements.get(0).getStatement(), instanceOf(CreateStream.class));
+    assertThat(parsedStatements.get(1).getStatement(), instanceOf(SetProperty.class));
+    assertThat(parsedStatements.get(2).getStatement(), instanceOf(CreateTable.class));
+    assertThat(parsedStatements.get(3).getStatement(), instanceOf(CreateStreamAsSelect.class));
+    assertThat(parsedStatements.get(5).getStatement(), instanceOf(UnsetProperty.class));
+
+  }
+
+  private static String readStatementsFromFile(final String queryFilePath) {
+    final StringBuilder sb = new StringBuilder();
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
+      String line = br.readLine();
+      while (line != null) {
+        sb.append(line);
+        sb.append(System.lineSeparator());
+        line = br.readLine();
+      }
+    } catch (IOException e) {
+      throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
+    }
+    return sb.toString();
+  }
+
 }

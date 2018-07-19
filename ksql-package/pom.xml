@@ -16,12 +16,7 @@
 
     <!-- Dependencies are required only to ensure this module is built last. -->
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
+       <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-cli</artifactId>
         </dependency>

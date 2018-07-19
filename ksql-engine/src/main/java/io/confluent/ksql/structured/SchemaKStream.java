@@ -148,7 +148,7 @@ public class SchemaKStream {
     private Field key;
     private SelectValueMapper selectValueMapper;
 
-    public Selection(
+    Selection(
         final List<Pair<String, Expression>> expressionPairList,
         final FunctionRegistry functionRegistry,
         final SchemaKStream fromStream) {

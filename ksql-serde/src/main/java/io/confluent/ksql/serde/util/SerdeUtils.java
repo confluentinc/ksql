@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,14 @@
 
 package io.confluent.ksql.serde.util;
 
-import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
-public class SerdeUtils {
+import io.confluent.ksql.util.KsqlException;
+
+public final class SerdeUtils {
+  private SerdeUtils() {
+  }
+
   public static boolean toBoolean(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {

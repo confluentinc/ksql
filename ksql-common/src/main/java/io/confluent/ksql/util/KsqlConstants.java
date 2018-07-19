@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-public class KsqlConstants {
+public final class KsqlConstants {
 
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
@@ -53,4 +53,7 @@ public class KsqlConstants {
           "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
   public static final String DOC_URL_SR_REST_GETSUBJECTS =
           "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
+
+  private KsqlConstants() {
+  }
 }

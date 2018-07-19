@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,10 @@ package io.confluent.ksql.util;
 
 import java.util.List;
 
-public class StringUtil {
+public final class StringUtil {
+
+  private StringUtil() {
+  }
 
   public static String cleanQuotes(final String stringWithQuotes) {
     // TODO: move check to grammar

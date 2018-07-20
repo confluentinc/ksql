@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.function;
 
-public final class FunctionUtil {
+public final class UdfUtil {
 
-  private FunctionUtil() {
+  private UdfUtil() {
 
   }
 
@@ -46,9 +46,10 @@ public final class FunctionUtil {
       if (args[i] == null) {
         continue;
       }
-      if (args[i].getClass() != argTypes[i]) {
+
+      if (!argTypes[i].isAssignableFrom(args[i].getClass())) {
         throw new KsqlFunctionException(
-            String.format("Inorrect arguments type for %s. "
+            String.format("Incorrect arguments type for %s. "
                 + "Expected %s for arg number %d but found %s.",
                 functionName,
                 argTypes[i].getCanonicalName(),

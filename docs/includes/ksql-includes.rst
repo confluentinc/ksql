@@ -401,6 +401,8 @@ queries.
 
        ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
+   .. tip:: The actual name of the query running may vary; refer to the output of ``SHOW QUERIES;``.
+
 #. Run this command to exit the KSQL CLI.
 
    .. code:: bash

@@ -15,29 +15,6 @@
 package io.confluent.ksql.physical;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metrics.ConsumerCollector;
-import io.confluent.ksql.metrics.ProducerCollector;
-import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryMetadata;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
@@ -56,14 +33,39 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryMetadata;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+@SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
 
   private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";

@@ -16,21 +16,22 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.planner.plan.OutputNode;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.DataSource;
 
 public class QueryMetadata {
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
@@ -63,9 +64,9 @@ public class QueryMetadata {
     this.kafkaTopicClient = kafkaTopicClient;
     this.topoplogy = topoplogy;
     this.overriddenProperties = overriddenProperties;
-    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
-    planSourceExtractorVisitor.process(outputNode, null);
-    this.sourceNames = planSourceExtractorVisitor.getSourceNames();
+    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
+    visitor.process(outputNode, null);
+    this.sourceNames = visitor.getSourceNames();
   }
 
   public Map<String, Object> getOverriddenProperties() {

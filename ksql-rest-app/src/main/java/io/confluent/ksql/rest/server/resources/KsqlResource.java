@@ -549,10 +549,12 @@ public class KsqlResource {
   private KsqlEntity listFunctions(final String statementText) {
     final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions()
         .stream()
+        .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
             FunctionType.scalar)).collect(Collectors.toList());
     all.addAll(ksqlEngine.listAggregateFunctions()
         .stream()
+        .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
             FunctionType.aggregate))
         .collect(Collectors.toList()));

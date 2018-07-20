@@ -92,14 +92,18 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   @SuppressWarnings("unchecked")
   @Override
   public void addFunction(final KsqlFunction ksqlFunction) {
+    addFunction(ksqlFunction, false);
+  }
+
+  private void addFunction(final KsqlFunction ksqlFunction, final boolean internal) {
     addFunctionFactory(new UdfFactory(
         ksqlFunction.getKudfClass(),
         new UdfMetadata(ksqlFunction.getFunctionName(),
             ksqlFunction.getDescription(),
             "confluent",
             "",
-            KsqlFunction.INTERNAL_PATH
-            )));
+            KsqlFunction.INTERNAL_PATH,
+            internal)));
     final UdfFactory udfFactory = ksqlFunctionMap.get(ksqlFunction.getFunctionName().toUpperCase());
     udfFactory.addFunction(ksqlFunction);
   }
@@ -328,7 +332,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
             Schema.STRING_SCHEMA),
         FetchFieldFromStruct.FUNCTION_NAME,
         FetchFieldFromStruct.class);
-    addFunction(fetchFieldFromStruct);
+    addFunction(fetchFieldFromStruct, true);
   }
 
   private void addUdafFunctions() {

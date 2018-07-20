@@ -41,7 +41,7 @@ Download the Tutorial and Start KSQL
        $ cd docs/tutorials/
        $ docker-compose up -d
 
-#. From two seperate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
+#. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
     .. code:: bash
 

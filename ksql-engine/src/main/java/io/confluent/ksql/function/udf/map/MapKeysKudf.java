@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
     description = "Returns an array of all the keys from the specified map.")
 public class MapKeysKudf {
 
+  @SuppressWarnings("rawtypes")
   @Udf(description = "Returns an array of all the keys in the map.")
   public List mapKeys(final Map<String, ?> input) {
     if (input == null) {

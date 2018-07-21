@@ -25,6 +25,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
         + " which case NULL is returned.")
 public class MapValuesKudf {
 
+  @SuppressWarnings("rawtypes")
   @Udf(description = "Returns an array of all the values in the map.")
   public List mapValues(final Map<String, ?> input) {
     if (input == null) {

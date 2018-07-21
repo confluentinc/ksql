@@ -20,11 +20,12 @@ import io.confluent.ksql.function.udf.UdfDescription;
 
 @UdfDescription(name = "map_concat", author = "Confluent",
     description = "Returns the union of the specified maps. If a given key is present in more"
-        + " than input map then the value for that key in the output map will be from the last"
-        + " input map where it is found.")
+        + " than one input map then the value for that key in the output map will be from the"
+        + " last input map where it is found.")
 public class MapUnionKudf {
 
-  @Udf(description = "Returns an array of all the keys in the map.")
+  @SuppressWarnings("rawtypes")
+  @Udf(description = "As above.")
   public Map union(final Map<String, Object> input1, final Map<String, Object> input2) {
     // TODO once UDF framework supports varargs, extend this method to take 1..n input maps
     if (input1 == null || input2 == null) {

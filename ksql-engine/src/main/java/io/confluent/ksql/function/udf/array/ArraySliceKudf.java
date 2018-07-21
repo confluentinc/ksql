@@ -18,11 +18,14 @@ import java.util.List;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
-@UdfDescription(name = "array_slice", author = "Confluent", description = "Returns t.")
+@UdfDescription(name = "array_slice", author = "Confluent", description = "Returns a subsection of"
+    + "an array, beginning at the specified offset (counted from 0), and of requested length. If"
+    + " either the requested length or starting offset are negative then the entire array is"
+    + " returned.")
 public class ArraySliceKudf {
 
   @SuppressWarnings("rawtypes")
-  @Udf(description = "Returns a.")
+  @Udf(description = "As above.")
   public List slice(final List input, final int start, final int length) {
     if (input == null) {
       return null;

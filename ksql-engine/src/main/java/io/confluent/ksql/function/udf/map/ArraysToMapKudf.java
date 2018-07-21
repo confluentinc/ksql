@@ -21,10 +21,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
-@UdfDescription(name = "arrays_to_map", author = "Confluent", description = "blah.")
+@UdfDescription(name = "arrays_to_map", author = "Confluent", 
+    description = "Converts a passed array of keys and an equally-sized array of values,"
+      + " pair-wise, into a map.")
 public class ArraysToMapKudf {
 
-  @Udf(description = "blah blah.")
+  @Udf(description = "As above.")
   public Map<String, Object> map(final List<String> inputKeys, final List<Object> inputValues) {
     if (inputKeys == null || inputValues == null) {
       return null;

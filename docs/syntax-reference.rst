@@ -986,6 +986,22 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
 |                        |                                                            | value contains in it.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAY_DISTINCT         |  ``ARRAY_DISTINCT(array_col)``                             | Returns an array of all the distinct values from  |
+|                        |                                                            | the input array, or NULL if the input is NULL.    |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAY_EXCEPT           |  ``ARRAY_EXCEPT(array1, array2)``                          | Returns an array of all the distinct values from  |
+|                        |                                                            | array1 except for those also presnet in array2.   |
+|                        |                                                            | NULL is returned if either input array is NULL.   |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAY_SLICE            |  ``ARRAY_SLICE(array_col, start, length)``                 | Returns a subsection of an array, of requested    |
+|                        |                                                            | length, starting at the requested offset (offsets |
+|                        |                                                            | are counted beginning from zero). |If either      |
+|                        |                                                            | the rqeuested length or offset are negative the   |
+|                        |                                                            | entire array is returend.                         |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAY_UNION            |  ``ARRAY_UNION(array1, array2)``                           | Returns an array of all the distinct values from  |
+|                        |                                                            | all input arrays, or NULL if either input is NULL.|
++------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |

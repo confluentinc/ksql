@@ -35,7 +35,7 @@ public class ArrayExceptKudf {
     }
     final Set distinct = (Set) lhs.stream()
         .filter(e -> !rhs.contains(e))
-        .collect (Collectors.toSet());
+        .collect(Collectors.toSet());
     final List result = Lists.newArrayList(distinct);
     return result;
   }

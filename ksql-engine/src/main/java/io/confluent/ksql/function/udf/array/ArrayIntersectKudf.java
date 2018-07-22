@@ -29,13 +29,13 @@ import io.confluent.ksql.function.udf.UdfDescription;
 public class ArrayIntersectKudf {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-@Udf(description = "Returns the intersection of both input arrays..")
+  @Udf(description = "Returns the intersection of both input arrays..")
   public List intersect(final List lhs, final List rhs) {
-	if(lhs == null || rhs == null) {
-	 return null;
-	}
-	Set intersection = Sets.newHashSet(lhs);
-	intersection.retainAll(Sets.newHashSet(rhs));
+    if (lhs == null || rhs == null) {
+      return null;
+    }
+    Set intersection = Sets.newHashSet(lhs);
+    intersection.retainAll(Sets.newHashSet(rhs));
     return Lists.newArrayList(intersection);
   }
 

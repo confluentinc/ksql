@@ -17,7 +17,7 @@ package io.confluent.ksql.function.udf.array;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 

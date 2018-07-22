@@ -15,7 +15,9 @@
 package io.confluent.ksql.function.udf.array;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import com.beust.jcommander.internal.Lists;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
@@ -31,9 +33,10 @@ public class ArrayExceptKudf {
     if (lhs == null || rhs == null) {
       return null;
     }
-    final List result = (List) lhs.stream()
+    final Set distinct = (Set) lhs.stream()
         .filter(e -> !rhs.contains(e))
-        .collect (Collectors.toList());
+        .collect (Collectors.toSet());
+    final List result = Lists.newArrayList(distinct);
     return result;
   }
 }

@@ -17,6 +17,8 @@ package io.confluent.ksql.function.udf.array;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
@@ -33,50 +35,53 @@ public class ArrayExceptKudfTest {
     assertThat(result, is(Arrays.asList(" ")));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Test
   public void shouldReturnEmptyArrayIfAllExcepted() {
     final List input1 = Arrays.asList("foo", " ", "foo", "bar");
     final List input2 = Arrays.asList("foo", " ", "foo", "bar", "extra");
-    final List result = udf.except(input1, input2);
-    assertThat(result, is(Arrays.asList()));
+    final List<Object> result = udf.except(input1, input2);
+    assertThat(result.isEmpty(), is(true));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldRetainOnlyDistinctValues() {
     final List input1 = Arrays.asList("foo", " ", "foo", "bar");
     final List input2 = Arrays.asList("bar");
-    final List result = udf.except(input1, input2);
-    assertThat(result, is(Arrays.asList("foo", " ")));
+    final List<Object> result = udf.except(input1, input2);
+    assertThat(result, containsInAnyOrder("foo", " "));
+    assertThat(result, hasSize(2));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldExceptMixedTypes() {
     final List input1 = Arrays.asList("foo", 1, "foo", 2, 3.5f);
     final List input2 = Arrays.asList("foo", "bar", 2);
-    final List result = udf.except(input1, input2);
-    assertThat(result, is(Arrays.asList(1, 3.5f)));
+    final List<Object> result = udf.except(input1, input2);
+    assertThat(result, containsInAnyOrder(1, 3.5f));
+    assertThat(result, hasSize(2));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldExceptEmptyArray() {
     final List input1 = Arrays.asList();
     final List input2 = Arrays.asList("foo");
-    final List result = udf.except(input1, input2);
-    assertThat(result, is(Arrays.asList()));
+    final List<Object> result = udf.except(input1, input2);
+    assertThat(result.isEmpty(), is(true));
   }
 
-//  @SuppressWarnings("rawtypes")
-//  @Test
-//  public void shouldDistinctValuesForEmptyExceptionArray() {
-//    final List input1 = Arrays.asList("foo", "foo", "bar", "foo");
-//    final List input2 = Arrays.asList();
-//    final List result = udf.except(input1, input2);
-//    assertThat(result, is(Arrays.asList("foo", "bar")));
-//  }
-//
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  @Test
+  public void shouldDistinctValuesForEmptyExceptionArray() {
+    final List input1 = Arrays.asList("foo", "foo", "bar", "foo");
+    final List input2 = Arrays.asList();
+    final List<Object> result = udf.except(input1, input2);
+    assertThat(result, containsInAnyOrder("foo", "bar"));
+    assertThat(result, hasSize(2));
+  }
+
   @SuppressWarnings("rawtypes")
   @Test
   public void shouldReturnNullForNullInput() {

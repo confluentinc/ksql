@@ -23,7 +23,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
     description = "Returns the specified element from a map or array.")
 public class ElementKudf {
 
-  @Udf(description = "Returns the number of keys in the specified map.")
+  @Udf(description = "Returns the value corresponding to the requested key in a map.")
   public Object element(final Map<String, ?> inputMap, String key) {
     if (inputMap == null) {
       return null;

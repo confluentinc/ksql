@@ -17,6 +17,8 @@ package io.confluent.ksql.function.udf.array;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
@@ -31,18 +33,19 @@ public class ArrayIntersectKudfTest {
     assertThat(result, is(Arrays.asList("foo")));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldIntersectNonStringArrays() {
-    final List result = udf.intersect(Arrays.asList(1, 2, 3, 2, 1), Arrays.asList(1, 2, 2));
-    assertThat(result, is(Arrays.asList(1, 2)));
+    final List<Object> result = udf.intersect(Arrays.asList(1, 2, 3, 2, 1), Arrays.asList(1, 2, 2));
+    assertThat(result, containsInAnyOrder(1, 2));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldIntersectMixedContentArrays() {
-    final List result = udf.intersect(Arrays.asList("foo", 1, 2, 2.0D, "foo", 2), Arrays.asList(2.0D, "foo"));
-    assertThat(result, is(Arrays.asList(2.0, "foo")));
+    final List<Object> result = udf.intersect(Arrays.asList("foo", 1, 2, 2.0D, "foo", 2), Arrays.asList(2.0D, "foo"));
+    assertThat(result, containsInAnyOrder(2.0, "foo"));
+    assertThat(result, hasSize(2));
   }
 
   @SuppressWarnings("rawtypes")

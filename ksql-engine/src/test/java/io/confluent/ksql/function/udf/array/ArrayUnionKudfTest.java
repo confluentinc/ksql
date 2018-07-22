@@ -16,7 +16,9 @@ package io.confluent.ksql.function.udf.array;
 
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
@@ -24,11 +26,12 @@ import java.util.List;
 public class ArrayUnionKudfTest {
   private final ArrayUnionKudf udf = new ArrayUnionKudf();
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldUnionArraysOfLikeType() {
-    final List result = udf.union(Arrays.asList("foo", " ", "bar"), Arrays.asList("baz"));
-    assertThat(result, is(Arrays.asList("foo", " ", "bar", "baz")));
+    final List<Object> result = udf.union(Arrays.asList("foo", " ", "bar"), Arrays.asList("baz"));
+    assertThat(result, containsInAnyOrder("foo", " ", "bar", "baz"));
+    assertThat(result, hasSize(4));
   }
 
   @SuppressWarnings("rawtypes")

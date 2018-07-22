@@ -20,7 +20,7 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
 @UdfDescription(name = "cardinality", author = "Confluent",
-    description = "Returns the number of keys in the specified map or array.")
+    description = "Returns the number of keys in the specified map or entries in an array.")
 public class CardinalityKudf {
 
   @Udf(description = "Returns the number of keys in the specified map.")

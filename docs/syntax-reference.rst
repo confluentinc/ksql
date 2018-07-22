@@ -983,14 +983,16 @@ Scalar functions
 +========================+============================================================+===================================================+
 | ABS                    | ``ABS(col1)``                                              | The absolute value of a value.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
-|                        |                                                            | value contains in it.                             |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAY_DISTINCT         |  ``ARRAY_DISTINCT(array_col)``                             | Returns an array of all the distinct values from  |
 |                        |                                                            | the input array, or NULL if the input is NULL.    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAY_EXCEPT           |  ``ARRAY_EXCEPT(array1, array2)``                          | Returns an array of all the distinct values from  |
 |                        |                                                            | array1 except for those also presnet in array2.   |
+|                        |                                                            | NULL is returned if either input array is NULL.   |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAY_INTERSECT        |  ``ARRAY_INTERSECT(array1, array2)``                       | Returns an array of all the distinct elements     |
+|                        |                                                            | from the intersection of both input arrays - i.e. |
+|                        |                                                            | those elements which are present in both inputs.  |
 |                        |                                                            | NULL is returned if either input array is NULL.   |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAY_SLICE            |  ``ARRAY_SLICE(array_col, start, length)``                 | Returns a subsection of an array, of requested    |
@@ -1002,9 +1004,24 @@ Scalar functions
 | ARRAY_UNION            |  ``ARRAY_UNION(array1, array2)``                           | Returns an array of all the distinct values from  |
 |                        |                                                            | all input arrays, or NULL if either input is NULL.|
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAYS_TO_MAP          |  ``ARRAYS_TO_MAP(key_array, map_array)``                   | Creates a map from a passed array of keys and an  |
+|                        |                                                            | equally-sized array of values, combining entries  |
+|                        |                                                            | from each pair-wise to create key->value map      |
+|                        |                                                            | entries.                                          |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
+|                        |                                                            | value contains in it.                             |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| CARDINALITY            |  ``CARDINALITY(array | map)``                              | Returns the number of entries in the specified    |
+|                        |                                                            | map or array, or NULL if the map/array is NULL.   |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| ELEMENT                |  ``ELEMENT(array, index)``                                 | Return the array element at the specified index   |
+|                        |  ``ELEMENT(map, key)``                                     | (counting from zero) or the value from the map    |
+|                        |  ``ELEMENT(map, key)``                                     | entry with the given key.                         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
 |                        |                                                            | the field that matches.                           |
@@ -1032,6 +1049,19 @@ Scalar functions
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                             | The length of a string.                           |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MAP_KEYS               |  ``MAP_KEYS(map)``                                         | Returns an array containing all the keys present  |
+|                        |                                                            | in a map, or NULL if the input map is NULL.       |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MAP_UNION              |  ``MAP_UNION(map1, map2)``                                 | Returns a new map containing the union of all     |
+|                        |                                                            | entries in the input maps. If a given key is      |
+|                        |                                                            | present in more than one input map then the value |
+|                        |                                                            | for that key in the ouput map will be from the    |
+|                        |                                                            | last input map containing that key.               |
+|                        |                                                            | If either input map is NULL, returns NULL.        |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
+| MAP_VALUES             |  ``MAP_VALUES(map)``                                       | Returns an array containing all the values within |
+|                        |                                                            | a map, or NULL if the input map is NULL.          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                        | Convert a string to a masked or obfuscated        |
 |                        |                                                            | version of itself. The optional arguments         |

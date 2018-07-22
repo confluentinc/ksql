@@ -18,6 +18,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
@@ -25,32 +27,36 @@ import java.util.List;
 public class ArraySliceKudfTest {
   private final ArraySliceKudf udf = new ArraySliceKudf();
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Test
   public void shouldSliceArray() {
     final List input = Lists.newArrayList("foo", " ", "foo", "bar");
-    final List result = udf.slice(input, 1, 2);
-    assertThat(result, is(Arrays.asList(" ", "foo")));
+    final List<Object> result = udf.slice(input, 1, 2);
+    assertThat(result, containsInAnyOrder(" ", "foo"));
+    assertThat(result, hasSize(2));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   public void shouldReturnWholeArrayForLargeSliceSize() {
-    final List result = udf.slice(Arrays.asList("foo", " ", "bar"), 0, 99);
-    assertThat(result, is(Arrays.asList("foo", " ", "bar")));
+    final List<Object> result = udf.slice(Arrays.asList("foo", " ", "bar"), 0, 99);
+    assertThat(result, containsInAnyOrder("foo", " ", "bar"));
+    assertThat(result, hasSize(3));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   public void shouldReturnOriginalInputForNegativeArgs() {
-    final List result = udf.slice(Arrays.asList("foo", " ", "bar"), 2, -1);
-    assertThat(result, is(Arrays.asList("foo", " ", "bar")));
+    final List<Object> result = udf.slice(Arrays.asList("foo", " ", "bar"), 2, -1);
+    assertThat(result, containsInAnyOrder("foo", " ", "bar"));
+    assertThat(result, hasSize(3));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldSliceMixedContentArray() {
     final List input = Lists.newArrayList("foo", 1, 2, 2.0D, "foo", 2);
-    final List result = udf.slice(input, 2, 2);
-    assertThat(result, is(Arrays.asList(2, 2.0)));
+    final List<Object> result = udf.slice(input, 2, 2);
+    assertThat(result, containsInAnyOrder(2, 2.0));
+    assertThat(result, hasSize(2));
   }
 
 

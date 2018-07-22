@@ -17,39 +17,39 @@ package io.confluent.ksql.function.udf.array;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class ArrayDistinctKudfTest {
   private final ArrayDistinctKudf udf = new ArrayDistinctKudf();
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldDistinctArray() {
-    final List result = udf.distinct(Arrays.asList("foo", " ", "foo", "bar"));
-    assertThat(result, is(Arrays.asList(" ", "bar", "foo")));
+    final List<Object> result = udf.distinct(Arrays.asList("foo", " ", "foo", "bar"));
+    assertThat(result, containsInAnyOrder(" ", "bar", "foo"));
   }
 
-  @SuppressWarnings("rawtypes")
   public void shouldNotChangeDistinctArray() {
-    final List result = udf.distinct(Arrays.asList("foo", " ", "bar"));
-    assertThat(result, is(Arrays.asList("foo", " ", "bar")));
+    @SuppressWarnings("unchecked")
+    final List<Object> result = udf.distinct(Arrays.asList("foo", " ", "bar"));
+    assertThat(result, containsInAnyOrder("foo", " ", "bar"));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldDistinctNonStringArray() {
-    final List result = udf.distinct(Arrays.asList(1, 2, 3, 2, 1));
-    assertThat(result, is(Arrays.asList(1, 2, 3)));
+    final List<Object> result = udf.distinct(Arrays.asList(1, 2, 3, 2, 1));
+    assertThat(result, containsInAnyOrder(1, 2, 3));
   }
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldDistinctMixedContentArray() {
-    final List result = udf.distinct(Arrays.asList("foo", 1, 2, 2.0D, "foo", 2));
-    assertThat(result, is(Arrays.asList(2.0, 1, 2, "foo")));
+    final List<Object> result = udf.distinct(Arrays.asList("foo", 1, 2, 2.0D, "foo", 2));
+    assertThat(result, containsInAnyOrder(2.0, 1, 2, "foo"));
   }
 
 

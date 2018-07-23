@@ -32,7 +32,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Files;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -54,17 +56,15 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -400,9 +400,11 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldParseMultipleStatements() {
-    final String statementsString = readStatementsFromFile(
-        "src/test/resources/SampleMultilineStatements.sql");
+  public void shouldParseMultipleStatements() throws IOException {
+    final List<String> lines = Files.readLines(
+        new File("src/test/resources/SampleMultilineStatements.sql"),
+        Charset.forName(StandardCharsets.UTF_8.name()));
+    final String statementsString = Joiner.on("\n").join(lines);
 
     final List<PreparedStatement> parsedStatements =
         ksqlEngine.parseStatements(statementsString, new MetaStoreImpl(new TestFunctionRegistry()), false);
@@ -413,22 +415,6 @@ public class KsqlEngineTest {
     assertThat(parsedStatements.get(3).getStatement(), instanceOf(CreateStreamAsSelect.class));
     assertThat(parsedStatements.get(5).getStatement(), instanceOf(UnsetProperty.class));
 
-  }
-
-  private static String readStatementsFromFile(final String queryFilePath) {
-    final StringBuilder sb = new StringBuilder();
-    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
-        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
-      String line = br.readLine();
-      while (line != null) {
-        sb.append(line);
-        sb.append(System.lineSeparator());
-        line = br.readLine();
-      }
-    } catch (IOException e) {
-      throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
-    }
-    return sb.toString();
   }
 
 }

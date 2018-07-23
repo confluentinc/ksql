@@ -36,7 +36,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -57,10 +59,12 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -220,9 +224,10 @@ public class KsqlEngine implements Closeable {
     final MetaStore tempMetaStore = metaStore.clone();
 
     // Build query AST from the query string
-    final List<PreparedStatement> queries = parseQueries(
+    final List<PreparedStatement> queries = parseStatements(
         queriesString,
-        tempMetaStore
+        tempMetaStore,
+        true
     );
 
     return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
@@ -286,32 +291,6 @@ public class KsqlEngine implements Closeable {
     return runningQueries.get(0);
   }
 
-  // Visible for Testing
-  List<PreparedStatement> parseQueries(
-      final String queriesString,
-      final MetaStore tempMetaStore
-  ) {
-    try {
-      final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
-      // Parse and AST creation
-      final KsqlParser ksqlParser = new KsqlParser();
-
-      final List<PreparedStatement> statements = ksqlParser.buildAst(
-          queriesString,
-          tempMetaStoreForParser,
-          stmt -> buildSingleQueryAst(
-              stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
-
-      return statements
-          .stream()
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
-
-    } catch (final Exception e) {
-      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
-    }
-  }
-
   public List<PreparedStatement> parseStatements(
       final String queriesString,
       final MetaStore tempMetaStore,
@@ -319,6 +298,7 @@ public class KsqlEngine implements Closeable {
   ) {
     try {
       final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
+      // Parse and AST creation
       final KsqlParser ksqlParser = new KsqlParser();
 
       final List<PreparedStatement> statements = ksqlParser.buildAst(
@@ -642,9 +622,10 @@ public class KsqlEngine implements Closeable {
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
     final MetaStore metaStoreCopy = metaStore.clone();
     return planQueries(
-        parseQueries(
+        parseStatements(
             queries,
-            metaStoreCopy
+            metaStoreCopy,
+            true
         ),
         ksqlConfig,
         Collections.emptyMap(),

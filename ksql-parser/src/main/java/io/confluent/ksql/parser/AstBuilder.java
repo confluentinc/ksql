@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.util.DataSourceExtractor;
@@ -1344,7 +1345,17 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new IntegerLiteral(getLocation(context), context.getText());
+    Long valueAsLong;
+    try {
+      valueAsLong = Long.parseLong(context.getText());
+    } catch (NumberFormatException e) {
+      throw new ParsingException("Invalid numeric literal: " + context.getText());
+    }
+    if (valueAsLong <= Integer.MAX_VALUE) {
+      return new IntegerLiteral(getLocation(context), valueAsLong.intValue());
+    } else {
+      return new LongLiteral(getLocation(context), valueAsLong);
+    }
   }
 
   @Override

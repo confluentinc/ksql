@@ -1344,12 +1344,15 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    Long valueAsLong;
+  public Node visitIntegerLiteral(final SqlBaseParser.IntegerLiteralContext context) {
+    final Long valueAsLong;
     try {
       valueAsLong = Long.parseLong(context.getText());
     } catch (NumberFormatException e) {
       throw new ParsingException("Invalid numeric literal: " + context.getText());
+    }
+    if (valueAsLong < 0) {
+      throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
     }
     if (valueAsLong <= Integer.MAX_VALUE) {
       return new IntegerLiteral(getLocation(context), valueAsLong.intValue());

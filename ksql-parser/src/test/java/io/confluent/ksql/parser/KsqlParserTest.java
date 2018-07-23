@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -305,6 +306,24 @@ public class KsqlParserTest {
   @Test
   public void shouldParseLongLiterals() {
     shouldParseNumericLiteral(Integer.MAX_VALUE + 100L, new LongLiteral(Integer.MAX_VALUE + 100L));
+  }
+
+  @Test
+  public void shouldParseNegativeInteger() {
+    final String queryStr = String.format("SELECT -12345 FROM test1;");
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    final SingleColumn column0
+        = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
+    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getExpression(), instanceOf(ArithmeticUnaryExpression.class));
+    final ArithmeticUnaryExpression aue = (ArithmeticUnaryExpression) column0.getExpression();
+    assertThat(aue.getValue(), instanceOf(IntegerLiteral.class));
+    assertThat(((IntegerLiteral) aue.getValue()).getValue(), equalTo(12345));
+    assertThat(aue.getSign(), equalTo(ArithmeticUnaryExpression.Sign.MINUS));
   }
 
   @Test

@@ -16,10 +16,14 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -130,6 +134,25 @@ public class SqlPredicateTest {
                                             + " (LEN(TEST1.COL2) = 5))"));
     Assert.assertTrue(predicate.getColumnIndexes().length == 3);
 
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldIgnoreNullRows() {
+    final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
+    final List<Statement> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
+    final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)).getQueryBody();
+    final Expression filterExpr = querySpecification.getWhere().get();
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+        kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+    final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, functionRegistry);
+    final boolean result = sqlPredicate.getPredicate().test("key", null);
+    Assert.assertFalse(result);
   }
 
 }

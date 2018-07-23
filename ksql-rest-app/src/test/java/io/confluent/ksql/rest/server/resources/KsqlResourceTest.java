@@ -380,7 +380,7 @@ public class KsqlResourceTest {
 
     // shouldn't contain internal functions
     assertThat(functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.aggregate))));
+        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));
   }
 
 

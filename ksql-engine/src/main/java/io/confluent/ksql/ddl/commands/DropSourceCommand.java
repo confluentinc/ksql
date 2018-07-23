@@ -17,9 +17,6 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -89,27 +86,21 @@ public class DropSourceCommand implements DdlCommand {
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
       try {
-        ExecutorWithRetries.execute((Supplier<Future<Void>>) () -> {
-          kafkaTopicClient.deleteTopics(
-              Collections.singletonList(
-                  dataSource.getKsqlTopic().getKafkaTopicName()));
-          return CompletableFuture.completedFuture(null);
-        });
+        ExecutorWithRetries.execute(
+            () -> kafkaTopicClient.deleteTopics(
+                    Collections.singletonList(
+                        dataSource.getKsqlTopic().getKafkaTopicName())),
+            ExecutorWithRetries.RetryBehaviour.ALWAYS);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
         try {
-          ExecutorWithRetries.execute((Supplier<Future<Void>>) () -> {
-            try {
-              schemaRegistryClient
-                  .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-            return CompletableFuture.completedFuture(null);
-          });
+          ExecutorWithRetries.execute(
+              () -> schemaRegistryClient.deleteSubject(
+                  sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX),
+              ExecutorWithRetries.RetryBehaviour.ALWAYS);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

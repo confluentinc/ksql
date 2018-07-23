@@ -19,6 +19,8 @@ package io.confluent.ksql.util;
 import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
@@ -28,33 +30,62 @@ public final class ExecutorWithRetries {
   private static final int RETRY_BACKOFF_MS = 500;
   private static final Logger log = LoggerFactory.getLogger(ExecutorWithRetries.class);
 
-  private ExecutorWithRetries(){
+  private ExecutorWithRetries() {
   }
 
-  public static <T> T execute(final Supplier<? extends Future<T>> supplier) throws Exception {
-    int retries = 0;
+  public enum RetryBehaviour {
+    ALWAYS,
+    ON_RETRYABLE
+  }
+
+  @FunctionalInterface
+  public interface Function {
+    void call() throws Exception;
+  }
+
+  public static void execute(final Function function,
+                             final RetryBehaviour retryBehaviour) throws Exception {
+    execute(() -> {
+      function.call();
+      return null;
+    }, retryBehaviour);
+  }
+
+  public static <T> T execute(final Callable<T> supplier,
+                              final RetryBehaviour retryBehaviour) throws Exception {
+    return executeSync(() -> {
+      final CompletableFuture<T> f = new CompletableFuture<>();
+      try {
+        final T result = supplier.call();
+        f.complete(result);
+      } catch (final Exception e) {
+        f.completeExceptionally(e);
+      }
+      return f;
+    }, retryBehaviour);
+  }
+
+  public static <T> T executeSync(final Supplier<? extends Future<T>> supplier,
+                                  final RetryBehaviour retryBehaviour) throws Exception {
     Exception lastException = null;
-    while (retries < NUM_RETRIES) {
+    for (int retries = 0; retries < NUM_RETRIES; ++retries) {
       try {
         if (retries != 0) {
           Thread.sleep(RETRY_BACKOFF_MS);
         }
         return supplier.get().get();
-      } catch (Exception e) {
+      } catch (final Exception e) {
+        final Throwable cause = e.getCause();
+
         if (e instanceof RetriableException
-            || e.getCause() instanceof RetriableException) {
-          retries++;
-          log.info("Retrying request due to retriable exception. Retry no: " + retries, e);
+            || cause instanceof RetriableException
+            || (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS)) {
+          log.info("Retrying request. Retry no: " + retries, e);
           lastException = e;
-        } else if (e instanceof KsqlException
-            || e.getCause() instanceof KsqlException) {
-          retries++;
-          log.info("Retrying request due to ksql exception. Retry no: " + retries, e);
-          lastException = e;
-        } else if (e.getCause() instanceof Exception) {
-          throw (Exception) e.getCause();
+        } else if (cause instanceof Exception) {
+          throw (Exception) cause;
         } else {
-          throw e;
+          throw new RuntimeException(e.getMessage());
         }
       }
     }

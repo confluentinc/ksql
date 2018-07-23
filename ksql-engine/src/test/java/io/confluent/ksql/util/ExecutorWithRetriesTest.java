@@ -38,18 +38,19 @@ public class ExecutorWithRetriesTest {
     expectedException.expect(ExecutionException.class);
     expectedException.expectMessage("I will never succeed");
 
-    ExecutorWithRetries.execute(() -> {
-      final CompletableFuture<Void> f = new CompletableFuture<>();
-      f.completeExceptionally(new TestRetriableException("I will never succeed"));
-      return f;
-    });
+    ExecutorWithRetries.executeSync(() -> {
+          final CompletableFuture<Void> f = new CompletableFuture<>();
+          f.completeExceptionally(new TestRetriableException("I will never succeed"));
+          return f;
+        },
+        ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldRetryAndSucceed() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
 
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.executeSync(() -> {
       if (counts.decrementAndGet() == 0) {
         return CompletableFuture.completedFuture(null);
       }
@@ -57,14 +58,17 @@ public class ExecutorWithRetriesTest {
       final CompletableFuture<Void> f = new CompletableFuture<>();
       f.completeExceptionally(new TestRetriableException("I will never succeed"));
       return f;
-    });
+    },
+    ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldReturnValue() throws Exception {
     final String expectedValue = "should return this";
 
-    assertThat(ExecutorWithRetries.execute(() -> CompletableFuture.completedFuture(expectedValue)),
+    assertThat(ExecutorWithRetries.executeSync(
+        () -> CompletableFuture.completedFuture(expectedValue),
+        ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE),
         is(expectedValue));
   }
 
@@ -75,7 +79,7 @@ public class ExecutorWithRetriesTest {
 
     final AtomicBoolean firstCall = new AtomicBoolean(true);
 
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.executeSync(() -> {
       final CompletableFuture<Void> f = new CompletableFuture<>();
 
       if (firstCall.get()) {
@@ -86,7 +90,7 @@ public class ExecutorWithRetriesTest {
       }
 
       return f;
-    });
+    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
@@ -96,27 +100,27 @@ public class ExecutorWithRetriesTest {
 
     final AtomicBoolean firstCall = new AtomicBoolean(true);
 
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.executeSync(() -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       }
 
       throw new RuntimeException("Test should not retry");
-    });
+    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldRetryIfSupplierThrowsRetryableException() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
 
-    ExecutorWithRetries.execute(() -> {
+    ExecutorWithRetries.executeSync(() -> {
       if (counts.decrementAndGet() == 0) {
         return CompletableFuture.completedFuture(null);
       }
 
       throw new TestRetriableException("Test should retry");
-    });
+    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
   }
 
   private static final class TestRetriableException extends RetriableException {
@@ -124,4 +128,5 @@ public class ExecutorWithRetriesTest {
       super(msg);
     }
   }
+
 }

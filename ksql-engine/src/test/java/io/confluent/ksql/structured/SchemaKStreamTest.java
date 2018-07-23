@@ -16,26 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -56,6 +36,25 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.Pair;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
@@ -69,7 +68,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-
+@SuppressWarnings("unchecked")
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;

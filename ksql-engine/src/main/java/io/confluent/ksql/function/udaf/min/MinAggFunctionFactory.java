@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,8 +37,8 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
+    for (final KsqlAggregateFunction<?, ?> ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

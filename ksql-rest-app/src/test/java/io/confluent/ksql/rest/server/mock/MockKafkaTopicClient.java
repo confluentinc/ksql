@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
  */
+@SuppressWarnings("unchecked")
 public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override

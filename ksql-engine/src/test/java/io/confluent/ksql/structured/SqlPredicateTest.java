@@ -46,6 +46,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 
+@SuppressWarnings("unchecked")
 public class SqlPredicateTest {
   private SchemaKStream initialSchemaKStream;
   private static final KsqlParser KSQL_PARSER = new KsqlParser();

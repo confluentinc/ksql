@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,10 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 
-public class TimestampExtractionPolicyFactory {
+public final class TimestampExtractionPolicyFactory {
+
+  private TimestampExtractionPolicyFactory() {
+  }
 
   public static TimestampExtractionPolicy create(
       final Schema schema,

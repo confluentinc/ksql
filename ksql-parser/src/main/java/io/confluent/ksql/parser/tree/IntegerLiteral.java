@@ -19,8 +19,6 @@ package io.confluent.ksql.parser.tree;
 import java.util.Objects;
 import java.util.Optional;
 
-import io.confluent.ksql.parser.ParsingException;
-
 import static java.util.Objects.requireNonNull;
 
 public class IntegerLiteral
@@ -28,18 +26,18 @@ public class IntegerLiteral
 
   private final int value;
 
-  public IntegerLiteral(NodeLocation location, String value) {
+  public IntegerLiteral(int value) {
+    this (Optional.empty(), value);
+  }
+
+  public IntegerLiteral(NodeLocation location, int value) {
     this(Optional.of(location), value);
   }
 
-  private IntegerLiteral(Optional<NodeLocation> location, String value) {
+  private IntegerLiteral(Optional<NodeLocation> location, int value) {
     super(location);
     requireNonNull(value, "value is null");
-    try {
-      this.value = Integer.parseInt(value);
-    } catch (NumberFormatException e) {
-      throw new ParsingException("Invalid numeric literal: " + value);
-    }
+    this.value = value;
   }
 
   public int getValue() {

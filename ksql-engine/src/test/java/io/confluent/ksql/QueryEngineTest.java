@@ -32,6 +32,7 @@ import io.confluent.ksql.util.Pair;
 import java.util.List;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -59,6 +60,7 @@ public class QueryEngineTest {
       final List<Pair<String, Statement>> statementList = ksqlEngine.parseQueries(
           "CREATE STREAM FOO AS SELECT * FROM TEST2; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
+      Assert.fail();
     } catch (KsqlException e) {
       assertThat(e.getMessage(), equalTo("Cannot create the stream. The output topic FOO is already used by FOO"));
     }

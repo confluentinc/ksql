@@ -47,7 +47,7 @@ public class KudfTester {
           .put(String.class, "Hello")
           .put(Boolean.class, true)
           .put(Short.class, (short) 22)
-          .put(Integer.class, 66L)
+          .put(Integer.class, 66)
           .put(Long.class, 42L)
           .put(Double.class, 12.345)
           .put(Float.class, 567.89f)
@@ -204,8 +204,8 @@ public class KudfTester {
    */
   public void test() {
     validateAndBuild();
-    testTwoFewArguments();
-    testTwoManyArguments();
+    testTooFewArguments();
+    testTooManyArguments();
     testNullHandling();
     testTypeChecking();
   }
@@ -253,7 +253,7 @@ public class KudfTester {
     }
   }
 
-  private void testTwoFewArguments() {
+  private void testTooFewArguments() {
     if (minArgs == 0) {
       return;
     }
@@ -269,7 +269,7 @@ public class KudfTester {
     }
   }
 
-  private void testTwoManyArguments() {
+  private void testTooManyArguments() {
     if (maxArgs == NO_MAX_ARGS) {
       return;
     }

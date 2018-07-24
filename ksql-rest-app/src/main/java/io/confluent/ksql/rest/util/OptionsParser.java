@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,10 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 
 import java.io.IOException;
 
-public class OptionsParser {
+public final class OptionsParser {
+
+  private OptionsParser(){
+  }
 
   public static <T> T parse(final String[] args, final Class<T> optionsClass) throws IOException {
     SingleCommand<T> optionsParser = SingleCommand.singleCommand(optionsClass);

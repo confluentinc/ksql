@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -38,10 +37,14 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 
-public class AvroUtil {
+public final class AvroUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
+
+  private AvroUtil() {
+  }
 
   public static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,

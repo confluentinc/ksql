@@ -29,7 +29,10 @@ import java.util.Random;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.util.KsqlConfig;
 
-public class DataGen {
+public final class DataGen {
+
+  private DataGen() {
+  }
 
   public static void main(final String[] args) {
     try {

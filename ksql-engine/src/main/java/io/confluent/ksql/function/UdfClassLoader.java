@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 
 import io.confluent.ksql.util.KsqlException;
 
-public class UdfClassLoader extends URLClassLoader {
+public final class UdfClassLoader extends URLClassLoader {
   private static final Logger logger = LoggerFactory.getLogger(URLClassLoader.class);
   private final Predicate<String> blacklist;
   private final Path path;

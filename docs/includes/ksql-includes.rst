@@ -493,7 +493,7 @@ Your output should resemble:
     For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
     ksql>
 
-Query the data, using ``→`` notation to access the Struct contents:
+Query the data, using ``->`` notation to access the Struct contents:
 
 .. code:: sql
 
@@ -834,7 +834,7 @@ Your output should resemble:
      Insert Into query is running.
     -------------------------------
 
-Query the output strema to verify that data from each source is being
+Query the output stream to verify that data from each source is being
 written to it:
 
 .. code:: sql

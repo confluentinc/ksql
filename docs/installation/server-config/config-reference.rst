@@ -134,7 +134,7 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
-.. _ksql.sink.partitions:
+.. _ksql-sink-partitions:
 
 --------------------
 ksql.sink.partitions
@@ -142,7 +142,7 @@ ksql.sink.partitions
 
 The default number of partitions for the topics created by KSQL. The default is four.
 
-.. _ksql.sink.replicas:
+.. _ksql-sink-replicas:
 
 ------------------
 ksql.sink.replicas

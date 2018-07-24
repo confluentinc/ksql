@@ -91,6 +91,7 @@ public class GenericRow {
     return columns;
   }
 
+  @SuppressWarnings("unchecked")
   public <T> T getColumnValue(int columnIndex) {
     return (T) columns.get(columnIndex);
   }

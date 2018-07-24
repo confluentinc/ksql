@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
@@ -45,9 +46,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 
+@SuppressWarnings("unchecked")
 public class KsqlGenericRowAvroSerializerTest {
 
-  final Schema schema = SchemaBuilder.struct()
+  private final Schema schema = SchemaBuilder.struct()
         .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
@@ -201,6 +203,8 @@ public class KsqlGenericRowAvroSerializerTest {
     final KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     final GenericRecord avroRecord = (GenericRecord) deserializer.deserialize("topic", bytes);
 
+    assertThat(avroRecord.getSchema().getNamespace(), equalTo(KsqlConstants.AVRO_SCHEMA_NAMESPACE));
+    assertThat(avroRecord.getSchema().getName(), equalTo(KsqlConstants.AVRO_SCHEMA_NAME));
     assertThat(avroRecord.getSchema().getFields().size(), equalTo(1));
     final org.apache.avro.Schema.Field field = avroRecord.getSchema().getFields().get(0);
     assertThat(field.schema().getType(), equalTo(org.apache.avro.Schema.Type.UNION));
@@ -306,7 +310,9 @@ public class KsqlGenericRowAvroSerializerTest {
   @Test
   public void shouldSerializeStruct() {
     final org.apache.avro.Schema avroSchema
-        = org.apache.avro.SchemaBuilder.record("KSQLDefaultSchemaName_field0").fields()
+        = org.apache.avro.SchemaBuilder.record(KsqlConstants.AVRO_SCHEMA_NAME + "_field0")
+        .namespace(KsqlConstants.AVRO_SCHEMA_NAMESPACE)
+        .fields()
         .name("field1")
         .type().unionOf().nullType().and().intType().endUnion()
         .nullDefault()

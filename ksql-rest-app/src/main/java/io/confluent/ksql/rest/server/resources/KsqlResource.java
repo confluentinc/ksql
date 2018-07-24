@@ -663,7 +663,7 @@ public class KsqlResource {
                                 + "use CREATE TABLE AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults(
+        AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
             ksqlEngine.getSchemaRegistryClient()
         );
@@ -682,7 +682,7 @@ public class KsqlResource {
                                 + "use CREATE STREAM AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults(
+        AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
             ksqlEngine.getSchemaRegistryClient()
         );
@@ -695,7 +695,7 @@ public class KsqlResource {
       QueryMetadata queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery(), ksqlConfig);
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+        AvroUtil.validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());
       }
       queryMetadata.close();

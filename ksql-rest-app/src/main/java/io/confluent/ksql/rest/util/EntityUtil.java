@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,18 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.rest.entity.FieldInfo;
-import io.confluent.ksql.rest.entity.SchemaInfo;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class EntityUtil {
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.SchemaInfo;
+
+public final class EntityUtil {
+  private EntityUtil() {
+  }
+
   public static List<FieldInfo> buildSourceSchemaEntity(final Schema schema) {
     return buildSchemaEntity(schema).getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));

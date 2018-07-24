@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -180,7 +180,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   public void close() {
   }
 
-  private static class CaseInsensitiveJsonNode {
+  private static final class CaseInsensitiveJsonNode {
 
     private final Map<String, String> keyMap = new HashMap<>();
 

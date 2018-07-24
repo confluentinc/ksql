@@ -38,7 +38,7 @@ import io.confluent.common.utils.Time;
 
 public class ProducerCollector implements MetricCollector {
 
-  private final Map<String, TopicSensors> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<?>> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private Time time;
@@ -79,9 +79,9 @@ public class ProducerCollector implements MetricCollector {
   }
 
   private void collect(boolean isError, String topic) {
-    topicSensors.computeIfAbsent(getKey(topic), k ->
-        new TopicSensors<>(topic, buildSensors(k))
-    ).increment(null, isError);
+    topicSensors
+        .computeIfAbsent(getKey(topic), k -> new TopicSensors<>(topic, buildSensors(k)))
+        .increment(null, isError);
   }
 
 

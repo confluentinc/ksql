@@ -16,11 +16,9 @@
 
 package io.confluent.ksql.rest.server;
 
-import com.google.common.base.Joiner;
-import com.google.common.io.Files;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -41,19 +39,18 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.Console;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,8 +65,8 @@ public class StandaloneExecutor implements Executable {
   private final String queriesFile;
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-  private final Map<Class<? extends Statement>, Function<Pair<String, Statement>, Void>>
-      functionMap = new HashMap<>();
+  private final ImmutableMap<Class<? extends Statement>, Consumer<Pair<String, Statement>>>
+      functionMap;
   private final Map<String, Object> configProperties = new HashMap<>();
 
   StandaloneExecutor(final KsqlConfig ksqlConfig,
@@ -80,7 +77,42 @@ public class StandaloneExecutor implements Executable {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
-    initFunctionMap();
+    functionMap =
+        ImmutableMap.<Class<? extends Statement>, Consumer<Pair<String, Statement>>>builder()
+        .put(SetProperty.class, (statementPair) -> {
+          final SetProperty setProperty = (SetProperty) statementPair.getRight();
+          configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+        })
+        .put(UnsetProperty.class, (Pair<String, Statement> statementPair) -> {
+          final UnsetProperty unsetProperty = (UnsetProperty) statementPair.getRight();
+          configProperties.remove(unsetProperty.getPropertyName());
+        })
+        .put(CreateStream.class, (Pair<String, Statement> statementPair) -> {
+          ksqlEngine.buildMultipleQueries(statementPair.getLeft(),
+              ksqlConfig,
+              configProperties);
+        })
+        .put(CreateTable.class, (Pair<String, Statement> statementPair) -> {
+          ksqlEngine.buildMultipleQueries(statementPair.getLeft(),
+              ksqlConfig,
+              configProperties);
+        })
+        .put(CreateStreamAsSelect.class, (Pair<String, Statement> statementPair) -> {
+          handlePersistentQuery(statementPair.getRight(),
+              statementPair.getLeft(),
+              configProperties);
+        })
+        .put(CreateTableAsSelect.class, (Pair<String, Statement> statementPair) -> {
+          handlePersistentQuery(statementPair.getRight(),
+              statementPair.getLeft(),
+              configProperties);
+        })
+        .put(InsertInto.class, (Pair<String, Statement> statementPair) -> {
+          handlePersistentQuery(statementPair.getRight(),
+              statementPair.getLeft(),
+              configProperties);
+        })
+        .build();
   }
 
   public void start() {
@@ -136,47 +168,6 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
-
-  private void initFunctionMap() {
-    functionMap.put(SetProperty.class, (Pair<String, Statement> statementPair) -> {
-      final SetProperty setProperty = (SetProperty) statementPair.getRight();
-      configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-      return null;
-    });
-
-    functionMap.put(UnsetProperty.class, (Pair<String, Statement> statementPair) -> {
-      final UnsetProperty unsetProperty = (UnsetProperty) statementPair.getRight();
-      configProperties.remove(unsetProperty.getPropertyName());
-      return null;
-    });
-
-    functionMap.put(CreateStream.class, (Pair<String, Statement> statementPair) -> {
-      ksqlEngine.buildMultipleQueries(statementPair.getLeft(), ksqlConfig, configProperties);
-      return null;
-    });
-
-    functionMap.put(CreateTable.class, (Pair<String, Statement> statementPair) -> {
-      ksqlEngine.buildMultipleQueries(statementPair.getLeft(), ksqlConfig, configProperties);
-      return null;
-    });
-
-    functionMap.put(CreateStreamAsSelect.class, (Pair<String, Statement> statementPair) -> {
-      handlePersistentQuery(statementPair.getRight(), statementPair.getLeft(), configProperties);
-      return null;
-    });
-
-    functionMap.put(CreateTableAsSelect.class, (Pair<String, Statement> statementPair) -> {
-      handlePersistentQuery(statementPair.getRight(), statementPair.getLeft(), configProperties);
-      return null;
-    });
-
-    functionMap.put(InsertInto.class, (Pair<String, Statement> statementPair) -> {
-      handlePersistentQuery(statementPair.getRight(), statementPair.getLeft(), configProperties);
-      return null;
-    });
-  }
-
-
   private void executeStatements(final String queries) {
     final List<Pair<String, Statement>> statementPairs =
         ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
@@ -184,7 +175,7 @@ public class StandaloneExecutor implements Executable {
       final String statementString = statementPair.getLeft();
       final Statement statement = statementPair.getRight();
       if (functionMap.containsKey(statement.getClass())) {
-        functionMap.get(statement.getClass()).apply(statementPair);
+        functionMap.get(statement.getClass()).accept(statementPair);
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
@@ -243,10 +234,9 @@ public class StandaloneExecutor implements Executable {
 
   private static String readQueriesFile(final String queryFilePath) {
     try {
-      final List<String> lines = Files.readLines(
-          new File(queryFilePath),
-          Charset.forName(StandardCharsets.UTF_8.name()));
-      return Joiner.on("\n").join(lines);
+      return new String(java.nio.file.Files.readAllBytes(
+          Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
+
     } catch (IOException e) {
       throw new KsqlException(
           String.format("Could not read the query file: %s. Details: %s",

@@ -61,21 +61,22 @@ public class StandaloneExecutorTest {
   private final KsqlEngine engine = EasyMock.niceMock(KsqlEngine.class);
   private final UdfLoader udfLoader = EasyMock.niceMock(UdfLoader.class);
   private String queriesFile;
+  private StandaloneExecutor standaloneExecutor;
+  private MetaStore metaStore;
 
   @Before
   public void before() throws IOException {
     queriesFile = TestUtils.tempFile().getPath();
+    standaloneExecutor =
+        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
+    metaStore = EasyMock.niceMock(MetaStore.class);
   }
 
 
   @Test
   public void shouldRunCsStatement() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final CreateStream cs = new CreateStream(EasyMock.niceMock(QualifiedName.class), Collections.emptyList(), false, Collections.emptyMap());
     statementPairs.add(new Pair<>("CS", cs));
@@ -95,11 +96,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCtStatement() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final CreateTable ct = new CreateTable(EasyMock.niceMock(QualifiedName.class), Collections.emptyList(), false, Collections.emptyMap());
     statementPairs.add(new Pair<>("CT", ct));
@@ -118,11 +115,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunSetStatements() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
@@ -135,18 +128,13 @@ public class StandaloneExecutorTest {
     EasyMock.verify(engine);
 
     assertThat(standaloneExecutor.getConfigProperties().get("name"), equalTo("value"));
-
   }
 
 
   @Test
   public void shouldRunUnSetStatements() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
@@ -162,18 +150,13 @@ public class StandaloneExecutorTest {
     EasyMock.verify(engine);
 
     assertTrue(standaloneExecutor.getConfigProperties().isEmpty());
-
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldRunCsasStatements() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final Query csas1Query = EasyMock.niceMock(Query.class);
     final CreateStreamAsSelect createStreamAsSelect1 = new CreateStreamAsSelect(EasyMock.niceMock(QualifiedName.class), csas1Query, false, Collections.emptyMap(), Optional.empty());
@@ -189,13 +172,9 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.getQueryExecutionPlan(csas1Query, ksqlConfig))
         .andReturn(csas1QueryMetadata).once();
 
-    EasyMock.replay(csas1Query);
-    EasyMock.replay(csas1QueryMetadata);
-    EasyMock.replay(engine);
+    EasyMock.replay(csas1Query, csas1QueryMetadata, engine);
     standaloneExecutor.start();
-    EasyMock.verify(csas1Query);
-    EasyMock.verify(csas1QueryMetadata);
-    EasyMock.verify(engine);
+    EasyMock.verify(csas1Query, csas1QueryMetadata, engine);
 
   }
 
@@ -203,11 +182,7 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunInsertIntoStatements() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final Query insertIntoQuery = EasyMock.niceMock(Query.class);
     final InsertInto insertInto = new InsertInto(EasyMock.niceMock(QualifiedName.class), insertIntoQuery, Optional.empty());
@@ -222,23 +197,16 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.getQueryExecutionPlan(insertIntoQuery, ksqlConfig))
         .andReturn(insertIntoQueryMetadata).once();
 
-    EasyMock.replay(insertIntoQueryMetadata);
-    EasyMock.replay(engine);
+    EasyMock.replay(insertIntoQueryMetadata, engine);
     standaloneExecutor.start();
-    EasyMock.verify(insertIntoQueryMetadata);
-    EasyMock.verify(engine);
-
+    EasyMock.verify(insertIntoQueryMetadata, engine);
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() throws IOException {
 
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
-
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final Query ctasQuery = EasyMock.niceMock(Query.class);
     final CreateTableAsSelect createTableAsSelect = new CreateTableAsSelect(EasyMock.niceMock(QualifiedName.class), ctasQuery, false, Collections.emptyMap());
@@ -254,23 +222,16 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.getQueryExecutionPlan(ctasQuery, ksqlConfig))
         .andReturn(ctasQueryMetadata).once();
 
-    EasyMock.replay(ctasQuery);
-    EasyMock.replay(ctasQueryMetadata);
-    EasyMock.replay(engine);
+    EasyMock.replay(ctasQuery, ctasQueryMetadata, engine);
     standaloneExecutor.start();
-    EasyMock.verify(ctasQuery);
-    EasyMock.verify(ctasQueryMetadata);
-    EasyMock.verify(engine);
+    EasyMock.verify(ctasQuery, ctasQueryMetadata, engine);
   }
 
   @Test(expected = KsqlException.class)
   @SuppressWarnings("unchecked")
   public void shouldFailIfCsasIsInvalid() {
-    final StandaloneExecutor standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
 
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
 
     final Query csas1Query = EasyMock.niceMock(Query.class);
     final CreateStreamAsSelect createStreamAsSelect1 = new CreateStreamAsSelect(EasyMock.niceMock(QualifiedName.class), csas1Query, false, Collections.emptyMap(), Optional.empty());
@@ -291,9 +252,7 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.getQueryExecutionPlan(csas1Query, ksqlConfig))
         .andReturn(csas1QueryMetadata).once();
 
-    EasyMock.replay(csas1Query);
-    EasyMock.replay(csas1QueryMetadata);
-    EasyMock.replay(engine);
+    EasyMock.replay(csas1Query, csas1QueryMetadata, engine);
     standaloneExecutor.start();
 
   }

@@ -32,9 +32,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -61,11 +59,10 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -401,10 +398,8 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldParseMultipleStatements() throws IOException {
-    final List<String> lines = Files.readLines(
-        new File("src/test/resources/SampleMultilineStatements.sql"),
-        Charset.forName(StandardCharsets.UTF_8.name()));
-    final String statementsString = Joiner.on("\n").join(lines);
+    final String statementsString = new String(Files.readAllBytes(
+        Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
 
     final List<PreparedStatement> parsedStatements =
         ksqlEngine.parseStatements(statementsString, new MetaStoreImpl(new TestFunctionRegistry()), false);

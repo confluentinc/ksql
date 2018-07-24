@@ -596,7 +596,7 @@ public class CliTest extends TestRunner {
             "Variations  : \n";
 
     final String expectedVariant =
-        "\tArguments   :  INT\n"
+        "\tArguments   : INT\n"
         + "\tReturns     : ARRAY<INT>\n"
         + "\tDescription : Calculates the TopK value for a column, per key.";
 

@@ -32,7 +32,7 @@ public final class UdfUtil {
   public static void ensureCorrectArgs(
       final String functionName,
       final Object[] args,
-      final Class... argTypes) {
+      final Class<?>... argTypes) {
 
     if (args == null) {
       throw new KsqlFunctionException(String.format("Null argument list for %s.", functionName));

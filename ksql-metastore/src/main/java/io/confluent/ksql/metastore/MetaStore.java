@@ -28,6 +28,8 @@ public interface MetaStore extends FunctionRegistry {
 
   StructuredDataSource getSource(String sourceName);
 
+  StructuredDataSource getSourceForTopic(String ksqlTopicName);
+
   void putSource(StructuredDataSource dataSource);
 
   void deleteTopic(String topicName);

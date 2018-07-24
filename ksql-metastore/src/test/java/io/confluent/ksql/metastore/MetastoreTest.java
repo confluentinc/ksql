@@ -18,11 +18,16 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MetastoreTest {
 
@@ -72,6 +77,14 @@ public class MetastoreTest {
     metaStore.deleteSource("testStream");
     StructuredDataSource structuredDataSource4 = metaStore.getSource("testStream");
     Assert.assertNull(structuredDataSource4);
+  }
+
+  @Test
+  public void shouldGetTheCorrectSourceNameForTopic() {
+    final StructuredDataSource structuredDataSource = metaStore.getSourceForTopic("TEST2");
+    assertThat(structuredDataSource, instanceOf(KsqlTable.class));
+    assertThat(structuredDataSource.getDataSourceType(), equalTo(DataSourceType.KTABLE));
+    assertThat(structuredDataSource.getName(), equalTo("TEST2"));
   }
 
 }

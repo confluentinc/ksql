@@ -127,7 +127,16 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
       if (analysis.isDoCreateInto()) {
-        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+        try {
+          tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+        } catch (KsqlException e) {
+          final String sourceName = tempMetaStore.getSourceForTopic(
+              ksqlStructuredDataOutputNode.getKsqlTopic().getName()).getName();
+          throw new KsqlException(
+              String.format("Cannot create the stream. "
+                  + "The output topic %s is already used by %s",
+                  ksqlStructuredDataOutputNode.getKsqlTopic().getKafkaTopicName(), sourceName), e);
+        }
         tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
       }
     }

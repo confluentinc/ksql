@@ -78,6 +78,21 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
+  public StructuredDataSource getSourceForTopic(final String ksqlTopicName) {
+    final List<StructuredDataSource> sources =
+        dataSourceMap.values()
+            .stream()
+            .filter(p -> p.getLeft().getKsqlTopic().getName() != null
+                && p.getLeft().getKsqlTopic().getName().equals(ksqlTopicName))
+            .map(Pair::getLeft)
+            .collect(Collectors.toList());
+    if (!sources.isEmpty()) {
+      return sources.get(0);
+    }
+    return null;
+  }
+
+  @Override
   public void putSource(final StructuredDataSource dataSource) {
 
     if (getSource(dataSource.getName()) == null) {
@@ -263,4 +278,5 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
   public List<AggregateFunctionFactory> listAggregateFunctions() {
     return functionRegistry.listAggregateFunctions();
   }
+
 }

@@ -717,16 +717,21 @@ public abstract class Console implements Closeable {
     writer().printf("%-12s: %n", "Variations");
     final Collection<FunctionInfo> functions = describeFunction.getFunctions();
     functions.forEach(functionInfo -> {
-          writer().printf("%n\t%-12s: %s%n",
-              "Arguments",
-              functionInfo.getArgumentTypes()
-                  .toString()
-                  .replaceAll("\\[", "")
-                  .replaceAll("]", ""));
+          final String arguments = functionInfo.getArguments().stream()
+              .map(arg -> arg.getName().isEmpty()
+                      ? arg.getType()
+                      : arg.getName() + " (" + arg.getType() + ")")
+              .collect(Collectors.joining(", "));
+
+          writer().printf("%n\t%-12s: %s%n", "Arguments", arguments);
           writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
           if (!functionInfo.getDescription().trim().isEmpty()) {
             writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
           }
+
+          functionInfo.getArguments().stream()
+              .filter(a -> !a.getDescription().trim().isEmpty())
+              .forEach(a -> writer().printf("\t%-12s: %s%n", a.getName(), a.getDescription()));
         }
     );
   }

@@ -23,16 +23,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.lang.reflect.Type;
 public class SchemaUtilTest {
 
   private Schema schema;
@@ -518,6 +518,26 @@ public class SchemaUtilTest {
   @Test(expected = KsqlException.class)
   public void shouldThrowExceptionIfClassDoesntMapToSchema() {
     SchemaUtil.getSchemaFromType(System.class);
+  }
+
+  @Test
+  public void shouldDefaultToNoNameOnGetSchemaFromType() {
+    assertThat(SchemaUtil.getSchemaFromType(Double.class).name(), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDefaultToNoDocOnGetSchemaFromType() {
+    assertThat(SchemaUtil.getSchemaFromType(Double.class).doc(), is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetNameOnGetSchemaFromType() {
+    assertThat(SchemaUtil.getSchemaFromType(Double.class, "name", "").name(), is("name"));
+  }
+
+  @Test
+  public void shouldSetDocOnGetSchemaFromType() {
+    assertThat(SchemaUtil.getSchemaFromType(Double.class, "", "doc").doc(), is("doc"));
   }
 
   // Following methods not invoked but used to test conversion from Type -> Schema

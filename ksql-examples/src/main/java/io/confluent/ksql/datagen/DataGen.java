@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,10 @@ import java.util.Random;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.util.KsqlConfig;
 
-public class DataGen {
+public final class DataGen {
+
+  private DataGen() {
+  }
 
   public static void main(final String[] args) {
     try {

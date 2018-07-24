@@ -139,7 +139,7 @@ public abstract class OutputNode
     void setLimitHandler(LimitHandler limitHandler);
   }
 
-  private static class LimitCallback implements InternalCallback {
+  private static final class LimitCallback implements InternalCallback {
 
     private final AtomicInteger remaining;
     private final AtomicInteger queued;

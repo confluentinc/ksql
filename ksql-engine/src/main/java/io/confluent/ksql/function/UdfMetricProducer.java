@@ -27,13 +27,14 @@ import io.confluent.ksql.function.udf.Kudf;
  * Capture metrics for a given Kudf
  */
 class UdfMetricProducer implements Kudf {
+
   private final Sensor sensor;
   private final Kudf kudf;
   private final Time time;
 
-  public UdfMetricProducer(final Sensor sensor,
-                           final Kudf kudf,
-                           final Time time) {
+  UdfMetricProducer(final Sensor sensor,
+                    final Kudf kudf,
+                    final Time time) {
     this.sensor = Objects.requireNonNull(sensor, "sensor can't be null");
     this.kudf = Objects.requireNonNull(kudf, "kudf can't be null");
     this.time = Objects.requireNonNull(time, "time can't be null");

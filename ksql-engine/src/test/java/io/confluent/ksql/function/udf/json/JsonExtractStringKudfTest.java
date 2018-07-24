@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import java.util.stream.IntStream;
 
+import io.confluent.ksql.function.udf.KudfTester;
 import io.confluent.ksql.function.KsqlFunctionException;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -38,6 +39,14 @@ public class JsonExtractStringKudfTest {
   @Before
   public void setUp() {
     udf = new JsonExtractStringKudf();
+  }
+
+  @Test
+  public void shouldBeWellBehavedUdf() {
+    new KudfTester(JsonExtractStringKudf::new)
+        .withArguments(JSON_DOC, "$.thing1")
+        .withNonNullableArgument(1)
+        .test();
   }
 
   @Test

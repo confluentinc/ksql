@@ -171,7 +171,7 @@ public final class DataGen {
       }
     }
 
-    private static class Builder {
+    private static final class Builder {
 
       private Quickstart quickstart;
 

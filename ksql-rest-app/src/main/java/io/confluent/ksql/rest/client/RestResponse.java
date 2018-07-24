@@ -62,7 +62,7 @@ public abstract class RestResponse<R> {
     }
   }
 
-  private static class Erroneous<R> extends RestResponse<R> {
+  private static final class Erroneous<R> extends RestResponse<R> {
     private final KsqlErrorMessage errorMessage;
 
     private Erroneous(final KsqlErrorMessage errorMessage) {
@@ -90,7 +90,7 @@ public abstract class RestResponse<R> {
     }
   }
 
-  private static class Successful<R> extends RestResponse<R> {
+  private static final class Successful<R> extends RestResponse<R> {
     private final R response;
 
     private Successful(final R response) {

@@ -114,7 +114,7 @@ public final class SqlFormatter {
     return builder.toString();
   }
 
-  private static class Formatter
+  private static final class Formatter
           extends AstVisitor<Void, Integer> {
 
     private final StringBuilder builder;

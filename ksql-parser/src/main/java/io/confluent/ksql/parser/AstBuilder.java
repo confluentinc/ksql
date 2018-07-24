@@ -1661,7 +1661,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return resultStream;
   }
 
-  private static class InvalidColumnReferenceException extends KsqlException {
+  private static final class InvalidColumnReferenceException extends KsqlException {
 
     private InvalidColumnReferenceException(final String message) {
       super(message);

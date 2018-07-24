@@ -247,7 +247,7 @@ public abstract class Console implements Closeable {
   }
 
 
-  private static class Table {
+  private static final class Table {
     private final List<String> columnHeaders;
     private final List<List<String>> rowValues;
     private final List<String> header;
@@ -265,7 +265,7 @@ public abstract class Console implements Closeable {
       this(columnHeaders, rowValues, Collections.emptyList(), Collections.emptyList());
     }
 
-    private static class Builder {
+    private static final class Builder {
       private final List<String> columnHeaders = new LinkedList<>();
       private final List<List<String>> rowValues = new LinkedList<>();
       private final List<String> header = new LinkedList<>();

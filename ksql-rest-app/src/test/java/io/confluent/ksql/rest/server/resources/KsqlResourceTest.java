@@ -109,6 +109,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -377,7 +378,12 @@ public class KsqlResourceTest {
         new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
         new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
         new SimpleFunctionInfo("MAX", FunctionType.aggregate)));
+
+    // shouldn't contain internal functions
+    assertThat(functionList.getFunctions(),
+        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));
   }
+
 
   @Test
   public void shouldReturnDescriptionsForShowStreamsExtended() {

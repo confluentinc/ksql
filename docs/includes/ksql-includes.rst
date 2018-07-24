@@ -524,7 +524,7 @@ Stream-Stream join
 Using a stream-stream join, it is possible to join two *streams* of
 events on a common key. An example of this could be a stream of order
 events, and a stream of shipment events. By joining these on the order
-key, it is possible to identify any orders that have not yet shipped.
+key, it is possible to see shipment information alongside the order.
 
 First, populate the ``orders`` and ``shipments`` topics:
 
@@ -585,15 +585,14 @@ Your output should resemble:
     3 | 43 | Palo Alto
 
 Run the following query, which will show orders with associated shipments, 
-based on a join window of 1 hours. This means that anything not yet shipped, 
-or shipped after the 1 hour period, will not return in this join:
+based on a join window of 1 hours. 
 
 .. code:: sql
 
     ksql> SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME, \
           S.SHIPMENT_ID, S.WAREHOUSE \
           FROM NEW_ORDERS O \
-          LEFT JOIN SHIPMENTS S \
+          INNER JOIN SHIPMENTS S \
             WITHIN 1 HOURS \
             ON O.ORDER_ID = S.ORDER_ID;
 
@@ -602,7 +601,6 @@ Your output should resemble:
 .. code:: bash
 
     1 | 10.5 | Bob Smith | 42 | Nashville
-    2 | 3.32 | Sarah Black | null | null
     3 | 21.0 | Emma Turner | 43 | Palo Alto
 
 Note that message with ``ORDER_ID=2`` has no corresponding
@@ -612,26 +610,6 @@ specified.
 
 Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
-We can now write a query to show us orders that have
-not yet shipped within this time window, by adding a ``WHERE`` clause:
-
-.. code:: sql
-
-    ksql> SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME, \
-                 S.SHIPMENT_ID, S.WAREHOUSE \
-          FROM NEW_ORDERS O \
-            LEFT JOIN SHIPMENTS S \
-              WITHIN 1 HOURS \
-              ON O.ORDER_ID = S.ORDER_ID \
-          WHERE S.SHIPMENT_ID IS NULL;
-
-Your output should resemble:
-
-.. code:: bash
-
-    2 | 3.32 | Sarah Black | null | null
-
-Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 .. __ss-join_02_end
 

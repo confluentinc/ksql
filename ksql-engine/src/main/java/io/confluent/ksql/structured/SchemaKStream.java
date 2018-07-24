@@ -346,14 +346,13 @@ public class SchemaKStream {
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde) {
 
-    final KStream joinStream =
-        kstream
-            .outerJoin(
-                otherSchemaKStream.kstream,
-                new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
-                joinWindows,
-                Joined.with(Serdes.String(), leftSerde, rightSerde)
-            );
+    final KStream<String, GenericRow> joinStream = kstream
+        .outerJoin(
+            otherSchemaKStream.kstream,
+            new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
+            joinWindows,
+            Joined.with(Serdes.String(), leftSerde, rightSerde)
+        );
 
     return new SchemaKStream(
         joinSchema,
@@ -489,7 +488,7 @@ public class SchemaKStream {
     return schema;
   }
 
-  public KStream getKstream() {
+  public KStream<String, GenericRow> getKstream() {
     return kstream;
   }
 

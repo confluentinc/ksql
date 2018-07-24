@@ -18,6 +18,9 @@ package io.confluent.ksql.util;
 
 public final class KsqlConstants {
 
+  private KsqlConstants() {
+  }
+
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
@@ -53,7 +56,7 @@ public final class KsqlConstants {
           "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
   public static final String DOC_URL_SR_REST_GETSUBJECTS =
           "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
-
-  private KsqlConstants() {
-  }
+  public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
+  public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
+  public static final String AVRO_SCHEMA_FULL_NAME = AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 }

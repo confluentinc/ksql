@@ -5,7 +5,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -36,6 +35,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 
 import static org.easymock.EasyMock.anyObject;
@@ -49,6 +49,7 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+@SuppressWarnings("unchecked")
 public class WSQueryEndpointTest {
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;

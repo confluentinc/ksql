@@ -551,17 +551,36 @@ public class CliTest extends TestRunner {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +
             "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
             "Type        : scalar\n" +
             "Jar         : internal\n" +
             "Variations  : \n" +
             "\n" +
             "\tArguments   : BIGINT, VARCHAR\n" +
-            "\tReturns     : VARCHAR\n" +
-            "\tDescription : \n";
+            "\tReturns     : VARCHAR\n";
 
     localCli.handleLine("describe function timestamptostring;");
+    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldDescribeOverloadedScalarFunction() throws Exception {
+    final String expectedOutput =
+        "Name        : MASK\n"
+        + "Author      : Confluent\n"
+        + "Overview    : Returns a version of the input string with every character replaced by a mask. Default masking rules will replace all upper-case characters with 'X', all lower-case characters with 'x', all digits with 'n', and any other character with '-'.\n"
+        + "Type        : scalar\n"
+        + "Jar         : internal\n"
+        + "Variations  : \n"
+        + "\n"
+        + "\tArguments   : VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR\n"
+        + "\tReturns     : VARCHAR\n"
+        + "\tDescription : Returns a masked version of the input string. All characters of the input will be replaced with the specified masking characters: e.g. mask(input, upperCaseMask, lowerCaseMask, digitMask, otherMask). Pass NULL for any of the mask characters to prevent masking of that character type.\n"
+        + "\n"
+        + "\tArguments   : VARCHAR\n"
+        + "\tReturns     : VARCHAR\n"
+        + "\tDescription : Returns a masked version of the input string. All characters of the input will be replaced according to the default masking rules.\n";
+
+    localCli.handleLine("describe function mask;");
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 
@@ -570,8 +589,6 @@ public class CliTest extends TestRunner {
     final String expectedOutput =
             "Name        : TOPK\n" +
             "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
             "Type        : aggregate\n" +
             "Jar         : internal\n" +
             "Variations  : \n";

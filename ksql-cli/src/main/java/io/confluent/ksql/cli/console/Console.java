@@ -703,9 +703,15 @@ public abstract class Console implements Closeable {
 
   private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
     writer().printf("%-12s: %s%n", "Name", describeFunction.getName().toUpperCase());
-    writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
-    writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
-    writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    if (!describeFunction.getAuthor().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
+    }
+    if (!describeFunction.getVersion().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
+    }
+    if (!describeFunction.getDescription().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    }
     writer().printf("%-12s: %s%n", "Type", describeFunction.getType().name());
     writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
     writer().printf("%-12s: %n", "Variations");
@@ -718,7 +724,9 @@ public abstract class Console implements Closeable {
                   .replaceAll("\\[", "")
                   .replaceAll("]", ""));
           writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
-          writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
+          if (!functionInfo.getDescription().trim().isEmpty()) {
+            writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
+          }
         }
     );
   }

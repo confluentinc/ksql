@@ -1,7 +1,7 @@
 .. _ksql-security:
 
 Configuring Security for KSQL
-=============
+=============================
 
 KSQL supports many of the security features of both Apache Kafka and the |sr|.
 
@@ -15,6 +15,8 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 .. code:: bash
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+.. include:: ../../../../includes/installation-types-zip-tar.rst
 
 .. contents:: Table of Contents
     :local:

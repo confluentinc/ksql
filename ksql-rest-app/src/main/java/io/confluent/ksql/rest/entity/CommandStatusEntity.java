@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.Objects;
 
 import io.confluent.ksql.rest.server.computation.CommandId;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;

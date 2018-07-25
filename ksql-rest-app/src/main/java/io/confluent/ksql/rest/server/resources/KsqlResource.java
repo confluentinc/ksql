@@ -549,10 +549,12 @@ public class KsqlResource {
   private KsqlEntity listFunctions(final String statementText) {
     final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions()
         .stream()
+        .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
             FunctionType.scalar)).collect(Collectors.toList());
     all.addAll(ksqlEngine.listAggregateFunctions()
         .stream()
+        .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
             FunctionType.aggregate))
         .collect(Collectors.toList()));
@@ -661,7 +663,7 @@ public class KsqlResource {
                                 + "use CREATE TABLE AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults(
+        AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
             ksqlEngine.getSchemaRegistryClient()
         );
@@ -680,7 +682,7 @@ public class KsqlResource {
                                 + "use CREATE STREAM AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults(
+        AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
             ksqlEngine.getSchemaRegistryClient()
         );
@@ -693,7 +695,7 @@ public class KsqlResource {
       QueryMetadata queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery(), ksqlConfig);
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+        AvroUtil.validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());
       }
       queryMetadata.close();

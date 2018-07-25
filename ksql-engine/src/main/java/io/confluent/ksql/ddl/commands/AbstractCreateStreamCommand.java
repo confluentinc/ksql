@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
@@ -123,10 +122,9 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
 
   private void checkTopicNameNotNull(Map<String, Expression> properties) {
     // TODO: move the check to grammar
-    KsqlPreconditions.checkNotNull(
-        properties.get(DdlConfig.TOPIC_NAME_PROPERTY),
-        "Topic name should be set in WITH clause."
-    );
+    if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Topic name should be set in WITH clause.");
+    }
   }
 
   private SchemaBuilder getStreamTableSchema(List<TableElement> tableElementList) {
@@ -151,15 +149,14 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
 
   void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {
     // TODO: move the check to the runtime since it accesses metaStore
-    KsqlPreconditions.checkArgument(
-        metaStore.getSource(sourceName) == null,
-        String.format("Source %s already exists.", sourceName)
-    );
+    if (metaStore.getSource(sourceName) != null) {
+      throw new KsqlException(String.format("Source %s already exists.", sourceName));
+    }
 
-    KsqlPreconditions.checkNotNull(
-        metaStore.getTopic(topicName),
-        String.format("The corresponding topic, %s, does not exist.", topicName)
-    );
+    if (metaStore.getTopic(topicName) == null) {
+      throw new KsqlException(
+          String.format("The corresponding topic, %s, does not exist.", topicName));
+    }
   }
 
   private RegisterTopicCommand registerTopicFirst(

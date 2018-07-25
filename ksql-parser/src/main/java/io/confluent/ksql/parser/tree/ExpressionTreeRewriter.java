@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -595,7 +595,7 @@ public final class ExpressionTreeRewriter<C> {
     }
   }
 
-  public static class Context<C> {
+  public static final class Context<C> {
 
     private final boolean defaultRewrite;
     private final C context;

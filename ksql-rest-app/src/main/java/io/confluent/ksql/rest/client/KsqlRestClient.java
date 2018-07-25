@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -220,7 +220,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;

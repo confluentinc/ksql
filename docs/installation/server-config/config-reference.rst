@@ -171,8 +171,12 @@ For an example, see :ref:`restrict-ksql-interactive`.
 listeners
 ---------
 
-Comma-separated list of URIs (including protocol) that the broker will listen on. Specify hostname as ``0.0.0.0`` to bind
-to all interfaces or leave it empty to bind to the default interface. For example:
+Comma-separated list of URIs (including protocol) that the broker will listen on.
+The ``listeners`` setting controls the REST API endpoint for the KSQL server.
+For more info, see :ref:`ksql-rest-api`. 
+
+Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
+bind to the default interface. For example:
 
 .. code:: bash
 

@@ -27,6 +27,30 @@ The server also supports content negotiation, so you may include multiple, weigh
 
 For example, content negotiation is useful when a new version of the API is preferred, but you are not sure if it is available yet.
 
+Here's an example request that returns the results from the ``LIST STREAMS``
+command:
+
+.. code:: bash
+
+   curl -X "POST" "http://localhost:8088/ksql" \
+        -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+        -d $'{
+     "ksql": "LIST STREAMS;",
+     "streamsProperties": {}
+   }'
+
+Here's an example request that retrieves streaming data from ``TEST_STREAM``:
+
+.. code:: bash
+
+   curl -X "POST" "http://localhost:8088/query" \
+        -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+        -d $'{
+     "ksql": "SELECT * FROM TEST_STREAM;",
+     "streamsProperties": {}
+   }'
+
+
 Errors
 ------
 

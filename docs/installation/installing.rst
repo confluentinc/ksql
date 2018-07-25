@@ -56,9 +56,7 @@ You can only connect to one KSQL server at a time. The KSQL CLI does not support
 
 Follow these instructions to start KSQL server using the ``ksql-server-start`` script.
 
-Tip
-    For development and testing purposes, you can also use Confluent CLI to start |cp|, including KSQL, on a single host.
-    For more information, see :ref:`quickstart`.
+.. include:: ../../../includes/installation-types-zip-tar.rst
 
 #.  Specify your KSQL server configuration parameters. You can also set any property for the Kafka Streams API, the Kafka
     producer, or the Kafka consumer. The required parameters are ``bootstrap.servers`` and ``listeners``. You can specify

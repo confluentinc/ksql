@@ -19,14 +19,9 @@ package io.confluent.ksql.util.timestamp;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
-import java.util.Map;
 import java.util.Objects;
-
-import io.confluent.ksql.util.KsqlConfig;
 
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
@@ -41,20 +36,6 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
     Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;
     this.format = format;
-  }
-
-  @Override
-  public void applyTo(final KsqlConfig config,
-                      final Map<String, Object> newStreamProperties) {
-    newStreamProperties.put(
-        KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX,
-        config.getKsqlTimestampColumnIndex()
-    );
-    newStreamProperties.put(
-        StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
-        StringTimestampExtractor.class
-    );
-    newStreamProperties.put(KsqlConstants.STRING_TIMESTAMP_FORMAT, format);
   }
 
   @Override

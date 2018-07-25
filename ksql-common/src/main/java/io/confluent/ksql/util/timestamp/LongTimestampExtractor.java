@@ -17,34 +17,19 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 
-public class LongTimestampExtractor implements TimestampExtractor, Configurable {
+public class LongTimestampExtractor implements TimestampExtractor {
 
   private static final Logger log = LoggerFactory.getLogger(LongTimestampExtractor.class);
-
-  private int timestampColumnindex = -1;
+  private final int timestampColumnindex;
 
   LongTimestampExtractor(final int timestampColumnindex) {
     this.timestampColumnindex = timestampColumnindex;
-  }
-
-  @SuppressWarnings("unused")
-  // Used when specified by config
-  public LongTimestampExtractor(){}
-
-  @Override
-  public void configure(final Map<String, ?> map) {
-    if (map.containsKey(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX)) {
-      timestampColumnindex = (Integer) map.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX);
-    }
   }
 
   @Override

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -28,6 +29,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.SourceInfo.Table;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(value = {
     @JsonSubTypes.Type(name = "STREAM", value = Stream.class),
@@ -44,6 +46,7 @@ public class SourceInfo {
     this.format = format;
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Stream extends SourceInfo {
     @JsonCreator
     public Stream(
@@ -63,6 +66,7 @@ public class SourceInfo {
     }
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Table extends SourceInfo {
     private final boolean isWindowed;
 

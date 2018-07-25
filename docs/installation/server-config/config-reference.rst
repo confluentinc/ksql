@@ -90,7 +90,7 @@ threads. For more information about Kafka Streams threading model, see :ref:`str
 
 
 KSQL Query Settings
-------------------
+-------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
@@ -188,7 +188,7 @@ bind to the default interface. For example:
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings
----------------------------
+------------------------------------
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 

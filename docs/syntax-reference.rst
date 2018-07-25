@@ -606,7 +606,7 @@ Example of explaining a running query:
 .. _drop-stream:
 
 DROP STREAM [IF EXISTS] [DELETE TOPIC];
------------------------
+---------------------------------------
 
 **Synopsis**
 
@@ -626,7 +626,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 .. _drop-table:
 
 DROP TABLE [IF EXISTS] [DELETE TOPIC];
-----------------------
+--------------------------------------
 
 **Synopsis**
 

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import org.apache.kafka.streams.processor.TimestampExtractor;
+
 import java.util.Map;
 
 import io.confluent.ksql.util.KsqlConfig;
@@ -27,6 +29,8 @@ public interface TimestampExtractionPolicy {
    * @param newStreamProperties the properties that will be used to create the new stream
    */
   void applyTo(final KsqlConfig config, final Map<String, Object> newStreamProperties);
+
+  TimestampExtractor create(final int columnIndex);
 
   default String timestampField() {
     return null;

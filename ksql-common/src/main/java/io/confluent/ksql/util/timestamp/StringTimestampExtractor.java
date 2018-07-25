@@ -23,6 +23,7 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 import java.util.Map;
+import java.util.Objects;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
@@ -31,6 +32,15 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
   private StringToTimestampParser timestampParser;
   private int timestampColumn = -1;
   private String format;
+
+  public StringTimestampExtractor() {}
+
+  public StringTimestampExtractor(final String format, final int timestampColumn) {
+    this.format = Objects.requireNonNull(format, "format can't be null");
+    this.timestampColumn = timestampColumn;
+    this.timestampParser = new StringToTimestampParser(format);
+
+  }
 
   @Override
   public long extract(final ConsumerRecord<Object, Object> consumerRecord,

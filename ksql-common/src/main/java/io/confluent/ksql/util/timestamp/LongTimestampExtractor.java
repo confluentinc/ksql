@@ -32,26 +32,34 @@ public class LongTimestampExtractor implements TimestampExtractor, Configurable 
 
   private int timestampColumnindex = -1;
 
+  LongTimestampExtractor(final int timestampColumnindex) {
+    this.timestampColumnindex = timestampColumnindex;
+  }
+
+  @SuppressWarnings("unused")
+  // Used when specified by config
+  public LongTimestampExtractor(){}
+
   @Override
-  public void configure(Map<String, ?> map) {
+  public void configure(final Map<String, ?> map) {
     if (map.containsKey(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX)) {
       timestampColumnindex = (Integer) map.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX);
     }
   }
 
   @Override
-  public long extract(ConsumerRecord<Object, Object> consumerRecord, long l) {
+  public long extract(final ConsumerRecord<Object, Object> consumerRecord, final long l) {
     if (timestampColumnindex < 0) {
       return 0;
     } else {
       try {
         if (consumerRecord.value() instanceof GenericRow) {
-          GenericRow genericRow = (GenericRow) consumerRecord.value();
+          final GenericRow genericRow = (GenericRow) consumerRecord.value();
           if (genericRow.getColumns().get(timestampColumnindex) instanceof Long) {
             return (long) genericRow.getColumns().get(timestampColumnindex);
           }
         }
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error("Exception in extracting timestamp for row: " + consumerRecord.value(), e);
       }
     }

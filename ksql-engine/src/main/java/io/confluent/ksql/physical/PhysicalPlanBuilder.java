@@ -353,11 +353,6 @@ public class PhysicalPlanBuilder {
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
-    final Integer timestampIndex = ksqlConfig.getKsqlTimestampColumnIndex();
-    if (timestampIndex != null && timestampIndex >= 0) {
-      outputNode.getSourceTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
-    }
-
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),

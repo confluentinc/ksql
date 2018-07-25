@@ -123,11 +123,6 @@ public class StructuredDataSourceNodeTest {
   }
 
   @Test
-  public void shouldAddTimestampIndexToConfig() {
-    assertThat(ksqlConfig.getKsqlTimestampColumnIndex(), equalTo(1));
-  }
-
-  @Test
   public void shouldExtracKeyField() {
     assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA)));
   }

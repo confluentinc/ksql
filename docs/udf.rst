@@ -119,9 +119,9 @@ of the UDF does, for example:
 UdfParameter Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``@UdfParameter`` is an optional and is applied to the parameters of methods annotated with
+The ``@UdfParameter`` annotation is optional and is applied to the parameters of methods annotated with
 ``@Udf``. KSQL will use the additional information in the ``@UdfParameter`` annotation to provide
-users with richer information about the method when, for example, the execute
+users with richer information about the method when, for example, they execute
 ``DESCRIBE FUNCTION`` on the method.
 
 The annotation has two parameters: ``value`` is the name of the parameter and ``description`` which

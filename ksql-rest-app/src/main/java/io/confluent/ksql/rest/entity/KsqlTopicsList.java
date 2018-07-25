@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.entity;
 import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.Objects;
 
 import io.confluent.ksql.metastore.KsqlTopic;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlTopicsList extends KsqlEntity {
   private final Collection<KsqlTopicInfo> topics;
 

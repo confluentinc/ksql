@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Collections;
@@ -24,10 +25,12 @@ import java.util.Objects;
 
 import io.confluent.ksql.util.ErrorMessageUtil;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   private final String statementText;
   private final KsqlEntityList entities;
 
+  @SuppressWarnings("WeakerAccess") // Invoked via reflection
   public KsqlStatementErrorMessage(
       @JsonProperty("error_code") int errorCode,
       @JsonProperty("message") String message,

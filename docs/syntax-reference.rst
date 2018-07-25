@@ -209,8 +209,8 @@ The WITH clause supports the following properties:
 
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Example:
 
@@ -295,8 +295,8 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Example:
 
@@ -373,8 +373,8 @@ The WITH clause for the result supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Note: The ``KEY`` property is not supported – use PARTITION BY instead.
 
@@ -445,8 +445,8 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 .. _insert-into:
 

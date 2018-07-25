@@ -152,8 +152,6 @@ public class StructuredDataSourceNode
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-
-
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
@@ -219,9 +217,9 @@ public class StructuredDataSourceNode
       return -1;
     }
     if (timestampFieldName.contains(".")) {
-      Integer i = findMatchingTimestampField(timestampFieldName);
-      if (i != null) {
-        return i;
+      final Integer index = findMatchingTimestampField(timestampFieldName);
+      if (index != null) {
+        return index;
       }
     } else {
       for (int i = 2; i < schema.fields().size(); i++) {
@@ -242,7 +240,7 @@ public class StructuredDataSourceNode
 
   private Integer findMatchingTimestampField(final String timestampFieldName) {
     for (int i = 2; i < schema.fields().size(); i++) {
-      Field field = schema.fields().get(i);
+      final Field field = schema.fields().get(i);
       if (field.name().contains(".")) {
         if (timestampFieldName.equals(field.name())) {
           return i - 2;

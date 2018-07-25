@@ -136,6 +136,20 @@
         {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_000_4"}},
         {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 5, "ARRAY_ITEM": "item_000_5"}}
       ]
+    },
+    {
+      "name": "Filter on long literal",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 = 4294967296;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ]
     }
   ]
 }

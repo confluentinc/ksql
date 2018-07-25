@@ -15,9 +15,36 @@ the ``listeners`` parameter in the KSQL server config file. For more info, see
 Content Types
 -------------
 
-The KSQL REST API uses content types for requests and responses to indicate the serialization format of the data. Currently, the only serialization format supported is JSON, specified as ``application/json``. Your request should specify this content type in the ``Accept`` header::
+The KSQL REST API uses content types for requests and responses to indicate the
+serialization format of the data. Currently, the only serialization format
+supported is JSON, specified as ``application/json``. Your request should
+specify this content type in the ``Accept`` header::
 
     Accept: application/json
+
+Here's an example request that returns the results from the ``LIST STREAMS``
+command:
+
+.. code:: bash
+
+   curl -X "POST" "http://localhost:8088/ksql" \
+        -H "Content-Type: application/json; charset=utf-8" \
+        -d $'{
+     "ksql": "LIST STREAMS;",
+     "streamsProperties": {}
+   }'
+
+Here's an example request that retrieves streaming data from ``TEST_STREAM``:
+
+.. code:: bash
+
+   curl -X "POST" "http://localhost:8088/query" \
+        -H "Content-Type: application/json; charset=utf-8" \
+        -d $'{
+     "ksql": "SELECT * FROM TEST_STREAM;",
+     "streamsProperties": {}
+   }'
+
 
 Errors
 ------

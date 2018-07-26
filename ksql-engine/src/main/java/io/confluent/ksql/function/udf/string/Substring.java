@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,21 +21,34 @@ import io.confluent.ksql.function.udf.UdfDescription;
 
 @UdfDescription(name = "substring",
     author = "Confluent",
-    description = "returns a substring of the passed in value")
+    description = "Returns a substring of the passed in value")
 public class Substring {
 
-  @Udf(description = "Returns a string that is a substring of this string. The"
-      + " substring begins with the character at the specified startIndex and"
-      + " extends to the end of this string.")
-  public String substring(final String value, final int startIndex) {
-    return value.substring(startIndex);
+  @Udf(description = "Returns a substring of str that starts at pos and continues to the end of the string")
+  public String substring(
+      final String str,
+      final int pos) {
+    final int start = getStartIndex(str, pos);
+    return str.substring(start);
   }
 
-  @Udf(description = "Returns a string that is a substring of this string. The"
-      + " substring begins with the character at the specified startIndex and"
-      + " extends to the character at endIndex -1.")
-  public String substring(final String value, final int startIndex, final int endIndex) {
-    return value.substring(startIndex, endIndex);
+  @Udf(description = "Returns a substring of str that starts at pos and is of length len")
+  public String substring(
+      final String str,
+      final int pos,
+      final int len) {
+    final int start = getStartIndex(str, pos);
+    final int end = getEndIndex(str, start, len);
+    return str.substring(start, end);
   }
 
+  private static int getStartIndex(final String value, final int pos) {
+    return pos < 0
+           ? Math.max(value.length() + pos, 0)
+           : Math.min(pos - 1, value.length());
+  }
+
+  private static int getEndIndex(final String value, final int start, final int length) {
+    return Math.max(Math.min(start + length, value.length()), start);
+  }
 }

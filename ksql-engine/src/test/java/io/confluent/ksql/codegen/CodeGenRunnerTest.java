@@ -18,6 +18,7 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Arrays;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -92,6 +93,9 @@ public class CodeGenRunnerTest {
         // load substring function
         UdfLoaderUtil.load(metaStore);
 
+        final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
+
+
         final Schema schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -108,7 +112,8 @@ public class CodeGenRunnerTest {
                    SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL12",
                    SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
-            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
+            .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build());
         Schema metaStoreSchema = SchemaBuilder.struct()
             .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -125,7 +130,8 @@ public class CodeGenRunnerTest {
                 SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("COL12",
                 SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
-            .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build());
+            .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
+            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build());
         KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
@@ -175,6 +181,20 @@ public class CodeGenRunnerTest {
         result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
         assertThat(result0, is(false));
+    }
+
+    @Test
+    public void shouldHandleMultiDimensionalArray() throws Exception {
+        final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST;";
+        final Analysis analysis = analyzeQuery(simpleQuery);
+        final ExpressionMetadata expressionEvaluatorMetadata = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
+        final List<String> innerArray2 = Arrays.asList("item_21", "item_22");
+        final Object[] args = new Object[]{Arrays.asList(innerArray1, innerArray2)};
+        final Object result = expressionEvaluatorMetadata.getExpressionEvaluator().evaluate(args);
+        assertThat(result, instanceOf(String.class));
+        assertThat(result, equalTo("item_11"));
     }
 
     @Test

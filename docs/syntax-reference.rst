@@ -990,8 +990,6 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| operator ``+``         |  ``SELECT FIRST_NAME + ' ' + LAST_NAME AS FULL_NAME``      | Concatenate multiple strings                      |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
 |                        |                                                            | the field that matches.                           |
 |                        |                                                            |                                                   |

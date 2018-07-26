@@ -30,8 +30,45 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface UdfDescription {
+
+  /**
+   * The name of the function.
+   *
+   * This is the identifier users will use to invoke this function.
+   * The function name must be unique.
+   *
+   * @return function name.
+   */
   String name();
+
+  /**
+   * A description of the function.
+   *
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   *
+   * If there are multiple overloads of the function implementation, individual overloads can chose
+   * to return specific descriptions via {@link Udf#description()}. In which case, both this general
+   * description and the overload specific descriptions will be displayed to the user.
+   *
+   * @return function description.
+   */
   String description();
+
+  /**
+   * The author of the function.
+   *
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   *
+   * @return function author.
+   */
   String author() default "";
+
+  /**
+   * The version of the function.
+   *
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   *
+   * @return function version.
+   */
   String version() default "";
 }

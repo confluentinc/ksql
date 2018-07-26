@@ -24,6 +24,7 @@ import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
@@ -49,6 +52,7 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.security.ExtensionSecurityManager;
@@ -245,10 +249,21 @@ public class UdfLoader {
             path,
             false)));
 
+    final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
+      final Type type = method.getGenericParameterTypes()[idx];
+      final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
+          .filter(t -> t instanceof UdfParameter)
+          .map(UdfParameter.class::cast)
+          .findAny();
+
+      final String name = annotation.map(UdfParameter::value).orElse("");
+      final String doc = annotation.map(UdfParameter::description).orElse("");
+      return SchemaUtil.getSchemaFromType(type, name, doc);
+    }).collect(Collectors.toList());
+
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
-        Arrays.stream(method.getGenericParameterTypes())
-            .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
+        parameters,
         classLevelAnnotaion.name(),
         udfClass,
         () -> {

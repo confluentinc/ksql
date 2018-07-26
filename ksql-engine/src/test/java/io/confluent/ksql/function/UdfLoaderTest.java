@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.kafka.common.metrics.Metrics;
@@ -28,6 +29,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import io.confluent.ksql.function.udf.Kudf;
@@ -42,6 +44,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 /**
@@ -124,6 +127,19 @@ public class UdfLoaderTest {
   public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+  }
+
+  @Test
+  public void shouldSupportUdfParameterAnnotation() {
+    final UdfFactory substring = metaStore.getUdfFactory("substring");
+    final KsqlFunction function = substring.getFunction(
+        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA));
+    final List<Schema> arguments = function.getArguments();
+
+    assertThat(arguments.get(0).name(), is("value"));
+    assertThat(arguments.get(0).doc(), is(""));
+    assertThat(arguments.get(1).name(), is("startIndex"));
+    assertThat(arguments.get(1).doc(), is("The zero-based start index, inclusive."));
   }
 
   @Test

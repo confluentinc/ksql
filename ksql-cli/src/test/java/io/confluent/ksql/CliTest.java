@@ -550,34 +550,62 @@ public class CliTest extends TestRunner {
   public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +
-            "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
-            "Type        : scalar\n" +
-            "Jar         : internal\n" +
-            "Variations  : \n" +
-            "\n" +
-            "\tArguments   : BIGINT, VARCHAR\n" +
-            "\tReturns     : VARCHAR\n" +
-            "\tDescription : \n";
+        "Author      : confluent\n" +
+        "Type        : scalar\n" +
+        "Jar         : internal\n" +
+        "Variations  : \n" +
+        "\n" +
+        "\tVariation   : TIMESTAMPTOSTRING(BIGINT, VARCHAR)\n" +
+        "\tReturns     : VARCHAR\n";
 
     localCli.handleLine("describe function timestamptostring;");
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 
   @Test
+  public void shouldDescribeOverloadedScalarFunction() throws Exception {
+    final String expectedSummary =
+        "Name        : SUBSTRING\n"
+        + "Author      : Confluent\n"
+        + "Overview    : returns a substring of the passed in value\n"
+        + "Type        : scalar\n"
+        + "Jar         : internal\n"
+        + "Variations  : \n";
+
+    final String expectedVariant =
+        "\tVariation   : SUBSTRING(value VARCHAR, startIndex INT, endIndex INT)\n"
+        + "\tReturns     : VARCHAR\n"
+        + "\tDescription : Returns a string that is a substring of this string. "
+        + "The substring begins with the character at the specified startIndex and extends to the character at endIndex -1.\n"
+        + "\tstartIndex  : The zero-based start index, inclusive.\n"
+        + "\tendIndex    : The zero-based end index, exclusive.";
+
+    localCli.handleLine("describe function substring;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
   public void shouldDescribeAggregateFunction() throws Exception {
-    final String expectedOutput =
+    final String expectedSummary =
             "Name        : TOPK\n" +
             "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
             "Type        : aggregate\n" +
             "Jar         : internal\n" +
             "Variations  : \n";
 
+    final String expectedVariant =
+        "\tVariation   : TOPK(INT)\n"
+        + "\tReturns     : ARRAY<INT>\n"
+        + "\tDescription : Calculates the TopK value for a column, per key.";
+
     localCli.handleLine("describe function topk;");
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
   }
 
   @Test

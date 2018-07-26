@@ -567,7 +567,7 @@ public class CliTest extends TestRunner {
     final String expectedSummary =
         "Name        : SUBSTRING\n"
         + "Author      : Confluent\n"
-        + "Overview    : Returns a substring of the passed in value\n"
+        + "Overview    : returns a substring of the passed in value\n"
         + "Type        : scalar\n"
         + "Jar         : internal\n"
         + "Variations  : \n";

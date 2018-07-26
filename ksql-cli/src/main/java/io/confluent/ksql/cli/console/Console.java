@@ -699,7 +699,8 @@ public abstract class Console implements Closeable {
   }
 
   private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
-    writer().printf("%-12s: %s%n", "Name", describeFunction.getName().toUpperCase());
+    final String functionName = describeFunction.getName().toUpperCase();
+    writer().printf("%-12s: %s%n", "Name", functionName);
     if (!describeFunction.getAuthor().trim().isEmpty()) {
       writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
     }
@@ -717,10 +718,10 @@ public abstract class Console implements Closeable {
           final String arguments = functionInfo.getArguments().stream()
               .map(arg -> arg.getName().isEmpty()
                       ? arg.getType()
-                      : arg.getName() + " (" + arg.getType() + ")")
+                      : arg.getName() + " " + arg.getType())
               .collect(Collectors.joining(", "));
 
-          writer().printf("%n\t%-12s: %s%n", "Arguments", arguments);
+          writer().printf("%n\t%-12s: %s(%s)%n", "Variation", functionName, arguments);
           writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
           if (!functionInfo.getDescription().trim().isEmpty()) {
             writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());

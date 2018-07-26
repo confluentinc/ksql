@@ -75,9 +75,6 @@ Detailed Changlog
 * `PR-1429 <https://github.com/confluentinc/ksql/pull/1429>`_ - UDF tidy ups
 * `PR-1423 <https://github.com/confluentinc/ksql/pull/1423>`_ - Collect metrics for UDFs
 * `PR-1412 <https://github.com/confluentinc/ksql/pull/1412>`_ - DOCS-415: New topic on KSQL custom test data
-* `PR-1412 <https://github.com/confluentinc/ksql/pull/1412>`_ - DOCS-415: New topic on KSQL custom test data
-* `PR-1412 <https://github.com/confluentinc/ksql/pull/1412>`_ - DOCS-415: New topic on KSQL custom test data
-* `PR-1412 <https://github.com/confluentinc/ksql/pull/1412>`_ - DOCS-415: New topic on KSQL custom test data
 * `PR-1416 <https://github.com/confluentinc/ksql/pull/1416>`_ - Validate that function names are valid java identifiers
 * `PR-1428 <https://github.com/confluentinc/ksql/pull/1428>`_ - Minor style change in comment.
 * `PR-1410 <https://github.com/confluentinc/ksql/pull/1410>`_ - Added query rewrite feature using AST.
@@ -124,9 +121,6 @@ Detailed Changlog
 * `PR-1331 <https://github.com/confluentinc/ksql/pull/1331>`_ - Follow-on updates for KSQL_OPTS
 * `PR-1333 <https://github.com/confluentinc/ksql/pull/1333>`_ - Inherit maven-compiler-plugin definition from common
 * `PR-1329 <https://github.com/confluentinc/ksql/pull/1329>`_ - Fix run class to work with Java 10 and use ExplicitGCInvokesConcurrent
-* `PR-1330 <https://github.com/confluentinc/ksql/pull/1330>`_ - Make KSQL_OPTS more prominent
-* `PR-1330 <https://github.com/confluentinc/ksql/pull/1330>`_ - Make KSQL_OPTS more prominent
-* `PR-1330 <https://github.com/confluentinc/ksql/pull/1330>`_ - Make KSQL_OPTS more prominent
 * `PR-1330 <https://github.com/confluentinc/ksql/pull/1330>`_ - Make KSQL_OPTS more prominent
 * `PR-1301 <https://github.com/confluentinc/ksql/pull/1301>`_ - Minor: Admin client leak
 * `PR-1315 <https://github.com/confluentinc/ksql/pull/1315>`_ - Consumed imports

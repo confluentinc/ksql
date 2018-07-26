@@ -238,20 +238,23 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.close();
   }
 
-  public void handleLine(String line) throws Exception {
-    String trimmedLine = Optional.ofNullable(line).orElse("").trim();
+  public void handleLine(final String line) throws Exception {
+    // trim whitespace and convert non-breaking spaces to spaces;
+    final String trimmedLine = Optional.ofNullable(line).orElse("")
+        .replace((char) 0xa0, ' ')
+        .trim();
 
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    String[] commandArgs = trimmedLine.split("\\s+", 2);
-    CliSpecificCommand cliSpecificCommand =
+    final String[] commandArgs = trimmedLine.split("\\s+", 2);
+    final CliSpecificCommand cliSpecificCommand =
         terminal.getCliSpecificCommands().get(commandArgs[0].toLowerCase());
     if (cliSpecificCommand != null) {
       cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
     } else {
-      handleStatements(line);
+      handleStatements(trimmedLine);
     }
   }
 
@@ -274,7 +277,7 @@ public class Cli implements Closeable, AutoCloseable {
         if (result == null) {
           throw new EndOfFileException();
         } else {
-          return result.trim();
+          return result.trim().replace((char) 0xa0, ' ');
         }
       } catch (UserInterruptException exception) {
         // User hit ctrl-C, just clear the current line and try again.

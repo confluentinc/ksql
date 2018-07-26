@@ -1103,9 +1103,9 @@ Aggregate functions
 
 .. _ksql_key_constraints:
 
-===============
-Key Constraints
-===============
+================
+Key Requirements
+================
 
 Message Keys
 ------------

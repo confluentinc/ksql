@@ -95,7 +95,7 @@ import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
+public final class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 

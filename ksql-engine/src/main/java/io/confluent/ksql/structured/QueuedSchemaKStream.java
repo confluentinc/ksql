@@ -41,6 +41,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
+  @SuppressWarnings("unchecked") // needs investigating
   QueuedSchemaKStream(final SchemaKStream schemaKStream) {
     super(
         schemaKStream.schema,
@@ -113,7 +114,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public KStream getKstream() {
+  public KStream<String, GenericRow> getKstream() {
     return super.getKstream();
   }
 
@@ -123,7 +124,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
+  private static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
     private final BlockingQueue<KeyValue<String, GenericRow>> queue;
     private final OutputNode.Callback callback;
 

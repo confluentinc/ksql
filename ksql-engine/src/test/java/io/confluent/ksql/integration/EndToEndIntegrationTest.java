@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.GenericRow;
@@ -51,11 +52,13 @@ import io.confluent.ksql.util.UserDataProvider;
 
 import static java.lang.String.format;
 import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
@@ -83,6 +86,7 @@ public class EndToEndIntegrationTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
+
     testHarness.start(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     ksqlConfig = testHarness.ksqlConfig.clone();
@@ -132,6 +136,7 @@ public class EndToEndIntegrationTest {
         actualUsers.add((String) columns.get(1));
       }
     }
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
     assertEquals(expectedUsers, actualUsers);
   }
 
@@ -156,6 +161,7 @@ public class EndToEndIntegrationTest {
     }
 
     assertEquals(expectedPages, actualPages);
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
     queryMetadata.getKafkaStreams().close();
   }
 
@@ -216,6 +222,8 @@ public class EndToEndIntegrationTest {
       actualPages.add(page);
     }
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertEquals(expectedPages, actualPages);
     assertEquals(expectedUsers, actualUsers);
   }
@@ -253,6 +261,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertThat(columns.get(3).toString(), startsWith("PAGE_"));
     assertThat(columns.get(4).toString(), startsWith("USER_"));
   }
@@ -278,6 +288,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertThat(columns.get(1).toString(), startsWith("USER_"));
     assertThat(columns.get(2).toString(), startsWith("PAGE_"));
     assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));

@@ -213,17 +213,18 @@ public class CodeGenRunner {
         final SubscriptExpression node,
         final Object context
     ) {
-      if (node.getBase() instanceof FunctionCall) {
-        process(node.getBase(), context);
-      } else {
+      if (node.getBase() instanceof DereferenceExpression
+          || node.getBase() instanceof QualifiedNameReference) {
         final String arrayBaseName = node.getBase().toString();
         final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
             .orElseThrow(
                 () -> {
                   return new RuntimeException("Cannot find the select "
-                 + "field in the available fields: " + arrayBaseName);
+                      + "field in the available fields: " + arrayBaseName);
                 });
         addParameter(schemaField);
+      } else {
+        process(node.getBase(), context);
       }
       process(node.getIndex(), context);
       return null;

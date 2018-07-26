@@ -62,16 +62,16 @@
         "CREATE TABLE S2 as SELECT id, topk(value, 2) as topk FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 10}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 50}", "timestamp": 30000}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 100}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 10}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 50}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,10.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[50.0]}", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0,0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0,10.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[50.0]}, "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
       ]
     },
     {
@@ -81,18 +81,18 @@
         "CREATE TABLE S2 as SELECT id, topkdistinct(value, 2) as topk FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 0}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 10}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "{\"id\": 0, \"name\": \"zero\", \"value\": 100}", "timestamp": 30000}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 100}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 10}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 100}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": 100}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,0.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,10.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0,10.0]}", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "{\"ID\":0,\"TOPK\":[100.0]}", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0,0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0,10.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0,10.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100.0]}, "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
       ]
     }
   ]

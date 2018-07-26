@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,8 +37,7 @@ import io.confluent.common.utils.Time;
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
-public class MetricCollectors {
-
+public final class MetricCollectors {
 
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
@@ -47,7 +46,10 @@ public class MetricCollectors {
     initialize();
   }
 
-  private static Time time = new io.confluent.common.utils.SystemTime();
+  private static final Time time = new io.confluent.common.utils.SystemTime();
+
+  private MetricCollectors() {
+  }
 
   // visible for testing.
   // We need to call this from the MetricCollectorsTest because otherwise tests clobber each

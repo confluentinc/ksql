@@ -45,8 +45,8 @@ KSQL includes JMX (Java Management Extensions) metrics which give insights into 
 These metrics include the number of messages, the total throughput, throughput distribution, error rate, and more.
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 328
-    :end-line: 335
+    :start-after: enable_JMX_metrics_start
+    :end-before: enable_JMX_metrics_end
 
 The ``ksql-print-metrics`` command line utility collects these metrics and prints them to the console. You can invoke this
 utility from your terminal:
@@ -108,3 +108,102 @@ KSQL doesn’t clean up its internal topics?
 ------------------------------------------
 Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
+----------------------------------------
+KSQL CLI doesn’t connect to KSQL server? 
+----------------------------------------
+The following warning may occur when you start the KSQL CLI.   
+
+.. code:: bash
+
+    **************** WARNING ******************
+    Remote server address may not be valid:
+    Error issuing GET to KSQL server
+
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+    *******************************************
+
+Also, you may see a similar error when you create a KSQL query by using the
+CLI.
+
+.. code:: bash
+
+    Error issuing POST to KSQL server
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+
+In both cases, the CLI can't connect to the KSQL server, which may be caused by
+one of the following conditions.
+
+- KSQL CLI isn't connected to the correct KSQL server port.
+- KSQL server isn't running.
+- KSQL server is running but listening on a different port.
+
+Check the port that KSQL CLI is using
+-------------------------------------
+
+Ensure that the KSQL CLI is configured with the correct KSQL server port.
+By default, the server listens on port ``8088``. For more info, see 
+:ref:`Starting the KSQL CLI <install_ksql-cli>`.
+
+Check the KSQL server configuration
+-----------------------------------
+
+In the KSQL server configuration file, check that the list of listeners
+has the host address and port configured correctly. Look for the ``listeners``
+setting:
+
+.. code:: bash
+
+    listeners=http://localhost:8088
+
+For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
+
+Check for a port conflict
+-------------------------
+
+There may be another process running on the port that the KSQL server listens
+on. Use the following command to check the process that's running on the port
+assigned to the KSQL server. This example checks the default port, which is
+``8088``.  
+
+.. code:: bash
+
+    netstat -anv | egrep -w .*8088.*LISTEN
+
+Your output should resemble:
+
+.. code:: bash
+
+    tcp4  0 0  *.8088       *.*    LISTEN      131072 131072    46314      0
+
+In this example, ``46314`` is the PID of the process that's listening on port
+``8088``. Run the following command to get info on the process.
+
+.. code:: bash
+
+    ps -wwwp <pid>
+
+Your output should resemble:
+
+.. code:: bash
+
+    io.confluent.ksql.rest.server.KsqlServerMain ./config/ksql-server.properties
+
+If the ``KsqlServerMain`` process isn't shown, a different process has taken the
+port that ``KsqlServerMain`` would normally use. Check the assigned listeners in 
+the KSQL server configuration, and restart the KSQL CLI with the correct port.
+
+----------------------
+Check KSQL server logs 
+----------------------
+If you're still having trouble, check the KSQL server logs for errors. 
+
+.. code:: bash
+
+    confluent log ksql-server
+
+
+Look for logs in the default directory at ``/usr/local/logs`` or in the
+``LOG_DIR`` that you assign when you start the KSQL CLI. For more info, see 
+:ref:`Starting the KSQL CLI <install_ksql-cli>`.

@@ -169,6 +169,7 @@ public class AggregateNode extends PlanNode {
     return visitor.visitAggregate(this, context);
   }
 
+  @SuppressWarnings("unchecked") // needs investigating
   @Override
   public SchemaKStream buildStream(
       final StreamsBuilder builder,

@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -70,6 +71,9 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -79,6 +83,45 @@ class EndToEndEngineTestUtil {
     // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
     // test
     UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+  }
+
+  private static class ValueSpec {
+    private final Object spec;
+
+    ValueSpec(final Object spec) {
+      this.spec = spec;
+    }
+
+    private static void compare(Object o1, Object o2, String path) {
+      if (o1 == null && o2 == null) {
+        return;
+      }
+      if (o1 == null || o2 == null) {
+        throw new AssertionError("Unexpected null at path " + path);
+      }
+      if (o1 instanceof Map) {
+        assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
+        assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
+        for (Object k : ((Map) o1).keySet()) {
+          compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + String.valueOf(k));
+        }
+      } else if (o1 instanceof List) {
+        assertThat("type mismatch at " + path, o2, instanceOf(List.class));
+        assertThat("list size mismatch at " + path, ((List) o1).size(), equalTo(((List)o2).size()));
+        for (int i = 0; i < ((List) o1).size(); i++) {
+          compare(((List) o1).get(i), ((List) o2).get(i), path + "." + String.valueOf(i));
+        }
+      } else {
+        assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
+        assertThat("mismatch at path" + path, o1, equalTo(o2));
+      }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      compare(spec, o, "VALUE-SPEC");
+      return Objects.equals(spec, o);
+    }
   }
 
   protected interface SerdeSupplier<T> {
@@ -137,10 +180,11 @@ class EndToEndEngineTestUtil {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      return avroToValueSpec(
-          avroObject,
-          new org.apache.avro.Schema.Parser().parse(schemaString),
-          false);
+      return new ValueSpec(
+          avroToValueSpec(
+              avroObject,
+              new org.apache.avro.Schema.Parser().parse(schemaString),
+              false));
     }
   }
 
@@ -200,6 +244,9 @@ class EndToEndEngineTestUtil {
 
     @Override
     public Object deserialize(final String topicName, final byte[] data) {
+      if (data == null) {
+        return null;
+      }
       try {
         return new ObjectMapper().readValue(data, Map.class);
       } catch (Exception e) {
@@ -219,6 +266,9 @@ class EndToEndEngineTestUtil {
 
     @Override
     public byte[] serialize(final String topicName, final Object spec) {
+      if (spec == null) {
+        return null;
+      }
       try {
         return new ObjectMapper().writeValueAsBytes(spec);
       } catch (Exception e) {
@@ -546,10 +596,15 @@ class EndToEndEngineTestUtil {
     }
     switch (schema.getType()) {
       case INT:
+        return Integer.valueOf(spec.toString());
       case LONG:
+        return Long.valueOf(spec.toString());
       case STRING:
+        return spec.toString();
       case DOUBLE:
+        return Double.valueOf(spec.toString());
       case FLOAT:
+        return Float.valueOf(spec.toString());
       case BOOLEAN:
         return spec;
       case ARRAY:
@@ -593,19 +648,28 @@ class EndToEndEngineTestUtil {
     }
     switch (schema.getType()) {
       case INT:
-      case LONG:
-      case DOUBLE:
       case FLOAT:
+      case DOUBLE:
       case BOOLEAN:
         return avro;
+      case LONG:
+        // Ensure that smaller long values match the value spec from the test file.
+        // The json deserializer uses Integer for any number less than Integer.MAX_VALUE.
+        if (((Long)avro) < Integer.MAX_VALUE && ((Long)avro) > Integer.MIN_VALUE) {
+          return ((Long)avro).intValue();
+        }
+        return avro;
+      case ENUM:
       case STRING:
         return avro.toString();
       case ARRAY:
         if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+          final org.apache.avro.Schema valueSchema
+              = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(
               Collectors.toMap(
                   m -> ((GenericData.Record) m).get("key").toString(),
-                  m -> ((GenericData.Record) m).get("value")
+                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
               )
           );
         }

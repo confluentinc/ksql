@@ -163,6 +163,7 @@ public class ConnectDataTranslatorTest {
     } catch (DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
       assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
+      assertThat(e.getMessage(), containsString("FIELD"));
     }
   }
 
@@ -239,6 +240,7 @@ public class ConnectDataTranslatorTest {
     } catch (DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
       assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
+      assertThat(e.getMessage(), containsString("STRUCT->INT"));
     }
   }
 

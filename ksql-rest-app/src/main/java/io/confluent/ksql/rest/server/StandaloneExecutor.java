@@ -235,7 +235,7 @@ public class StandaloneExecutor implements Executable {
   private static String readQueriesFile(final String queryFilePath) {
     try {
       return new String(java.nio.file.Files.readAllBytes(
-          Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
+          Paths.get(queryFilePath)), "UTF-8");
 
     } catch (IOException e) {
       throw new KsqlException(

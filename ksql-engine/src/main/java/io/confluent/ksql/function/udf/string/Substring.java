@@ -24,7 +24,8 @@ import io.confluent.ksql.function.udf.UdfDescription;
     description = "Returns a substring of the passed in value")
 public class Substring {
 
-  @Udf(description = "Returns a substring of str that starts at pos and continues to the end of the string")
+  @Udf(description = "Returns a substring of str that starts at pos "
+                     + "and continues to the end of the string")
   public String substring(
       final String str,
       final int pos) {

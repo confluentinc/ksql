@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,7 @@ import io.confluent.ksql.util.SchemaUtil;
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
   private final JsonConverter jsonConverter;
@@ -107,6 +107,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   // This is a temporary requirement until we can ensure that the types that Connect JSON
   // convertor creates are supported in KSQL.
+  @SuppressWarnings("unchecked")
   private Object enforceFieldType(final Schema fieldSchema, final Object columnVal) {
     if (columnVal == null) {
       return null;
@@ -141,7 +142,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Map<String, Object> enforceFieldTypeForMap(
       final Schema fieldSchema,
-      final Map<String, Object> columnMap) {
+      final Map<String, ?> columnMap) {
     return columnMap.entrySet().stream()
         .collect(Collectors.toMap(
             e -> enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
@@ -151,7 +152,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Struct enforceFieldTypeForStruct(
       final Schema fieldSchema,
-      final Map<String, Object> structMap) {
+      final Map<String, ?> structMap) {
     final Struct columnStruct = new Struct(fieldSchema);
     final Map<String, String> caseInsensitiveStructFieldNameMap =
         getCaseInsensitiveStructFieldNameMap(structMap);
@@ -166,7 +167,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   private Map<String, String> getCaseInsensitiveStructFieldNameMap(
-      final Map<String, Object> structMap
+      final Map<String, ?> structMap
   ) {
     return structMap.entrySet().stream()
         .collect(Collectors.toMap(
@@ -179,7 +180,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   public void close() {
   }
 
-  private static class CaseInsensitiveJsonNode {
+  private static final class CaseInsensitiveJsonNode {
 
     private final Map<String, String> keyMap = new HashMap<>();
 

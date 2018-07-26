@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.isEmpty;
 import static java.util.Objects.requireNonNull;
 
-public class QualifiedName {
+public final class QualifiedName {
 
   private final List<String> parts;
 

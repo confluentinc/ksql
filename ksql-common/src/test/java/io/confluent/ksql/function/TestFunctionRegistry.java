@@ -44,7 +44,7 @@ public class TestFunctionRegistry implements FunctionRegistry {
             "",
             "",
             "",
-            "")));
+            "", false)));
     final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName());
     udfFactory.addFunction(ksqlFunction);  }
 

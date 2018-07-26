@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,10 @@ import java.util.Collections;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.util.KsqlConfig;
 
-public class EmbeddedKsql {
+public final class EmbeddedKsql {
+
+  private EmbeddedKsql() {
+  }
 
   public static void main(String[] args) throws Exception {
 

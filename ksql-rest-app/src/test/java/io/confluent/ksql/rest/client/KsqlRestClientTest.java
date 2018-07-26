@@ -54,6 +54,8 @@ import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -62,19 +64,21 @@ public class KsqlRestClientTest {
   MockApplication mockApplication;
   KsqlRestConfig ksqlRestConfig;
   KsqlRestClient ksqlRestClient;
+  private String serverAddress;
 
   @Before
   public void init() throws Exception {
     final int port = TestUtils.randomFreeLocalPort();
     Map<String, Object> props = new HashMap<>();
-    props.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + port);
+    serverAddress = "http://localhost:" + port;
+    props.put(KsqlRestConfig.LISTENERS_CONFIG, serverAddress);
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     ksqlRestConfig = new KsqlRestConfig(props);
     mockApplication = new MockApplication(ksqlRestConfig);
     mockApplication.start();
 
-    ksqlRestClient = new KsqlRestClient("http://localhost:" + port);
+    ksqlRestClient = new KsqlRestClient(serverAddress);
   }
 
   @After
@@ -259,5 +263,21 @@ public class KsqlRestClientTest {
     RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
     assertThat(restResponse.isErroneous(), CoreMatchers.equalTo(true));
     assertThat(restResponse.getErrorMessage(), CoreMatchers.equalTo(ksqlError));
+  }
+
+  @Test
+  public void shouldReturnGoodErrorMessageIfCantFindKsqlInfoPath() throws Exception {
+    final String serverAddress = "http://not-ksql-server";
+    final Client mockClient = mockClientExpectingGetRequestAndReturningStatusWithEntity(
+        serverAddress, "/info", Response.Status.NOT_FOUND,
+        Optional.empty(), KsqlErrorMessage.class);
+    final KsqlRestClient ksqlRestClient = new KsqlRestClient(mockClient,
+        serverAddress,
+        Collections.emptyMap());
+    final RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
+    assertThat(restResponse.isErroneous(), is(true));
+    assertThat(restResponse.getErrorMessage().getMessage(),
+        containsString("Path not found. Path='/info'. "
+            + "Check your ksql http url to make sure you are connecting to a ksql server."));
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,7 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
-public class SchemaUtil {
+public final class SchemaUtil {
 
   public static final String ARRAY = "ARRAY";
   public static final String MAP = "MAP";
@@ -74,6 +74,9 @@ public class SchemaUtil {
           .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
           .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
           .build();
+
+  private SchemaUtil() {
+  }
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -122,8 +122,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return makeRequest("/info", ServerInfo.class);
   }
 
-  public <T> RestResponse<T> makeRequest(String path, Class<T> type) {
-    Response response = makeGetRequest(path);
+  <T> RestResponse<T> makeRequest(final String path, final Class<T> type) {
+    final Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
         return RestResponse.erroneous(
@@ -135,11 +135,14 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
                 )
         );
       }
+      if (response.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
+        return RestResponse.erroneous(404, "Path not found. Path='" + path + "'. "
+            + "Check your ksql http url to make sure you are connecting to a ksql server.");
+      }
       if (response.getStatus() != Response.Status.OK.getStatusCode()) {
         return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
       }
-      T result = response.readEntity(type);
-      return RestResponse.successful(result);
+      return RestResponse.successful(response.readEntity(type));
     } finally {
       response.close();
     }
@@ -217,7 +220,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;

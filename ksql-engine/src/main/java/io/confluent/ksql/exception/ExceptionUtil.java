@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,13 @@ package io.confluent.ksql.exception;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class ExceptionUtil {
-  public static String stackTraceToString(Exception e) {
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
+public final class ExceptionUtil {
+  private ExceptionUtil() {
+  }
+
+  public static String stackTraceToString(final Exception e) {
+    final StringWriter sw = new StringWriter();
+    final PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
     return sw.toString();
   }

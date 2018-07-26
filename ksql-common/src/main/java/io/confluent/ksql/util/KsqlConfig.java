@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -248,7 +248,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return configDef;
   }
 
-  private static class ConfigValue {
+  private static final class ConfigValue {
     final Optional<ConfigDef.Type> type;
     final String key;
     final Object value;

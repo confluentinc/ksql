@@ -95,6 +95,10 @@ public class UdfFactory {
     functions.values().forEach(consumer);
   }
 
+  public boolean isInternal() {
+    return metadata.isInternal();
+  }
+
   public String getPath() {
     return metadata.getPath();
   }
@@ -158,7 +162,7 @@ public class UdfFactory {
         .collect(Collectors.toList());
   }
 
-  private static class FunctionParameter {
+  private static final class FunctionParameter {
     private final Schema.Type type;
     private final boolean isOptional;
 

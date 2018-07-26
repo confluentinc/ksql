@@ -15,8 +15,8 @@ Python. KSQL is scalable, elastic, fault-tolerant, and real-time. It supports a 
 including data filtering, transformations, aggregations, joins, windowing, and sessionization.
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 8
-    :end-line: 17
+    :start-after: demo_start
+    :end-before: demo_end
 
 .. raw:: html
 

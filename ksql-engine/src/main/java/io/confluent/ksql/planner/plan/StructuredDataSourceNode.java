@@ -19,8 +19,6 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -48,6 +46,7 @@ import javax.annotation.concurrent.Immutable;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
@@ -56,6 +55,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -165,7 +165,7 @@ public class StructuredDataSourceNode
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
 
-      final KTable kTable = createKTable(
+      final KTable<?, GenericRow> kTable = createKTable(
           builder,
           getAutoOffsetReset(props),
           table,
@@ -242,8 +242,9 @@ public class StructuredDataSourceNode
     return -1;
   }
 
-  private KTable createKTable(
-      StreamsBuilder builder, final Topology.AutoOffsetReset autoOffsetReset,
+  private KTable<?, GenericRow> createKTable(
+      final StreamsBuilder builder,
+      final Topology.AutoOffsetReset autoOffsetReset,
       final KsqlTable ksqlTable,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead
@@ -287,7 +288,7 @@ public class StructuredDataSourceNode
     }
   }
 
-  private <K> KTable table(
+  private <K> KTable<?, GenericRow> table(
       final KStream<K, Optional<GenericRow>> stream,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde

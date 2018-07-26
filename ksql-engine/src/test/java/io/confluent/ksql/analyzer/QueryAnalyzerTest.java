@@ -154,7 +154,7 @@ public class QueryAnalyzerTest {
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_1")),
-        new IntegerLiteral(new NodeLocation(0, 0), "10"))));
+        new IntegerLiteral(new NodeLocation(0, 0), 10))));
   }
 
   @Test

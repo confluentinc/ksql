@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
@@ -27,6 +28,7 @@ import java.util.Objects;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class StreamedRow {
 

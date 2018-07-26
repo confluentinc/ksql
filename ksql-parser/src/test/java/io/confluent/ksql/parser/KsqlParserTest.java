@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -32,11 +33,14 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
@@ -65,10 +69,10 @@ import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
@@ -276,6 +280,51 @@ public class KsqlParserTest {
     SingleColumn column5 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(5);
     Assert.assertTrue("testLiterals fails", column5.getAlias().get().equalsIgnoreCase("KSQL_COL_5"));
     Assert.assertTrue("testLiterals fails", column5.getExpression().toString().equalsIgnoreCase("-5"));
+  }
+
+  private <T, L extends Literal> void shouldParseNumericLiteral(final T value,
+                                                                final L expectedValue) {
+    final String queryStr = String.format("SELECT " + value.toString() + " FROM test1;", value);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    final SingleColumn column0
+        = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
+    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getExpression(), instanceOf(expectedValue.getClass()));
+    assertThat(column0.getExpression(), equalTo(expectedValue));
+  }
+
+  @Test
+  public void shouldParseIntegerLiterals() {
+    shouldParseNumericLiteral(0, new IntegerLiteral(0));
+    shouldParseNumericLiteral(10, new IntegerLiteral(10));
+    shouldParseNumericLiteral(Integer.MAX_VALUE, new IntegerLiteral(Integer.MAX_VALUE));
+  }
+
+  @Test
+  public void shouldParseLongLiterals() {
+    shouldParseNumericLiteral(Integer.MAX_VALUE + 100L, new LongLiteral(Integer.MAX_VALUE + 100L));
+  }
+
+  @Test
+  public void shouldParseNegativeInteger() {
+    final String queryStr = String.format("SELECT -12345 FROM test1;");
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    final SingleColumn column0
+        = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
+    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getExpression(), instanceOf(ArithmeticUnaryExpression.class));
+    final ArithmeticUnaryExpression aue = (ArithmeticUnaryExpression) column0.getExpression();
+    assertThat(aue.getValue(), instanceOf(IntegerLiteral.class));
+    assertThat(((IntegerLiteral) aue.getValue()).getValue(), equalTo(12345));
+    assertThat(aue.getSign(), equalTo(ArithmeticUnaryExpression.Sign.MINUS));
   }
 
   @Test

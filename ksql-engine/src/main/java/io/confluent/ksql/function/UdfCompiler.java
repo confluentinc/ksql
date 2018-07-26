@@ -134,7 +134,7 @@ public class UdfCompiler {
   public UdfCompiler(final Optional<Metrics> metrics) {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     try (final InputStream inputStream = getClass().getClassLoader()
-        .getResourceAsStream("KsqlAggregateFunctionTemplate.java")) {
+        .getResourceAsStream("KsqlAggregateFunction.java-template")) {
       final Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
       final StringBuilder builder = new StringBuilder();
       while (scanner.hasNextLine()) {

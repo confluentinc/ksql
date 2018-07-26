@@ -675,10 +675,10 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitLongLiteral(final LongLiteral node, final Object context) {
     return node.getLocation()
         .map(location ->
-            new LongLiteral(node.getLocation().get(), String.valueOf(node.getValue()))
+            new LongLiteral(node.getLocation().get(), node.getValue())
         )
         .orElse(
-            new LongLiteral(String.valueOf(node.getValue()))
+            new LongLiteral(node.getValue())
         );
   }
 

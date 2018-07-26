@@ -17,7 +17,6 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Test;
@@ -29,10 +28,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlConstants;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+@SuppressWarnings("unchecked")
 public class StringTimestampExtractorTest {
 
   private final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,14 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
-import io.confluent.ksql.query.QueryId;
 
 import java.util.Objects;
 
+import io.confluent.ksql.query.QueryId;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EntityQueryId {
   private final String id;
 

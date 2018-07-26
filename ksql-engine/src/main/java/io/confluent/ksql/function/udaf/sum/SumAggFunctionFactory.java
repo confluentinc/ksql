@@ -16,13 +16,14 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import io.confluent.ksql.function.AggregateFunctionFactory;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
 import java.util.List;
+
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.util.KsqlException;
 
 public class SumAggFunctionFactory extends AggregateFunctionFactory {
   private static final String FUNCTION_NAME = "SUM";
@@ -36,9 +37,9 @@ public class SumAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     // For now we only support aggregate functions with one arg.
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+    for (final KsqlAggregateFunction<?, ?> ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

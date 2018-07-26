@@ -188,7 +188,8 @@ public class UdfLoader {
               udafAnnotation.description(),
               udafAnnotation.author(),
               udafAnnotation.version(),
-              path),
+              path,
+              false),
               aggregateFunctions));
     };
   }
@@ -241,7 +242,8 @@ public class UdfLoader {
             classLevelAnnotaion.description(),
             classLevelAnnotaion.author(),
             classLevelAnnotaion.version(),
-            path)));
+            path,
+            false)));
 
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),

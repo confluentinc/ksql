@@ -18,7 +18,6 @@ package io.confluent.ksql.function.udaf.topk;
 
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +26,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.ksql.function.KsqlAggregateFunction;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+@SuppressWarnings("unchecked")
 public class LongTopkKudafTest {
   private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
       25L);;

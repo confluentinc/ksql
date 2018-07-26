@@ -33,12 +33,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.confluent.avro</groupId>
-            <artifactId>avro-random-generator</artifactId>
-            <version>${arg.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

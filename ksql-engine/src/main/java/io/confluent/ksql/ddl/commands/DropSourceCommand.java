@@ -86,7 +86,7 @@ public class DropSourceCommand implements DdlCommand {
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
       try {
-        ExecutorUtil.execute(
+        ExecutorUtil.executeWithRetries(
             () -> kafkaTopicClient.deleteTopics(
                     Collections.singletonList(
                         dataSource.getKsqlTopic().getKafkaTopicName())),
@@ -98,7 +98,7 @@ public class DropSourceCommand implements DdlCommand {
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
         try {
-          ExecutorUtil.execute(
+          ExecutorUtil.executeWithRetries(
               () -> schemaRegistryClient.deleteSubject(
                   sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX),
               ExecutorUtil.RetryBehaviour.ALWAYS);

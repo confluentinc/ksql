@@ -41,7 +41,7 @@ public class ExecutorUtilTest {
     ExecutorUtil.executeWithRetries(() -> {
           final CompletableFuture<Void> f = new CompletableFuture<>();
           f.completeExceptionally(new TestRetriableException("I will never succeed"));
-          return f;
+          return f.get();
         },
         ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
@@ -52,12 +52,12 @@ public class ExecutorUtilTest {
 
     ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(null).get();
       }
 
       final CompletableFuture<Void> f = new CompletableFuture<>();
       f.completeExceptionally(new TestRetriableException("I will never succeed"));
-      return f;
+      return f.get();
     },
     ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
@@ -67,7 +67,7 @@ public class ExecutorUtilTest {
     final String expectedValue = "should return this";
 
     assertThat(ExecutorUtil.executeWithRetries(
-        () -> CompletableFuture.completedFuture(expectedValue),
+        () -> CompletableFuture.completedFuture(expectedValue).get(),
         ExecutorUtil.RetryBehaviour.ON_RETRYABLE),
         is(expectedValue));
   }
@@ -89,7 +89,7 @@ public class ExecutorUtilTest {
         f.completeExceptionally(new RuntimeException("Test should not retry"));
       }
 
-      return f;
+      return f.get();
     }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
@@ -116,7 +116,7 @@ public class ExecutorUtilTest {
 
     ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(null).get();
       }
 
       throw new TestRetriableException("Test should retry");

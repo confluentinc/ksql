@@ -20,9 +20,6 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
 public final class ExecutorUtil {
 
@@ -43,29 +40,15 @@ public final class ExecutorUtil {
     void call() throws Exception;
   }
 
-  public static void execute(final Function function,
+  public static void executeWithRetries(final Function function,
                              final RetryBehaviour retryBehaviour) throws Exception {
-    execute(() -> {
+    executeWithRetries(() -> {
       function.call();
       return null;
     }, retryBehaviour);
   }
 
-  public static <T> T execute(final Callable<T> supplier,
-                              final RetryBehaviour retryBehaviour) throws Exception {
-    return executeWithRetries(() -> {
-      final CompletableFuture<T> f = new CompletableFuture<>();
-      try {
-        final T result = supplier.call();
-        f.complete(result);
-      } catch (final Exception e) {
-        f.completeExceptionally(e);
-      }
-      return f;
-    }, retryBehaviour);
-  }
-
-  public static <T> T executeWithRetries(final Supplier<? extends Future<T>> supplier,
+  public static <T> T executeWithRetries(final Callable<T> supplier,
                                          final RetryBehaviour retryBehaviour) throws Exception {
     Exception lastException = null;
     for (int retries = 0; retries < NUM_RETRIES; ++retries) {
@@ -73,10 +56,9 @@ public final class ExecutorUtil {
         if (retries != 0) {
           Thread.sleep(RETRY_BACKOFF_MS);
         }
-        return supplier.get().get();
+        return supplier.call();
       } catch (final Exception e) {
         final Throwable cause = e.getCause();
-
         if (e instanceof RetriableException
             || cause instanceof RetriableException
             || (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS)) {

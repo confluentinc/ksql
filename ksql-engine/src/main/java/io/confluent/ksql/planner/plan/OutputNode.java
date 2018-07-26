@@ -67,7 +67,7 @@ public abstract class OutputNode
       @JsonProperty("schema") final Schema schema,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy) {
-    super(id);
+    super(id, source.getNodeOutputType());
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");
     requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy is null");

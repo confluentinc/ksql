@@ -24,6 +24,7 @@ import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandFactory;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -42,6 +43,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -118,14 +120,26 @@ class QueryEngine {
 
       final StructuredDataSource
           structuredDataSource =
-          new KsqlStream(
-              sqlExpression,
-              ksqlStructuredDataOutputNode.getId().toString(),
-              ksqlStructuredDataOutputNode.getSchema(),
-              ksqlStructuredDataOutputNode.getKeyField(),
-              ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
-              ksqlStructuredDataOutputNode.getKsqlTopic()
-          );
+          (ksqlStructuredDataOutputNode.getNodeOutputType() == DataSourceType.KTABLE)
+              ? new KsqlTable(
+                  sqlExpression,
+                  ksqlStructuredDataOutputNode.getId().toString(),
+                  ksqlStructuredDataOutputNode.getSchema(),
+                  ksqlStructuredDataOutputNode.getKeyField(),
+                  ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
+                  ksqlStructuredDataOutputNode.getKsqlTopic(),
+                  "", // Placeholder
+                  false  // Placeholder
+              )
+              : new KsqlStream(
+                  sqlExpression,
+                  ksqlStructuredDataOutputNode.getId().toString(),
+                  ksqlStructuredDataOutputNode.getSchema(),
+                  ksqlStructuredDataOutputNode.getKeyField(),
+                  ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
+                  ksqlStructuredDataOutputNode.getKsqlTopic()
+              );
+
       if (analysis.isDoCreateInto()) {
         try {
           tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());

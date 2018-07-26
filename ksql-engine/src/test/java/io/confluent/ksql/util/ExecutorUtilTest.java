@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class ExecutorWithRetriesTest {
+public class ExecutorUtilTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -38,19 +38,19 @@ public class ExecutorWithRetriesTest {
     expectedException.expect(ExecutionException.class);
     expectedException.expectMessage("I will never succeed");
 
-    ExecutorWithRetries.executeSync(() -> {
+    ExecutorUtil.executeWithRetries(() -> {
           final CompletableFuture<Void> f = new CompletableFuture<>();
           f.completeExceptionally(new TestRetriableException("I will never succeed"));
           return f;
         },
-        ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+        ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldRetryAndSucceed() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
 
-    ExecutorWithRetries.executeSync(() -> {
+    ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
         return CompletableFuture.completedFuture(null);
       }
@@ -59,16 +59,16 @@ public class ExecutorWithRetriesTest {
       f.completeExceptionally(new TestRetriableException("I will never succeed"));
       return f;
     },
-    ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+    ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldReturnValue() throws Exception {
     final String expectedValue = "should return this";
 
-    assertThat(ExecutorWithRetries.executeSync(
+    assertThat(ExecutorUtil.executeWithRetries(
         () -> CompletableFuture.completedFuture(expectedValue),
-        ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE),
+        ExecutorUtil.RetryBehaviour.ON_RETRYABLE),
         is(expectedValue));
   }
 
@@ -79,7 +79,7 @@ public class ExecutorWithRetriesTest {
 
     final AtomicBoolean firstCall = new AtomicBoolean(true);
 
-    ExecutorWithRetries.executeSync(() -> {
+    ExecutorUtil.executeWithRetries(() -> {
       final CompletableFuture<Void> f = new CompletableFuture<>();
 
       if (firstCall.get()) {
@@ -90,7 +90,7 @@ public class ExecutorWithRetriesTest {
       }
 
       return f;
-    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
@@ -100,27 +100,27 @@ public class ExecutorWithRetriesTest {
 
     final AtomicBoolean firstCall = new AtomicBoolean(true);
 
-    ExecutorWithRetries.executeSync(() -> {
+    ExecutorUtil.executeWithRetries(() -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       }
 
       throw new RuntimeException("Test should not retry");
-    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldRetryIfSupplierThrowsRetryableException() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
 
-    ExecutorWithRetries.executeSync(() -> {
+    ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
         return CompletableFuture.completedFuture(null);
       }
 
       throw new TestRetriableException("Test should retry");
-    }, ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   private static final class TestRetriableException extends RetriableException {

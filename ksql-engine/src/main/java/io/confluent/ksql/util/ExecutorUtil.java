@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-public final class ExecutorWithRetries {
+public final class ExecutorUtil {
 
   private static final int NUM_RETRIES = 5;
   private static final int RETRY_BACKOFF_MS = 500;
-  private static final Logger log = LoggerFactory.getLogger(ExecutorWithRetries.class);
+  private static final Logger log = LoggerFactory.getLogger(ExecutorUtil.class);
 
-  private ExecutorWithRetries() {
+  private ExecutorUtil() {
   }
 
   public enum RetryBehaviour {
@@ -53,7 +53,7 @@ public final class ExecutorWithRetries {
 
   public static <T> T execute(final Callable<T> supplier,
                               final RetryBehaviour retryBehaviour) throws Exception {
-    return executeSync(() -> {
+    return executeWithRetries(() -> {
       final CompletableFuture<T> f = new CompletableFuture<>();
       try {
         final T result = supplier.call();
@@ -65,8 +65,8 @@ public final class ExecutorWithRetries {
     }, retryBehaviour);
   }
 
-  public static <T> T executeSync(final Supplier<? extends Future<T>> supplier,
-                                  final RetryBehaviour retryBehaviour) throws Exception {
+  public static <T> T executeWithRetries(final Supplier<? extends Future<T>> supplier,
+                                         final RetryBehaviour retryBehaviour) throws Exception {
     Exception lastException = null;
     for (int retries = 0; retries < NUM_RETRIES; ++retries) {
       try {

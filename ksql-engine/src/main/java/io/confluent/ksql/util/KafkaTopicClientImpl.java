@@ -88,9 +88,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     try {
       log.info("Creating topic '{}'", topic);
-      ExecutorWithRetries.executeSync(
+      ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(Collections.singleton(newTopic)).all(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final InterruptedException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
@@ -116,9 +116,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     try {
-      return ExecutorWithRetries.executeSync(
+      return ExecutorUtil.executeWithRetries(
           () -> adminClient.listTopics().names(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
@@ -135,9 +135,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
-      return ExecutorWithRetries.executeSync(
+      return ExecutorUtil.executeWithRetries(
           () -> adminClient.describeTopics(topicNames).all(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
     }
@@ -170,9 +170,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final Map<ConfigResource, Config> request =
           Collections.singletonMap(resource, new Config(entries));
 
-      ExecutorWithRetries.executeSync(
+      ExecutorUtil.executeWithRetries(
           () -> adminClient.alterConfigs(request).all(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
     } catch (final Exception e) {
@@ -259,9 +259,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           String.valueOf(nodes.iterator().next().id())
       );
 
-      Map<ConfigResource, Config> config = ExecutorWithRetries.executeSync(
+      Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return config.get(resource)
           .entries()
@@ -319,9 +319,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     final List<ConfigResource> request = Collections.singletonList(resource);
 
     try {
-      final Config config = ExecutorWithRetries.executeSync(
+      final Config config = ExecutorUtil.executeWithRetries(
           () -> adminClient.describeConfigs(request).all(),
-          ExecutorWithRetries.RetryBehaviour.ON_RETRYABLE).get(resource);
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE).get(resource);
       return config.entries().stream()
           .filter(e -> includeDefaults
                        || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))

@@ -23,7 +23,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.ExecutorWithRetries;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -86,23 +86,25 @@ public class DropSourceCommand implements DdlCommand {
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
       try {
-        ExecutorWithRetries.execute(
+        ExecutorUtil.execute(
             () -> kafkaTopicClient.deleteTopics(
                     Collections.singletonList(
                         dataSource.getKsqlTopic().getKafkaTopicName())),
-            ExecutorWithRetries.RetryBehaviour.ALWAYS);
+            ExecutorUtil.RetryBehaviour.ALWAYS);
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new KsqlException("Could not delete the corresponding kafka topic: "
+            + dataSource.getKsqlTopic().getKafkaTopicName(), e);
       }
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
         try {
-          ExecutorWithRetries.execute(
+          ExecutorUtil.execute(
               () -> schemaRegistryClient.deleteSubject(
                   sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX),
-              ExecutorWithRetries.RetryBehaviour.ALWAYS);
+              ExecutorUtil.RetryBehaviour.ALWAYS);
         } catch (Exception e) {
-          throw new RuntimeException(e);
+          throw new KsqlException("Could not clean up the schema registry for topic: "
+              + sourceName, e);
         }
       }
     }

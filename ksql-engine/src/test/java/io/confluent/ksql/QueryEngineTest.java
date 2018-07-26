@@ -62,7 +62,7 @@ public class QueryEngineTest {
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Cannot create the stream. The output topic FOO is already used by FOO"));
+      assertThat(e.getMessage(), equalTo("Cannot create the stream/table. The output topic FOO is already used by FOO"));
     }
 
   }

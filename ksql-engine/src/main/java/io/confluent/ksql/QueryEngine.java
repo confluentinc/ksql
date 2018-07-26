@@ -133,7 +133,7 @@ class QueryEngine {
           final String sourceName = tempMetaStore.getSourceForTopic(
               ksqlStructuredDataOutputNode.getKsqlTopic().getName()).getName();
           throw new KsqlException(
-              String.format("Cannot create the stream. "
+              String.format("Cannot create the stream/table. "
                   + "The output topic %s is already used by %s",
                   ksqlStructuredDataOutputNode.getKsqlTopic().getKafkaTopicName(), sourceName), e);
         }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -78,18 +80,13 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public StructuredDataSource getSourceForTopic(final String ksqlTopicName) {
-    final List<StructuredDataSource> sources =
-        dataSourceMap.values()
-            .stream()
-            .filter(p -> p.getLeft().getKsqlTopic().getName() != null
-                && p.getLeft().getKsqlTopic().getName().equals(ksqlTopicName))
-            .map(Pair::getLeft)
-            .collect(Collectors.toList());
-    if (!sources.isEmpty()) {
-      return sources.get(0);
-    }
-    return null;
+  public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
+    return dataSourceMap.values()
+        .stream()
+        .filter(p -> p.getLeft().getKsqlTopic().getName() != null
+            && p.getLeft().getKsqlTopic().getName().equals(ksqlTopicName))
+        .map(Pair::getLeft)
+        .findFirst();
   }
 
   @Override

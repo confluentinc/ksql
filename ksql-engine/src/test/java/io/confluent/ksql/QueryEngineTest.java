@@ -53,12 +53,27 @@ public class QueryEngineTest {
 
 
   @Test
+  public void shouldThrowExpectedExceptionForDuplicateTable() {
+    final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
+        new CommandFactories(topicClient, schemaRegistryClient, true));
+    try {
+      final List<Pair<String, Statement>> statementList = ksqlEngine.parseQueries(
+          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
+      queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
+      Assert.fail();
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), equalTo("Cannot create the stream/table. The output topic FOO is already used by FOO"));
+    }
+
+  }
+
+  @Test
   public void shouldThrowExpectedExceptionForDuplicateStream() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
         new CommandFactories(topicClient, schemaRegistryClient, true));
     try {
       final List<Pair<String, Statement>> statementList = ksqlEngine.parseQueries(
-          "CREATE STREAM FOO AS SELECT * FROM TEST2; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
+          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone());
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (KsqlException e) {

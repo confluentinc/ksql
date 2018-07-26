@@ -131,7 +131,7 @@ class QueryEngine {
           tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
         } catch (KsqlException e) {
           final String sourceName = tempMetaStore.getSourceForTopic(
-              ksqlStructuredDataOutputNode.getKsqlTopic().getName()).getName();
+              ksqlStructuredDataOutputNode.getKsqlTopic().getName()).get().getName();
           throw new KsqlException(
               String.format("Cannot create the stream/table. "
                   + "The output topic %s is already used by %s",

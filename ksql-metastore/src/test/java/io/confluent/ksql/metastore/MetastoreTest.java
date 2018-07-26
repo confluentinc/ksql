@@ -81,7 +81,7 @@ public class MetastoreTest {
 
   @Test
   public void shouldGetTheCorrectSourceNameForTopic() {
-    final StructuredDataSource structuredDataSource = metaStore.getSourceForTopic("TEST2");
+    final StructuredDataSource structuredDataSource = metaStore.getSourceForTopic("TEST2").get();
     assertThat(structuredDataSource, instanceOf(KsqlTable.class));
     assertThat(structuredDataSource.getDataSourceType(), equalTo(DataSourceType.KTABLE));
     assertThat(structuredDataSource.getName(), equalTo("TEST2"));

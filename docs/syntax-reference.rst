@@ -243,7 +243,7 @@ The supported column data types are:
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
 -  ``ARRAY<ArrayType>`` (JSON and AVRO only)
--  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
+-  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only. Index starts from 0)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
    the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be

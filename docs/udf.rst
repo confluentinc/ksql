@@ -36,15 +36,34 @@ Optional ``@UdfParameter`` annotations can be added to method parameters to prov
 richer information.
 
 
+Null Handling
+~~~~~~~~~~~~~
+
+If a UDF uses primitive types in its signature it is indicating that the parameter should never be null.
+Conversely, using boxed types indicates the function can accept null values for the parameter.
+It is up to the implementor of the UDF to chose which is the most appropriate.
+A common pattern is to return ``null`` if the input is ``null``, though generally this is only for
+parameters that are expected to be supplied from the source row being processed. For example,
+a ``substring(String value, int beginIndex)`` UDF might return null if ``value`` is null, but a
+null ``beginIndex`` parameter would be treated as an error, and hence should be a primitive.
+
+The return type of a UDF can also be a primitive or boxed type. A primitive return type indicates
+the function will never return ``null``, where as a boxed type indicates it may return ``null``.
+
+The KSQL server will check the value being passed to each parameter and report an error to the server
+log for any null values being passed to a primitive type. The associated column in the output row
+will be ``null``.
+
 Example UDF class
 ~~~~~~~~~~~~~~~~~
 
 The class below creates a UDF named ``multiply``. The name of the UDF is provided in the ``name``
 parameter of the ``UdfDescription`` annotation. This name is case-insensitive and is what can be
-used to call the UDF. As can be seen this UDF can be invoked in three different ways:
+used to call the UDF. As can be seen this UDF can be invoked in different ways:
 
 - with two int parameters returning a long (BIGINT) result.
 - with two long (BIGINT) parameters returning a long (BIGINT) result.
+- with two nullable Long (BIGINT) parameters returning a nullable Long (BIGINT) result.
 - with two double parameters returning a double result.
 
 .. code:: java
@@ -52,25 +71,29 @@ used to call the UDF. As can be seen this UDF can be invoked in three different 
     @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
     public class Multiply {
 
-      @Udf(description = "multiply two ints")
+      @Udf(description = "multiply two non-nullable INTs.")
       public long multiply(
         @UdfParameter(value = "V1", description = "the first value") final int v1,
         @UdfParameter(value = "V2", description = "the second value") final int v2) {
         return v1 * v2;
       }
 
-      @Udf(description = "multiply two longs")
+      @Udf(description = "multiply two non-nullable BIGINTs.")
       public long multiply(
         @UdfParameter("V1") final long v1,
         @UdfParameter("V2") final long v2) {
         return v1 * v2;
       }
 
-      @Udf(description = "multiply two doubles")
+      @Udf(description = "multiply two nullable BIGINTs. If either param is null, null is returned.")
+      public Long multiply(final Long v1, final Long v2) {
+        return v1 == null || v2 == null ? null : v1 * v2;
+      }
+
+      @Udf(description = "multiply two non-nullable DOUBLEs.")
       public double multiply(final double v1, double v2) {
         return v1 * v2;
       }
-
     }
 
 

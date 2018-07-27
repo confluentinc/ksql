@@ -186,7 +186,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -242,9 +242,9 @@ KSQL has currently the following requirements for creating a table from a Kafka 
 
 1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
    below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
 2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_constraints`.
+   instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -263,7 +263,7 @@ The WITH clause supports the following properties:
 |                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
 |                         | message value. You must set the KEY property to this corresponding field/column in the     |
 |                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -811,6 +811,55 @@ they are explicitly terminated.
 
 (To terminate a non-persistent query use ``Ctrl-C`` in the CLI.)
 
+.. _operators:
+
+=========
+Operators
+=========
+
+KSQL supports the following operators in value expressions:
+
+The explanation for each operator includes a supporting example based on the following table:
+
+.. code:: sql
+
+  CREATE TABLE USERS (
+      USERID BIGINT
+      FIRST_NAME STRING,
+      LAST_NAME STRING,
+      NICKNAMES ARRAY<STRING>,
+      ADDRESS STRUCT<STREET_NAME STRING, NUMBER INTEGER>
+  ) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO', KEY='USERID');
+
+- Arithmetic (``+,-,/,*,%``) The usual arithmetic operators may be applied to numeric types
+  (INT, BIGINT, DOUBLE)
+
+.. code:: sql
+
+  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
+
+- Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
+
+.. code:: sql
+
+  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
+
+- Source Dereference (``.``) The source dereference operator can be used to specify columns
+  by dereferencing the source stream or table.
+
+.. code:: sql
+
+  SELECT USERS.FIRST_NAME FROM USERS;
+
+- Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
+  an array index or a map key.
+
+.. code:: sql
+
+  SELECT NICKNAMES[0] FROM USERS;
+
+.. _functions:
+
 ================
 Scalar functions
 ================
@@ -826,8 +875,6 @@ Scalar functions
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value                            |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings                           |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| operator ``+``         |  ``SELECT FIRST_NAME + ' ' + LAST_NAME AS FULL_NAME``      | Concatenate multiple strings                      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
 |                        |                                                            | the field that matches                            |
@@ -880,7 +927,7 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
 ================
 Key Requirements

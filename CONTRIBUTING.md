@@ -57,7 +57,7 @@ When submitting a pull request (PR), use the following guidelines:
 
 #### Code Style
 
-The project using [GoogeStyle][https://google.github.io/styleguide/javaguide.html] code formating.
+The project uses [GoogeStyle][https://google.github.io/styleguide/javaguide.html] code formating.
 You can install this code style into your IDE to make things more automatic:
  * [Intellij code style xml file][https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml]
  * [Eclipse code style xml file][https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml]
@@ -86,7 +86,7 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
     - (Optional) Make the new configuration active.
 
-    - Highlight the newly added 'Confluent Checks' and click the edit button, (pencil icon)
+    - Highlight the newly added 'Confluent Checks' and click the edit button (pencil icon).
 
     - Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
 

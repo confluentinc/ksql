@@ -46,20 +46,20 @@ public final class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
-  private static final Map<Type, Supplier<Schema>> typeToSchema
-      = ImmutableMap.<Type, Supplier<Schema>>builder()
-      .put(String.class, () -> Schema.OPTIONAL_STRING_SCHEMA)
-      .put(boolean.class, () -> Schema.BOOLEAN_SCHEMA)
-      .put(Boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .put(Integer.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(int.class, () -> Schema.INT32_SCHEMA)
-      .put(Long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
-      .put(long.class, () -> Schema.INT64_SCHEMA)
-      .put(Double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .put(double.class, () -> Schema.FLOAT64_SCHEMA)
+  private static final Map<Type, Supplier<SchemaBuilder>> typeToSchema
+      = ImmutableMap.<Type, Supplier<SchemaBuilder>>builder()
+      .put(String.class, () -> SchemaBuilder.string().optional())
+      .put(boolean.class, SchemaBuilder::bool)
+      .put(Boolean.class, () -> SchemaBuilder.bool().optional())
+      .put(Integer.class, () -> SchemaBuilder.int32().optional())
+      .put(int.class, SchemaBuilder::int32)
+      .put(Long.class, () -> SchemaBuilder.int64().optional())
+      .put(long.class, SchemaBuilder::int64)
+      .put(Double.class, () -> SchemaBuilder.float64().optional())
+      .put(double.class, SchemaBuilder::float64)
       .build();
 
-  private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
+  private static final Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
       ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
           .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
           .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
@@ -102,7 +102,16 @@ public final class SchemaUtil {
   }
 
   public static Schema getSchemaFromType(final Type type) {
-    return typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+    return getSchemaFromType(type, null, null);
+  }
+
+  public static Schema getSchemaFromType(final Type type, final String name, final String doc) {
+    final SchemaBuilder schema =
+        typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+
+    schema.name(name);
+    schema.doc(doc);
+    return schema.build();
   }
 
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
@@ -434,7 +443,7 @@ public final class SchemaUtil {
   }
 
 
-  private static Schema handleParametrizedType(final Type type) {
+  private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {

@@ -207,3 +207,55 @@ Will KSQL work with a HTTPS Confluent Schema Registry?
 
 Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.
+
+================================================
+Where are KSQL-related data and metadata stored?
+================================================
+
+Metadata is stored in and built from the KSQL command topic. Each KSQL server
+has its own in-memory version of the metastore. To secure the metadata, you must
+secure the command topic.
+
+The KSQL command topic stores all data definition language (DDL) statements:
+CREATE STREAM, CREATE TABLE, DROP STREAM, and DROP TABLE. Also, the KSQL command
+topic stores TERMINATE statements, which stop persistent queries based on
+CREATE STREAM AS SELECT (CSAS) and CREATE TABLE AS SELECT (CTAS). 
+
+Currently, data manipulation language (DML) statements, like UPDATE, INSERT,
+and DELETE, aren't available.
+
+===============================================
+Which KSQL queries read or write data to Kafka?
+===============================================
+
+SHOW STREAMS and EXPLAIN <query> statements don't communicate with Kafka.
+Instead, they run against the KSQL server that the KSQL client is connected to.
+
+CREATE STREAM WITH <topic> and CREATE TABLE WITH <topic> write metadata to the
+KSQL command topic.
+
+Persistent queries based on CREATE STREAM AS SELECT and CREATE TABLE AS SELECT
+read and write to Kafka topics.
+
+Non-persistent queries based on SELECT that are stateless, like SELECT … FROM foo WHERE …
+only read from Kafka topics.
+
+Non-persistent queries that are stateful, like COUNT and JOIN, read and write to Kafka.
+The data in Kafka is deleted automatically when you terminate the query with CTRL-C.
+
+===========================================
+How do I check the health of a KSQL server?
+===========================================
+
+Check whether the KSQL server process is running (pid).
+
+Check runtime stats for the KSQL server that you're connected to.
+  - Run `ksql-print-metrics` on a server host. The tool connects to a KSQL server
+    that's running on ``localhost`` and collects JMX metrics from the server process.
+    Metrics include the number of messages, the total throughput, the throughput
+    distribution, and the error rate. 
+  - Run SHOW STREAMS or SHOW TABLES, then run DESCRIBE EXTENDED <stream|table>.
+  - Run SHOW QUERIES, then run EXPLAIN <query>.
+
+The KSQL REST API supports a "server info" request (http://<ksql-server-url>/info),
+which returns info like the KSQL version. For more info, see :ref:`ksql-rest-api`.

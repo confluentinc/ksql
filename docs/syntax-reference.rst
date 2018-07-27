@@ -186,7 +186,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_requirements` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -878,7 +878,7 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
 ================
 Key Requirements

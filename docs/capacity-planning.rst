@@ -58,6 +58,9 @@ Internal Topics
 
 KSQL creates the following types of topics on your KSQL cluster:
 
+-The changelog topics for backing up the state store. Each state store adds one topic in Kafka.
+-The repartition topics for aggregations and joins.
+
 **Output Topics**
 
 Every query started by a ``CREATE STREAM AS SELECT`` or ``CREATE TABLE AS SELECT`` statement writes its results to an output topic. The created topic is configured with the following properties:

@@ -83,7 +83,7 @@ public abstract class StructuredDataSource implements DataSource {
   public abstract StructuredDataSource cloneWithTimeKeyColumns();
 
   public abstract StructuredDataSource cloneWithTimeExtractionPolicy(
-      final TimestampExtractionPolicy policy);
+      TimestampExtractionPolicy policy);
 
   public String getTopicName() {
     return ksqlTopic.getTopicName();

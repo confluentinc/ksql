@@ -39,7 +39,6 @@ import io.confluent.ksql.rest.util.OptionsParser;
 @Command(name = "server", description = "KSQL Cluster")
 public class ServerOptions {
 
-
   static final String QUERIES_FILE_CONFIG = "ksql.queries.file";
   private final Set<String> systemPropertyExclusions
       = ImmutableSet.of("java.",
@@ -73,7 +72,7 @@ public class ServerOptions {
       throws IOException {
 
     final Properties properties = new Properties();
-    try (final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
+    try (FileInputStream inputStream = new FileInputStream(propertiesFile)) {
       properties.load(inputStream);
     }
 

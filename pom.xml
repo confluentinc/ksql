@@ -326,6 +326,13 @@
                     <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                     <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>8.5</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <plugin>

@@ -31,5 +31,5 @@ public interface TableUdaf<V, A> extends Udaf<V, A> {
    * @param aggregateValue the current aggregate
    * @return new aggregate
    */
-  A undo(final V valueToUndo, final A aggregateValue);
+  A undo(V valueToUndo, A aggregateValue);
 }

@@ -21,21 +21,25 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * The {@code Udf} annotation on a method tells KSQL that this method should be exposed
- * as a user-defined function in KSQL.
- * The enclosing class must also be annotated with {@code UdfDescription}.
- */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface Udf {
+@Target({ElementType.PARAMETER})
+/*
+ * Optionally, applied to @Udf function parameters.
+ */
+public @interface UdfParameter {
+  /**
+   * The name of the parameter
+   *
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * @return parameter name.
+   */
+  String value();
 
   /**
-   * The function description.
+   * The parameter description.
    *
-   * Useful where there are multiple overloaded versions of a function.
    * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
-   * @return the text to display to the user.
+   * @return parameter description.
    */
   String description() default "";
 }

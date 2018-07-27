@@ -18,7 +18,9 @@ package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
+@SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(name = "substring",
     author = "Confluent",
     description = "returns a substring of the passed in value")
@@ -26,16 +28,23 @@ public class Substring {
 
   @Udf(description = "Returns a string that is a substring of this string. The"
       + " substring begins with the character at the specified startIndex and"
-      + " extends to the end of this string.")
-  public String substring(final String value, final int startIndex) {
+      + " extends to the end of this string, inclusive.")
+  public String substring(
+      @UdfParameter("value") final String value,
+      @UdfParameter(value = "startIndex",
+          description = "The zero-based starting index") final int startIndex) {
     return value.substring(startIndex);
   }
 
   @Udf(description = "Returns a string that is a substring of this string. The"
       + " substring begins with the character at the specified startIndex and"
       + " extends to the character at endIndex -1.")
-  public String substring(final String value, final int startIndex, final int endIndex) {
+  public String substring(
+      @UdfParameter("value") final String value,
+      @UdfParameter(value = "startIndex",
+          description = "The zero-based start index, inclusive.") final int startIndex,
+      @UdfParameter(value = "endIndex",
+          description = "The zero-based end index, exclusive.") final int endIndex) {
     return value.substring(startIndex, endIndex);
   }
-
 }

@@ -699,23 +699,37 @@ public abstract class Console implements Closeable {
   }
 
   private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
-    writer().printf("%-12s: %s%n", "Name", describeFunction.getName().toUpperCase());
-    writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
-    writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
-    writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    final String functionName = describeFunction.getName().toUpperCase();
+    writer().printf("%-12s: %s%n", "Name", functionName);
+    if (!describeFunction.getAuthor().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
+    }
+    if (!describeFunction.getVersion().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
+    }
+    if (!describeFunction.getDescription().trim().isEmpty()) {
+      writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
+    }
     writer().printf("%-12s: %s%n", "Type", describeFunction.getType().name());
     writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
     writer().printf("%-12s: %n", "Variations");
     final Collection<FunctionInfo> functions = describeFunction.getFunctions();
     functions.forEach(functionInfo -> {
-          writer().printf("%n\t%-12s: %s%n",
-              "Arguments",
-              functionInfo.getArgumentTypes()
-                  .toString()
-                  .replaceAll("\\[", "")
-                  .replaceAll("]", ""));
+          final String arguments = functionInfo.getArguments().stream()
+              .map(arg -> arg.getName().isEmpty()
+                      ? arg.getType()
+                      : arg.getName() + " " + arg.getType())
+              .collect(Collectors.joining(", "));
+
+          writer().printf("%n\t%-12s: %s(%s)%n", "Variation", functionName, arguments);
           writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
-          writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
+          if (!functionInfo.getDescription().trim().isEmpty()) {
+            writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
+          }
+
+          functionInfo.getArguments().stream()
+              .filter(a -> !a.getDescription().trim().isEmpty())
+              .forEach(a -> writer().printf("\t%-12s: %s%n", a.getName(), a.getDescription()));
         }
     );
   }

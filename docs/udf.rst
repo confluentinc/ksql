@@ -32,6 +32,9 @@ Each method in the class that represents a UDF must be public and annotated with
 you create represents a collection of UDFs all with the same name but may have different
 arguments and return types.
 
+Optional ``@UdfParameter`` annotations can be added to method parameters to provide users with
+richer information.
+
 
 Null Handling
 ~~~~~~~~~~~~~
@@ -69,12 +72,16 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
     public class Multiply {
 
       @Udf(description = "multiply two non-nullable INTs.")
-      public long multiply(final int v1, final int v2) {
+      public long multiply(
+        @UdfParameter(value = "V1", description = "the first value") final int v1,
+        @UdfParameter(value = "V2", description = "the second value") final int v2) {
         return v1 * v2;
       }
 
       @Udf(description = "multiply two non-nullable BIGINTs.")
-      public long multiply(final long v1, final long v2) {
+      public long multiply(
+        @UdfParameter("V1") final long v1,
+        @UdfParameter("V2") final long v2) {
         return v1 * v2;
       }
 
@@ -117,7 +124,7 @@ Udf Annotation
 
 The ``@Udf`` annotation is applied to public methods of a class annotated with ``@UdfDescription``.
 Each annotated method will become an invocable function in KSQL. The annotation only has a single
-field ``description`` that is required. You can use this to better describe what a particular version
+field ``description`` that is optional. You can use this to better describe what a particular version
 of the UDF does, for example:
 
 .. code:: java
@@ -131,6 +138,24 @@ of the UDF does, for example:
         + " substring begins with the character at the specified startIndex and"
         + " extends to the character at endIndex -1.")
     public String substring(final String value, final int startIndex, final int endIndex)
+
+UdfParameter Annotation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``@UdfParameter`` annotation is optional and is applied to the parameters of methods annotated with
+``@Udf``. KSQL will use the additional information in the ``@UdfParameter`` annotation to provide
+users with richer information about the method when, for example, they execute
+``DESCRIBE FUNCTION`` on the method.
+
+The annotation has two parameters: ``value`` is the name of the parameter and ``description`` which
+can be used to better describe what the parameter does, for example:
+
+.. code:: java
+
+    @Udf
+    public String substring(
+       @UdfParameter("Value") final String value,
+       @UdfParameter(value = "Value", description = "Zero based start index") final int startIndex)
 
 
 UDAFs

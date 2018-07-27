@@ -26,8 +26,7 @@ Stream
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
 be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
-derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a
-Kafka topic on the Kafka
+derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
 brokers.
 
 Table
@@ -192,7 +191,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -254,13 +253,13 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-KSQL has currently the following equirements for creating a table from a Kafka topic:
+KSQL has currently the following requirements for creating a table from a Kafka topic:
 
 1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
    below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
 2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_constraints`.
+   instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -279,7 +278,7 @@ The WITH clause supports the following properties:
 |                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
 |                         | message value. You must set the KEY property to this corresponding field/column in the     |
 |                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -400,7 +399,7 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that the WINDOW clause can only be used if the from_item is a stream.
+Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
 
 The WITH clause supports the following properties:
 
@@ -531,7 +530,7 @@ Example of describing a table with extended information:
     -----------------------------------
     id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
 
-    For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+    For query topology and execution plan run: EXPLAIN <QueryId>; for more information
 
     Local runtime statistics
     ------------------------
@@ -687,7 +686,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that the WINDOW  clause can only be used if the from_item is a stream.
+Note that the WINDOW  clause can only be used if the ``from_item`` is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -695,8 +694,8 @@ In the above statements from_item is one of the following:
 -  ``table_name [ [ AS ] alias]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
-The WHERE clause can refer to any column defined for a stream or table, including the two implicit columns ``ROWTIME``
-and ``ROWKEY``.
+The WHERE clause can refer to any column defined for a stream or table,
+including the two implicit columns ``ROWTIME`` and ``ROWKEY``.
 
 Example:
 
@@ -920,60 +919,6 @@ they are explicitly terminated.
 
 .. _operators:
 
-=========
-Operators
-=========
-
-KSQL supports the following operators in value expressions:
-
-The explanation for each operator includes a supporting example based on the following table:
-
-.. code:: sql
-
-  CREATE TABLE USERS (
-      USERID BIGINT
-      FIRST_NAME STRING,
-      LAST_NAME STRING,
-      NICKNAMES ARRAY<STRING>,
-      ADDRESS STRUCT<STREET_NAME STRING, NUMBER INTEGER>
-  ) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO', KEY='USERID');
-
-- Arithmetic (``+,-,/,*,%``) The usual arithmetic operators may be applied to numeric types
-  (INT, BIGINT, DOUBLE)
-
-.. code:: sql
-
-  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
-
-- Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
-
-.. code:: sql
-
-  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
-
-- Source Dereference (``.``) The source dereference operator can be used to specify columns
-  by dereferencing the source stream or table.
-
-.. code:: sql
-
-  SELECT USERS.FIRST_NAME FROM USERS;
-
-- Field Dereference (``->``) The field dereference operator is used to dereference a field
-  within a struct.
-
-.. code:: sql
-
-  SELECT ADDRESS->STREET_NAME FROM USERS;
-
-- Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
-  an array index or a map key.
-
-.. code:: sql
-
-  SELECT NICKNAMES[0] FROM USERS;
-
-.. _funtions:
-
 ================
 Scalar functions
 ================
@@ -981,10 +926,10 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                    | Description                                       |
 +========================+============================================================+===================================================+
-| ABS                    | ``ABS(col1)``                                              | The absolute value of a value.                    |
+| ABS                    |  ``ABS(col1)``                                             | The absolute value of a value                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
-|                        |                                                            | value contains in it.                             |
+|                        |                                                            | value contains in it                              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
@@ -1007,11 +952,10 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points,              |
-|                        |               lat2, lon2,                                  | each specified in decimal degrees.                |
-|                        |               unit)``                                      | An optional final parameter can                   |
-|                        |                                                            | be used to specify either                         |
-|                        |                                                            | 'KM'(default) or 'Miles'.                         |
+| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
+|                        |                                                            | points, both specified in decimal degrees. An     |
+|                        |                                                            | optional final parameter specifies ``KM``         |
+|                        |                                                            | (the default) or ``miles``.                       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
@@ -1102,11 +1046,11 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
-===============
-Key Constraints
-===============
+================
+Key Requirements
+================
 
 Message Keys
 ------------

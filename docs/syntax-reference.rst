@@ -191,7 +191,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -257,9 +257,9 @@ KSQL has currently the following requirements for creating a table from a Kafka 
 
 1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
    below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
 2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_constraints`.
+   instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -278,7 +278,7 @@ The WITH clause supports the following properties:
 |                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
 |                         | message value. You must set the KEY property to this corresponding field/column in the     |
 |                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -1100,7 +1100,7 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
 ================
 Key Requirements

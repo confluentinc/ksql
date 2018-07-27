@@ -1009,7 +1009,7 @@ Scalar functions
 | GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
 |                        |                                                            | points, both specified in decimal degrees. An     |
 |                        |                                                            | optional final parameter specifies ``KM``         |
-|                        |                                                            | (the default) or ``MI``.                          |
+|                        |                                                            | (the default) or ``miles``.                       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

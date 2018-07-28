@@ -21,7 +21,6 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,27 +36,20 @@ public class ExecutorUtilTest {
   public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
     expectedException.expect(ExecutionException.class);
     expectedException.expectMessage("I will never succeed");
-
     ExecutorUtil.executeWithRetries(() -> {
-          final CompletableFuture<Void> f = new CompletableFuture<>();
-          f.completeExceptionally(new TestRetriableException("I will never succeed"));
-          return f.get();
-        },
+          throw new ExecutionException(new TestRetriableException("I will never succeed"));
+          },
         ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
   @Test
   public void shouldRetryAndSucceed() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
-
     ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
-        return CompletableFuture.completedFuture(null).get();
+        return null;
       }
-
-      final CompletableFuture<Void> f = new CompletableFuture<>();
-      f.completeExceptionally(new TestRetriableException("I will never succeed"));
-      return f.get();
+      throw new TestRetriableException("I will never succeed");
     },
     ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
@@ -65,9 +57,8 @@ public class ExecutorUtilTest {
   @Test
   public void shouldReturnValue() throws Exception {
     final String expectedValue = "should return this";
-
     assertThat(ExecutorUtil.executeWithRetries(
-        () -> CompletableFuture.completedFuture(expectedValue).get(),
+        () -> expectedValue,
         ExecutorUtil.RetryBehaviour.ON_RETRYABLE),
         is(expectedValue));
   }
@@ -76,20 +67,14 @@ public class ExecutorUtilTest {
   public void shouldNotRetryOnNonRetryableException() throws Exception {
     expectedException.expect(RuntimeException.class);
     expectedException.expectMessage("First non-retry exception");
-
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-
     ExecutorUtil.executeWithRetries(() -> {
-      final CompletableFuture<Void> f = new CompletableFuture<>();
-
       if (firstCall.get()) {
         firstCall.set(false);
-        f.completeExceptionally(new RuntimeException("First non-retry exception"));
+        throw new RuntimeException("First non-retry exception");
       } else {
-        f.completeExceptionally(new RuntimeException("Test should not retry"));
+        throw new RuntimeException("Test should not retry");
       }
-
-      return f.get();
     }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 
@@ -97,15 +82,12 @@ public class ExecutorUtilTest {
   public void shouldNotRetryIfSupplierThrowsNonRetryableException() throws Exception {
     expectedException.expect(RuntimeException.class);
     expectedException.expectMessage("First non-retry exception");
-
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-
     ExecutorUtil.executeWithRetries(() -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       }
-
       throw new RuntimeException("Test should not retry");
     }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
@@ -113,13 +95,22 @@ public class ExecutorUtilTest {
   @Test
   public void shouldRetryIfSupplierThrowsRetryableException() throws Exception {
     final AtomicInteger counts = new AtomicInteger(5);
-
     ExecutorUtil.executeWithRetries(() -> {
       if (counts.decrementAndGet() == 0) {
-        return CompletableFuture.completedFuture(null).get();
+        return null;
       }
-
       throw new TestRetriableException("Test should retry");
+    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+  }
+
+  @Test
+  public void shouldRetryIfSupplierThrowsExecutionException() throws Exception {
+    final AtomicInteger counts = new AtomicInteger(5);
+    ExecutorUtil.executeWithRetries(() -> {
+      if (counts.decrementAndGet() == 0) {
+        return null;
+      }
+      throw new ExecutionException(new TestRetriableException("Test should retry"));
     }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
   }
 

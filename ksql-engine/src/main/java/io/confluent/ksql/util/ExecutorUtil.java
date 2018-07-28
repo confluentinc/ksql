@@ -20,6 +20,7 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 public final class ExecutorUtil {
 
@@ -58,9 +59,8 @@ public final class ExecutorUtil {
         }
         return supplier.call();
       } catch (final Exception e) {
-        final Throwable cause = e.getCause();
-        if (e instanceof RetriableException
-            || cause instanceof RetriableException
+        final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
+        if (cause instanceof RetriableException
             || (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS)) {
           log.info("Retrying request. Retry no: " + retries, e);
           lastException = e;

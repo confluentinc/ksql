@@ -26,7 +26,7 @@ public interface TimestampExtractionPolicy {
    * @param config the KsqlConfig to extract any additional configuration from
    * @param newStreamProperties the properties that will be used to create the new stream
    */
-  void applyTo(final KsqlConfig config, final Map<String, Object> newStreamProperties);
+  void applyTo(KsqlConfig config, Map<String, Object> newStreamProperties);
 
   default String timestampField() {
     return null;

@@ -113,7 +113,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
         = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
     configFile.deleteOnExit();
 
-    try (final FileOutputStream outputStream = new FileOutputStream(configFile)) {
+    try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
       final Properties clientProps = new Properties();
       for (Map.Entry<String, String> property
           : configProps.entrySet()) {

@@ -53,10 +53,10 @@ class RestoreCommands {
   interface ForEach {
 
     void apply(
-        final CommandId commandId,
-        final Command command,
-        final Map<QueryId, CommandId> terminatedQueries,
-        final boolean dropped
+        CommandId commandId,
+        Command command,
+        Map<QueryId, CommandId> terminatedQueries,
+        boolean dropped
     );
   }
 

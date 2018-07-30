@@ -207,3 +207,74 @@ Will KSQL work with a HTTPS Confluent Schema Registry?
 
 Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.
+
+================================================
+Where are KSQL-related data and metadata stored?
+================================================
+
+Metadata is stored in and built from the KSQL command topic. Each KSQL server
+has its own in-memory version of the metastore. To secure the metadata, you must
+secure the command topic.
+
+The KSQL command topic stores all data definition language (DDL) statements:
+CREATE STREAM, CREATE TABLE, DROP STREAM, and DROP TABLE. Also, the KSQL command
+topic stores TERMINATE statements, which stop persistent queries based on
+CREATE STREAM AS SELECT (CSAS) and CREATE TABLE AS SELECT (CTAS). 
+
+Currently, data manipulation language (DML) statements, like UPDATE, INSERT,
+and DELETE, aren't available.
+
+===============================================
+Which KSQL queries read or write data to Kafka?
+===============================================
+
+SHOW STREAMS and EXPLAIN <query> statements run against the KSQL server that
+the KSQL client is connected to. They don't communicate directly with Kafka.
+
+CREATE STREAM WITH <topic> and CREATE TABLE WITH <topic> write metadata to the
+KSQL command topic.
+
+Persistent queries based on CREATE STREAM AS SELECT and CREATE TABLE AS SELECT
+read and write to Kafka topics.
+
+Non-persistent queries based on SELECT that are stateless only read from Kafka
+topics, for example SELECT … FROM foo WHERE ….
+
+Non-persistent queries that are stateful read and write to Kafka, for example,
+COUNT and JOIN. The data in Kafka is deleted automatically when you terminate
+the query with CTRL-C.
+
+===========================================
+How do I check the health of a KSQL server?
+===========================================
+
+Using the ``ps`` command to check whether the KSQL server process is running, 
+for example:
+
+.. code:: bash
+
+    ps -aux | grep ksql
+
+Your output should resemble:
+
+.. code:: bash
+
+    jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-5.0.0/share/java/monitoring-interceptors/* ...
+
+If the process status of the JVM isn't ``Sl`` or ``Ssl``, the KSQL server may be down.
+
+If you're running KSQL server in a Docker container, run the ``docker ps`` or 
+``docker-compose ps`` command, and check that the status of the ``ksql-server``
+container is ``Up``. Check the health of the process in the container by running
+``docker logs <ksql-server-container-id>``.
+
+Check runtime stats for the KSQL server that you're connected to.
+  - Run ``ksql-print-metrics`` on a server host. The tool connects to a KSQL server
+    that's running on ``localhost`` and collects JMX metrics from the server process.
+    Metrics include the number of messages, the total throughput, the throughput
+    distribution, and the error rate. 
+  - Run SHOW STREAMS or SHOW TABLES, then run DESCRIBE EXTENDED <stream|table>.
+  - Run SHOW QUERIES, then run EXPLAIN <query>.
+
+The KSQL REST API supports a "server info" request (for example, ``http://<ksql-server-url>/info``), 
+which returns info such as the KSQL version. For more info, see :ref:`ksql-rest-api`.

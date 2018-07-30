@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
@@ -42,7 +43,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +63,7 @@ public class StandaloneExecutorTest {
   private String queriesFile;
   private StandaloneExecutor standaloneExecutor;
   private MetaStore metaStore;
+  final Map<String, Object> props = ImmutableMap.of();
 
   @Before
   public void before() throws IOException {
@@ -70,6 +71,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor =
         new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
     metaStore = EasyMock.niceMock(MetaStore.class);
+    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
   }
 
 
@@ -82,8 +84,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("CS", cs));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
-    final Map<String, Object> props = new HashMap<>();
     EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
         .andReturn(Collections.emptyList());
 
@@ -102,8 +102,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("CT", ct));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
-    final Map<String, Object> props = new HashMap<>();
     EasyMock.expect(engine.buildMultipleQueries("CT", ksqlConfig, props))
         .andReturn(Collections.emptyList());
 
@@ -118,7 +116,6 @@ public class StandaloneExecutorTest {
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
 
     final SetProperty setProperty = new SetProperty(Optional.empty(), "name", "value");
     statementPairs.add(new Pair<>("SET", setProperty));
@@ -137,7 +134,6 @@ public class StandaloneExecutorTest {
     final List<Pair<String, Statement>> statementPairs = new ArrayList<>();
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
 
     final SetProperty setProperty = new SetProperty(Optional.empty(), "name", "value");
     statementPairs.add(new Pair<>("SET", setProperty));
@@ -163,7 +159,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("CSAS1", createStreamAsSelect1));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
 
     final QueryMetadata csas1QueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     EasyMock.expect(csas1QueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
@@ -189,7 +184,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("InsertInto", insertInto));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
 
     final QueryMetadata insertIntoQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     EasyMock.expect(engine.buildMultipleQueries(eq("InsertInto"), anyObject(KsqlConfig.class), anyObject(Map.class)))
@@ -213,7 +207,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("CTAS", createTableAsSelect));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
 
     final QueryMetadata ctasQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     EasyMock.expect(ctasQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KTABLE);
@@ -238,8 +231,6 @@ public class StandaloneExecutorTest {
     statementPairs.add(new Pair<>("CSAS1", createStreamAsSelect1));
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(statementPairs);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore);
-    final Map<String, Object> props = new HashMap<>();
     EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
         .andReturn(Collections.emptyList());
     EasyMock.expect(engine.buildMultipleQueries("CT", ksqlConfig, props))

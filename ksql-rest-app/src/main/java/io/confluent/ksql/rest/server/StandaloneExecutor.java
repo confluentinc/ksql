@@ -50,7 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ public class StandaloneExecutor implements Executable {
   private final String queriesFile;
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-  private final ImmutableMap<Class<? extends Statement>, Consumer<Pair<String, Statement>>>
+  private final Map<Class<? extends Statement>, BiConsumer<String, Statement>>
       functionMap;
   private final Map<String, Object> configProperties = new HashMap<>();
 
@@ -78,38 +78,38 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
     functionMap =
-        ImmutableMap.<Class<? extends Statement>, Consumer<Pair<String, Statement>>>builder()
-        .put(SetProperty.class, (statementPair) -> {
-          final SetProperty setProperty = (SetProperty) statementPair.getRight();
+        ImmutableMap.<Class<? extends Statement>, BiConsumer<String, Statement>>builder()
+        .put(SetProperty.class, (queryString, statement) -> {
+          final SetProperty setProperty = (SetProperty) statement;
           configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
         })
-        .put(UnsetProperty.class, (Pair<String, Statement> statementPair) -> {
-          final UnsetProperty unsetProperty = (UnsetProperty) statementPair.getRight();
+        .put(UnsetProperty.class, (queryString, statement) -> {
+          final UnsetProperty unsetProperty = (UnsetProperty) statement;
           configProperties.remove(unsetProperty.getPropertyName());
         })
-        .put(CreateStream.class, (Pair<String, Statement> statementPair) -> {
-          ksqlEngine.buildMultipleQueries(statementPair.getLeft(),
+        .put(CreateStream.class, (queryString, statement) -> {
+          ksqlEngine.buildMultipleQueries(queryString,
               ksqlConfig,
               configProperties);
         })
-        .put(CreateTable.class, (Pair<String, Statement> statementPair) -> {
-          ksqlEngine.buildMultipleQueries(statementPair.getLeft(),
+        .put(CreateTable.class, (queryString, statement) -> {
+          ksqlEngine.buildMultipleQueries(queryString,
               ksqlConfig,
               configProperties);
         })
-        .put(CreateStreamAsSelect.class, (Pair<String, Statement> statementPair) -> {
-          handlePersistentQuery(statementPair.getRight(),
-              statementPair.getLeft(),
+        .put(CreateStreamAsSelect.class, (queryString, statement) -> {
+          handlePersistentQuery(statement,
+              queryString,
               configProperties);
         })
-        .put(CreateTableAsSelect.class, (Pair<String, Statement> statementPair) -> {
-          handlePersistentQuery(statementPair.getRight(),
-              statementPair.getLeft(),
+        .put(CreateTableAsSelect.class, (queryString, statement) -> {
+          handlePersistentQuery(statement,
+              queryString,
               configProperties);
         })
-        .put(InsertInto.class, (Pair<String, Statement> statementPair) -> {
-          handlePersistentQuery(statementPair.getRight(),
-              statementPair.getLeft(),
+        .put(InsertInto.class, (queryString, statement) -> {
+          handlePersistentQuery(statement,
+              queryString,
               configProperties);
         })
         .build();
@@ -174,9 +174,8 @@ public class StandaloneExecutor implements Executable {
     for (final Pair<String, Statement> statementPair: statementPairs) {
       final String statementString = statementPair.getLeft();
       final Statement statement = statementPair.getRight();
-      if (functionMap.containsKey(statement.getClass())) {
-        functionMap.get(statement.getClass()).accept(statementPair);
-      } else {
+      final BiConsumer<String, Statement> function = functionMap.get(statement.getClass());
+      if (function == null) {
         final String message = String.format(
             "Ignoring statements: %s"
                 + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
@@ -186,6 +185,8 @@ public class StandaloneExecutor implements Executable {
         System.err.println(message);
         log.warn(message);
       }
+      functionMap.get(statement.getClass()).accept(statementPair.getLeft(),
+          statementPair.getRight());
     }
 
   }
@@ -195,16 +196,7 @@ public class StandaloneExecutor implements Executable {
       final Statement statement,
       final String statementString,
       final Map<String, Object> configProperties) {
-    final Query query;
-    if (statement instanceof CreateAsSelect) {
-      query = ((CreateAsSelect) statement).getQuery();
-    } else if (statement instanceof InsertInto) {
-      query = ((InsertInto) statement).getQuery();
-    } else {
-      throw new KsqlException("Only CSAS/CTAS and INSERT INTO are persistent queries: "
-          + statementString);
-    }
-
+    final Query query = getQueryFromStatement(statementString, statement);
     final QueryMetadata queryMetadata =
         ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     if (statement instanceof CreateAsSelect) {
@@ -212,11 +204,22 @@ public class StandaloneExecutor implements Executable {
     }
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
-    if (queryMetadataList.isEmpty()
+    if (queryMetadataList.size() != 1
         || !(queryMetadataList.get(0) instanceof PersistentQueryMetadata)) {
       throw new KsqlException("Could not build the query: " + statementString);
     }
     queryMetadataList.get(0).start();
+  }
+
+  private Query getQueryFromStatement(final String statementString, final Statement statement) {
+    if (statement instanceof CreateAsSelect) {
+      return  ((CreateAsSelect) statement).getQuery();
+    } else if (statement instanceof InsertInto) {
+      return  ((InsertInto) statement).getQuery();
+    } else {
+      throw new KsqlException("Only CSAS/CTAS and INSERT INTO are persistent queries: "
+          + statementString);
+    }
   }
 
   private void validateCsasCtas(final QueryMetadata queryMetadata,
@@ -235,7 +238,7 @@ public class StandaloneExecutor implements Executable {
   private static String readQueriesFile(final String queryFilePath) {
     try {
       return new String(java.nio.file.Files.readAllBytes(
-          Paths.get(queryFilePath)), "UTF-8");
+          Paths.get(queryFilePath)), StandardCharsets.UTF_8);
 
     } catch (IOException e) {
       throw new KsqlException(

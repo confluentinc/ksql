@@ -189,68 +189,68 @@ public class LogicalPlannerTest {
 
   @Test
   public void shouldCreateTableOutputForAggregateQuery() {
-    String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
+    final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
         + "HOPPING ( size 2 second, advance by 1 second) "
         + "WHERE col0 > 100 GROUP BY col0;";
 
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
     System.out.println();
   }
 
   @Test
   public void shouldCreateStreamOutputForStreamTableJoin() {
-    String
+    final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
             + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldCreateStreamOutputForStreamFilter() {
-    String
+    final String
         simpleQuery = "SELECT * FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldCreateTableOutputForTableFilter() {
-    String
+    final String
         simpleQuery = "SELECT * FROM test2 WHERE col4 = 10.8;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
 
   @Test
   public void shouldCreateStreamOutputForStreamProjection() {
-    String
+    final String
         simpleQuery = "SELECT col0 FROM test1;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldCreateTableOutputForTableProjection() {
-    String
+    final String
         simpleQuery = "SELECT col4 FROM test2;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
 
   @Test
   public void shouldCreateStreamOutputForStreamStreamJoin() {
-    String simpleQuery = "SELECT * FROM ORDERS INNER JOIN TEST1 ON ORDERS.ORDERID=TEST1.COL0;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final String simpleQuery = "SELECT * FROM ORDERS INNER JOIN TEST1 ON ORDERS.ORDERID=TEST1.COL0;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldCreateTableOutputForTableTableJoin() {
-    String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
 

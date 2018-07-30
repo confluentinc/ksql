@@ -26,7 +26,7 @@ public interface FunctionRegistry {
 
   void addFunction(KsqlFunction ksqlFunction);
 
-  boolean addFunctionFactory(final UdfFactory factory);
+  boolean addFunctionFactory(UdfFactory factory);
 
   boolean isAggregate(String functionName);
 

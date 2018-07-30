@@ -29,7 +29,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
  * Used during when creating UDAFS from the ext dir
  */
 public interface UdfArgSupplier {
-  KsqlAggregateFunction apply(final List<Schema> args,
-                              final Schema returnType,
-                              final Optional<Metrics> metrics);
+  KsqlAggregateFunction apply(List<Schema> args,
+                              Schema returnType,
+                              Optional<Metrics> metrics);
 }

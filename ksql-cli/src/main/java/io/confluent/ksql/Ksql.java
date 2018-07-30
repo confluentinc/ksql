@@ -60,7 +60,7 @@ public final class Ksql {
       final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
       versionChecker.start(KsqlModuleType.CLI, properties);
 
-      try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+      try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),
                                    options.getStreamedQueryTimeoutMs(),
                                    restClient,
                                    new JLineTerminal(options.getOutputFormat(), restClient))
@@ -79,7 +79,7 @@ public final class Ksql {
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();
     propertiesFile.ifPresent(file -> {
-      try (final FileInputStream input = new FileInputStream(file)) {
+      try (FileInputStream input = new FileInputStream(file)) {
         properties.load(input);
         if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
           properties.put(

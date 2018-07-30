@@ -157,6 +157,25 @@ can be used to better describe what the parameter does, for example:
        @UdfParameter("Value") final String value,
        @UdfParameter(value = "Value", description = "Zero based start index") final int startIndex)
 
+Configurable UDF
+~~~~~~~~~~~~~~~~
+
+If the UDF class needs access to the KSQL server configuration it can implement
+``io.confluent.common.Configurable``, e.g.
+
+.. code:: java
+
+    @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
+    public class SomeConfigurableUdf implements Configurable {
+      private String someSetting = "a.default.value";
+
+      @Override
+      public void configure(final Map<String, ?> map) {
+        this.someSetting = (String)map.get("your.company.some.setting");
+      }
+
+      ...
+    }
 
 UDAFs
 -----

@@ -96,11 +96,11 @@ public class UdfCompiler {
           .build();
 
   // Templates used to generate the UDF code
-  private static final String genericTemplate =
+  private static final String GENERIC_TEMPLATE =
       "#TYPE arg#INDEX;\n"
-          + "if(args[#INDEX] == null && #IS_PRIMITIVE)\n"
-          + "throw new KsqlFunctionException(\"Can't coerce argument at index #INDEX from "
-          + "null to a primitive type\");"
+          + "if(args[#INDEX] == null && #IS_PRIMITIVE)"
+          + " throw new KsqlFunctionException(\"Can't coerce argument at index #INDEX from"
+          + " null to a primitive type\");\n"
           + "if(args[#INDEX] == null) arg#INDEX = null;\n"
           + "else if (args[#INDEX] instanceof #TYPE) arg#INDEX = (#TYPE)args[#INDEX];\n"
           + "else if (args[#INDEX] instanceof String) \n"
@@ -317,7 +317,7 @@ public class UdfCompiler {
       }
       return converter.apply(i);
     }).collect(Collectors.joining("\n", "", "\nreturn (("
-        + method.getDeclaringClass().getSimpleName()
+        + method.getDeclaringClass().getName().replaceAll("\\$", ".")
         + ") thiz)." + method.getName() + "("
     ));
 
@@ -353,7 +353,7 @@ public class UdfCompiler {
     }
 
     final StringBuilder builder = new StringBuilder();
-    builder.append(genericTemplate);
+    builder.append(GENERIC_TEMPLATE);
     if (type.equals("Integer")) {
       builder.append(INTEGER_NUMBER_TEMPLATE);
     } else if (!type.equals("String") && !type.equals("Boolean")) {

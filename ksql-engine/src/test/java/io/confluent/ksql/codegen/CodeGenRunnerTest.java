@@ -16,23 +16,18 @@
 
 package io.confluent.ksql.codegen;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Arrays;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
@@ -48,19 +43,22 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 
 @SuppressWarnings("SameParameterValue")
@@ -83,9 +81,9 @@ public class CodeGenRunnerTest {
 
     private MetaStore metaStore;
     private CodeGenRunner codeGenRunner;
-    private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-
+    private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before
     public void init() {
@@ -144,7 +142,7 @@ public class CodeGenRunnerTest {
             ksqlTopic);
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
-        codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+        codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
         genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     }
 

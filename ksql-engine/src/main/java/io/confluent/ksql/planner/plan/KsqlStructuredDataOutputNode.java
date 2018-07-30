@@ -115,7 +115,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
         ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
@@ -126,6 +125,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final SchemaKStream result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
+        ksqlConfig,
         functionRegistry,
         outputProperties,
         schemaRegistryClient
@@ -164,6 +164,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private SchemaKStream createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
       final SchemaRegistryClient schemaRegistryClient
@@ -179,6 +180,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         this.getKeyField(),
         Collections.singletonList(schemaKStream),
         SchemaKStream.Type.SINK,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

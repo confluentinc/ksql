@@ -165,7 +165,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
@@ -242,7 +242,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
@@ -919,60 +919,6 @@ they are explicitly terminated.
 
 .. _operators:
 
-=========
-Operators
-=========
-
-KSQL supports the following operators in value expressions:
-
-The explanation for each operator includes a supporting example based on the following table:
-
-.. code:: sql
-
-  CREATE TABLE USERS (
-      USERID BIGINT
-      FIRST_NAME STRING,
-      LAST_NAME STRING,
-      NICKNAMES ARRAY<STRING>,
-      ADDRESS STRUCT<STREET_NAME STRING, NUMBER INTEGER>
-  ) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO', KEY='USERID');
-
-- Arithmetic (``+,-,/,*,%``) The usual arithmetic operators may be applied to numeric types
-  (INT, BIGINT, DOUBLE)
-
-.. code:: sql
-
-  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
-
-- Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
-
-.. code:: sql
-
-  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
-
-- Source Dereference (``.``) The source dereference operator can be used to specify columns
-  by dereferencing the source stream or table.
-
-.. code:: sql
-
-  SELECT USERS.FIRST_NAME FROM USERS;
-
-- Field Dereference (``->``) The field dereference operator is used to dereference a field
-  within a struct.
-
-.. code:: sql
-
-  SELECT ADDRESS->STREET_NAME FROM USERS;
-
-- Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
-  an array index or a map key.
-
-.. code:: sql
-
-  SELECT NICKNAMES[0] FROM USERS;
-
-.. _functions:
-
 ================
 Scalar functions
 ================
@@ -1009,7 +955,7 @@ Scalar functions
 | GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
 |                        |                                                            | points, both specified in decimal degrees. An     |
 |                        |                                                            | optional final parameter specifies ``KM``         |
-|                        |                                                            | (the default) or ``MI``.                          |
+|                        |                                                            | (the default) or ``miles``.                       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

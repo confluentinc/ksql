@@ -411,10 +411,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        selectItems.addAll(getSelectStartItems(selectItem, from));
+        selectItems.addAll(getSelectStarItems(selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
-        selectItems.add((SingleColumn) selectItem);
+        selectItems.add(selectItem);
       } else {
         throw new IllegalArgumentException(
             "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -423,52 +423,41 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final Relation from) {
+  private List<SelectItem> getSelectStarItems(final SelectItem selectItem, final Relation from) {
     List<SelectItem> selectItems = new ArrayList<>();
     AllColumns allColumns = (AllColumns) selectItem;
 
+    final NodeLocation location = allColumns.getLocation().orElse(null);
     if (from instanceof Join) {
-      Join join = (Join) from;
-      AliasedRelation left = (AliasedRelation) join.getLeft();
-      StructuredDataSource
-          leftDataSource =
-          dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
-      if (leftDataSource == null) {
-        throw new InvalidColumnReferenceException(left.getRelation().toString()
-                                                  + " does not exist.");
-      }
-      AliasedRelation right = (AliasedRelation) join.getRight();
-      StructuredDataSource rightDataSource =
-          dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
-      if (rightDataSource == null) {
-        throw new InvalidColumnReferenceException(right.getRelation().toString()
-                                                  + " does not exist.");
-      }
-      for (Field field : leftDataSource.getSchema().fields()) {
-        QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(
-                allColumns.getLocation().get(),
-                QualifiedName.of(left.getAlias() + "." + field.name())
-            );
-        SingleColumn newSelectItem =
-            new SingleColumn(
-                qualifiedNameReference,
-                left.getAlias() + "_" + field.name()
-            );
-        selectItems.add(newSelectItem);
-      }
-      for (Field field : rightDataSource.getSchema().fields()) {
-        QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(
-                allColumns.getLocation().get(),
-                QualifiedName.of(right.getAlias() + "." + field.name())
-            );
-        SingleColumn newSelectItem =
-            new SingleColumn(
-                qualifiedNameReference,
-                right.getAlias() + "_" + field.name()
-            );
-        selectItems.add(newSelectItem);
+      final Join join = (Join) from;
+      if (allColumns.getPrefix().isPresent()) {
+        final String alias = allColumns.getPrefix().get().toString();
+        final StructuredDataSource source
+            = getDataSourceForAlias(join,
+            alias);
+        if (source == null) {
+          throw new InvalidColumnReferenceException("Source for alias '"
+            + allColumns.getPrefix().get() + "' doesn't exist");
+        }
+        addFieldsFromDataSource(selectItems, source, location, alias);
+      } else {
+        final AliasedRelation left = (AliasedRelation) join.getLeft();
+        final StructuredDataSource
+            leftDataSource =
+            dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
+        if (leftDataSource == null) {
+          throw new InvalidColumnReferenceException(left.getRelation().toString()
+              + " does not exist.");
+        }
+        final AliasedRelation right = (AliasedRelation) join.getRight();
+        final StructuredDataSource rightDataSource =
+            dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
+        if (rightDataSource == null) {
+          throw new InvalidColumnReferenceException(right.getRelation().toString()
+              + " does not exist.");
+        }
+        addFieldsFromDataSource(selectItems, leftDataSource, location, left.getAlias());
+        addFieldsFromDataSource(selectItems, rightDataSource, location, right.getAlias());
       }
     } else {
       AliasedRelation fromRel = (AliasedRelation) from;
@@ -482,7 +471,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
       for (Field field : fromDataSource.getSchema().fields()) {
         QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+            new QualifiedNameReference(location, QualifiedName
                 .of(fromDataSource.getName() + "." + field.name()));
         SingleColumn newSelectItem =
             new SingleColumn(qualifiedNameReference, field.name());
@@ -490,6 +479,42 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
     }
     return selectItems;
+  }
+
+  private void addFieldsFromDataSource(final List<SelectItem> selectItems,
+                                       final StructuredDataSource dataSource,
+                                       final NodeLocation location,
+                                       final String alias) {
+    for (final Field field : dataSource.getSchema().fields()) {
+      final QualifiedNameReference qualifiedNameReference =
+          new QualifiedNameReference(
+              location,
+              QualifiedName.of(alias + "." + field.name())
+          );
+      selectItems.add(new SingleColumn(
+          qualifiedNameReference,
+          alias + "_" + field.name()
+      ));
+    }
+  }
+
+  private StructuredDataSource getDataSourceForAlias(final Join join,
+                                                     final String alias) {
+    final AliasedRelation leftAliased = (AliasedRelation) join.getLeft();
+    final AliasedRelation rightAliased = (AliasedRelation) join.getRight();
+    if (leftAliased.getAlias().equalsIgnoreCase(alias)) {
+      return dataSourceExtractor
+          .getMetaStore()
+          .getSource(leftAliased.getRelation().toString());
+    } else if (rightAliased.getAlias().equalsIgnoreCase(alias)) {
+      return dataSourceExtractor
+          .getMetaStore()
+          .getSource(rightAliased.getRelation().toString());
+    }
+    throw new KsqlException("Invalid alias used in join: alias='"
+        + alias + "'. Available aliases '"
+        + leftAliased.getAlias() + "' and '"
+        + rightAliased.getAlias() + "'");
   }
 
   @Override

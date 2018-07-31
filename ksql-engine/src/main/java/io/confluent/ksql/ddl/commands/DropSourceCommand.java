@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,22 +17,18 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Collections;
-import java.util.concurrent.Callable;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 
-
 public class DropSourceCommand implements DdlCommand {
-
-  private static final int NUM_RETRIES = 5;
-  private static final int RETRY_BACKOFF_MS = 500;
 
   private final String sourceName;
   private final boolean ifExists;
@@ -89,45 +85,26 @@ public class DropSourceCommand implements DdlCommand {
 
   private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
-
-      executeWithRetries(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          kafkaTopicClient.deleteTopics(
-              Collections.singletonList(dataSource.getKsqlTopic().getKafkaTopicName()));
-          return null;
-        }
-      }, "Could not delete the corresponding kafka topic: "
-           + dataSource.getKsqlTopic().getKafkaTopicName());
-
+      try {
+        ExecutorUtil.executeWithRetries(
+            () -> kafkaTopicClient.deleteTopics(
+                    Collections.singletonList(
+                        dataSource.getKsqlTopic().getKafkaTopicName())),
+            ExecutorUtil.RetryBehaviour.ALWAYS);
+      } catch (Exception e) {
+        throw new KsqlException("Could not delete the corresponding kafka topic: "
+            + dataSource.getKsqlTopic().getKafkaTopicName(), e);
+      }
       if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
           == DataSource.DataSourceSerDe.AVRO) {
-        executeWithRetries(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            schemaRegistryClient
-                .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-            return null;
-          }
-        }, "Could not clean up the schema registry for topic: " + sourceName);
-      }
-    }
-  }
-
-  private void executeWithRetries(Callable<Void> callable, String errorMessage) {
-    int retries = 0;
-    while (retries < NUM_RETRIES) {
-      try {
-        if (retries != 0) {
-          Thread.sleep(RETRY_BACKOFF_MS);
-        }
-        callable.call();
-        break;
-      } catch (Exception e) {
-        retries++;
-      } finally {
-        if (retries == NUM_RETRIES) {
-          throw new KsqlException(errorMessage);
+        try {
+          ExecutorUtil.executeWithRetries(
+              () -> schemaRegistryClient.deleteSubject(
+                  sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX),
+              ExecutorUtil.RetryBehaviour.ALWAYS);
+        } catch (Exception e) {
+          throw new KsqlException("Could not clean up the schema registry for topic: "
+              + sourceName, e);
         }
       }
     }

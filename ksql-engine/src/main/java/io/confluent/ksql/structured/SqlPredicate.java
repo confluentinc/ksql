@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
@@ -35,6 +34,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;

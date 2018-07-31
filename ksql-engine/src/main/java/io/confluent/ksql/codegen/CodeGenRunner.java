@@ -17,7 +17,7 @@
 package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.util.KsqlConfig;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class CodeGenRunner {

@@ -171,7 +171,6 @@ For an example, see :ref:`restrict-ksql-interactive`.
 listeners
 ---------
 
-Comma-separated list of URIs (including protocol) that the broker will listen on.
 The ``listeners`` setting controls the REST API endpoint for the KSQL server.
 For more info, see :ref:`ksql-rest-api`. 
 
@@ -180,7 +179,11 @@ bind to the default interface. For example:
 
 .. code:: bash
 
-    listeners=PLAINTEXT://myhost:9092
+    # Bind to all interfaces.
+    listeners=http://0.0.0.0:8088
+
+    # Bind only to localhost.
+    listeners=http://localhost:8088
 
 .. _ksql-production-settings:
 

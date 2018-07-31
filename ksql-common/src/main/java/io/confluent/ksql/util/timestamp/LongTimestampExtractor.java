@@ -17,41 +17,34 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 
-public class LongTimestampExtractor implements TimestampExtractor, Configurable {
+public class LongTimestampExtractor implements TimestampExtractor {
 
   private static final Logger log = LoggerFactory.getLogger(LongTimestampExtractor.class);
+  private final int timestampColumnindex;
 
-  private int timestampColumnindex = -1;
-
-  @Override
-  public void configure(Map<String, ?> map) {
-    if (map.containsKey(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX)) {
-      timestampColumnindex = (Integer) map.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX);
-    }
+  LongTimestampExtractor(final int timestampColumnindex) {
+    this.timestampColumnindex = timestampColumnindex;
   }
 
   @Override
-  public long extract(ConsumerRecord<Object, Object> consumerRecord, long l) {
+  public long extract(final ConsumerRecord<Object, Object> consumerRecord, final long l) {
     if (timestampColumnindex < 0) {
       return 0;
     } else {
       try {
         if (consumerRecord.value() instanceof GenericRow) {
-          GenericRow genericRow = (GenericRow) consumerRecord.value();
+          final GenericRow genericRow = (GenericRow) consumerRecord.value();
           if (genericRow.getColumns().get(timestampColumnindex) instanceof Long) {
             return (long) genericRow.getColumns().get(timestampColumnindex);
           }
         }
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error("Exception in extracting timestamp for row: " + consumerRecord.value(), e);
       }
     }

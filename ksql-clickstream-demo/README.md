@@ -12,4 +12,4 @@ This demo focuses on building real-time analytics of users to determine:
 
 The demo uses standard streaming functions (i.e., min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
-Get started now with [these instructions](https://docs.confluent.io/current/ksql/docs/ksql-clickstream-demo.html).
+Get started now with [these instructions](https://docs.confluent.io/current/ksql/docs/tutorials/clickstream-docker.html#ksql-clickstream-docker).

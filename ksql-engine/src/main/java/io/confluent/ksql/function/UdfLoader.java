@@ -270,7 +270,7 @@ public class UdfLoader {
         ksqlConfig -> {
           final Object actualUdf = instantiateUdfClass(method, classLevelAnnotaion);
           if (actualUdf instanceof Configurable) {
-            ((Configurable)actualUdf).configure(ksqlConfig.originals());
+            ((Configurable)actualUdf).configure(ksqlConfig.getKsqlFunctionsConfigProps());
           }
           final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),

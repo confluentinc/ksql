@@ -177,6 +177,9 @@ If the UDF class needs access to the KSQL server configuration it can implement
       ...
     }
 
+For security reasons, only settings whose name is prefixed with ``ksql.functions.`` will be
+propagated to the Udf.
+
 UDAFs
 -----
 To create a UDAF you need to create a class that is annotated with ``@UdafDescription``.

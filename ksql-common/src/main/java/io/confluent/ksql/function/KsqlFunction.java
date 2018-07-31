@@ -32,7 +32,7 @@ public class KsqlFunction {
   private final List<Schema> arguments;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
-  private final Function<KsqlConfig, Kudf> udfSupplier;
+  private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
 
@@ -56,14 +56,14 @@ public class KsqlFunction {
                final List<Schema> arguments,
                final String functionName,
                final Class<? extends Kudf> kudfClass,
-               final Function<KsqlConfig, Kudf> udfSupplier,
+               final Function<KsqlConfig, Kudf> udfFactory,
                final String description,
                final String pathLoadedFrom) {
     this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
     this.arguments = Objects.requireNonNull(arguments, "arguments can't be null");
     this.functionName = Objects.requireNonNull(functionName, "functionName can't be null");
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass can't be null");
-    this.udfSupplier = Objects.requireNonNull(udfSupplier, "udfSupplier can't be null");
+    this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
@@ -129,6 +129,6 @@ public class KsqlFunction {
   }
 
   public Kudf newInstance(final KsqlConfig ksqlConfig) {
-    return udfSupplier.apply(ksqlConfig);
+    return udfFactory.apply(ksqlConfig);
   }
 }

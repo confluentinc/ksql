@@ -41,6 +41,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
+  public static final String KSQ_FUNCTIONS_PROPERTY_PREFIX =
+      KSQL_CONFIG_PROPERTY_PREFIX + "functions.";
+
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
@@ -404,6 +407,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
     );
     return Collections.unmodifiableMap(props);
+  }
+
+  public Map<String, Object> getKsqlFunctionsConfigProps() {
+    return originalsWithPrefix(KSQ_FUNCTIONS_PROPERTY_PREFIX, false);
   }
 
   public Map<String, String> getKsqlStreamConfigPropsWithSecretsObfuscated() {

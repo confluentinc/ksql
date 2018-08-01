@@ -93,6 +93,19 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG =
+      KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
+  private static final String
+      KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_DOCS = "Switch the SUBSTRING function into legacy mode,"
+      + " i.e. back to how it was in version 5.0 and earlier of KSQL."
+      + " Up to version 5.0.x substring took different args:"
+      + " VARCHAR SUBSTRING(str VARCHAR, startIndex INT, endIndex INT), where startIndex and"
+      + " endIndex were both base-zero indexed, e.g. a startIndex of '0' selected the start of the"
+      + " string, and the last argument is a character index, rather than the length of the"
+      + " substring to extract. Later versions of KSQL use:"
+      + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
+      + " and the last argument is the length of the substring to extract.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -187,6 +200,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "",
             ConfigDef.Importance.LOW,
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
+        ).define(
+            KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG, // Todo(ac): Add to release notes.
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.LOW,
+            KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_DOCS
         ).define(
             SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,

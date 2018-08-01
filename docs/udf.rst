@@ -224,8 +224,8 @@ used to call the UDAF. The UDAF can be invoked in four ways:
           }
 
           @Override
-          public Long aggregate(final Long aggregate, final Long aLong) {
-            return aggregate + aLong;
+          public Long aggregate(final Long value, final Long aggregate) {
+            return aggregate + value;
           }
 
           @Override
@@ -269,7 +269,7 @@ used to call the UDAF. The UDAF can be invoked in four ways:
           }
 
           @Override
-          public Double aggregate(final Double aggregate, final Double val) {
+          public Double aggregate(final Double val, final Double aggregate) {
             return aggregate + val;
           }
 

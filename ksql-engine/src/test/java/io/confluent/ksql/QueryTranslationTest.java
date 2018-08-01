@@ -94,64 +94,73 @@ public class QueryTranslationTest {
   }
 
   private static Query createTest(final String testPath, final JsonNode query, final String format) {
-    final StringBuilder nameBuilder = new StringBuilder();
-    nameBuilder.append(getRequiredQueryField("Unknown", query,"name").asText());
-    if (!format.equals("")) {
-      nameBuilder.append(" - ").append(format);
-    }
-    final String name = nameBuilder.toString();
-    final Map<String, Object> properties = new HashMap<>();
-    final List<String> statements = new ArrayList<>();
-    final List<Record> inputs = new ArrayList<>();
-    final List<Record> outputs = new ArrayList<>();
-    final JsonNode propertiesNode = query.findValue("properties");
-    final ExpectedException expectedException = ExpectedException.none();
+    try {
+      final StringBuilder nameBuilder = new StringBuilder();
+      nameBuilder.append(getRequiredQueryField("Unknown", query, "name").asText());
+      if (!format.equals("")) {
+        nameBuilder.append(" - ").append(format);
+      }
+      final String name = nameBuilder.toString();
+      final Map<String, Object> properties = new HashMap<>();
+      final List<String> statements = new ArrayList<>();
+      final List<Record> inputs = new ArrayList<>();
+      final List<Record> outputs = new ArrayList<>();
+      final JsonNode propertiesNode = query.findValue("properties");
+      final ExpectedException expectedException = ExpectedException.none();
 
-    if (propertiesNode != null) {
-      propertiesNode.fields()
-          .forEachRemaining(property -> properties.put(property.getKey(), property.getValue().asText()));
-    }
-    getRequiredQueryField(name, query, "statements").elements()
-        .forEachRemaining(statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
+      if (propertiesNode != null) {
+        propertiesNode.fields()
+            .forEachRemaining(
+                property -> properties.put(property.getKey(), property.getValue().asText()));
+      }
+      getRequiredQueryField(name, query, "statements").elements()
+          .forEachRemaining(
+              statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
 
-    final Map<String, Topic> topicsMap = new HashMap<>();
-    // add all topics from topic nodes to the map
-    if (query.has("topics")) {
-      query.findValue("topics").forEach(
-          topicNode -> {
-            final Topic topic = createTopicFromNode(topicNode);
-            topicsMap.put(topic.getName(), createTopicFromNode(topicNode));
-          }
-      );
-    }
-    // infer topics if not added already
-    statements.stream()
-        .map(QueryTranslationTest::createTopicFromStatement)
-        .filter(Objects::nonNull)
-        .forEach(
-            topic -> topicsMap.putIfAbsent(topic.getName(), topic)
+      final Map<String, Topic> topicsMap = new HashMap<>();
+      // add all topics from topic nodes to the map
+      if (query.has("topics")) {
+        query.findValue("topics").forEach(
+            topicNode -> {
+              final Topic topic = createTopicFromNode(topicNode);
+              topicsMap.put(topic.getName(), createTopicFromNode(topicNode));
+            }
         );
-    final List<Topic> topics = new LinkedList<>(topicsMap.values());
-
-    final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
-
-    getRequiredQueryField(name, query,"inputs").elements()
-        .forEachRemaining(input -> inputs.add(createRecordFromNode(topics, input, defaultSerdeSupplier)));
-
-    getRequiredQueryField(name, query,"outputs").elements()
-        .forEachRemaining(output -> outputs.add(createRecordFromNode(topics, output, defaultSerdeSupplier)));
-
-    if (query.has("expectedException")) {
-      final JsonNode node = query.findValue("expectedException");
-      if (node.hasNonNull("type")) {
-        expectedException.expect(parseThrowable(name, node.get("type").asText()));
       }
-      if (node.hasNonNull("message")) {
-        expectedException.expectMessage(node.get("message").asText());
+      // infer topics if not added already
+      statements.stream()
+          .map(QueryTranslationTest::createTopicFromStatement)
+          .filter(Objects::nonNull)
+          .forEach(
+              topic -> topicsMap.putIfAbsent(topic.getName(), topic)
+          );
+      final List<Topic> topics = new LinkedList<>(topicsMap.values());
+
+      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
+
+      getRequiredQueryField(name, query, "inputs").elements()
+          .forEachRemaining(
+              input -> inputs.add(createRecordFromNode(topics, input, defaultSerdeSupplier)));
+
+      getRequiredQueryField(name, query, "outputs").elements()
+          .forEachRemaining(
+              output -> outputs.add(createRecordFromNode(topics, output, defaultSerdeSupplier)));
+
+      if (query.has("expectedException")) {
+        final JsonNode node = query.findValue("expectedException");
+        if (node.hasNonNull("type")) {
+          expectedException.expect(parseThrowable(name, node.get("type").asText()));
+        }
+        if (node.hasNonNull("message")) {
+          expectedException.expectMessage(node.get("message").asText());
+        }
       }
+
+      return new Query(testPath, name, properties, topics, inputs, outputs, statements,
+          expectedException);
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to build a query in " + testPath, e);
     }
-
-    return new Query(testPath, name, properties, topics, inputs, outputs, statements, expectedException);
   }
 
   private static SerdeSupplier getSerdeSupplier(final String format) {

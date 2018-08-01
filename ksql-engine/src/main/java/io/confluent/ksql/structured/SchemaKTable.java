@@ -49,11 +49,11 @@ public class SchemaKTable extends SchemaKStream {
 
   public SchemaKTable(
       final Schema schema,
-      final KTable ktable,
+      final KTable<?, GenericRow> ktable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      boolean isWindowed,
-      Type type,
+      final boolean isWindowed,
+      final Type type,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -157,6 +157,7 @@ public class SchemaKTable extends SchemaKStream {
     );
   }
 
+  @SuppressWarnings("unchecked") // needs investigating
   @Override
   public KStream getKstream() {
     return ktable.toStream();

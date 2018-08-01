@@ -36,7 +36,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 public class CommandIdAssigner {
 
   interface CommandIdSupplier {
-    CommandId apply(final Statement command);
+    CommandId apply(Statement command);
   }
 
   private final MetaStore metaStore;

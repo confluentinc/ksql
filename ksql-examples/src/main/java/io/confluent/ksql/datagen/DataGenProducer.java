@@ -61,12 +61,15 @@ public abstract class DataGenProducer {
       int messageCount,
       long maxInterval
   ) {
-    System.out.println("Outputting " + messageCount + " to " + kafkaTopicName);
+    final Schema avroSchema = generator.schema();
+    if (avroSchema.getField(key) == null) {
+      throw new IllegalArgumentException("Key field does not exist:" + key);
+    }
 
     if (maxInterval < 0) {
       maxInterval = INTER_MESSAGE_MAX_INTERVAL;
     }
-    Schema avroSchema = generator.schema();
+    
     final AvroData avroData = new AvroData(1);
     org.apache.kafka.connect.data.Schema ksqlSchema = avroData.toConnectSchema(avroSchema);
     ksqlSchema = getOptionalSchema(ksqlSchema);

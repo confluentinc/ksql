@@ -1,5 +1,6 @@
 package io.confluent.ksql;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.connect.avro.AvroData;
@@ -25,12 +26,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
 import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
@@ -53,6 +56,7 @@ public class QueryTranslationTest {
    * @param name  - unused. Is just so the tests get named.
    * @param query - query to run.
    */
+  @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final Query query) {
     this.name = name;
     this.query = query;
@@ -93,7 +97,7 @@ public class QueryTranslationTest {
 
   private static Query createTest(final String testPath, final JsonNode query, final String format) {
     final StringBuilder nameBuilder = new StringBuilder();
-    nameBuilder.append(query.findValue("name").asText());
+    nameBuilder.append(getRequiredQueryField("Unknown", query,"name").asText());
     if (!format.equals("")) {
       nameBuilder.append(" - ").append(format);
     }
@@ -103,23 +107,53 @@ public class QueryTranslationTest {
     final List<Record> inputs = new ArrayList<>();
     final List<Record> outputs = new ArrayList<>();
     final JsonNode propertiesNode = query.findValue("properties");
+    final ExpectedException expectedException = ExpectedException.none();
 
     if (propertiesNode != null) {
       propertiesNode.fields()
           .forEachRemaining(property -> properties.put(property.getKey(), property.getValue().asText()));
     }
-    query.findValue("statements").elements()
+    getRequiredQueryField(name, query, "statements").elements()
         .forEachRemaining(statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
-    final List<Topic> topics = statements.stream()
+
+    final Map<String, Topic> topicsMap = new HashMap<>();
+    // add all topics from topic nodes to the map
+    if (query.has("topics")) {
+      query.findValue("topics").forEach(
+          topicNode -> {
+            final Topic topic = createTopicFromNode(topicNode);
+            topicsMap.put(topic.getName(), createTopicFromNode(topicNode));
+          }
+      );
+    }
+    // infer topics if not added already
+    statements.stream()
         .map(QueryTranslationTest::createTopicFromStatement)
         .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .forEach(
+            topic -> topicsMap.putIfAbsent(topic.getName(), topic)
+        );
+    final List<Topic> topics = new LinkedList<>(topicsMap.values());
+
     final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
-    query.findValue("inputs").elements()
+
+    getRequiredQueryField(name, query,"inputs").elements()
         .forEachRemaining(input -> inputs.add(createRecordFromNode(topics, input, defaultSerdeSupplier)));
-    query.findValue("outputs").elements()
+
+    getRequiredQueryField(name, query,"outputs").elements()
         .forEachRemaining(output -> outputs.add(createRecordFromNode(topics, output, defaultSerdeSupplier)));
-    return new Query(testPath, name, properties, topics, inputs, outputs, statements);
+
+    if (query.has("expectedException")) {
+      final JsonNode node = query.findValue("expectedException");
+      if (node.hasNonNull("type")) {
+        expectedException.expect(parseThrowable(name, node.get("type").asText()));
+      }
+      if (node.hasNonNull("message")) {
+        expectedException.expectMessage(node.get("message").asText());
+      }
+    }
+
+    return new Query(testPath, name, properties, topics, inputs, outputs, statements, expectedException);
   }
 
   private static SerdeSupplier getSerdeSupplier(final String format) {
@@ -192,6 +226,25 @@ public class QueryTranslationTest {
     return null;
   }
 
+  private static Topic createTopicFromNode(final JsonNode node) {
+    final org.apache.avro.Schema schema;
+    if (node.has("schema")) {
+      try {
+        final String schemaString = objectMapper.writeValueAsString(node.get("schema"));
+        final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+        schema = parser.parse(schemaString);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      schema = null;
+    }
+
+    final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());
+
+    return new Topic(node.get("name").asText(), schema, serdeSupplier);
+  }
+
   private static Record createRecordFromNode(final List<Topic> topics,
                                              final JsonNode node,
                                              final SerdeSupplier defaultSerdeSupplier) {
@@ -233,5 +286,29 @@ public class QueryTranslationTest {
     return new Window(
         windowNode.findValue("start").asLong(),
         windowNode.findValue("end").asLong());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Class<? extends Throwable> parseThrowable(final String testName,
+                                                           final String className) {
+    try {
+      final Class<?> theClass = Class.forName(className);
+      if (!Throwable.class.isAssignableFrom(theClass)) {
+        throw new AssertionError(testName + ": Invalid test - 'expectedException.type' not Throwable");
+        }
+        return (Class<? extends Throwable>) theClass;
+    } catch (final ClassNotFoundException e) {
+      throw new AssertionError(testName + ": Invalid test - 'expectedException.type' not found", e);
+    }
+  }
+
+  private static JsonNode getRequiredQueryField(final String testName,
+                                                final JsonNode query,
+                                                final String fieldName) {
+    if (!query.has(fieldName)) {
+      throw new AssertionError(
+          testName + ": Invalid test - it must define '" + fieldName + "' field");
+    }
+    return query.findValue(fieldName);
   }
 }

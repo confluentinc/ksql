@@ -61,7 +61,7 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateNode extends PlanNode {
 
-  static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
+  private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
   private final PlanNode source;
   private final Schema schema;
@@ -169,6 +169,7 @@ public class AggregateNode extends PlanNode {
     return visitor.visitAggregate(this, context);
   }
 
+  @SuppressWarnings("unchecked") // needs investigating
   @Override
   public SchemaKStream buildStream(
       final StreamsBuilder builder,
@@ -367,7 +368,7 @@ public class AggregateNode extends PlanNode {
     return schemaBuilder.build();
   }
 
-  class InternalSchema {
+  private static class InternalSchema {
     private final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
     private final Map<String, Integer> internalNameToIndexMap = new HashMap<>();
     private final Map<String, String> expressionToInternalColumnNameMap = new HashMap<>();

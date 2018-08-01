@@ -1,9 +1,10 @@
 package io.confluent.ksql.integration;
 
 
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -29,11 +30,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
@@ -46,6 +49,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
 
 
+@SuppressWarnings("unchecked")
 public class IntegrationTestHarness {
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
@@ -59,8 +63,16 @@ public class IntegrationTestHarness {
 
   public SchemaRegistryClient schemaRegistryClient;
 
+  private final AtomicInteger consumedCount;
+  private final AtomicInteger producedCount;
+
+  private static IntegrationTestHarness THIS;
+
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
+    THIS = this;
+    consumedCount = new AtomicInteger(0);
+    producedCount = new AtomicInteger(0);
   }
 
   public KafkaTopicClient topicClient() {
@@ -239,26 +251,45 @@ public class IntegrationTestHarness {
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     return consumerConfig;
   }
+
   private static boolean continueConsuming(int messagesConsumed, int maxMessages) {
     return maxMessages < 0 || messagesConsumed < maxMessages;
   }
 
   EmbeddedSingleNodeKafkaCluster embeddedKafkaCluster = null;
 
+  public static class DummyConsumerInterceptor implements ConsumerInterceptor {
 
-  public static class DummyProducerInterceptor implements ProducerInterceptor {
-
-    public void onAcknowledgement(RecordMetadata rm, Exception e) {
-    }
-
-    public ProducerRecord onSend(ProducerRecord producerRecords) {
-      return producerRecords;
+    public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
+      THIS.consumedCount.updateAndGet((current) -> current + consumerRecords.count());
+      return consumerRecords;
     }
 
     public void close() {
     }
 
-    public void configure(Map<String, ?> map) {
+    public void onCommit(final Map map) {
+    }
+
+    public void configure(final Map<String, ?> map) {
+    }
+  }
+
+
+  public static class DummyProducerInterceptor implements ProducerInterceptor {
+
+    public void onAcknowledgement(final RecordMetadata rm, final Exception e) {
+    }
+
+    public ProducerRecord onSend(final ProducerRecord producerRecord) {
+      THIS.producedCount.incrementAndGet();
+      return producerRecord;
+    }
+
+    public void close() {
+    }
+
+    public void configure(final Map<String, ?> map) {
     }
   }
 
@@ -275,6 +306,7 @@ public class IntegrationTestHarness {
     configMap.put("auto.offset.reset", "earliest");
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     configMap.put("producer.interceptor.classes", DummyProducerInterceptor.class.getName());
+    configMap.put("consumer.interceptor.classes", DummyConsumerInterceptor.class.getName());
     configMap.putAll(callerConfigMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
@@ -306,6 +338,14 @@ public class IntegrationTestHarness {
                                      dataSourceSerDe),
                        timestamp);
 
+  }
+
+  public int getConsumedCount() {
+    return consumedCount.intValue();
+  }
+
+  public int getProducedCount() {
+    return producedCount.intValue();
   }
 
   private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {

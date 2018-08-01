@@ -18,7 +18,6 @@ package io.confluent.ksql.function.udaf.topk;
 
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +26,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.ksql.function.KsqlAggregateFunction;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+@SuppressWarnings("unchecked")
 public class DoubleTopkKudafTest {
   private final List<Double> valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
       25.0);

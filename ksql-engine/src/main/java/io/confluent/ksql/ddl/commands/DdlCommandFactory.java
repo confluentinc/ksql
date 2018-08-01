@@ -19,8 +19,6 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.parser.tree.DdlStatement;
 
 public interface DdlCommandFactory {
-  DdlCommand create(
-      String sqlExpression,
-      final DdlStatement ddlStatement
-  );
+
+  DdlCommand create(String sqlExpression, DdlStatement ddlStatement);
 }

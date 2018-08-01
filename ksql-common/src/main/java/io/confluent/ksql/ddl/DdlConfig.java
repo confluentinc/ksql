@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.ddl;
 
-public class DdlConfig {
+public final class DdlConfig {
 
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
@@ -31,4 +31,7 @@ public class DdlConfig {
   public static final String SCHEMA_FILE_CONTENT_PROPERTY = "ksql.schema.file.content";
   public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
   public static final String TIMESTAMP_FORMAT_PROPERTY = "TIMESTAMP_FORMAT";
+
+  private DdlConfig() {
+  }
 }

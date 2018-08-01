@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -248,7 +248,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return configDef;
   }
 
-  private static class ConfigValue {
+  private static final class ConfigValue {
     final Optional<ConfigDef.Type> type;
     final String key;
     final Object value;
@@ -458,7 +458,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
   }
 
-  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query */
+  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query
+                When this is removed KsqlConfig becomes immutable(ish)
+                and hence the clone method should be removed.
+   */
 
   private int timestampColumnIndex = -1;
 

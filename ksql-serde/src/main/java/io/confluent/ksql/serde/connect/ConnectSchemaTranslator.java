@@ -69,13 +69,25 @@ public class ConnectSchemaTranslator {
     }
   }
 
+  private void checkMapKeyType(Schema.Type type) {
+    switch (type) {
+      case INT8:
+      case INT16:
+      case INT32:
+      case INT64:
+      case BOOLEAN:
+      case STRING:
+        return;
+      default:
+        throw new UnsupportedTypeException("Unsupported type for map key: " + type.getName());
+    }
+  }
+
   private Schema toKsqlMapSchema(final Schema schema) {
     final Schema keySchema = toKsqlFieldSchema(schema.keySchema());
-    if (!keySchema.type().equals(Schema.Type.STRING)) {
-      throw new UnsupportedTypeException("Map key must be of type STRING");
-    }
+    checkMapKeyType(keySchema.type());
     return SchemaBuilder.map(
-        keySchema,
+        Schema.OPTIONAL_STRING_SCHEMA,
         toKsqlFieldSchema(schema.valueSchema())
     ).optional().build();
   }

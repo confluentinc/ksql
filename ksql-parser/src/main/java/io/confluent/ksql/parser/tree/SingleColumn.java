@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.Objects;
@@ -52,30 +52,23 @@ public class SingleColumn
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
 
-    if (alias.isPresent()) {
-      if (alias.get().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
-        String expressionStr = expression.toString();
-        if (!expressionStr.substring(expressionStr.indexOf(".") + 1)
-            .equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
-          throw new KsqlException(
-              SchemaUtil.ROWTIME_NAME + " is a reserved token for implicit column."
-                                  + " You cannot use it as an alias for a column.");
-        }
-      }
-      if (alias.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        String expressionStr = expression.toString();
-        if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(
-            SchemaUtil.ROWKEY_NAME)) {
-          throw new KsqlException(
-              SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                  + " You cannot use it as an alias for a column.");
-        }
-      }
-    }
-
+    alias.ifPresent(name -> {
+      checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
+      checkForReservedToken(expression, name, SchemaUtil.ROWKEY_NAME);
+    });
 
     this.expression = expression;
     this.alias = alias;
+  }
+
+  private void checkForReservedToken(Expression expression, String alias, String reservedToken) {
+    if (alias.equalsIgnoreCase(reservedToken)) {
+      String text = expression.toString();
+      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken)) {
+        throw new ParseFailedException(reservedToken + " is a reserved token for implicit column. "
+                        + "You cannot use it as an alias for a column.");
+      }
+    }
   }
 
   public Optional<String> getAlias() {

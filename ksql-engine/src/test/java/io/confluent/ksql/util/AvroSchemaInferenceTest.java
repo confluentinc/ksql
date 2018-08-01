@@ -257,9 +257,69 @@ public class AvroSchemaInferenceTest {
   }
 
   @Test
-  public void shouldIgnoreConnectMapWithNonStringKey() {
+  public void shouldInferConnectMapWithInt8Key() {
     shouldInferConnectType(
-        SchemaBuilder.map(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA),
+        SchemaBuilder.map(Schema.INT8_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt16Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT16_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt32Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt64Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithBooleanKey() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.BOOLEAN_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldIgnoreConnectMapWithUnsupportedKey() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA),
         null
     );
   }

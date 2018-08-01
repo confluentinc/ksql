@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,12 @@
 
 package io.confluent.ksql;
 
-public class DemoTest {
-  public static void main(String[] args) {
+public final class DemoTest {
+
+  private DemoTest() {
+  }
+
+  public static void main(final String[] args) {
     System.out.println("KSQL Clickstream Demo");
   }
 

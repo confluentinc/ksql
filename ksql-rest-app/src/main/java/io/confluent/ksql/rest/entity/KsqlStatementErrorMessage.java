@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,21 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.util.ErrorMessageUtil;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
+import io.confluent.ksql.util.ErrorMessageUtil;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   private final String statementText;
   private final KsqlEntityList entities;
 
+  @SuppressWarnings("WeakerAccess") // Invoked via reflection
   public KsqlStatementErrorMessage(
       @JsonProperty("error_code") int errorCode,
       @JsonProperty("message") String message,
@@ -55,5 +60,26 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
 
   public KsqlEntityList getEntities() {
     return entities;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    final KsqlStatementErrorMessage that = (KsqlStatementErrorMessage) o;
+    return Objects.equals(statementText, that.statementText)
+           && Objects.equals(entities, that.entities);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), statementText, entities);
   }
 }

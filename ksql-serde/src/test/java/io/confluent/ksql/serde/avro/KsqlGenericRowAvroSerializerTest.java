@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,9 +46,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 
+@SuppressWarnings("unchecked")
 public class KsqlGenericRowAvroSerializerTest {
 
-  final Schema schema = SchemaBuilder.struct()
+  private final Schema schema = SchemaBuilder.struct()
         .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)

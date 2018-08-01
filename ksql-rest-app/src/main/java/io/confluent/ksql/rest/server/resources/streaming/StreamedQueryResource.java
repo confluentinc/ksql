@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -122,7 +123,7 @@ public class StreamedQueryResource {
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
           Errors.badRequest(String.format(
-              "Could not find topic '%s', KSQL uses uppercase.\n"
+              "Could not find topic '%s', KSQL uses uppercase.%n"
               + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
               topicName)));
     }

@@ -53,8 +53,8 @@ Kafka
 
 KSQL consumes resources on your Kafka cluster.
 
-Internal Topics
-+++++++++++++++
+Generated Topics
+++++++++++++++++
 
 KSQL creates the following types of topics on your KSQL cluster:
 
@@ -229,6 +229,8 @@ Similar to Kafka Streams, KSQL throughput scales well as resources are added, if
   queries against the repartitioned stream. Also, if you want to save storage space in your Kafka cluster, consider
   lowering the data retention configuration for that underlying stream topic.
 - Increase the number of partitions in the input topic.
+
+To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``. 
 
 How to Know When to Scale
 +++++++++++++++++++++++++

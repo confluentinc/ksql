@@ -16,15 +16,10 @@
  */
 package io.confluent.ksql;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.util.KsqlConstants;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -40,25 +35,45 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
+import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
+import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
+
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.junit.matchers.JUnitMatchers.isThrowable;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -68,6 +83,45 @@ class EndToEndEngineTestUtil {
     // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
     // test
     UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+  }
+
+  private static class ValueSpec {
+    private final Object spec;
+
+    ValueSpec(final Object spec) {
+      this.spec = spec;
+    }
+
+    private static void compare(Object o1, Object o2, String path) {
+      if (o1 == null && o2 == null) {
+        return;
+      }
+      if (o1 == null || o2 == null) {
+        throw new AssertionError("Unexpected null at path " + path);
+      }
+      if (o1 instanceof Map) {
+        assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
+        assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
+        for (Object k : ((Map) o1).keySet()) {
+          compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + String.valueOf(k));
+        }
+      } else if (o1 instanceof List) {
+        assertThat("type mismatch at " + path, o2, instanceOf(List.class));
+        assertThat("list size mismatch at " + path, ((List) o1).size(), equalTo(((List)o2).size()));
+        for (int i = 0; i < ((List) o1).size(); i++) {
+          compare(((List) o1).get(i), ((List) o2).get(i), path + "." + String.valueOf(i));
+        }
+      } else {
+        assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
+        assertThat("mismatch at path" + path, o1, equalTo(o2));
+      }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      compare(spec, o, "VALUE-SPEC");
+      return Objects.equals(spec, o);
+    }
   }
 
   protected interface SerdeSupplier<T> {
@@ -126,10 +180,11 @@ class EndToEndEngineTestUtil {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      return avroToValueSpec(
-          avroObject,
-          new org.apache.avro.Schema.Parser().parse(schemaString),
-          false);
+      return new ValueSpec(
+          avroToValueSpec(
+              avroObject,
+              new org.apache.avro.Schema.Parser().parse(schemaString),
+              false));
     }
   }
 
@@ -329,6 +384,30 @@ class EndToEndEngineTestUtil {
     }
   }
 
+  static class ExpectedException {
+    private final List<Matcher<? super Throwable>> matchers = new ArrayList<>();
+
+    public static ExpectedException none() {
+      return new ExpectedException();
+    }
+
+    public void expect(final Class<? extends Throwable> type) {
+      matchers.add(instanceOf(type));
+    }
+
+    public void expectMessage(final String substring) {
+      expectMessage(containsString(substring));
+    }
+
+    public void expectMessage(final Matcher<String> matcher) {
+      matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
+    }
+
+    private Matcher<Throwable> build() {
+      return allOf(matchers);
+    }
+  }
+
   static class Query {
     private final String testPath;
     private final String name;
@@ -337,6 +416,7 @@ class EndToEndEngineTestUtil {
     private final List<Record> inputRecords;
     private final List<Record> outputRecords;
     private final List<String> statements;
+    private final ExpectedException expectedException;
 
     public String getName() {
       return name;
@@ -349,7 +429,8 @@ class EndToEndEngineTestUtil {
         final List<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
-        final List<String> statements) {
+        final List<String> statements,
+        final ExpectedException expectedException) {
       this.topics = topics;
       this.inputRecords = inputRecords;
       this.outputRecords = outputRecords;
@@ -357,6 +438,7 @@ class EndToEndEngineTestUtil {
       this.name = name;
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
+      this.expectedException = expectedException;
     }
 
     public Map<String, Object> properties() {
@@ -383,6 +465,10 @@ class EndToEndEngineTestUtil {
     @SuppressWarnings("unchecked")
     void verifyOutput(final TopologyTestDriver testDriver,
                       final SchemaRegistryClient schemaRegistryClient) {
+      if (isAnyExceptionExpected()) {
+        failDueToMissingException();
+      }
+
       try {
        for (final Record expectedOutput : outputRecords) {
          final ProducerRecord record = testDriver.readOutput(
@@ -418,6 +504,24 @@ class EndToEndEngineTestUtil {
             throw new RuntimeException(e);
           }
         }
+      }
+    }
+
+    private boolean isAnyExceptionExpected() {
+      return !expectedException.matchers.isEmpty();
+    }
+
+    private void failDueToMissingException() {
+      final String expectation = StringDescription.toString(expectedException.build());
+      final String message = "Expected test to throw" + expectation;
+      fail(message);
+    }
+
+    private void handleException(final RuntimeException e) {
+      if (isAnyExceptionExpected()) {
+        assertThat(e, isThrowable(expectedException.build()));
+      } else {
+        throw e;
       }
     }
   }
@@ -479,6 +583,9 @@ class EndToEndEngineTestUtil {
           = buildStreamsTopology(query, ksqlEngine, ksqlConfig, streamsProperties);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);
+
+    } catch (final RuntimeException e) {
+      query.handleException(e);
     }
   }
 
@@ -552,14 +659,17 @@ class EndToEndEngineTestUtil {
           return ((Long)avro).intValue();
         }
         return avro;
+      case ENUM:
       case STRING:
         return avro.toString();
       case ARRAY:
         if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+          final org.apache.avro.Schema valueSchema
+              = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(
               Collectors.toMap(
                   m -> ((GenericData.Record) m).get("key").toString(),
-                  m -> ((GenericData.Record) m).get("value")
+                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
               )
           );
         }

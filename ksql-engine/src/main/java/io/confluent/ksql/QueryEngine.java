@@ -56,7 +56,6 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -210,6 +209,10 @@ class QueryEngine {
 
       statement = (DdlStatement) statementWithSchema.getStatement();
       sqlExpression = statementWithSchema.getStatementText();
+
+      if (((AbstractStreamCreateStatement) statement).getElements().isEmpty()) {
+        throw new KsqlException("The statement or topic schema does not define any columns.");
+      }
     }
     final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);

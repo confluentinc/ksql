@@ -18,26 +18,31 @@ package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
+@SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(name = "substring",
     author = "Confluent",
     description = "Returns a substring of the passed in value")
 public class Substring {
 
   @Udf(description = "Returns a substring of str that starts at pos "
-                     + "and continues to the end of the string")
+      + " and continues to the end of the string")
   public String substring(
-      final String str,
-      final int pos) {
+      @UdfParameter("value") final String str,
+      @UdfParameter(value = "startIndex",
+          description = "The base-one position the substring starts from.") final int pos) {
     final int start = getStartIndex(str, pos);
     return str.substring(start);
   }
 
   @Udf(description = "Returns a substring of str that starts at pos and is of length len")
   public String substring(
-      final String str,
-      final int pos,
-      final int len) {
+      @UdfParameter("value") final String str,
+      @UdfParameter(value = "startIndex",
+          description = "The base-one position the substring starts from.") final int pos,
+      @UdfParameter(value = "len",
+          description = "The length of the substring to extract.") final int len) {
     final int start = getStartIndex(str, pos);
     final int end = getEndIndex(str, start, len);
     return str.substring(start, end);
@@ -45,8 +50,8 @@ public class Substring {
 
   private static int getStartIndex(final String value, final int pos) {
     return pos < 0
-           ? Math.max(value.length() + pos, 0)
-           : Math.min(pos - 1, value.length());
+        ? Math.max(value.length() + pos, 0)
+        : Math.min(pos - 1, value.length());
   }
 
   private static int getEndIndex(final String value, final int start, final int length) {

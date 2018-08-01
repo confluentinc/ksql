@@ -19,7 +19,7 @@ package io.confluent.ksql.metastore;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ReferentialIntegrityTableEntry implements Cloneable {
+public final class ReferentialIntegrityTableEntry implements Cloneable {
 
   private final Set<String> sourceForQueries;
   private final Set<String> sinkForQueries;

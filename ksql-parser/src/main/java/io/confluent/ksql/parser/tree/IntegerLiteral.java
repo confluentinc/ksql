@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
@@ -58,12 +59,11 @@ public class IntegerLiteral
     }
 
     final IntegerLiteral that = (IntegerLiteral) o;
-
     return value == that.value;
   }
 
   @Override
   public int hashCode() {
-    return (int) (value ^ (value >>> 32));
+    return Objects.hashCode(value);
   }
 }

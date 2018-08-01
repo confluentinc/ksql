@@ -278,6 +278,7 @@ public class JoinNode extends PlanNode {
     public abstract SchemaKStream join();
 
     protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
+
       return maybeRePartitionByKey(node.buildStream(builder, ksqlConfig, kafkaTopicClient,
                                                     functionRegistry, props,
                                                     schemaRegistryClient),

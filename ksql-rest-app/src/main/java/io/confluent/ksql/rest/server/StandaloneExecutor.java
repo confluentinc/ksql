@@ -134,7 +134,7 @@ public class StandaloneExecutor implements Executable {
 
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();
-    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(
         new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {

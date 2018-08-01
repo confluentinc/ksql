@@ -29,5 +29,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Udf {
-  String description();
+
+  /**
+   * The function description.
+   *
+   * Useful where there are multiple overloaded versions of a function.
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * @return the text to display to the user.
+   */
+  String description() default "";
 }

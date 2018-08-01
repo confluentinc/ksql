@@ -45,16 +45,52 @@ Prior to creating an issue, please search through existing issues so that you ar
 
 When submitting a pull request (PR), use the following guidelines:
 
-* Make sure your code respects existing formatting conventions. In general, follow the same coding style as the code that you are modifying.
+* Follow the style guide below
 * Add/update documentation appropriately for the change you are making.
 * If you are introducing a new feature you may want to first submit your idea by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues) to solicit feedback.
-* Non-trivial features should include unit tests covering the new functionality.
+* Non-trivial changes should include unit tests covering the new functionality.
 * Bug fixes should include a unit test or integration test reproducing the issue.
 * Try to keep pull requests short and submit separate ones for unrelated features, but feel free to combine simple bugfixes/tests into one pull request.
 * Keep the number of commits small and combine commits for related changes.
 * Each commit should compile on its own and ideally pass tests.
 * Keep formatting changes in separate commits to make code reviews easier and distinguish them from actual code changes.
 
+#### Code Style
+
+The project uses [GoogeStyle][https://google.github.io/styleguide/javaguide.html] code formating.
+You can install this code style into your IDE to make things more automatic:
+ * [Intellij code style xml file][https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml]
+ * [Eclipse code style xml file][https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml]
+
+In addition, the project also uses `final` fields, parameters and local variables for new code submissions.
+IntelliJ's code generation can be configured to do this automatically:
+
+     Preferences -> Code Style -> Java -> Code Generation
+
+     Tick:
+     - Make generated local variables final
+     - Make generated parameters final
+
+#### Static code analysis
+
+The project build runs checkstyle and findbugs as part of the build.
+
+You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin, then:
+
+    IntelliJ->Preferences→Other Settings→CheckStyle
+
+    - Add a new configurations file using the '+' button:
+       Description: Confluent Checks
+       URL: https://raw.githubusercontent.com/confluentinc/common/master/build-tools/src/main/resources/checkstyle/checkstyle.xml
+       Ignore invalid certs: true
+
+    - (Optional) Make the new configuration active.
+
+    - Highlight the newly added 'Confluent Checks' and click the edit button (pencil icon).
+
+    - Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
+
+'Confluent Checks' will now be available in the CheckStyle tool window in the IDE and will auto-highlight issues in the code editor.
 
 ### GitHub Workflow
 

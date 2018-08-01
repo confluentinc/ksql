@@ -65,6 +65,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -426,6 +427,20 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testReservedColumnIdentifers() {
+    assertQuerySucceeds("SELECT ROWTIME as ROWTIME FROM test1 t1;");
+    assertQuerySucceeds("SELECT ROWKEY as ROWKEY FROM test1 t1;");
+  }
+
+  @Test
+  public void testReservedColumnAliases() {
+    assertQueryFails("SELECT C1 as ROWTIME FROM test1 t1;",
+            "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column.");
+    assertQueryFails("SELECT C2 as ROWKEY FROM test1 t1;",
+            "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column.");
+  }
+
+  @Test
   public void testSelectAllJoin() {
     String
         queryStr =
@@ -595,7 +610,7 @@ public class KsqlParserTest {
     String format = "json";
     String kafkaTopic = "case_insensitive_kafka_topic";
 
-    String queryStr = String.format(
+    String queryStr = format(
         "REGISTER TOPIC %s WITH (value_format = %s, kafka_topic = %s);",
         ksqlTopic,
         format,
@@ -615,8 +630,8 @@ public class KsqlParserTest {
   public void testShouldFailIfWrongKeyword() {
     try {
       String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-      Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-      Assert.fail();
+      KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+      fail(format("Expected query: %s to fail", simpleQuery));
     } catch (ParseFailedException e) {
       String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
@@ -668,11 +683,6 @@ public class KsqlParserTest {
         equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
-  @Test
-  public void should() {
-    List<Statement> statements = KSQL_PARSER.buildAst("select * from orders;", metaStore);
-    System.out.println(statements);
-  }
   @Test
   public void testSelectSessionWindow() {
 
@@ -861,6 +871,22 @@ public class KsqlParserTest {
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     ListQueries listQueries = (ListQueries)statement;
     Assert.assertThat(listQueries.getShowExtended(), is(true));
+  }
+  
+  private void assertQuerySucceeds(String sql) {
+    Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0);
+    assertThat(statement, instanceOf(Query.class));
+  }
+
+  private void assertQueryFails(String sql, String exceptionMessage) {
+    try {
+      KSQL_PARSER.buildAst(sql, metaStore).get(0);
+      fail(format("Expected query: %s to fail with message: %s", sql, exceptionMessage));
+    } catch (RuntimeException exp) {
+      if(!exp.getMessage().equals(exceptionMessage)) {
+        fail(format("Expected exception message to match %s for query: %s", exceptionMessage, sql));
+      }
+    }
   }
 
   @Test

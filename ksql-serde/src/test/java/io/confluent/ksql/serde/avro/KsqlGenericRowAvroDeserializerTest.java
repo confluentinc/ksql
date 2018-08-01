@@ -538,4 +538,65 @@ public class KsqlGenericRowAvroDeserializerTest {
         16384L
     );
   }
+
+  @Test
+  public void shouldDeserializeConnectMapWithInt8Key() {
+    shouldDeserializeConnectTypeCorrectly(
+        SchemaBuilder.map(Schema.INT8_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
+        ImmutableMap.of((byte) 1, 10, (byte) 2, 20, (byte) 3, 30),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build(),
+        ImmutableMap.of("1", 10, "2", 20, "3", 30)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectMapWithInt16Key() {
+    shouldDeserializeConnectTypeCorrectly(
+        SchemaBuilder.map(Schema.INT16_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
+        ImmutableMap.of((short) 1, 10, (short) 2, 20, (short) 3, 30),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build(),
+        ImmutableMap.of("1", 10, "2", 20, "3", 30)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectMapWithInt32Key() {
+    shouldDeserializeConnectTypeCorrectly(
+        SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
+        ImmutableMap.of(1, 10, 2, 20, 3, 30),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build(),
+        ImmutableMap.of("1", 10, "2", 20, "3", 30)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectMapWithInt64Key() {
+    shouldDeserializeConnectTypeCorrectly(
+        SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
+        ImmutableMap.of( 1L, 10, 2L, 20, 3L, 30),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build(),
+        ImmutableMap.of("1", 10, "2", 20, "3", 30)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeConnectMapWithBooleanKey() {
+    shouldDeserializeConnectTypeCorrectly(
+        SchemaBuilder.map(Schema.BOOLEAN_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
+        ImmutableMap.of( true, 10, false, 20),
+        SchemaBuilder.map(
+            Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA
+        ).optional().build(),
+        ImmutableMap.of("true", 10, "false", 20)
+    );
+  }
+
 }

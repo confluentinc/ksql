@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.util;
 
-public class KsqlConstants {
+public final class KsqlConstants {
+
+  private KsqlConstants() {
+  }
 
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
@@ -49,6 +52,10 @@ public class KsqlConstants {
   public static final String DOT = ".";
   public static final String STRUCT_FIELD_REF = "->";
 
+  public static final String DOC_URL_SR_SERIALISER =
+          "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
+  public static final String DOC_URL_SR_REST_GETSUBJECTS =
+          "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String AVRO_SCHEMA_FULL_NAME = AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;

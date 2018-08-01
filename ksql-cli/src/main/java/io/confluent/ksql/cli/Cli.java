@@ -88,7 +88,7 @@ public class Cli implements Closeable, AutoCloseable {
   private final Long streamedQueryRowLimit;
   private final Long streamedQueryTimeoutMs;
 
-  final KsqlRestClient restClient;
+  private final KsqlRestClient restClient;
   private final Console terminal;
 
   public Cli(
@@ -117,15 +117,15 @@ public class Cli implements Closeable, AutoCloseable {
       final KsqlRestClient restClient
   ) {
     try {
-      RestResponse restResponse = restClient.makeRootRequest();
+      final RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
-        KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
+        final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
-          writer.format("This CLI version no longer supported: %s\n\n", ksqlError);
+          writer.format("This CLI version no longer supported: %s%n%n", ksqlError);
           return;
         }
         writer.format(
-            "Couldn't connect to the KSQL server: %s\n\n", ksqlError.getMessage());
+            "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");

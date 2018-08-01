@@ -34,6 +34,7 @@ import io.confluent.ksql.function.UdafAggregator;
 
 import static org.easymock.EasyMock.same;
 
+@SuppressWarnings("unchecked")
 public class HoppingWindowExpressionTest {
 
   @Test

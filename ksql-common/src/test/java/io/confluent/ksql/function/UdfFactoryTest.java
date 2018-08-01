@@ -41,7 +41,7 @@ public class UdfFactoryTest {
 
   private final String functionName = "TestFunc";
   private final UdfFactory factory = new UdfFactory(TestFunc.class,
-      new UdfMetadata(functionName, "", "", "", "internal"));
+      new UdfMetadata(functionName, "", "", "", "internal", false));
   
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {

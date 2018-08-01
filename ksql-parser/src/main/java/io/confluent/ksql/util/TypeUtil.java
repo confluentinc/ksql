@@ -29,7 +29,9 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
 
-public class TypeUtil {
+public final class TypeUtil {
+  private TypeUtil() {
+  }
 
   public static Type getKsqlType(Schema schema) {
     switch (schema.type()) {

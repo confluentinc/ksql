@@ -19,6 +19,8 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
+import io.confluent.ksql.util.KsqlConfig;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -32,6 +34,7 @@ import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -45,13 +48,16 @@ public class SchemaKGroupedStream {
   final KGroupedStream kgroupedStream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
+  final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
   final SchemaRegistryClient schemaRegistryClient;
 
   SchemaKGroupedStream(
-      final Schema schema, final KGroupedStream kgroupedStream,
+      final Schema schema,
+      final KGroupedStream kgroupedStream,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -59,6 +65,7 @@ public class SchemaKGroupedStream {
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
     this.schemaRegistryClient = schemaRegistryClient;
   }
@@ -103,6 +110,7 @@ public class SchemaKGroupedStream {
         sourceSchemaKStreams,
         windowExpression != null,
         SchemaKStream.Type.AGGREGATE,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

@@ -18,7 +18,6 @@ package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.util.Arrays;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -26,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 
@@ -83,9 +84,9 @@ public class CodeGenRunnerTest {
 
     private MetaStore metaStore;
     private CodeGenRunner codeGenRunner;
-    private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-
+    private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before
     public void init() {
@@ -144,7 +145,7 @@ public class CodeGenRunnerTest {
             ksqlTopic);
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
-        codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+        codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
         genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     }
 

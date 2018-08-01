@@ -68,7 +68,7 @@ public class SchemaKGroupedTableTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(query);
     SchemaKTable initialSchemaKTable = new SchemaKTable(
         logicalPlan.getTheSourceNode().getSchema(), kTable, ksqlTable.getKeyField(), new ArrayList<>(),
-        false, SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+        false, SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
     List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))

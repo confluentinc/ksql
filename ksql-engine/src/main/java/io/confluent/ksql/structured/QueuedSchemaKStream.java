@@ -49,6 +49,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
         Type.SINK,
+        schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
         schemaKStream.schemaRegistryClient
     );

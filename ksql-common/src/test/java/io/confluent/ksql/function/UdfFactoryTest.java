@@ -128,7 +128,7 @@ public class UdfFactoryTest {
         Collections.<Schema>emptyList(),
         "TestFunc",
         TestFunc.class,
-        () -> null,
+        ksqlConfig -> null,
         "",
         "not the same path"
     ));

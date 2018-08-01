@@ -30,21 +30,28 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
 
 /**
@@ -59,9 +66,12 @@ public class UdfLoaderTest {
   private final Metrics metrics = new Metrics();
   private final UdfLoader pluginLoader = createUdfLoader(metaStore, true, false);
 
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
   @Before
   public void before() {
     pluginLoader.load();
+    PASSED_CONFIG = null;
   }
 
   @Test
@@ -70,11 +80,11 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
-        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)).newInstance(ksqlConfig);
     assertThat(substring1.evaluate("foo", 1), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
-        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)).newInstance();
+        Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)).newInstance(ksqlConfig);
     assertThat(substring2.evaluate("foo", 1,2), equalTo("o"));
   }
 
@@ -107,10 +117,10 @@ public class UdfLoaderTest {
 
 
     final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.STRING_SCHEMA))
-        .newInstance();
+        .newInstance(ksqlConfig);
     final Kudf multiplyUdf = multiply.getFunction(
         Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
-        .newInstance();
+        .newInstance(ksqlConfig);
 
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
     assertThat(multiplyLoader, equalTo(getActualUdfClassLoader(toStringUdf)));
@@ -148,7 +158,7 @@ public class UdfLoaderTest {
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     final Kudf kudf = substring.getFunction(
         Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
-        .newInstance();
+        .newInstance(ksqlConfig);
     assertThat(getActualUdfClassLoader(kudf), equalTo(parentClassLoader));
   }
 
@@ -198,7 +208,7 @@ public class UdfLoaderTest {
     final UdfFactory substring = metaStore.getUdfFactory("substring");
     final KsqlFunction function
         = substring.getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
-    final Kudf kudf = function.newInstance();
+    final Kudf kudf = function.newInstance(ksqlConfig);
     assertThat(kudf, instanceOf(UdfMetricProducer.class));
     final Sensor sensor = metrics.getSensor("ksql-udf-substring");
     assertThat(sensor, not(nullValue()));
@@ -238,6 +248,30 @@ public class UdfLoaderTest {
     UdfLoader.newInstance(config, new MetaStoreImpl(new InternalFunctionRegistry()), "").load();
   }
 
+  @Test
+  public void shouldConfigureConfigurableUdfsOnInstantiation() {
+    // Given:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "should not be passed",
+        KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting", "foo-bar",
+        KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
+    ));
+
+    final KsqlFunction udf = metaStore.getUdfFactory("ConfigurableUdf")
+        .getFunction(ImmutableList.of(Schema.INT32_SCHEMA));
+
+    // When:
+    udf.newInstance(ksqlConfig);
+
+    // Then:
+    assertThat(PASSED_CONFIG, is(notNullValue()));
+    assertThat(PASSED_CONFIG.keySet(), not(hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
+    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
+        is("foo-bar"));
+    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
+        is("expected-value"));
+  }
+
   private UdfLoader createUdfLoader(final MetaStore metaStore,
                                     final boolean loadCustomerUdfs,
                                     final boolean collectMetrics) {
@@ -253,4 +287,30 @@ public class UdfLoaderTest {
         loadCustomerUdfs);
   }
 
+  @SuppressWarnings("unused") // Invoked via reflection.
+  public static class UdfWithMissingDescriptionAnnotation {
+    @Udf(description = "This invalid UDF is here to test that the loader does not blow up if badly"
+        + " formed UDFs are in the class path.")
+    public String something(final String value) {
+      return null;
+    }
+  }
+
+  private static Map<String, ?> PASSED_CONFIG = null;
+
+  @SuppressWarnings("unused") // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ConfigurableUdf",
+      description = "A test-only UDF for testing configure() is called")
+  public static class ConfigurableUdf implements Configurable {
+    @Override
+    public void configure(final Map<String, ?> map) {
+      PASSED_CONFIG = map;
+    }
+
+    @Udf
+    public int foo(final int bar) {
+      return bar;
+    }
+  }
 }

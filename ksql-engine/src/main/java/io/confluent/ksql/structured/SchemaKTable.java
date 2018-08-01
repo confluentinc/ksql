@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +40,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
@@ -54,6 +54,7 @@ public class SchemaKTable extends SchemaKStream {
       final List<SchemaKStream> sourceSchemaKStreams,
       final boolean isWindowed,
       final Type type,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -63,6 +64,7 @@ public class SchemaKTable extends SchemaKStream {
         keyField,
         sourceSchemaKStreams,
         type,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -122,20 +124,22 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable filter(final Expression filterExpression) {
-    SqlPredicate predicate = new SqlPredicate(
+    final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         isWindowed,
+        ksqlConfig,
         functionRegistry
     );
-    KTable filteredKTable = ktable.filter(predicate.getPredicate());
+    final KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(
         schema,
         filteredKTable,
         keyField,
-        Arrays.asList(this),
+        Collections.singletonList(this),
         isWindowed,
         Type.FILTER,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -152,6 +156,7 @@ public class SchemaKTable extends SchemaKStream {
         Collections.singletonList(this),
         isWindowed,
         Type.PROJECT,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -190,6 +195,7 @@ public class SchemaKTable extends SchemaKStream {
         kgroupedTable,
         newKeyField,
         Collections.singletonList(this),
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }
@@ -214,6 +220,7 @@ public class SchemaKTable extends SchemaKStream {
         ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -239,6 +246,7 @@ public class SchemaKTable extends SchemaKStream {
         ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -264,6 +272,7 @@ public class SchemaKTable extends SchemaKStream {
         ImmutableList.of(this, schemaKTable),
         false,
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

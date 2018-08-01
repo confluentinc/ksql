@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import io.confluent.ksql.GenericRow;
@@ -32,6 +33,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 
@@ -42,6 +44,7 @@ public class SelectValueMapperTest {
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
 
   @Test
@@ -74,7 +77,7 @@ public class SelectValueMapperTest {
 
   private List<ExpressionMetadata> createExpressionMetadata(final List<Pair<String, Expression>> expressionPairList,
                                                             final Schema schema) throws Exception {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, new InternalFunctionRegistry());
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, new InternalFunctionRegistry());
     final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       final ExpressionMetadata

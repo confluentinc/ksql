@@ -182,6 +182,7 @@ public class StructuredDataSourceNode
           new ArrayList<>(),
           table.isWindowed(),
           SchemaKStream.Type.SOURCE,
+          ksqlConfig,
           functionRegistry,
           schemaRegistryClient
       );
@@ -195,7 +196,7 @@ public class StructuredDataSourceNode
                 .withTimestampExtractor(timestampExtractor)
         ).mapValues(nonWindowedValueMapper).transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient
+        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, schemaRegistryClient
     );
   }
 

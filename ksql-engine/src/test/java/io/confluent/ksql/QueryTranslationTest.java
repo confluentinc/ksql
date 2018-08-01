@@ -34,22 +34,21 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
 
-  private final String name;
   private final Query query;
 
   /**
@@ -58,8 +57,7 @@ public class QueryTranslationTest {
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final Query query) {
-    this.name = name;
-    this.query = query;
+    this.query = Objects.requireNonNull(query, "query");
   }
 
   @Test

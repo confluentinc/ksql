@@ -32,11 +32,11 @@ import java.util.Objects;
 @UdfDescription(name = "substring",
     author = "Confluent",
     description = "Returns a substring of the passed in value.\n"
-        + "The behaviour of this function changed in release 5.1."
-        + " It is possible to switch the function back to pre-v5.1 functionality by setting the '"
-        + KsqlConfig.KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG + "' configuration to true."
-        + " This can be done globally, through the server configuration file, or per sessions or"
-        + " query via the set command.")
+        + "The behaviour of this function changed in release 5.1. "
+        + "It is possible to switch the function back to pre-v5.1 functionality via the setting:\n"
+        + "\t" + KsqlConfig.KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG + "\n"
+        + "This can be set globally, through the server configuration file, "
+        + "or per sessions or query via the set command.")
 public class Substring implements Configurable {
 
   private Impl impl = new CurrentImpl();
@@ -49,12 +49,12 @@ public class Substring implements Configurable {
     impl = legacyArgs ? new LegacyImpl() : new CurrentImpl();
   }
 
-  @Udf(description = "Returns a substring of str that starts at pos "
+  @Udf(description = "Returns a substring of str that starts at pos"
       + " and continues to the end of the string")
   public String substring(
-      @UdfParameter(value = "value",
+      @UdfParameter(value = "str",
           description = "The source string. If null, then function returns null.") final String str,
-      @UdfParameter(value = "startIndex",
+      @UdfParameter(value = "pos",
           description = "The base-one position the substring starts from."
               + " If null, then function returns null."
               + " (If in legacy mode, this argument is base-zero)") final Integer pos) {
@@ -63,9 +63,9 @@ public class Substring implements Configurable {
 
   @Udf(description = "Returns a substring of str that starts at pos and is of length len")
   public String substring(
-      @UdfParameter(value = "value",
+      @UdfParameter(value = "str",
           description = "The source string. If null, then function returns null.") final String str,
-      @UdfParameter(value = "startIndex",
+      @UdfParameter(value = "pos",
           description = "The base-one position the substring starts from."
               + " If null, then function returns null."
               + " (If in legacy mode, this argument is base-zero)") final Integer pos,

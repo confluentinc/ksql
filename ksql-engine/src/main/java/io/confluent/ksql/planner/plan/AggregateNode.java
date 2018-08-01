@@ -254,6 +254,7 @@ public class AggregateNode extends PlanNode {
         schemaKTable.getSourceSchemaKStreams(),
         schemaKTable.isWindowed(),
         SchemaKStream.Type.AGGREGATE,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

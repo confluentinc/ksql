@@ -20,10 +20,11 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 public class KsqlFunction {
@@ -33,7 +34,7 @@ public class KsqlFunction {
   private final List<Schema> arguments;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
-  private final Supplier<Kudf> udfSupplier;
+  private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
 
@@ -41,10 +42,10 @@ public class KsqlFunction {
                       final List<Schema> arguments,
                       final String functionName,
                       final Class<? extends Kudf> kudfClass) {
-    this(returnType, arguments, functionName, kudfClass, () -> {
+    this(returnType, arguments, functionName, kudfClass, ksqlConfig -> {
       try {
         return kudfClass.newInstance();
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new KsqlException("Failed to create instance of kudfClass "
              + kudfClass
              + " for function "  + functionName, e);
@@ -57,14 +58,14 @@ public class KsqlFunction {
                final List<Schema> arguments,
                final String functionName,
                final Class<? extends Kudf> kudfClass,
-               final Supplier<Kudf> udfSupplier,
+               final Function<KsqlConfig, Kudf> udfFactory,
                final String description,
                final String pathLoadedFrom) {
     this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
     this.arguments = Objects.requireNonNull(arguments, "arguments can't be null");
     this.functionName = Objects.requireNonNull(functionName, "functionName can't be null");
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass can't be null");
-    this.udfSupplier = Objects.requireNonNull(udfSupplier, "udfSupplier can't be null");
+    this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
@@ -129,7 +130,7 @@ public class KsqlFunction {
         + '}';
   }
 
-  public Kudf newInstance() {
-    return udfSupplier.get();
+  public Kudf newInstance(final KsqlConfig ksqlConfig) {
+    return udfFactory.apply(ksqlConfig);
   }
 }

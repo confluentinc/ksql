@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,13 +48,16 @@ import io.confluent.ksql.util.MetaStoreFixture;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
+
+  private final MockSchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private SchemaKStream initialSchemaKStream;
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
-  MetaStore metaStore;
-  KStream kStream;
-  KsqlStream ksqlStream;
-  InternalFunctionRegistry functionRegistry;
+  private MetaStore metaStore;
+  private KStream kStream;
+  private KsqlStream ksqlStream;
+  private InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
@@ -65,7 +68,7 @@ public class SqlPredicateTest {
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
                              ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
                                  ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap()),
-                                                   false, new MockSchemaRegistryClient()
+                                                   false, schemaRegistryClient
                                                    )));
   }
 
@@ -95,9 +98,10 @@ public class SqlPredicateTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, ksqlConfig,
+                                             functionRegistry, schemaRegistryClient);
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false, functionRegistry);
+        .getSchema(), false, ksqlConfig, functionRegistry);
 
     Assert.assertTrue(predicate.getFilterExpression()
                           .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
@@ -114,9 +118,10 @@ public class SqlPredicateTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, ksqlConfig,
+                                             functionRegistry, schemaRegistryClient);
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false, functionRegistry);
+        .getSchema(), false, ksqlConfig, functionRegistry);
 
     Assert.assertTrue(predicate
                           .getFilterExpression()

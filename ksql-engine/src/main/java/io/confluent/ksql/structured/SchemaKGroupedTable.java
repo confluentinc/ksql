@@ -24,6 +24,7 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -47,12 +48,14 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final KGroupedTable kgroupedTable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    super(schema, null, keyField, sourceSchemaKStreams, functionRegistry, schemaRegistryClient);
-    Objects.requireNonNull(kgroupedTable);
-    this.kgroupedTable = kgroupedTable;
+    super(schema, null, keyField, sourceSchemaKStreams,
+        ksqlConfig, functionRegistry, schemaRegistryClient);
+
+    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
   }
 
   @SuppressWarnings("unchecked")
@@ -102,6 +105,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         sourceSchemaKStreams,
         false,
         SchemaKStream.Type.AGGREGATE,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

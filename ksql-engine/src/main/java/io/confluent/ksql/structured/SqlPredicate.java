@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -33,26 +34,28 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class SqlPredicate {
-
-  private Expression filterExpression;
-  private final Schema schema;
-  private IExpressionEvaluator ee;
-  private int[] columnIndexes;
-  private boolean isWindowedKey;
-  private final FunctionRegistry functionRegistry;
-
-  private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
+
+  private final Expression filterExpression;
+  private final Schema schema;
+  private final IExpressionEvaluator ee;
+  private final int[] columnIndexes;
+  private final boolean isWindowedKey;
+  private final KsqlConfig ksqlConfig;
+  private final FunctionRegistry functionRegistry;
+  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
   SqlPredicate(
       final Expression filterExpression,
       final Schema schema,
-      boolean isWindowedKey,
+      final boolean isWindowedKey,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
     this.filterExpression = filterExpression;
@@ -60,8 +63,9 @@ public class SqlPredicate {
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.isWindowedKey = isWindowedKey;
     this.functionRegistry = functionRegistry;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
 
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
         = codeGenRunner.getParameterInfo(filterExpression);
 
@@ -136,7 +140,7 @@ public class SqlPredicate {
   }
 
   private ExpressionMetadata createExpressionMetadata() {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     try {
       return codeGenRunner.buildCodeGenFromParseTree(filterExpression);
     } catch (Exception e) {

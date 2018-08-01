@@ -33,9 +33,9 @@ import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.codehaus.commons.compiler.CompileException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,10 +50,10 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
-
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SchemaKStream {
@@ -66,6 +66,7 @@ public class SchemaKStream {
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final Type type;
+  final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
   private OutputNode output;
   final SchemaRegistryClient schemaRegistryClient;
@@ -77,6 +78,7 @@ public class SchemaKStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -85,6 +87,7 @@ public class SchemaKStream {
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.type = type;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
     this.schemaRegistryClient = schemaRegistryClient;
   }
@@ -117,14 +120,17 @@ public class SchemaKStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream filter(final Expression filterExpression) {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, functionRegistry);
-    KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
+    final SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false,
+        ksqlConfig, functionRegistry);
+
+    final KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(
         schema,
         filteredKStream,
         keyField,
-        Arrays.asList(this),
+        Collections.singletonList(this),
         Type.FILTER,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -138,6 +144,7 @@ public class SchemaKStream {
         selection.getKey(),
         Collections.singletonList(this),
         Type.PROJECT,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -210,7 +217,7 @@ public class SchemaKStream {
         final FunctionRegistry functionRegistry,
         final SchemaKStream fromStream) {
       final CodeGenRunner codeGenRunner = new CodeGenRunner(
-          fromStream.getSchema(), functionRegistry);
+          fromStream.getSchema(), fromStream.ksqlConfig, functionRegistry);
       return expressionPairList.stream()
           .map(Pair::getRight)
           .map(e -> buildExpression(codeGenRunner, e))
@@ -251,6 +258,7 @@ public class SchemaKStream {
         joinKey,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -280,6 +288,7 @@ public class SchemaKStream {
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }
@@ -305,6 +314,7 @@ public class SchemaKStream {
         joinKey,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -334,6 +344,7 @@ public class SchemaKStream {
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }
@@ -360,6 +371,7 @@ public class SchemaKStream {
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         Type.JOIN,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }
@@ -390,6 +402,7 @@ public class SchemaKStream {
         newKeyField,
         Collections.singletonList(this),
         Type.REKEY,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
@@ -455,6 +468,7 @@ public class SchemaKStream {
           kgroupedStream,
           keyField,
           Collections.singletonList(this),
+          ksqlConfig,
           functionRegistry,
           schemaRegistryClient
       );
@@ -476,6 +490,7 @@ public class SchemaKStream {
         kgroupedStream,
         newKeyField,
         Collections.singletonList(this),
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }

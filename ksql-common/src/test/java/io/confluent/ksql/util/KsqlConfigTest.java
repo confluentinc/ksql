@@ -33,6 +33,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -220,5 +222,80 @@ public class KsqlConfigTest {
     KsqlConfig currentConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, true));
     KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
     assertThat(compatibleConfig.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS), is(true));
+  }
+
+  @Test
+  public void shouldReturnUdfConfig() {
+    // Given:
+    final String functionName = "bob";
+
+    final String udfConfigName =
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-setting";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        udfConfigName, "should-be-visible"
+    ));
+
+    // When:
+    final Map<String, ?> udfProps = config.getKsqlFunctionsConfigProps(functionName);
+
+    // Then:
+    assertThat(udfProps.get(udfConfigName), is("should-be-visible"));
+  }
+
+  @Test
+  public void shouldReturnUdfConfigOnlyIfLowercase() {
+    // Given:
+    final String functionName = "BOB";
+
+    final String correctConfigName =
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+
+    final String invalidConfigName =
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-other-setting";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        invalidConfigName, "should-not-be-visible",
+        correctConfigName, "should-be-visible"
+    ));
+
+    // When:
+    final Map<String, ?> udfProps = config.getKsqlFunctionsConfigProps(functionName);
+
+    // Then:
+    assertThat(udfProps.keySet(), contains(correctConfigName));
+  }
+
+  @Test
+  public void shouldReturnGlobalUdfConfig() {
+    // Given:
+    final String globalConfigName =
+        KsqlConfig.KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX + ".some-setting";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        globalConfigName, "global"
+    ));
+
+    // When:
+    final Map<String, ?> udfProps = config.getKsqlFunctionsConfigProps("what-eva");
+
+    // Then:
+    assertThat(udfProps.get(globalConfigName), is("global"));
+  }
+
+  @Test
+  public void shouldNotReturnNoneUdfConfig() {
+    // Given:
+    final String functionName = "bob";
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "not a udf property",
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "different_udf.some-setting", "different udf property"
+    ));
+
+    // When:
+    final Map<String, ?> udfProps = config.getKsqlFunctionsConfigProps(functionName);
+
+    // Then:
+    assertThat(udfProps.keySet(), is(empty()));
   }
 }

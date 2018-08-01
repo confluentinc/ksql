@@ -234,17 +234,18 @@ public class UdfLoader {
     // sanity check
     instantiateUdfClass(method, classLevelAnnotaion);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
-    final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
+    final String functionName = classLevelAnnotaion.name();
+    final String sensorName = "ksql-udf-" + functionName;
 
     @SuppressWarnings("unchecked")
     final Class<? extends Kudf> udfClass = metrics
         .map(m -> (Class)UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
-    addSensor(sensorName, classLevelAnnotaion.name());
+    addSensor(sensorName, functionName);
 
-    LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
+    LOGGER.info("Adding function " + functionName + " for method " + method);
     metaStore.addFunctionFactory(new UdfFactory(udfClass,
-        new UdfMetadata(classLevelAnnotaion.name(),
+        new UdfMetadata(functionName,
             classLevelAnnotaion.description(),
             classLevelAnnotaion.author(),
             classLevelAnnotaion.version(),
@@ -266,12 +267,13 @@ public class UdfLoader {
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
         parameters,
-        classLevelAnnotaion.name(),
+        functionName,
         udfClass,
         ksqlConfig -> {
           final Object actualUdf = instantiateUdfClass(method, classLevelAnnotaion);
           if (actualUdf instanceof Configurable) {
-            ((Configurable)actualUdf).configure(ksqlConfig.getKsqlFunctionsConfigProps());
+            ((Configurable)actualUdf)
+                .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
           final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),

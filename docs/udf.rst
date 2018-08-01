@@ -165,20 +165,21 @@ If the UDF class needs access to the KSQL server configuration it can implement
 
 .. code:: java
 
-    @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
+    @UdfDescription(name = "MyFirstUDF", description = "multiplies 2 numbers")
     public class SomeConfigurableUdf implements Configurable {
       private String someSetting = "a.default.value";
 
       @Override
       public void configure(final Map<String, ?> map) {
-        this.someSetting = (String)map.get("your.company.some.setting");
+        this.someSetting = (String)map.get("ksql.functions.myfirstudf.some.setting");
       }
 
       ...
     }
 
-For security reasons, only settings whose name is prefixed with ``ksql.functions.`` will be
-propagated to the Udf.
+For security reasons, only settings whose name is prefixed with
+``ksql.functions.<lowercase-udfname>.`` or ``ksql.functions._global_.`` will be propagated to the
+Udf.
 
 UDAFs
 -----

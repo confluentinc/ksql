@@ -44,6 +44,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQ_FUNCTIONS_PROPERTY_PREFIX =
       KSQL_CONFIG_PROPERTY_PREFIX + "functions.";
 
+  public static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
+      KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
+
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
@@ -409,8 +412,16 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(props);
   }
 
-  public Map<String, Object> getKsqlFunctionsConfigProps() {
-    return originalsWithPrefix(KSQ_FUNCTIONS_PROPERTY_PREFIX, false);
+  public Map<String, Object> getKsqlFunctionsConfigProps(final String functionName) {
+    final Map<String, Object> udfProps = originalsWithPrefix(
+        KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase(), false);
+
+    final Map<String, Object> globals = originalsWithPrefix(
+        KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX, false);
+
+    udfProps.putAll(globals);
+
+    return udfProps;
   }
 
   public Map<String, String> getKsqlStreamConfigPropsWithSecretsObfuscated() {

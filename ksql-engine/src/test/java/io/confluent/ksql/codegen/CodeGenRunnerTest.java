@@ -179,7 +179,7 @@ public class CodeGenRunnerTest {
 
     @Test
     public void shouldHandleMultiDimensionalArray() throws Exception {
-        final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST;";
+        final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
         final ExpressionMetadata expressionEvaluatorMetadata = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));

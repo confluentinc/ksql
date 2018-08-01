@@ -166,7 +166,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFindTheNestedArrayTypeCorrectly() {
-    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[0] from NESTED_STREAM;", metaStore);
+    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[1]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[1] from NESTED_STREAM;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
         functionRegistry);
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),

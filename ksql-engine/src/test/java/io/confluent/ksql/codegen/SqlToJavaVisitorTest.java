@@ -59,14 +59,14 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessArrayExpressionCorrectly() {
-    final String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
+    final String simpleQuery = "SELECT col4[1] FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
-        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)(Integer.parseInt(\"0\"))))"));
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get(((int)(Integer.parseInt(\"1\"))) - 1))"));
   }
 
   @Test

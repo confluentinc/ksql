@@ -88,7 +88,7 @@ public class StatementRewriteForStructTest {
 
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
-    final String simpleQuery = "SELECT arraycol[0]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
+    final String simpleQuery = "SELECT arraycol[1]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
     final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
@@ -102,7 +102,7 @@ public class StatementRewriteForStructTest {
     assertThat(col1, instanceOf(FunctionCall.class));
 
     assertThat(col0.toString(),
-        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[0], 'NAME')"));
+        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[1], 'NAME')"));
     assertThat(col1.toString(),
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }

@@ -186,7 +186,7 @@ public class KsqlParserTest {
 
   @Test
   public void testProjectionWithArrayMap() {
-    final String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
+    final String queryStr = "SELECT col0, col2, col3, col4[1], col5['key1'] FROM test1;";
     final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     Assert.assertTrue("testProjectionWithArrayMap fails", statement instanceof Query);
     final Query query = (Query) statement;
@@ -202,7 +202,7 @@ public class KsqlParserTest {
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
     Assert.assertTrue("testProjectionWithArrayMap fails", column3.getExpression().toString()
-        .equalsIgnoreCase("TEST1.COL4[0]"));
+        .equalsIgnoreCase("TEST1.COL4[1]"));
     Assert.assertTrue("testProjectionWithArrayMap fails", column4.getExpression().toString()
         .equalsIgnoreCase("TEST1.COL5['key1']"));
   }

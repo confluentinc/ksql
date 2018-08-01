@@ -539,7 +539,7 @@ public class SqlToJavaVisitor {
       switch (internalSchema.type()) {
         case ARRAY:
           return new Pair<>(
-              String.format("((%s) ((%s)%s).get((int)(%s)))",
+              String.format("((%s) ((%s)%s).get(((int)(%s)) - 1))",
                   SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
                   internalSchemaJavaType,
                   process(node.getBase(), unmangleNames).getLeft(),

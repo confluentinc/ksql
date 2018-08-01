@@ -166,12 +166,14 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 1)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
    the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
    accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+
+Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -243,12 +245,14 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 1)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
    the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
    accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+
+Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -987,10 +991,11 @@ The explanation for each operator includes a supporting example based on the fol
 
 - Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
   an array index or a map key.
+  Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
 
 .. code:: sql
 
-  SELECT NICKNAMES[0] FROM USERS;
+  SELECT NICKNAMES[1] FROM USERS;
 
 .. _functions:
 

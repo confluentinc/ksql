@@ -66,14 +66,12 @@ public class UdfLoaderTest {
   private final Metrics metrics = new Metrics();
   private final UdfLoader pluginLoader = createUdfLoader(metaStore, true, false);
 
-  private KsqlConfig ksqlConfig;
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Before
   public void before() {
     pluginLoader.load();
     PASSED_CONFIG = null;
-
-    ksqlConfig = new KsqlConfig(Collections.emptyMap());
   }
 
   @Test
@@ -255,8 +253,8 @@ public class UdfLoaderTest {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "should not be passed",
-        KSQ_FUNCTIONS_PROPERTY_PREFIX + "some.setting", "foo-bar",
-        KSQ_FUNCTIONS_PROPERTY_PREFIX + "expected-param", "expected-value"
+        KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting", "foo-bar",
+        KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
     ));
 
     final KsqlFunction udf = metaStore.getUdfFactory("ConfigurableUdf")
@@ -268,9 +266,9 @@ public class UdfLoaderTest {
     // Then:
     assertThat(PASSED_CONFIG, is(notNullValue()));
     assertThat(PASSED_CONFIG.keySet(), not(hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
-    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "some.setting"),
+    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
         is("foo-bar"));
-    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "expected-param"),
+    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
         is("expected-value"));
   }
 

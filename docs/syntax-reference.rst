@@ -317,8 +317,8 @@ CREATE STREAM AS SELECT
     CREATE STREAM stream_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
-      [ LEFT | OUTER | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
+      FROM from_stream
+      [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
       [ WHERE condition ]
       [PARTITION BY column_name];
 
@@ -389,8 +389,8 @@ CREATE TABLE AS SELECT
     CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
-      [ LEFT | OUTER | INNER ] JOIN join_table ON join_criteria 
+      FROM from_table
+      [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]

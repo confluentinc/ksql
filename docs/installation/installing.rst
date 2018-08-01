@@ -63,8 +63,8 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
     the parameters in the KSQL properties file or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS``
     take precedence over those specified in the properties file.
 
-    A recommended approach is to configure a common set of properties using ``KSQL_OPTS`` and override specific
-    properties as needed, using the KSQL properties file.
+    A recommended approach is to configure a common set of properties using the KSQL configuration file and override
+    specific properties as needed, using the ``KSQL_OPTS`` environment variable.
 
     Here are the default settings:
 

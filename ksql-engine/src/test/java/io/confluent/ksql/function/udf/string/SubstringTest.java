@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.config.ConfigException;
+import io.confluent.ksql.util.KsqlConfig;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,6 +63,7 @@ public class SubstringTest {
 
   @Test
   public void shouldTruncateOutOfBoundIndexes() {
+    assertThat(udf.substring("a test string", 0), is("a test string"));
     assertThat(udf.substring("a test string", 100), is(""));
     assertThat(udf.substring("a test string", -100), is("a test string"));
     assertThat(udf.substring("a test string", 3, 100), is("test string"));
@@ -244,6 +244,6 @@ public class SubstringTest {
   }
 
   private void configure(final Object legacyMode) {
-    udf.configure(ImmutableMap.of(KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args", legacyMode));
+    udf.configure(ImmutableMap.of(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, legacyMode));
   }
 }

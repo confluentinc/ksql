@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX;
-
 import io.confluent.common.Configurable;
 import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.function.udf.Udf;
@@ -34,7 +32,7 @@ import java.util.Objects;
     description = "Returns a substring of the passed in value.\n"
         + "The behaviour of this function changed in release 5.1. "
         + "It is possible to switch the function back to pre-v5.1 functionality via the setting:\n"
-        + "\t" + KsqlConfig.KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG + "\n"
+        + "\t" + KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG + "\n"
         + "This can be set globally, through the server configuration file, "
         + "or per sessions or query via the set command.")
 public class Substring implements Configurable {
@@ -44,7 +42,7 @@ public class Substring implements Configurable {
   @Override
   public void configure(final Map<String, ?> props) {
     final boolean legacyArgs =
-        getProps(props, KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args", false);
+        getProps(props, KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, false);
 
     impl = legacyArgs ? new LegacyImpl() : new CurrentImpl();
   }
@@ -117,7 +115,7 @@ public class Substring implements Configurable {
     private static int getStartIndex(final String value, final Integer pos) {
       return pos < 0
           ? Math.max(value.length() + pos, 0)
-          : Math.min(pos - 1, value.length());
+          : Math.max(Math.min(pos - 1, value.length()), 0);
     }
 
     private static int getEndIndex(final String value, final int start, final int length) {

@@ -44,7 +44,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQ_FUNCTIONS_PROPERTY_PREFIX =
       KSQL_CONFIG_PROPERTY_PREFIX + "functions.";
 
-  public static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
+  static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
@@ -93,10 +93,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
-  public static final String KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG =
+  public static final String KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG =
       KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
   private static final String
-      KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_DOCS = "Switch the SUBSTRING function into legacy mode,"
+      KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS = "Switch the SUBSTRING function into legacy mode,"
       + " i.e. back to how it was in version 5.0 and earlier of KSQL."
       + " Up to version 5.0.x substring took different args:"
       + " VARCHAR SUBSTRING(str VARCHAR, startIndex INT, endIndex INT), where startIndex and"
@@ -116,9 +116,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibiltyBreakingConfigDef> COMPATIBILTY_BREAKING_CONFIG_DEFS
+  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
       = ImmutableList.of(
-          new CompatibiltyBreakingConfigDef(
+          new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
               ConfigDef.Type.STRING,
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -126,7 +126,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibiltyBreakingConfigDef(
+          new CompatibilityBreakingConfigDef(
               KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
               ConfigDef.Type.STRING,
               KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
@@ -134,9 +134,17 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Suffix for state store names in Tables. For instance if the suffix is "
                   + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "));
+                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
+          new CompatibilityBreakingConfigDef(
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+  );
 
-  private static class CompatibiltyBreakingConfigDef {
+  private static class CompatibilityBreakingConfigDef {
     private final String name;
     private final ConfigDef.Type type;
     private final Object defaultValueOld;
@@ -144,12 +152,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     private final ConfigDef.Importance importance;
     private final String documentation;
 
-    CompatibiltyBreakingConfigDef(final String name,
-                                  final ConfigDef.Type type,
-                                  final Object defaultValueOld,
-                                  final Object defaultValueCurrent,
-                                  final ConfigDef.Importance importance,
-                                  final String documentation) {
+    CompatibilityBreakingConfigDef(final String name,
+                                   final ConfigDef.Type type,
+                                   final Object defaultValueOld,
+                                   final Object defaultValueCurrent,
+                                   final ConfigDef.Importance importance,
+                                   final String documentation) {
       this.name = name;
       this.type = type;
       this.defaultValueOld = defaultValueOld;
@@ -200,12 +208,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "",
             ConfigDef.Importance.LOW,
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
-        ).define(
-            KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_CONFIG, // Todo(ac): Add to release notes.
-            ConfigDef.Type.BOOLEAN,
-            false,
-            ConfigDef.Importance.LOW,
-            KSQL_FUNCTIONS_SUBSRTRING_LEGACY_ARGS_DOCS
         ).define(
             SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,
@@ -262,8 +264,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-    for (final CompatibiltyBreakingConfigDef compatiblityConfigDef
-        : COMPATIBILTY_BREAKING_CONFIG_DEFS) {
+    for (final CompatibilityBreakingConfigDef compatiblityConfigDef
+        : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
         compatiblityConfigDef.defineCurrent(configDef);
       } else {
@@ -488,8 +490,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
     final Map<String, Object> mergedProperties = new HashMap<>(values());
-    COMPATIBILTY_BREAKING_CONFIG_DEFS.stream()
-        .map(CompatibiltyBreakingConfigDef::getName)
+    COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
+        .map(CompatibilityBreakingConfigDef::getName)
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));
     return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);

@@ -49,6 +49,10 @@ public class AvroDataTranslator implements DataTranslator {
   @Override
   public GenericRow toKsqlRow(final Schema connectSchema, final Object connectObject) {
     final GenericRow avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+    System.out.printf("TO KSQL ROW [%s]\n",
+            avroCompatibleRow == null ? "FUCK" : avroCompatibleRow.toString()
+    );
+
     if (avroCompatibleRow == null) {
       return null;
     }
@@ -64,6 +68,8 @@ public class AvroDataTranslator implements DataTranslator {
 
   @Override
   public Struct toConnectRow(final GenericRow genericRow) {
+    
+
     final List<Object> columns = new LinkedList<>();
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       columns.add(

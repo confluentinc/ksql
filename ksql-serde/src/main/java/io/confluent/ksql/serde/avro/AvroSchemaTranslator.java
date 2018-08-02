@@ -20,14 +20,22 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Objects;
 
 public class AvroSchemaTranslator extends ConnectSchemaTranslator {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AvroSchemaTranslator.class);
+
   public static Schema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
+    LOGGER.info("CONVERTING AVRO SCHEMA [%s]: %s", avroSchema.getFullName(), avroSchema.toString());
+    System.out.printf("CONVERTING AVRO SCHEMA [%s]: %s", avroSchema.getFullName(), avroSchema.toString());
+
     AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
     return new AvroSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
   }

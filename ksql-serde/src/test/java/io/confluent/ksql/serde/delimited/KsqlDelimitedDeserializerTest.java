@@ -16,17 +16,16 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import io.confluent.ksql.GenericRow;
 
 public class KsqlDelimitedDeserializerTest {
 

@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.common.TopicPartition;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.TopicPartition;
 
 public interface KafkaConsumerGroupClient extends AutoCloseable {
 

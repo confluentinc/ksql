@@ -1,7 +1,31 @@
 package io.confluent.ksql.integration;
 
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.TestDataProvider;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -18,32 +42,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.TestDataProvider;
 
 
 public class IntegrationTestHarness {

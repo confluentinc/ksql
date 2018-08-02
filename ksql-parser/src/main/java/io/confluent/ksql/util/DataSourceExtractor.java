@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.AstBuilder;
@@ -26,18 +29,14 @@ import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Table;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 

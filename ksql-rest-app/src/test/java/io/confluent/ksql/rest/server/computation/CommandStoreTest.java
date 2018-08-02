@@ -16,8 +16,29 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.easymock.EasyMock.anyLong;
+import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -33,30 +54,6 @@ import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.Pair;
-
-import static org.easymock.EasyMock.anyLong;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
 
 
 @RunWith(EasyMockRunner.class)

@@ -1,5 +1,13 @@
 package io.confluent.ksql.version.metrics;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
@@ -8,15 +16,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.junit.Test;
 import org.slf4j.Logger;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 
 public class KsqlVersionCheckerResponseHandlerTest {
 

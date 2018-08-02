@@ -16,21 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.StatementWithSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -42,6 +27,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
@@ -60,7 +46,18 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.StringUtil;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class QueryEngine {
 

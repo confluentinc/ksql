@@ -16,28 +16,24 @@
 
 package io.confluent.ksql;
 
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.niceMock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
@@ -49,19 +45,17 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class KsqlEngineTest {
 

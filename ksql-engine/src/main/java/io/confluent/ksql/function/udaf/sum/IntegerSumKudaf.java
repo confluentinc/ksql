@@ -18,13 +18,11 @@ package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
-
-import java.util.Collections;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
 
 public class IntegerSumKudaf
     extends BaseAggregateFunction<Integer, Integer>

@@ -17,12 +17,11 @@
 package io.confluent.ksql.serde;
 
 
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class KsqlTopicSerDe {
 

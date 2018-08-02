@@ -16,14 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
@@ -38,6 +30,12 @@ import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 
 

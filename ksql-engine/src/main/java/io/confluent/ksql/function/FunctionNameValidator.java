@@ -17,14 +17,11 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableSet;
-
-import org.antlr.v4.runtime.Vocabulary;
-
+import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import io.confluent.ksql.parser.SqlBaseParser;
+import org.antlr.v4.runtime.Vocabulary;
 
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word

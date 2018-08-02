@@ -17,12 +17,11 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
+import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
-
-import java.util.Map;
 
 public class KsqlConnectSerializer implements Serializer<GenericRow> {
   private final DataTranslator translator;

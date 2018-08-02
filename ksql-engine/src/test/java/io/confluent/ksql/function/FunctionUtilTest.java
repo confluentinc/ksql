@@ -17,7 +17,6 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class FunctionUtilTest {

@@ -18,10 +18,9 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
 
 public class EntityUtil {
   public static List<FieldInfo> buildSourceSchemaEntity(final Schema schema) {

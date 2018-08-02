@@ -20,7 +20,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
-
 import java.util.Map;
 
 public class StatementWithSchema {

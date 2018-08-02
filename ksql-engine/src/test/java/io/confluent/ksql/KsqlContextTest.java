@@ -16,27 +16,25 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.streams.KafkaStreams;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.streams.KafkaStreams;
+import org.junit.Test;
 
 public class KsqlContextTest {
 

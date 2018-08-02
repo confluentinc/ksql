@@ -16,6 +16,12 @@
 
 package io.confluent.ksql.internal;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.metrics.MetricCollectors;
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -24,14 +30,6 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
-
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metrics.MetricCollectors;
 
 public class KsqlEngineMetrics implements Closeable {
   private final List<Sensor> sensors;

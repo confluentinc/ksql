@@ -17,7 +17,16 @@
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
-
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -30,18 +39,6 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
   private final KTable<?, GenericRow> ktable;

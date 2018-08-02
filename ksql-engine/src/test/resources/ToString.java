@@ -16,10 +16,9 @@
 
 package org.damian.ksql.udf;
 
-import java.util.Map;
-
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import java.util.Map;
 
 /**
  * Class used to test UDFs. This is packaged in udf-example.jar

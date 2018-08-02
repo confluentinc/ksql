@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function.udaf;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
-
-import org.apache.kafka.streams.kstream.Merger;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator implements UdafAggregator {
 

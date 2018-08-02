@@ -17,16 +17,14 @@
 package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.GenericRow;
-
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
-
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 
 public class KsqlDelimitedSerializer implements Serializer<GenericRow> {

@@ -20,7 +20,6 @@ import io.confluent.common.config.ConfigDef;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
-
 import java.util.Map;
 
 public class KsqlRestConfig extends RestConfig {

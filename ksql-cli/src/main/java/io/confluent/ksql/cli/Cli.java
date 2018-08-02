@@ -16,38 +16,7 @@
 
 package io.confluent.ksql.cli;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.streams.StreamsConfig;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.UserInterruptException;
-import org.jline.terminal.Terminal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Scanner;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.ws.rs.ProcessingException;
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.cli.console.CliSpecificCommand;
@@ -73,8 +42,36 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
-
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.ws.rs.ProcessingException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.streams.StreamsConfig;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Cli implements Closeable, AutoCloseable {
 

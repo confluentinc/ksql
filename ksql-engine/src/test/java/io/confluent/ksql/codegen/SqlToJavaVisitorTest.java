@@ -1,11 +1,8 @@
 package io.confluent.ksql.codegen;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
@@ -16,10 +13,11 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SqlToJavaVisitorTest {
 

@@ -1,19 +1,12 @@
 package io.confluent.ksql.function.udaf.sum;
 
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.udaf.min.IntegerMinKudaf;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
+import org.apache.kafka.connect.data.Schema;
 
 public class IntegerSumKudafTest extends BaseSumKudafTest<Integer, IntegerSumKudaf>{
   protected TGenerator<Integer> getTGenerator() {

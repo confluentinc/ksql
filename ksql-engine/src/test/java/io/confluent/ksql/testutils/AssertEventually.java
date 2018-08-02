@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.testutils;
 
-import org.hamcrest.Matcher;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matcher;
 
 /**
  * @author andy

@@ -16,22 +16,21 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CommandIdAssigner {
 

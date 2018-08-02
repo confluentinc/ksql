@@ -16,12 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
@@ -31,6 +25,10 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.List;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AggregateAnalyzerTest {
 

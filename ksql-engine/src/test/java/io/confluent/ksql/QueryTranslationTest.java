@@ -1,5 +1,15 @@
 package io.confluent.ksql;
 
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.connect.avro.AvroData;
@@ -14,13 +24,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,16 +33,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {

@@ -17,16 +17,14 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
-import org.apache.kafka.connect.data.Schema;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -38,19 +36,19 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.fail;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class AvroUtilTest {
 

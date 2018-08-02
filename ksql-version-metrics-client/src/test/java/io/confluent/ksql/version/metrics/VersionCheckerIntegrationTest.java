@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.version.metrics;
 
+import static org.mockserver.model.HttpRequest.request;
+
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import io.confluent.support.metrics.BaseSupportConfig;
+import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockserver.integration.ClientAndProxy;
 import org.mockserver.socket.PortFactory;
-
-import java.util.Properties;
-
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import io.confluent.support.metrics.BaseSupportConfig;
-
-import static org.mockserver.model.HttpRequest.request;
 
 public class VersionCheckerIntegrationTest {
 

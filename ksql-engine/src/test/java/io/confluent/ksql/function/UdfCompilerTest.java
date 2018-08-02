@@ -16,28 +16,26 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.common.metrics.KafkaMetric;
-import org.apache.kafka.common.metrics.Metrics;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.function.udaf.TestUdaf;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import io.confluent.ksql.function.udaf.TestUdaf;
-import io.confluent.ksql.function.udaf.Udaf;
-import io.confluent.ksql.util.KsqlException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class UdfCompilerTest {
 

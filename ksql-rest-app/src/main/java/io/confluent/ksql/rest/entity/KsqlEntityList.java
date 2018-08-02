@@ -17,7 +17,6 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import java.util.ArrayList;
 import java.util.Collection;
 

@@ -1,19 +1,21 @@
 package io.confluent.ksql.metrics;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.SystemTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
-
-import java.util.*;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 public class ConsumerCollectorTest {
 

@@ -16,9 +16,22 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
@@ -30,21 +43,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
-
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
 
 public class KsqlGenericRowAvroSerializerTest {
 

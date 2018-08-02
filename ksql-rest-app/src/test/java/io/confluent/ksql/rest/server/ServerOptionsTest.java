@@ -15,18 +15,17 @@
  **/
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.test.TestUtils;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Properties;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import org.apache.kafka.test.TestUtils;
+import org.junit.Test;
 
 public class ServerOptionsTest {
 

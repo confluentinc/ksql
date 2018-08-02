@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   private static final String NAME = "TOPK";

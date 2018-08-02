@@ -17,17 +17,15 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericRow;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
-
-import io.confluent.ksql.GenericRow;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Test;
 
 public class StringTimestampExtractorTest {
 

@@ -16,25 +16,21 @@
 
 package io.confluent.ksql.rest.server;
 
-import com.google.common.collect.ImmutableSet;
-
 import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
-
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.rest.util.OptionsParser;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
-
 import javax.inject.Inject;
-
-import io.confluent.ksql.rest.util.OptionsParser;
 
 @Command(name = "server", description = "KSQL Cluster")
 public class ServerOptions {

@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class SimpleCaseExpression
     extends Expression {

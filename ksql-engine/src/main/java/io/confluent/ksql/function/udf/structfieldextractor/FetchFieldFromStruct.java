@@ -17,9 +17,8 @@
 package io.confluent.ksql.function.udf.structfieldextractor;
 
 import io.confluent.ksql.function.FunctionUtil;
-import org.apache.kafka.connect.data.Struct;
-
 import io.confluent.ksql.function.udf.Kudf;
+import org.apache.kafka.connect.data.Struct;
 
 public class FetchFieldFromStruct implements Kudf {
 

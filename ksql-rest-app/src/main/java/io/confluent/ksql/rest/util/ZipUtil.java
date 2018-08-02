@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.rest.util;
 
-import org.apache.commons.compress.utils.IOUtils;
-
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import io.confluent.ksql.util.KsqlException;
+import org.apache.commons.compress.utils.IOUtils;
 
 public final class ZipUtil {
 

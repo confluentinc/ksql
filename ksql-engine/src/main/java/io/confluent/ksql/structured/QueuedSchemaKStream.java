@@ -16,6 +16,16 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -23,18 +33,6 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 
 public class QueuedSchemaKStream extends SchemaKStream {
 

@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.List;
 
 public class GenericRowValueTypeEnforcer {
 

@@ -16,19 +16,16 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.GenericRow;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
-import io.confluent.ksql.GenericRow;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 public class KsqlDelimitedSerializerTest {
 

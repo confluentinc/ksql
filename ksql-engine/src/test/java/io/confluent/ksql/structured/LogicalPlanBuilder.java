@@ -16,8 +16,6 @@
  */
 package io.confluent.ksql.structured;
 
-import java.util.List;
-
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
@@ -32,6 +30,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import java.util.List;
 
 public class LogicalPlanBuilder {
 

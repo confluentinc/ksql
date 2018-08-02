@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
 
 public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {

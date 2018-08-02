@@ -16,19 +16,6 @@
 
 package io.confluent.ksql.function.udf.json;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.ArrayUtil;
-import io.confluent.ksql.util.KsqlException;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;
 import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
@@ -38,6 +25,18 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_FLOAT;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_INT;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.ArrayUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ArrayContainsKudf implements Kudf {
   private static final JsonFactory JSON_FACTORY =

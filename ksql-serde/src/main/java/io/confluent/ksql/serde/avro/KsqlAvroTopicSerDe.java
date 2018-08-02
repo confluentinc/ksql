@@ -19,21 +19,20 @@ package io.confluent.ksql.serde.avro;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
 
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 

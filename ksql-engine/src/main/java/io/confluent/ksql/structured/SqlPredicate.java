@@ -119,6 +119,9 @@ public class SqlPredicate {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {
+      if (row == null) {
+        return false;
+      }
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();
         Object[] values = new Object[columnIndexes.length];
@@ -157,6 +160,9 @@ public class SqlPredicate {
   private Predicate getWindowedKeyPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
     return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
+      if (row == null) {
+        return false;
+      }
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();
         Object[] values = new Object[columnIndexes.length];

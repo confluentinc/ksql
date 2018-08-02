@@ -149,8 +149,8 @@ public class SqlPredicateTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
         kStream,
         ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, functionRegistry);
+        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
+    final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, ksqlConfig, functionRegistry);
     final boolean result = sqlPredicate.getPredicate().test("key", null);
     Assert.assertFalse(result);
   }

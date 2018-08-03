@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser;
 
-
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;

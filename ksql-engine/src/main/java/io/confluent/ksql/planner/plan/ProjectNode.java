@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;

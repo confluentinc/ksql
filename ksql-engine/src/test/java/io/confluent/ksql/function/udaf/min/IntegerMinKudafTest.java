@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;

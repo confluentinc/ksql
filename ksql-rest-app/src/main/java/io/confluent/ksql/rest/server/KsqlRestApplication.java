@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;

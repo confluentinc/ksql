@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.planner;
 
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 

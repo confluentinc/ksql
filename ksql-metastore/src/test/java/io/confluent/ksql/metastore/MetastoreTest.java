@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.metastore;
 
-
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;

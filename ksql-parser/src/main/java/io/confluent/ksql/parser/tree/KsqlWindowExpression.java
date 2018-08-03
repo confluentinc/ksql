@@ -26,12 +26,12 @@ import org.apache.kafka.streams.kstream.Materialized;
 
 public abstract class KsqlWindowExpression extends Node {
 
-  protected KsqlWindowExpression(Optional<NodeLocation> location) {
+  protected KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);
   }
 
-  public abstract KTable applyAggregate(final KGroupedStream groupedStream,
-                                        final Initializer initializer,
-                                        final UdafAggregator aggregator,
-                                        final Materialized<String, GenericRow, ?> materialized);
+  public abstract KTable applyAggregate(KGroupedStream groupedStream,
+                                        Initializer initializer,
+                                        UdafAggregator aggregator,
+                                        Materialized<String, GenericRow, ?> materialized);
 }

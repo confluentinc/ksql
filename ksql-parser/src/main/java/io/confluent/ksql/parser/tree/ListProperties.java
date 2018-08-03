@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public class ListProperties extends Statement {
 
-  public ListProperties(Optional<NodeLocation> location) {
+  public ListProperties(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -33,7 +33,7 @@ public class ListProperties extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

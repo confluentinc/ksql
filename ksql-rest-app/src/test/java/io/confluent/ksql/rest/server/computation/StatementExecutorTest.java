@@ -62,7 +62,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Before
   public void setUp() {
-    Map<String, Object> props = new HashMap<>();
+    final Map<String, Object> props = new HashMap<>();
     props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
@@ -72,7 +72,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         new MockKafkaTopicClient(),
         new MockSchemaRegistryClient());
 
-    StatementParser statementParser = new StatementParser(ksqlEngine);
+    final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
   }
@@ -87,14 +87,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Test
   public void shouldHandleCorrectDDLStatement() throws Exception {
-    Command command = new Command("REGISTER TOPIC users_topic "
+    final Command command = new Command("REGISTER TOPIC users_topic "
                                   + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
                                   Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
+    final CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
                                          "_CorrectTopicGen",
                                          CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
+    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(statusStore.size(), 1);
     Assert.assertEquals(statusStore.get(commandId).getStatus(), CommandStatus.Status.SUCCESS);
@@ -103,14 +103,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Test
   public void shouldHandleIncorrectDDLStatement() throws Exception {
-    Command command = new Command("REGIST ER TOPIC users_topic "
+    final Command command = new Command("REGIST ER TOPIC users_topic "
                                   + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
                                   Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
+    final CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
                                          "_IncorrectTopicGen",
                                          CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
+    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(statusStore.size(), 1);
     Assert.assertEquals(statusStore.get(commandId).getStatus(), CommandStatus.Status.ERROR);
@@ -121,7 +121,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldNotRunNullStatementList() {
     try{
       statementExecutor.handleRestoration(null);
-    } catch (Exception nex) {
+    } catch (final Exception nex) {
       assertThat("Statement list should not be null.", nex instanceof NullPointerException);
     }
 
@@ -197,59 +197,59 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldHandleCSAS_CTASStatement() throws Exception {
 
-    Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
+    final Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
         + "(value_format = 'json', "
         + "kafka_topic='pageview_topic_json');", Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
+    final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
                                               "_CSASTopicGen",
                                               CommandId.Action.CREATE);
     statementExecutor.handleStatement(topicCommand, topicCommandId);
 
-    Command csCommand = new Command("CREATE STREAM pageview "
+    final Command csCommand = new Command("CREATE STREAM pageview "
         + "(viewtime bigint, pageid varchar, userid varchar) "
         + "WITH (registered_topic = 'pageview_topic');",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
                                            "_CSASStreamGen",
                                            CommandId.Action.CREATE);
     statementExecutor.handleStatement(csCommand, csCommandId);
 
-    Command csasCommand = new Command("CREATE STREAM user1pv "
+    final Command csasCommand = new Command("CREATE STREAM user1pv "
         + " AS select * from pageview WHERE userid = 'user1';",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
                                              "_CSASGen",
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 
-    Command ctasCommand = new Command("CREATE TABLE user1pvtb "
+    final Command ctasCommand = new Command("CREATE TABLE user1pvtb "
         + " AS select * from pageview window tumbling(size 5 "
         + "second) WHERE userid = "
         + "'user1' group by pageid;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command(
+    final Command terminateCommand = new Command(
         "TERMINATE CSAS_USER1PV_0;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE,
                                                   "_TerminateGen",
                                                   CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand, terminateCommandId);
 
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
+    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
     assertThat(statusStore.size(), equalTo(6));
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
@@ -263,27 +263,27 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Test
   public void shouldHandlePriorStatement() throws Exception {
-    TestUtils testUtils = new TestUtils();
-    List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
+    final TestUtils testUtils = new TestUtils();
+    final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
     final RestoreCommands restoreCommands = new RestoreCommands();
     priorCommands.forEach(pair -> restoreCommands.addCommand(pair.left, pair.right));
 
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
+    final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
                                               "_CSASTopicGen",
                                               CommandId.Action.CREATE);
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
                                            "_CSASStreamGen",
                                            CommandId.Action.CREATE);
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
                                              "_CSASGen",
                                              CommandId.Action.CREATE);
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
 
     statementExecutor.handleRestoration(restoreCommands);
 
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
+    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(4, statusStore.size());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
@@ -307,16 +307,16 @@ public class StatementExecutorTest extends EasyMockSupport {
     terminateQueries();
 
     // Now drop should be successful
-    Command dropTableCommand2 = new Command(
+    final Command dropTableCommand2 = new Command(
         "drop table table1;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId dropTableCommandId2 =
+    final CommandId dropTableCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
     statementExecutor.handleStatement(dropTableCommand2, dropTableCommandId2);
 
     // DROP should succed since no query is using the table
-    Optional<CommandStatus> dropTableCommandStatus2 =
+    final Optional<CommandStatus> dropTableCommandStatus2 =
         statementExecutor.getStatus(dropTableCommandId2);
 
     Assert.assertTrue(dropTableCommandStatus2.isPresent());
@@ -324,14 +324,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
 
     // DROP should succeed since no query is using the stream.
-    Command dropStreamCommand3 = new Command(
+    final Command dropStreamCommand3 = new Command(
         "drop stream pageview;", Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId dropStreamCommandId3 =
+    final CommandId dropStreamCommandId3 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
     statementExecutor.handleStatement(dropStreamCommand3, dropStreamCommandId3);
 
-    Optional<CommandStatus> dropStreamCommandStatus3 =
+    final Optional<CommandStatus> dropStreamCommandStatus3 =
         statementExecutor.getStatus(dropStreamCommandId3);
     assertThat(dropStreamCommandStatus3.get().getStatus(),
                CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
@@ -339,7 +339,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   private void createStrreamsAndTables() throws Exception {
-    Command csCommand = new Command(
+    final Command csCommand = new Command(
         "CREATE STREAM pageview ("
             + "viewtime bigint,"
             + " pageid varchar, "
@@ -348,24 +348,24 @@ public class StatementExecutorTest extends EasyMockSupport {
             + "value_format = 'json');",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
                                            "_CSASStreamGen",
                                            CommandId.Action.CREATE);
     statementExecutor.handleStatement(csCommand, csCommandId);
 
-    Command csasCommand = new Command(
+    final Command csasCommand = new Command(
         "CREATE STREAM user1pv AS "
             + "select * from pageview"
             + " WHERE userid = 'user1';",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
+    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
                                              "_CSASGen",
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 
-    Command ctasCommand = new Command(
+    final Command ctasCommand = new Command(
         "CREATE TABLE table1  AS "
             + "SELECT pageid, count(pageid) "
             + "FROM pageview "
@@ -374,24 +374,24 @@ public class StatementExecutorTest extends EasyMockSupport {
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
   }
 
   private void tryDropThatViolatesReferentialIntegrity() throws Exception {
-    Command dropStreamCommand1 = new Command(
+    final Command dropStreamCommand1 = new Command(
         "drop stream pageview;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM,
+    final CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM,
                                                     "_PAGEVIEW",
                                                     CommandId.Action.DROP);
     statementExecutor.handleStatement(dropStreamCommand1, dropStreamCommandId1);
 
     // DROP statement should fail since the stream is being used.
-    Optional<CommandStatus> dropStreamCommandStatus1 =
+    final Optional<CommandStatus> dropStreamCommandStatus1 =
         statementExecutor.getStatus(dropStreamCommandId1);
 
     Assert.assertTrue(dropStreamCommandStatus1.isPresent());
@@ -419,16 +419,16 @@ public class StatementExecutorTest extends EasyMockSupport {
         containsString("You need to terminate them before dropping PAGEVIEW."));
 
 
-    Command dropStreamCommand2 = new Command(
+    final Command dropStreamCommand2 = new Command(
         "drop stream user1pv;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId dropStreamCommandId2 =
+    final CommandId dropStreamCommandId2 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
     statementExecutor.handleStatement(dropStreamCommand2, dropStreamCommandId2);
 
     // DROP statement should fail since the stream is being used.
-    Optional<CommandStatus> dropStreamCommandStatus2 =
+    final Optional<CommandStatus> dropStreamCommandStatus2 =
         statementExecutor.getStatus(dropStreamCommandId2);
 
     assertThat(dropStreamCommandStatus2.isPresent(), equalTo(true));
@@ -454,15 +454,15 @@ public class StatementExecutorTest extends EasyMockSupport {
             .getMessage(),
         containsString("You need to terminate them before dropping USER1PV."));
 
-    Command dropTableCommand1 = new Command(
+    final Command dropTableCommand1 = new Command(
         "drop table table1;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId dropTableCommandId1 =
+    final CommandId dropTableCommandId1 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
     statementExecutor.handleStatement(dropTableCommand1, dropTableCommandId1);
 
-    Optional<CommandStatus> dropTableCommandStatus1 =
+    final Optional<CommandStatus> dropTableCommandStatus1 =
         statementExecutor.getStatus(dropTableCommandId1);
 
     // DROP statement should fail since the table is being used.
@@ -492,25 +492,25 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   private void terminateQueries() throws Exception {
-    Command terminateCommand1 = new Command(
+    final Command terminateCommand1 = new Command(
         "TERMINATE CSAS_USER1PV_0;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId terminateCommandId1 =
+    final CommandId terminateCommandId1 =
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand1, terminateCommandId1);
-    Optional<CommandStatus> terminateCommandStatus1 =
+    final Optional<CommandStatus> terminateCommandStatus1 =
         statementExecutor.getStatus(terminateCommandId1);
     assertThat(terminateCommandStatus1.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
-    Command terminateCommand2 = new Command(
+    final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_1;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    CommandId terminateCommandId2 =
+    final CommandId terminateCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand2, terminateCommandId2);
-    Optional<CommandStatus> terminateCommandStatus2 =
+    final Optional<CommandStatus> terminateCommandStatus2 =
         statementExecutor.getStatus(terminateCommandId2);
     assertThat(terminateCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }

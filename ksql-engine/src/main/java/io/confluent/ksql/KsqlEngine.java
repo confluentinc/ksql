@@ -186,7 +186,7 @@ public class KsqlEngine implements Closeable {
       final String queriesString,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties) {
-    for (String property : overriddenProperties.keySet()) {
+    for (final String property : overriddenProperties.keySet()) {
       if (IMMUTABLE_PROPERTIES.contains(property)) {
         throw new IllegalArgumentException(
             String.format("Cannot override property '%s'", property)
@@ -197,10 +197,10 @@ public class KsqlEngine implements Closeable {
     // Multiple queries submitted as the same time should success or fail as a whole,
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
-    MetaStore tempMetaStore = metaStore.clone();
+    final MetaStore tempMetaStore = metaStore.clone();
 
     // Build query AST from the query string
-    List<Pair<String, Statement>> queries = parseQueries(
+    final List<Pair<String, Statement>> queries = parseQueries(
         queriesString,
         tempMetaStore
     );
@@ -215,14 +215,14 @@ public class KsqlEngine implements Closeable {
       final MetaStore tempMetaStore
   ) {
     // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
+    final List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         tempMetaStore,
         statementList,
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+    final List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         logicalPlans,
         statementList,
         ksqlConfig,
@@ -231,14 +231,14 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    for (QueryMetadata queryMetadata : runningQueries) {
+    for (final QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         livePersistentQueries.add(queryMetadata);
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueries.put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
-        metaStore.updateForPersistentQuery(persistentQueryMetadata.getQueryId().getId(),
-                                           persistentQueryMetadata.getSourceNames(),
-                                           persistentQueryMetadata.getSinkNames());
+        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+        persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
+        metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
+                                           persistentQueryMd.getSourceNames(),
+                                           persistentQueryMd.getSinkNames());
       }
       allLiveQueries.add(queryMetadata);
     }
@@ -249,13 +249,13 @@ public class KsqlEngine implements Closeable {
   public QueryMetadata getQueryExecutionPlan(final Query query, final KsqlConfig ksqlConfig) {
 
     // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
+    final List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(
         metaStore,
         Collections.singletonList(new Pair<>("", query)),
         ksqlConfig);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+    final List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         logicalPlans,
         Collections.singletonList(new Pair<>("", query)),
         ksqlConfig,
@@ -272,16 +272,16 @@ public class KsqlEngine implements Closeable {
       final MetaStore tempMetaStore
   ) {
     try {
-      MetaStore tempMetaStoreForParser = tempMetaStore.clone();
+      final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
       // Parse and AST creation
-      KsqlParser ksqlParser = new KsqlParser();
+      final KsqlParser ksqlParser = new KsqlParser();
 
-      List<SqlBaseParser.SingleStatementContext> parsedStatements
+      final List<SqlBaseParser.SingleStatementContext> parsedStatements
           = ksqlParser.getStatements(queriesString);
-      List<Pair<String, Statement>> queryList = new ArrayList<>();
+      final List<Pair<String, Statement>> queryList = new ArrayList<>();
 
-      for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-        Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(
+      for (final SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
+        final Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(
             singleStatementContext,
             tempMetaStoreForParser
         );
@@ -292,7 +292,7 @@ public class KsqlEngine implements Closeable {
               statementInfo.getRight())
               .rewriteForStruct();
         }
-        Pair<String, Statement> queryPair =
+        final Pair<String, Statement> queryPair =
             buildSingleQueryAst(
                 statement,
                 getStatementString(singleStatementContext),
@@ -304,7 +304,7 @@ public class KsqlEngine implements Closeable {
         }
       }
       return queryList;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
     }
   }
@@ -321,10 +321,10 @@ public class KsqlEngine implements Closeable {
     if (statement instanceof Query) {
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateAsSelect) {
-      CreateAsSelect createAsSelect = (CreateAsSelect) statement;
-      QuerySpecification querySpecification =
+      final CreateAsSelect createAsSelect = (CreateAsSelect) statement;
+      final QuerySpecification querySpecification =
           (QuerySpecification) createAsSelect.getQuery().getQueryBody();
-      Query query = addInto(
+      final Query query = addInto(
           createAsSelect.getQuery(),
           querySpecification,
           createAsSelect.getName().getSuffix(),
@@ -339,7 +339,7 @@ public class KsqlEngine implements Closeable {
           ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof InsertInto) {
-      InsertInto insertInto = (InsertInto) statement;
+      final InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
         throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
                                               + "statement.", insertInto.getTarget().getSuffix()));
@@ -352,10 +352,10 @@ public class KsqlEngine implements Closeable {
                                               insertInto.getTarget().getSuffix()));
       }
 
-      QuerySpecification querySpecification =
+      final QuerySpecification querySpecification =
           (QuerySpecification) insertInto.getQuery().getQueryBody();
 
-      Query query = addInto(
+      final Query query = addInto(
           insertInto.getQuery(),
           querySpecification,
           insertInto.getTarget().getSuffix(),
@@ -433,7 +433,7 @@ public class KsqlEngine implements Closeable {
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
-      DropStream dropStream = (DropStream) statement;
+      final DropStream dropStream = (DropStream) statement;
       ddlCommandExec.tryExecute(new DropSourceCommand(
                                     dropStream,
                                     DataSource.DataSourceType.KSTREAM,
@@ -450,7 +450,7 @@ public class KsqlEngine implements Closeable {
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
-      DropTable dropTable = (DropTable) statement;
+      final DropTable dropTable = (DropTable) statement;
       ddlCommandExec.tryExecute(new DropSourceCommand(
                                     dropTable,
                                     DataSource.DataSourceType.KTABLE,
@@ -483,7 +483,7 @@ public class KsqlEngine implements Closeable {
   public static String getStatementString(
       final SqlBaseParser.SingleStatementContext singleStatementContext
   ) {
-    CharStream charStream = singleStatementContext.start.getInputStream();
+    final CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(new Interval(
         singleStatementContext.start.getStartIndex(),
         singleStatementContext.stop.getStopIndex()
@@ -499,16 +499,16 @@ public class KsqlEngine implements Closeable {
                        final Map<String, Expression> intoProperties,
                        final Optional<Expression> partitionByExpression,
                        final boolean doCreateTable) {
-    Table intoTable = new Table(QualifiedName.of(intoName));
+    final Table intoTable = new Table(QualifiedName.of(intoName));
     if (partitionByExpression.isPresent()) {
-      Map<String, Expression> newIntoProperties = new HashMap<>(intoProperties);
+      final Map<String, Expression> newIntoProperties = new HashMap<>(intoProperties);
       newIntoProperties.put(DdlConfig.PARTITION_BY_PROPERTY, partitionByExpression.get());
       intoTable.setProperties(newIntoProperties);
     } else {
       intoTable.setProperties(intoProperties);
     }
 
-    QuerySpecification newQuerySpecification = new QuerySpecification(
+    final QuerySpecification newQuerySpecification = new QuerySpecification(
         querySpecification.getSelect(),
         intoTable,
         doCreateTable,
@@ -543,7 +543,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
-    PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
+    final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
     if (persistentQueryMetadata == null) {
       return false;
     }
@@ -558,7 +558,7 @@ public class KsqlEngine implements Closeable {
     return true;
   }
 
-  public PersistentQueryMetadata getPersistentQuery(QueryId queryId) {
+  public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
     return persistentQueries.get(queryId);
   }
 
@@ -583,7 +583,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    for (QueryMetadata queryMetadata : allLiveQueries) {
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     topicClient.close();
@@ -591,11 +591,13 @@ public class KsqlEngine implements Closeable {
     aggregateMetricsCollector.shutdown();
   }
 
-  public void removeTemporaryQuery(QueryMetadata queryMetadata) {
+  public void removeTemporaryQuery(final QueryMetadata queryMetadata) {
     this.allLiveQueries.remove(queryMetadata);
   }
 
-  public DdlCommandResult executeDdlStatement(String sqlExpression, final DdlStatement statement) {
+  public DdlCommandResult executeDdlStatement(
+      final String sqlExpression,
+      final DdlStatement statement) {
     return queryEngine.handleDdlStatement(sqlExpression, statement);
   }
 

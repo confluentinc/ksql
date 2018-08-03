@@ -169,7 +169,7 @@ public class KsqlGenericRowAvroSerializerTest {
     try {
       serializer.serialize("t1", genericRow);
       Assert.fail("Did not fail for incompatible types.");
-    } catch (DataException e) {
+    } catch (final DataException e) {
     }
   }
 
@@ -289,7 +289,7 @@ public class KsqlGenericRowAvroSerializerTest {
         = org.apache.avro.SchemaBuilder.array().items(entrySchema);
     final Map<String, Long> value = ImmutableMap.of("foo", 123L);
     final List<GenericRecord> avroValue = new LinkedList<>();
-    for (Map.Entry<String, Long> entry : value.entrySet()) {
+    for (final Map.Entry<String, Long> entry : value.entrySet()) {
       final GenericRecord record = new GenericData.Record(entrySchema);
       record.put("key", entry.getKey());
       record.put("value", entry.getValue());

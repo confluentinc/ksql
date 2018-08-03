@@ -43,7 +43,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public abstract class KsqlEntity {
   private final String statementText;
 
-  public KsqlEntity(String statementText) {
+  public KsqlEntity(final String statementText) {
     this.statementText = statementText;
   }
 

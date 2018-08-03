@@ -56,8 +56,8 @@ public class DropSourceCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
-    StructuredDataSource dataSource = metaStore.getSource(sourceName);
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+    final StructuredDataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (ifExists) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
@@ -71,7 +71,7 @@ public class DropSourceCommand implements DdlCommand {
           dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
-    DropTopicCommand dropTopicCommand =
+    final DropTopicCommand dropTopicCommand =
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore, isValidatePhase);
@@ -86,7 +86,9 @@ public class DropSourceCommand implements DdlCommand {
                                                     + "to complete." : ""));
   }
 
-  private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
+  private void deleteTopicIfNeeded(
+      final StructuredDataSource dataSource,
+      final boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
 
       executeWithRetries(new Callable<Void>() {
@@ -113,7 +115,7 @@ public class DropSourceCommand implements DdlCommand {
     }
   }
 
-  private void executeWithRetries(Callable<Void> callable, String errorMessage) {
+  private void executeWithRetries(final Callable<Void> callable, final String errorMessage) {
     int retries = 0;
     while (retries < NUM_RETRIES) {
       try {
@@ -122,7 +124,7 @@ public class DropSourceCommand implements DdlCommand {
         }
         callable.call();
         break;
-      } catch (Exception e) {
+      } catch (final Exception e) {
         retries++;
       } finally {
         if (retries == NUM_RETRIES) {

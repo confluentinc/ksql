@@ -29,21 +29,21 @@ public class GenericRow {
     columns = new ArrayList<>();
   }
 
-  public GenericRow(List<Object> columns) {
+  public GenericRow(final List<Object> columns) {
     Objects.requireNonNull(columns);
     this.columns = columns;
   }
 
-  public GenericRow(Object ...columns) {
+  public GenericRow(final Object ...columns) {
     this(Arrays.asList(columns));
   }
 
   @Override
   public String toString() {
-    StringBuilder stringBuilder = new StringBuilder("[ ");
+    final StringBuilder stringBuilder = new StringBuilder("[ ");
     int currentIndex = 0;
     for (int i = 0; i < columns.size(); i++) {
-      Object obj = columns.get(i);
+      final Object obj = columns.get(i);
       if (obj == null) {
         stringBuilder.append("null");
       } else if (obj.getClass().isArray()) {
@@ -66,14 +66,14 @@ public class GenericRow {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GenericRow that = (GenericRow) o;
+    final GenericRow that = (GenericRow) o;
     if (columns.size() != that.columns.size()) {
       return false;
     }
@@ -91,7 +91,7 @@ public class GenericRow {
     return columns;
   }
 
-  public <T> T getColumnValue(int columnIndex) {
+  public <T> T getColumnValue(final int columnIndex) {
     return (T) columns.get(columnIndex);
   }
 }

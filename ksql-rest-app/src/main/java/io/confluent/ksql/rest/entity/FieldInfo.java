@@ -44,7 +44,7 @@ public class FieldInfo {
   }
 
   @Override
-  public boolean equals(Object other) {
+  public boolean equals(final Object other) {
     return other instanceof FieldInfo
         && Objects.equals(name, ((FieldInfo)other).name)
         && Objects.equals(schema, ((FieldInfo)other).schema);

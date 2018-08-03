@@ -67,8 +67,8 @@ public class WSQueryEndpointTest {
     session = addMock(Session.class);
   }
 
-  private <T> T addMock(Class<T> clazz) {
-    T mockObject = mock(clazz);
+  private <T> T addMock(final Class<T> clazz) {
+    final T mockObject = mock(clazz);
     mocks.add(mockObject);
     return mockObject;
   }
@@ -80,7 +80,7 @@ public class WSQueryEndpointTest {
   private void verifyVersionCheckFailure(
       final CloseReason expectedCloseReason, final Capture<CloseReason> captured) {
     verify(session);
-    CloseReason closeReason = captured.getValue();
+    final CloseReason closeReason = captured.getValue();
     assertThat(closeReason.getReasonPhrase(), equalTo(expectedCloseReason.getReasonPhrase()));
     assertThat(closeReason.getCloseCode(), equalTo(expectedCloseReason.getCloseCode()));
   }
@@ -181,7 +181,7 @@ public class WSQueryEndpointTest {
     // result expectations
     basic.sendText(objectMapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
     expectLastCall().once();
-    for (KeyValue<String, GenericRow> row : rows) {
+    for (final KeyValue<String, GenericRow> row : rows) {
       async.sendText(
           eq(objectMapper.writeValueAsString(StreamedRow.row(row.value))),
           anyObject());

@@ -17,7 +17,7 @@
 package io.confluent.ksql.tools.printmetrics;
 
 public class PrintMetricsException extends RuntimeException {
-  public PrintMetricsException(String message) {
+  public PrintMetricsException(final String message) {
     super(message);
   }
 }

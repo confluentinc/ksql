@@ -42,7 +42,7 @@ public class UserDataProvider extends TestDataProvider {
   }
 
   private Map<String, GenericRow> buildData() {
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
     // create a records with:
     // key == user_id
     // value = (creation_time, gender, region, user_id)

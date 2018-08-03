@@ -35,12 +35,12 @@ class TopicSensors<R> {
   private final String topic;
   private final List<SensorMetric<R>> sensors;
 
-  TopicSensors(String topic, final List<SensorMetric<R>> sensors) {
+  TopicSensors(final String topic, final List<SensorMetric<R>> sensors) {
     this.topic = topic.toLowerCase();
     this.sensors = sensors;
   }
 
-  void increment(R record, boolean isError) {
+  void increment(final R record, final boolean isError) {
     sensors.forEach((SensorMetric<R> v) -> {
       if (v.isError() == isError) {
         v.record(record);
@@ -48,15 +48,15 @@ class TopicSensors<R> {
     });
   }
 
-  public void close(Metrics metrics) {
+  public void close(final Metrics metrics) {
     sensors.forEach(v -> v.close(metrics));
   }
 
-  boolean isTopic(String topic) {
+  boolean isTopic(final String topic) {
     return this.topic.equals(topic);
   }
 
-  Collection<Stat> stats(boolean isError) {
+  Collection<Stat> stats(final boolean isError) {
     return sensors
         .stream()
         .filter(sensor -> sensor.errorMetric == isError)
@@ -77,8 +77,7 @@ class TopicSensors<R> {
     private double value;
     private final long timestamp;
 
-
-    public Stat(String name, double value, long timestamp) {
+    Stat(final String name, final double value, final long timestamp) {
       this.name = name;
       this.value = value;
       this.timestamp = timestamp;
@@ -106,7 +105,7 @@ class TopicSensors<R> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
@@ -114,7 +113,7 @@ class TopicSensors<R> {
         return false;
       }
 
-      Stat stat = (Stat) o;
+      final Stat stat = (Stat) o;
 
       if (Double.compare(stat.value, value) != 0) {
         return false;
@@ -160,7 +159,7 @@ class TopicSensors<R> {
       return timestamp;
     }
 
-    public Stat aggregate(double value) {
+    public Stat aggregate(final double value) {
       this.value += value;
       return this;
     }
@@ -174,7 +173,8 @@ class TopicSensors<R> {
     private boolean errorMetric;
     private long lastEvent = 0;
 
-    SensorMetric(Sensor sensor, KafkaMetric metric, Time time, boolean errorMetric) {
+    SensorMetric(
+        final Sensor sensor, final KafkaMetric metric, final Time time, final boolean errorMetric) {
       this.sensor = sensor;
       this.metric = metric;
       this.time = time;
@@ -188,7 +188,7 @@ class TopicSensors<R> {
     /**
      * Anon class must call down to this for timestamp recording
      */
-    void record(P object) {
+    void record(final P object) {
       this.lastEvent = time.milliseconds();
     }
 
@@ -196,7 +196,7 @@ class TopicSensors<R> {
       return metric.measurable().measure(metric.config(), time.milliseconds());
     }
 
-    public void close(Metrics metrics) {
+    public void close(final Metrics metrics) {
       metrics.removeSensor(sensor.name());
       metrics.removeMetric(metric.metricName());
     }

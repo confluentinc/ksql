@@ -41,8 +41,8 @@ public class CommandRunner implements Runnable, Closeable {
   private final AtomicBoolean closed;
 
   public CommandRunner(
-      StatementExecutor statementExecutor,
-      CommandStore commandStore
+      final StatementExecutor statementExecutor,
+      final CommandStore commandStore
   ) {
     this.statementExecutor = statementExecutor;
     this.commandStore = commandStore;
@@ -61,7 +61,7 @@ public class CommandRunner implements Runnable, Closeable {
         log.debug("Polling for new writes to command topic");
         fetchAndRunCommands();
       }
-    } catch (WakeupException wue) {
+    } catch (final WakeupException wue) {
       if (!closed.get()) {
         throw wue;
       }
@@ -78,11 +78,11 @@ public class CommandRunner implements Runnable, Closeable {
   }
 
   void fetchAndRunCommands() {
-    ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
+    final ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", records.count());
-    for (ConsumerRecord<CommandId, Command> record : records) {
-      CommandId commandId = record.key();
-      Command command = record.value();
+    for (final ConsumerRecord<CommandId, Command> record : records) {
+      final CommandId commandId = record.key();
+      final Command command = record.value();
       if (command != null) {
         executeStatement(command, commandId);
       }
@@ -98,15 +98,15 @@ public class CommandRunner implements Runnable, Closeable {
     statementExecutor.handleRestoration(restoreCommands);
   }
 
-  private void executeStatement(Command command, CommandId commandId) {
+  private void executeStatement(final Command command, final CommandId commandId) {
     log.info("Executing statement: " + command.getStatement());
     try {
       statementExecutor.handleStatement(command, commandId);
-    } catch (WakeupException wue) {
+    } catch (final WakeupException wue) {
       throw wue;
-    } catch (Exception exception) {
-      StringWriter stringWriter = new StringWriter();
-      PrintWriter printWriter = new PrintWriter(stringWriter);
+    } catch (final Exception exception) {
+      final StringWriter stringWriter = new StringWriter();
+      final PrintWriter printWriter = new PrintWriter(stringWriter);
       exception.printStackTrace(printWriter);
       log.error("Exception encountered during poll-parse-execute loop: " + stringWriter.toString());
     }

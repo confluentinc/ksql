@@ -46,7 +46,7 @@ public class AvroUtil {
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
-    Map<String, Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
+    final Map<String, Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
     if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw new KsqlException(String.format(
           "%s should be set in WITH clause of CREATE STREAM/TABLE statement.",
@@ -61,21 +61,21 @@ public class AvroUtil {
       return abstractStreamCreateStatement;
     }
 
-    String kafkaTopicName = StringUtil.cleanQuotes(
+    final String kafkaTopicName = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString()
     );
     try {
       // If the schema is not specified infer it from the Avro schema in Schema Registry.
       if (abstractStreamCreateStatement.getElements().isEmpty()) {
-        SchemaMetadata schemaMetadata = fetchSchemaMetadata(
+        final SchemaMetadata schemaMetadata = fetchSchemaMetadata(
             abstractStreamCreateStatement,
             schemaRegistryClient,
             kafkaTopicName
         );
 
-        String avroSchemaString = schemaMetadata.getSchema();
+        final String avroSchemaString = schemaMetadata.getSchema();
         streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-        AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
+        final AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
             abstractStreamCreateStatement,
             AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
             schemaMetadata.getId()
@@ -84,8 +84,8 @@ public class AvroUtil {
       } else {
         return abstractStreamCreateStatement;
       }
-    } catch (Exception e) {
-      String errorMessage = String.format(
+    } catch (final Exception e) {
+      final String errorMessage = String.format(
           " Unable to verify the AVRO schema is compatible with KSQL. %s ",
           e.getMessage()
       );
@@ -94,13 +94,13 @@ public class AvroUtil {
   }
 
   private static SchemaMetadata fetchSchemaMetadata(
-      AbstractStreamCreateStatement abstractStreamCreateStatement,
-      SchemaRegistryClient schemaRegistryClient,
-      String kafkaTopicName
+      final AbstractStreamCreateStatement abstractStreamCreateStatement,
+      final SchemaRegistryClient schemaRegistryClient,
+      final String kafkaTopicName
   ) throws IOException, RestClientException {
 
     if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
-      int schemaId;
+      final int schemaId;
       try {
         schemaId = Integer.parseInt(
             StringUtil.cleanQuotes(
@@ -110,7 +110,7 @@ public class AvroUtil {
                     .toString()
             )
         );
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException(String.format(
             "Invalid schema id property: %s.",
             abstractStreamCreateStatement
@@ -133,16 +133,16 @@ public class AvroUtil {
   private static AbstractStreamCreateStatement addAvroFields(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Schema schema,
-      int schemaId
+      final int schemaId
   ) {
-    List<TableElement> elements = new ArrayList<>();
-    for (Field field : schema.fields()) {
-      TableElement tableElement = new TableElement(field.name().toUpperCase(),
+    final List<TableElement> elements = new ArrayList<>();
+    for (final Field field : schema.fields()) {
+      final TableElement tableElement = new TableElement(field.name().toUpperCase(),
                                                    TypeUtil.getKsqlType(field.schema()));
       elements.add(tableElement);
     }
-    StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
-    Map<String, Expression> properties =
+    final StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
+    final Map<String, Expression> properties =
         new HashMap<>(abstractStreamCreateStatement.getProperties());
     if (!abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
       properties.put(KsqlConstants.AVRO_SCHEMA_ID, schemaIdLiteral);
@@ -158,11 +158,11 @@ public class AvroUtil {
   ) {
 
     if (persistentQueryMetadata.getResultTopicSerde() == DataSource.DataSourceSerDe.AVRO) {
-      String avroSchemaString = SchemaUtil.buildAvroSchema(
+      final String avroSchemaString = SchemaUtil.buildAvroSchema(
           persistentQueryMetadata.getResultSchema(),
           persistentQueryMetadata.getResultTopic().getName()
       );
-      boolean isValidSchema = isValidAvroSchemaForTopic(
+      final boolean isValidSchema = isValidAvroSchemaForTopic(
           persistentQueryMetadata.getResultTopic().getTopicName(),
           avroSchemaString,
           schemaRegistryClient
@@ -183,18 +183,18 @@ public class AvroUtil {
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
-    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
+    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    final org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
     try {
       return schemaRegistryClient.testCompatibility(topicName, avroSchema);
-    } catch (IOException e) {
-      String errorMessage = String.format(
+    } catch (final IOException e) {
+      final String errorMessage = String.format(
           "Could not check Schema compatibility: %s", e.getMessage()
       );
       log.error(errorMessage, e);
       throw new KsqlException(errorMessage);
-    } catch (RestClientException e) {
-      String errorMessage = String.format(
+    } catch (final RestClientException e) {
+      final String errorMessage = String.format(
           "Could not connect to Schema Registry service: %s", e.getMessage()
       );
       log.error(errorMessage, e);

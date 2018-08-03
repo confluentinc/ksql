@@ -63,26 +63,26 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
+    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
-    GenericRow genericRow = new GenericRow(columns);
-    KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
-    byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
+    final GenericRow genericRow = new GenericRow(columns);
+    final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
+    final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
-    String jsonString = new String(bytes);
+    final String jsonString = new String(bytes);
     assertThat("Incorrect serialization.", jsonString, equalTo(
         "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":[100.0],\"MAPCOL\":{\"key1\":100.0}}"));
   }
 
   @Test
   public void shouldSerializeRowWithNull() {
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
+    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
         null);
-    GenericRow genericRow = new GenericRow(columns);
-    KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
-    byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
+    final GenericRow genericRow = new GenericRow(columns);
+    final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
+    final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
-    String jsonString = new String(bytes);
+    final String jsonString = new String(bytes);
     assertThat("Incorrect serialization.", jsonString, equalTo(
         "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":null,\"MAPCOL\":null}"));
   }
@@ -107,8 +107,8 @@ public class KsqlJsonSerializerTest {
         .field("CATEGORIES", SchemaBuilder.array(categorySchema).optional().build())
         .optional().build();
 
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    Schema schema = schemaBuilder
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Schema schema = schemaBuilder
         .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid", itemSchema)
@@ -121,7 +121,7 @@ public class KsqlJsonSerializerTest {
   }
 
   private GenericRow getGenericRow() {
-    List<Object> columns = new ArrayList();
+    final List<Object> columns = new ArrayList();
     long currentTime = System.currentTimeMillis();
     currentTime = (long) (1000 * Math.random()) + currentTime;
     // ordertime
@@ -130,11 +130,11 @@ public class KsqlJsonSerializerTest {
     //orderid
     columns.add(10L);
     //itemid
-    Struct category = new Struct(categorySchema);
+    final Struct category = new Struct(categorySchema);
     category.put("ID", Math.random() > 0.5 ? 1L : 2L);
     category.put("NAME", Math.random() > 0.5 ? "Produce" : "Food");
 
-    Struct item = new Struct(itemSchema);
+    final Struct item = new Struct(itemSchema);
     item.put("ITEMID", 10l);
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
@@ -144,17 +144,17 @@ public class KsqlJsonSerializerTest {
     //units
     columns.add(10);
 
-    Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
+    final Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
 
     columns.add(Arrays.asList(prices));
 
-    Map<String, Double> map = new HashMap<>();
+    final Map<String, Double> map = new HashMap<>();
     map.put("key1", 10.0);
     map.put("key2", 20.0);
     map.put("key3", 30.0);
     columns.add(map);
 
-    Struct address = new Struct(addressSchema);
+    final Struct address = new Struct(addressSchema);
     address.put("NUMBER", 101L);
     address.put("STREET", "University Ave.");
     address.put("CITY", "Palo Alto");
@@ -163,17 +163,17 @@ public class KsqlJsonSerializerTest {
 
     columns.add(address);
 
-    GenericRow genericRow = new GenericRow(columns);
+    final GenericRow genericRow = new GenericRow(columns);
     return genericRow;
   }
 
   @Test
   public void shouldHandleStruct() throws IOException {
-    KsqlJsonSerializer jsonSerializer = new KsqlJsonSerializer(getSchemaWithStruct());
-    GenericRow genericRow = getGenericRow();
-    byte[] bytes = jsonSerializer.serialize("", genericRow);
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode jsonNode = objectMapper.readTree(bytes);
+    final KsqlJsonSerializer jsonSerializer = new KsqlJsonSerializer(getSchemaWithStruct());
+    final GenericRow genericRow = getGenericRow();
+    final byte[] bytes = jsonSerializer.serialize("", genericRow);
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final JsonNode jsonNode = objectMapper.readTree(bytes);
     assertThat(jsonNode.size(), equalTo(7));
     assertThat(jsonNode.get("ordertime").asLong(), equalTo(genericRow.getColumns().get(0)));
     assertThat(jsonNode.get("itemid").get("NAME").asText(), equalTo("Item_10"));

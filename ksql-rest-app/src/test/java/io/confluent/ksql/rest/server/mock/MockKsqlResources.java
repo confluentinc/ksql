@@ -33,9 +33,9 @@ public class MockKsqlResources {
 
 
   @POST
-  public Response handleKsqlStatements(KsqlRequest request) throws Exception {
+  public Response handleKsqlStatements(final KsqlRequest request) throws Exception {
 
-    KsqlEntityList result = new KsqlEntityList();
+    final KsqlEntityList result = new KsqlEntityList();
     result.add(new ExecutionPlan("TestExecution plan"));
     return Response.ok(result).build();
   }

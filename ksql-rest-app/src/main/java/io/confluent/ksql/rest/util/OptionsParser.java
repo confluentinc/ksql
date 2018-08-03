@@ -24,11 +24,11 @@ import java.io.IOException;
 public class OptionsParser {
 
   public static <T> T parse(final String[] args, final Class<T> optionsClass) throws IOException {
-    SingleCommand<T> optionsParser = SingleCommand.singleCommand(optionsClass);
+    final SingleCommand<T> optionsParser = SingleCommand.singleCommand(optionsClass);
 
     // If just a help flag is given, an exception will be thrown due to missing required options;
     // hence, this workaround
-    for (String arg : args) {
+    for (final String arg : args) {
       if ("--help".equals(arg) || "-h".equals(arg)) {
         Help.help(optionsParser.getCommandMetadata());
         return null;
@@ -37,7 +37,7 @@ public class OptionsParser {
 
     try {
       return optionsParser.parse(args);
-    } catch (ParseException exception) {
+    } catch (final ParseException exception) {
       if (exception.getMessage() != null) {
         System.err.println(exception.getMessage());
       } else {

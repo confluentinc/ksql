@@ -40,7 +40,7 @@ public class IntTopkDistinctKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Integer> currentVal = new ArrayList<>();
-    for (Integer d : valuesArray) {
+    for (final Integer d : valuesArray) {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
@@ -58,8 +58,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    List<Integer> array1 = ImmutableList.of(50, 45, 25);
-    List<Integer> array2 = ImmutableList.of(60, 50, 48);
+    final List<Integer> array1 = ImmutableList.of(50, 45, 25);
+    final List<Integer> array2 = ImmutableList.of(60, 50, 48);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 50, 48)));
@@ -67,8 +67,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Integer> array1 = ImmutableList.of(50, 45);
-    List<Integer> array2 = ImmutableList.of(60);
+    final List<Integer> array1 = ImmutableList.of(50, 45);
+    final List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
@@ -76,8 +76,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    List<Integer> array1 = ImmutableList.of(50, 45);
-    List<Integer> array2 = ImmutableList.of(60, 50);
+    final List<Integer> array1 = ImmutableList.of(50, 45);
+    final List<Integer> array2 = ImmutableList.of(60, 50);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
@@ -85,8 +85,8 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    List<Integer> array1 = ImmutableList.of(60);
-    List<Integer> array2 = ImmutableList.of(60);
+    final List<Integer> array1 = ImmutableList.of(60);
+    final List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
         equalTo(
@@ -96,9 +96,9 @@ public class IntTopkDistinctKudafTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<>());
+    final List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<>());
     assertThat(aggregate, equalTo(Collections.singletonList(1)));
-    List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, aggregate);
+    final List<Integer> agg2 = intTopkDistinctKudaf.aggregate(100, aggregate);
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 

@@ -62,7 +62,7 @@ public class QueryMetadata {
     this.kafkaTopicClient = kafkaTopicClient;
     this.topoplogy = topoplogy;
     this.overriddenProperties = overriddenProperties;
-    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(outputNode, null);
     this.sourceNames = planSourceExtractorVisitor.getSourceNames();
   }
@@ -119,7 +119,7 @@ public class QueryMetadata {
     }
   }
 
-  private Set<String> getInternalSubjectNameSet(SchemaRegistryClient schemaRegistryClient) {
+  private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {
     try {
       final String suffix1 = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
                              + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
@@ -130,7 +130,7 @@ public class QueryMetadata {
           .filter(subjectName -> subjectName.startsWith(getQueryApplicationId()))
           .filter(subjectName -> subjectName.endsWith(suffix1) || subjectName.endsWith(suffix2))
           .collect(Collectors.toSet());
-    } catch (Exception e) {
+    } catch (final Exception e) {
       // Do nothing! Schema registry clean up is best effort!
       log.warn("Could not clean up the schema registry for query: " + queryApplicationId, e);
     }
@@ -138,11 +138,11 @@ public class QueryMetadata {
   }
 
 
-  public void cleanUpInternalTopicAvroSchemas(SchemaRegistryClient schemaRegistryClient) {
+  public void cleanUpInternalTopicAvroSchemas(final SchemaRegistryClient schemaRegistryClient) {
     getInternalSubjectNameSet(schemaRegistryClient).forEach(subjectName -> {
       try {
         schemaRegistryClient.deleteSubject(subjectName);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.warn("Could not clean up the schema registry for query: " + queryApplicationId
                  + ", topic: " + subjectName, e);
       }
@@ -150,12 +150,12 @@ public class QueryMetadata {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (!(o instanceof QueryMetadata)) {
       return false;
     }
 
-    QueryMetadata that = (QueryMetadata) o;
+    final QueryMetadata that = (QueryMetadata) o;
 
     return Objects.equals(this.statementString, that.statementString)
         && Objects.equals(this.kafkaStreams, that.kafkaStreams)

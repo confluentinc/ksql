@@ -33,7 +33,7 @@ public class JsonExtractStringKudf implements Kudf {
   private List<String> tokens = null;
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("getStringFromJson udf should have two input arguments:"
                                       + " JSON document and JSON path.");
@@ -42,12 +42,12 @@ public class JsonExtractStringKudf implements Kudf {
     ensureInitialized(args);
 
     JsonNode currentNode = parseJsonDoc(args[0]);
-    for (String token : tokens) {
+    for (final String token : tokens) {
       if (currentNode instanceof ArrayNode) {
         try {
           final int index = Integer.parseInt(token);
           currentNode = currentNode.get(index);
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
           return null;
         }
       } else {
@@ -80,7 +80,7 @@ public class JsonExtractStringKudf implements Kudf {
     final String jsonString = arg.toString();
     try {
       return OBJECT_READER.readTree(jsonString);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
     }
   }

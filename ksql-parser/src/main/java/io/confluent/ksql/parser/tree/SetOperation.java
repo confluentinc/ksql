@@ -24,7 +24,7 @@ public abstract class SetOperation
 
   private final boolean distinct;
 
-  protected SetOperation(Optional<NodeLocation> location, boolean distinct) {
+  protected SetOperation(final Optional<NodeLocation> location, final boolean distinct) {
     super(location);
     this.distinct = distinct;
   }
@@ -34,7 +34,7 @@ public abstract class SetOperation
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSetOperation(this, context);
   }
 

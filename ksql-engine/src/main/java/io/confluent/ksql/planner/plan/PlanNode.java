@@ -50,7 +50,7 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);
   }
 
@@ -65,10 +65,10 @@ public abstract class PlanNode {
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream buildStream(final StreamsBuilder builder,
-                                            final KsqlConfig ksqlConfig,
-                                            final KafkaTopicClient kafkaTopicClient,
-                                            final FunctionRegistry functionRegistry,
-                                            final Map<String, Object> props,
-                                            final SchemaRegistryClient schemaRegistryClient);
+  public abstract SchemaKStream buildStream(StreamsBuilder builder,
+                                            KsqlConfig ksqlConfig,
+                                            KafkaTopicClient kafkaTopicClient,
+                                            FunctionRegistry functionRegistry,
+                                            Map<String, Object> props,
+                                            SchemaRegistryClient schemaRegistryClient);
 }

@@ -35,40 +35,40 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
     sourceNames = new HashSet<>();
   }
 
-  public R process(PlanNode node, C context) {
+  public R process(final PlanNode node, final C context) {
     return node.accept(this, context);
   }
 
-  protected R visitPlan(PlanNode node, C context) {
+  protected R visitPlan(final PlanNode node, final C context) {
     return null;
   }
 
-  protected R visitFilter(FilterNode node, C context) {
+  protected R visitFilter(final FilterNode node, final C context) {
     process(node.getSources().get(0), context);
     return null;
   }
 
-  protected R visitProject(ProjectNode node, C context) {
+  protected R visitProject(final ProjectNode node, final C context) {
     return process(node.getSources().get(0), context);
   }
 
-  protected R visitStructuredDataSourceNode(StructuredDataSourceNode node, C context) {
+  protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
     sourceNames.add(node.getStructuredDataSource().getName());
     return null;
   }
 
-  protected R visitJoin(JoinNode node, C context) {
+  protected R visitJoin(final JoinNode node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
     return null;
   }
 
-  protected R visitAggregate(AggregateNode node, C context) {
+  protected R visitAggregate(final AggregateNode node, final C context) {
     process(node.getSources().get(0), context);
     return null;
   }
 
-  protected R visitOutput(OutputNode node, C context) {
+  protected R visitOutput(final OutputNode node, final C context) {
     process(node.getSources().get(0), context);
     return null;
   }

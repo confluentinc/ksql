@@ -58,12 +58,12 @@ public class QueuedQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (!(o instanceof QueuedQueryMetadata)) {
       return false;
     }
 
-    QueuedQueryMetadata that = (QueuedQueryMetadata) o;
+    final QueuedQueryMetadata that = (QueuedQueryMetadata) o;
 
     return Objects.equals(this.rowQueue, that.rowQueue) && super.equals(o);
   }

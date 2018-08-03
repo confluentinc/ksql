@@ -31,23 +31,23 @@ public class QualifiedName {
 
   private final List<String> parts;
 
-  public static QualifiedName of(String first, String... rest) {
+  public static QualifiedName of(final String first, final String... rest) {
     requireNonNull(first, "first is null");
     return of(ImmutableList.copyOf(Lists.asList(first, rest)));
   }
 
-  public static QualifiedName of(String name) {
+  public static QualifiedName of(final String name) {
     requireNonNull(name, "name is null");
     return of(ImmutableList.of(name));
   }
 
-  public static QualifiedName of(Iterable<String> parts) {
+  public static QualifiedName of(final Iterable<String> parts) {
     requireNonNull(parts, "parts is null");
     checkArgument(!isEmpty(parts), "parts is empty");
     return new QualifiedName(ImmutableList.copyOf(parts));
   }
 
-  private QualifiedName(List<String> parts) {
+  private QualifiedName(final List<String> parts) {
     this.parts = parts;
   }
 
@@ -69,16 +69,16 @@ public class QualifiedName {
       return Optional.empty();
     }
 
-    List<String> subList = parts.subList(0, parts.size() - 1);
+    final List<String> subList = parts.subList(0, parts.size() - 1);
     return Optional.of(new QualifiedName(subList));
   }
 
-  public boolean hasSuffix(QualifiedName suffix) {
+  public boolean hasSuffix(final QualifiedName suffix) {
     if (parts.size() < suffix.getParts().size()) {
       return false;
     }
 
-    int start = parts.size() - suffix.getParts().size();
+    final int start = parts.size() - suffix.getParts().size();
 
     return parts.subList(start, parts.size()).equals(suffix.getParts());
   }
@@ -88,7 +88,7 @@ public class QualifiedName {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

@@ -48,7 +48,7 @@ public class MaskLeftKudf {
     return doMask(masker, input, numChars);
   }
 
-  private String doMask(Masker masker, final String input, final int numChars) {
+  private String doMask(final Masker masker, final String input, final int numChars) {
     validateParams(numChars);
     if (input == null) {
       return null;
@@ -60,7 +60,7 @@ public class MaskLeftKudf {
     return output.toString();
   }
 
-  private void validateParams(int numChars) {
+  private void validateParams(final int numChars) {
     if (numChars < 0) {
       throw new KsqlFunctionException(
           "mask_left requires a non-negative number of characters to mask");

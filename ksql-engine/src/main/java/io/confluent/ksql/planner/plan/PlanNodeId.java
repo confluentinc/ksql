@@ -40,7 +40,7 @@ public class PlanNodeId {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -48,7 +48,7 @@ public class PlanNodeId {
       return false;
     }
 
-    PlanNodeId that = (PlanNodeId) o;
+    final PlanNodeId that = (PlanNodeId) o;
 
     return id.equals(that.id);
   }

@@ -139,12 +139,12 @@ public class JoinNodeTest {
         + "ON t1.col1 = t2.col0;");
   }
 
-  public void buildJoin(String queryString) {
+  public void buildJoin(final String queryString) {
     buildJoinNode(queryString);
     stream = buildStream();
   }
 
-  private void buildJoinNode(String queryString) {
+  private void buildJoinNode(final String queryString) {
     final KsqlBareOutputNode planNode =
         (KsqlBareOutputNode) new LogicalPlanBuilder(
             MetaStoreFixture.getNewMetaStore(
@@ -162,10 +162,10 @@ public class JoinNodeTest {
   }
 
   private void
-  setupTopicClientExpectations(int streamPartitions, int tablePartitions) {
-    Node node = new Node(0, "localhost", 9091);
+  setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
+    final Node node = new Node(0, "localhost", 9091);
 
-    List<TopicPartitionInfo> streamPartitionInfoList =
+    final List<TopicPartitionInfo> streamPartitionInfoList =
         IntStream.range(0, streamPartitions)
             .mapToObj(
                 p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
@@ -176,7 +176,7 @@ public class JoinNodeTest {
                 "test1",
                 new TopicDescription("test1", false, streamPartitionInfoList)));
 
-    List<TopicPartitionInfo> tablePartitionInfoList =
+    final List<TopicPartitionInfo> tablePartitionInfoList =
         IntStream.range(0, tablePartitions)
         .mapToObj(
             p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
@@ -218,7 +218,7 @@ public class JoinNodeTest {
 
     try {
       buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       Assert.assertThat(e.getMessage(), equalTo(
           "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
           + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
@@ -421,7 +421,7 @@ public class JoinNodeTest {
                            properties,
                            mockSchemaRegistryClient);
       fail("Should have raised an exception since no join window was specified");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a WITHIN clause specified"
                                            + ". None was provided."));
     }
@@ -472,7 +472,7 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("should have raised an exception since the number of partitions on the input sources "
            + "don't match");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertTrue(e.getMessage().startsWith("Can't join Foobar with Foobar since the number of "
                                            + "partitions don't match."));
     }
@@ -528,7 +528,7 @@ public class JoinNodeTest {
           mockFunctionRegistry,
           properties,
           mockSchemaRegistryClient);
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
           equalTo(
@@ -661,7 +661,7 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("Should have failed to build the stream since stream-table outer joins are not "
            + "supported");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertEquals("Full outer joins between streams and tables (stream: left, table: right) are "
                    + "not supported.", e.getMessage());
     }
@@ -709,7 +709,7 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
         assertTrue(e.getMessage().startsWith("A window definition was provided for a "
                                              + "Stream-Table join."));
     }
@@ -751,7 +751,7 @@ public class JoinNodeTest {
           mockFunctionRegistry,
           properties,
           mockSchemaRegistryClient);
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
           equalTo(
@@ -795,7 +795,7 @@ public class JoinNodeTest {
           mockFunctionRegistry,
           properties,
           mockSchemaRegistryClient);
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
           equalTo(
@@ -973,7 +973,7 @@ public class JoinNodeTest {
                            mockSchemaRegistryClient);
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
         assertTrue(e.getMessage().startsWith("A window definition was provided for a "
                                              + "Table-Table join."));
     }

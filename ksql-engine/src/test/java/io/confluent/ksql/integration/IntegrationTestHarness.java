@@ -66,10 +66,10 @@ public class IntegrationTestHarness {
   }
 
   // Topic generation
-  public void createTopic(String topicName) {
+  public void createTopic(final String topicName) {
     createTopic(topicName, 1, (short) 1);
   }
-  public void createTopic(String topicName, int numPartitions, short replicatonFactor) {
+  public void createTopic(final String topicName, final int numPartitions, final short replicatonFactor) {
     topicClient.createTopic(topicName, numPartitions, replicatonFactor);
   }
 
@@ -83,22 +83,22 @@ public class IntegrationTestHarness {
    * @throws TimeoutException
    * @throws ExecutionException
    */
-  public Map<String, RecordMetadata> produceData(String topicName,
-                                                 Map<String, GenericRow> recordsToPublish,
-                                                 Serializer<GenericRow> serializer,
-                                                 Long timestamp)
+  public Map<String, RecordMetadata> produceData(final String topicName,
+                                                 final Map<String, GenericRow> recordsToPublish,
+                                                 final Serializer<GenericRow> serializer,
+                                                 final Long timestamp)
           throws InterruptedException, TimeoutException, ExecutionException {
 
     createTopic(topicName);
 
-    Properties producerConfig = properties();
-    KafkaProducer<String, GenericRow> producer =
+    final Properties producerConfig = properties();
+    final KafkaProducer<String, GenericRow> producer =
             new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
 
-    Map<String, RecordMetadata> result = new HashMap<>();
-    for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
-      String key = recordEntry.getKey();
-      Future<RecordMetadata> recordMetadataFuture
+    final Map<String, RecordMetadata> result = new HashMap<>();
+    for (final Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
+      final String key = recordEntry.getKey();
+      final Future<RecordMetadata> recordMetadataFuture
           = producer.send(buildRecord(topicName, timestamp, recordEntry, key));
       result.put(key,
                  recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -108,16 +108,16 @@ public class IntegrationTestHarness {
     return result;
   }
 
-  private ProducerRecord<String, GenericRow> buildRecord(String topicName,
-                                                         Long timestamp,
-                                                         Map.Entry<String,
+  private ProducerRecord<String, GenericRow> buildRecord(final String topicName,
+                                                         final Long timestamp,
+                                                         final Map.Entry<String,
                                                              GenericRow> recordEntry,
-                                                         String key) {
+                                                         final String key) {
     return new ProducerRecord<>(topicName, null, timestamp,  key, recordEntry.getValue());
   }
 
   private Properties properties() {
-    Properties producerConfig = new Properties();
+    final Properties producerConfig = new Properties();
     producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlConfig.getKsqlStreamConfigProps().get(
                            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
@@ -145,11 +145,11 @@ public class IntegrationTestHarness {
    * @param <K>
    * @return
    */
-  public <K> Map<K, GenericRow> consumeData(String topic,
-                                            Schema schema,
-                                            int expectedNumMessages,
-                                            Deserializer<K> keyDeserializer,
-                                            long resultsPollMaxTimeMs) {
+  public <K> Map<K, GenericRow> consumeData(final String topic,
+                                            final Schema schema,
+                                            final int expectedNumMessages,
+                                            final Deserializer<K> keyDeserializer,
+                                            final long resultsPollMaxTimeMs) {
 
     return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
                  DataSource.DataSourceSerDe.JSON);
@@ -157,17 +157,17 @@ public class IntegrationTestHarness {
   }
 
   public <K> Map<K, GenericRow> consumeData(String topic,
-                                            Schema schema,
-                                            int expectedNumMessages,
-                                            Deserializer<K> keyDeserializer,
-                                            long resultsPollMaxTimeMs,
-                                            DataSource.DataSourceSerDe dataSourceSerDe) {
+                                            final Schema schema,
+                                            final int expectedNumMessages,
+                                            final Deserializer<K> keyDeserializer,
+                                            final long resultsPollMaxTimeMs,
+                                            final DataSource.DataSourceSerDe dataSourceSerDe) {
 
     topic = topic.toUpperCase();
 
-    Map<K, GenericRow> result = new HashMap<>();
+    final Map<K, GenericRow> result = new HashMap<>();
 
-    Properties consumerConfig = consumerConfig();
+    final Properties consumerConfig = consumerConfig();
 
     try (KafkaConsumer<K, GenericRow> consumer
              = new KafkaConsumer<>(consumerConfig,
@@ -175,11 +175,11 @@ public class IntegrationTestHarness {
                                  getDeserializer(schema, dataSourceSerDe))) {
 
       consumer.subscribe(Collections.singleton(topic));
-      long pollStart = System.currentTimeMillis();
-      long pollEnd = pollStart + resultsPollMaxTimeMs;
+      final long pollStart = System.currentTimeMillis();
+      final long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd &&
              continueConsuming(result.size(), expectedNumMessages)) {
-        for (ConsumerRecord<K, GenericRow> record :
+        for (final ConsumerRecord<K, GenericRow> record :
             consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
@@ -187,7 +187,7 @@ public class IntegrationTestHarness {
         }
       }
 
-      for (ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
         if (record.value() != null) {
           result.put(record.key(), record.value());
         }
@@ -205,11 +205,11 @@ public class IntegrationTestHarness {
         new StringDeserializer(),
         new ByteArrayDeserializer())) {
       consumer.subscribe(Collections.singleton(topic.toUpperCase()));
-      long pollStart = System.currentTimeMillis();
-      long pollEnd = pollStart + resultsPollMaxTimeMs;
+      final long pollStart = System.currentTimeMillis();
+      final long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd &&
           continueConsuming(results.size(), expectedNumMessages)) {
-        for (ConsumerRecord<String, byte[]> record :
+        for (final ConsumerRecord<String, byte[]> record :
             consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             results.add(record);
@@ -217,7 +217,7 @@ public class IntegrationTestHarness {
         }
       }
 
-      for (ConsumerRecord<String, byte[]> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<String, byte[]> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
         if (record.value() != null) {
           results.add(record);
         }
@@ -228,7 +228,7 @@ public class IntegrationTestHarness {
   }
 
   private Properties consumerConfig() {
-    Properties consumerConfig = new Properties();
+    final Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlConfig.getKsqlStreamConfigProps().get(
                            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
@@ -237,7 +237,7 @@ public class IntegrationTestHarness {
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     return consumerConfig;
   }
-  private static boolean continueConsuming(int messagesConsumed, int maxMessages) {
+  private static boolean continueConsuming(final int messagesConsumed, final int maxMessages) {
     return maxMessages < 0 || messagesConsumed < maxMessages;
   }
 
@@ -246,17 +246,17 @@ public class IntegrationTestHarness {
 
   public static class DummyProducerInterceptor implements ProducerInterceptor {
 
-    public void onAcknowledgement(RecordMetadata rm, Exception e) {
+    public void onAcknowledgement(final RecordMetadata rm, final Exception e) {
     }
 
-    public ProducerRecord onSend(ProducerRecord producerRecords) {
+    public ProducerRecord onSend(final ProducerRecord producerRecords) {
       return producerRecords;
     }
 
     public void close() {
     }
 
-    public void configure(Map<String, ?> map) {
+    public void configure(final Map<String, ?> map) {
     }
   }
 
@@ -264,7 +264,7 @@ public class IntegrationTestHarness {
   public void start(final Map<String, Object> callerConfigMap) throws Exception {
     embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
     embeddedKafkaCluster.start();
-    Map<String, Object> configMap = new HashMap<>();
+    final Map<String, Object> configMap = new HashMap<>();
 
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaCluster.bootstrapServers());
     configMap.put("application.id", "KSQL");
@@ -284,18 +284,18 @@ public class IntegrationTestHarness {
     this.embeddedKafkaCluster.stop();
   }
 
-  public Map<String, RecordMetadata> publishTestData(String topicName,
-                                                     TestDataProvider dataProvider,
-                                                     Long timestamp)
+  public Map<String, RecordMetadata> publishTestData(final String topicName,
+                                                     final TestDataProvider dataProvider,
+                                                     final Long timestamp)
       throws InterruptedException, ExecutionException, TimeoutException {
 
     return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON);
   }
 
-  public Map<String, RecordMetadata> publishTestData(String topicName,
-                                                     TestDataProvider dataProvider,
-                                                     Long timestamp,
-                                                     DataSource.DataSourceSerDe dataSourceSerDe)
+  public Map<String, RecordMetadata> publishTestData(final String topicName,
+                                                     final TestDataProvider dataProvider,
+                                                     final Long timestamp,
+                                                     final DataSource.DataSourceSerDe dataSourceSerDe)
       throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
     return produceData(topicName,
@@ -306,7 +306,7 @@ public class IntegrationTestHarness {
 
   }
 
-  private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {
+  private Serializer getSerializer(final Schema schema, final DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
         return new KsqlJsonSerializer(schema);
@@ -321,8 +321,8 @@ public class IntegrationTestHarness {
     }
   }
 
-  private Deserializer<GenericRow> getDeserializer(Schema schema,
-                                                   DataSource.DataSourceSerDe dataSourceSerDe) {
+  private Deserializer<GenericRow> getDeserializer(final Schema schema,
+                                                   final DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
         return new KsqlJsonDeserializer(schema, false);

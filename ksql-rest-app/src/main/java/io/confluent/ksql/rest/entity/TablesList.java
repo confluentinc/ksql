@@ -28,8 +28,8 @@ public class TablesList extends KsqlEntity {
 
   @JsonCreator
   public TablesList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("tables") Collection<SourceInfo.Table> tables
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("tables") final Collection<SourceInfo.Table> tables
   ) {
     super(statementText);
     this.tables = tables;
@@ -40,14 +40,14 @@ public class TablesList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof TablesList)) {
       return false;
     }
-    TablesList that = (TablesList) o;
+    final TablesList that = (TablesList) o;
     return Objects.equals(getTables(), that.getTables());
   }
 

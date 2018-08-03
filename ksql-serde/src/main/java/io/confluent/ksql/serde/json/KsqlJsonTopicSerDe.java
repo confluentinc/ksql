@@ -37,10 +37,10 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
 
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(Schema schema, KsqlConfig ksqlConfig,
-      boolean isInternal,
-      SchemaRegistryClient schemaRegistryClient) {
-    Map<String, Object> serdeProps = new HashMap<>();
+  public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
+      final boolean isInternal,
+      final SchemaRegistryClient schemaRegistryClient) {
+    final Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(schema);

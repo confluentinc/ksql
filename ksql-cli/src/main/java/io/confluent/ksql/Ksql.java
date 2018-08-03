@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class Ksql {
   private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
 
-  public static void main(String[] args) throws IOException {
+  public static void main(final String[] args) throws IOException {
     final Options options = args.length == 0 ? Options.parse("http://localhost:8088")
                                              : Options.parse(args);
     if (options == null) {
@@ -55,7 +55,7 @@ public class Ksql {
       final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
       versionChecker.start(KsqlModuleType.CLI, properties);
 
-      try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+      try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),
                                    options.getStreamedQueryTimeoutMs(),
                                    restClient,
                                    new JLineTerminal(options.getOutputFormat(), restClient))
@@ -74,7 +74,7 @@ public class Ksql {
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();
     propertiesFile.ifPresent(file -> {
-      try (final FileInputStream input = new FileInputStream(file)) {
+      try (FileInputStream input = new FileInputStream(file)) {
         properties.load(input);
         if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
           properties.put(

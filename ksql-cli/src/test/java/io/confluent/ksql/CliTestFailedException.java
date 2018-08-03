@@ -18,7 +18,7 @@ package io.confluent.ksql;
 
 public class CliTestFailedException extends RuntimeException {
 
-  public CliTestFailedException(Throwable cause) {
+  public CliTestFailedException(final Throwable cause) {
     super(cause);
   }
 

@@ -35,9 +35,9 @@ public class SumAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     // For now we only support aggregate functions with one arg.
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+    for (final KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

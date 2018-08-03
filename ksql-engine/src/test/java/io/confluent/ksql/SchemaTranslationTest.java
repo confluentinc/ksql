@@ -54,13 +54,13 @@ public class SchemaTranslationTest {
   public static Collection<Object[]> data() throws IOException {
     final List<String> testFiles = findTests(SCHEMA_VALIDATION_TEST_DIR);
     final List<Object[]> testParams = new LinkedList<>();
-    for (String filename : testFiles) {
+    for (final String filename : testFiles) {
       final JsonNode tests;
       try {
         tests = objectMapper.readTree(
             EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(
                 SCHEMA_VALIDATION_TEST_DIR + "/" + filename));
-      } catch (IOException e) {
+      } catch (final IOException e) {
         throw new RuntimeException("Unable to load test at path " + filename);
       }
       final List<Query> query = loadTests(tests);
@@ -118,7 +118,7 @@ public class SchemaTranslationTest {
     try {
       return objectMapper.readValue(
           objectMapper.writeValueAsString(node), Map.class);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -145,7 +145,7 @@ public class SchemaTranslationTest {
     final String schemaString;
     try {
       schemaString = new ObjectMapper().writeValueAsString(schemaNode);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }
 

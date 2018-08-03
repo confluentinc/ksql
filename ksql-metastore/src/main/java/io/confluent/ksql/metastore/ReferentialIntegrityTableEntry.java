@@ -29,7 +29,9 @@ public class ReferentialIntegrityTableEntry implements Cloneable {
     sinkForQueries = new HashSet<>();
   }
 
-  public ReferentialIntegrityTableEntry(Set<String> sourceForQueries, Set<String> sinkForQueries) {
+  public ReferentialIntegrityTableEntry(
+      final Set<String> sourceForQueries,
+      final Set<String> sinkForQueries) {
     this.sourceForQueries = sourceForQueries;
     this.sinkForQueries = sinkForQueries;
   }
@@ -42,15 +44,15 @@ public class ReferentialIntegrityTableEntry implements Cloneable {
     return sinkForQueries;
   }
 
-  public void removeQuery(String queryId) {
+  public void removeQuery(final String queryId) {
     sourceForQueries.remove(queryId);
     sinkForQueries.remove(queryId);
   }
 
   @Override
   public ReferentialIntegrityTableEntry clone() {
-    Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
-    Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);
+    final Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
+    final Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);
     return new ReferentialIntegrityTableEntry(cloneSourceForQueries,
                                               cloneSinkForQueries);
   }

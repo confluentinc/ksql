@@ -20,9 +20,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class ExceptionUtil {
-  public static String stackTraceToString(Exception e) {
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
+  public static String stackTraceToString(final Exception e) {
+    final StringWriter sw = new StringWriter();
+    final PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
     return sw.toString();
   }

@@ -28,10 +28,10 @@ public class StringUtil {
     return stringWithQuotes;
   }
 
-  public static String join(String delimiter, List<? extends Object> objs) {
-    StringBuilder sb = new StringBuilder();
+  public static String join(final String delimiter, final List<? extends Object> objs) {
+    final StringBuilder sb = new StringBuilder();
     int cnt = 0;
-    for (Object obj : objs) {
+    for (final Object obj : objs) {
       if (cnt > 0) {
         sb.append(delimiter);
       }

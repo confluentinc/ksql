@@ -50,10 +50,10 @@ public class PlanSourceExtractorVisitorTest {
   @Test
   @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForSimpleQuery() {
-    PlanNode planNode = logicalPlanBuilder.buildLogicalPlan("select col0 from TEST2 limit 5;");
-    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    final PlanNode planNode = logicalPlanBuilder.buildLogicalPlan("select col0 from TEST2 limit 5;");
+    final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
-    Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
+    final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
     assertThat(sourceNames.size(), equalTo(1));
     assertThat(sourceNames, equalTo(Utils.mkSet("TEST2")));
   }
@@ -61,12 +61,12 @@ public class PlanSourceExtractorVisitorTest {
   @Test
   @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForJoinQuery() {
-    PlanNode planNode = logicalPlanBuilder.buildLogicalPlan(
+    final PlanNode planNode = logicalPlanBuilder.buildLogicalPlan(
         "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN "
                           + "test2 t2 ON t1.col1 = t2.col1;");
-    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
-    Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
+    final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
     assertThat(sourceNames, equalTo(Utils.mkSet("TEST1", "TEST2")));
   }
 

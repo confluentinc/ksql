@@ -62,7 +62,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(final Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
   }
 
   @Override
@@ -72,7 +72,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     }
     try {
       return getGenericRow(bytes);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException(
           "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
           e
@@ -93,7 +93,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final Object columnVal = valueMap
           .get(keyMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));
@@ -186,10 +186,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     Map<String, String> keyMap = new HashMap<>();
 
-    CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      Iterator<String> fieldNames = jsonNode.fieldNames();
+    CaseInsensitiveJsonNode(final JsonNode jsonNode) {
+      final Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
-        String fieldName = fieldNames.next();
+        final String fieldName = fieldNames.next();
         if (fieldName.startsWith("@")) {
           if (fieldName.length() == 1) {
             throw new KsqlException("Field name cannot be '@'.");

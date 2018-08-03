@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 public class CommandStatuses extends HashMap<CommandId, CommandStatus.Status> {
 
   @JsonCreator
-  public CommandStatuses(Map<CommandId, CommandStatus.Status> statuses) {
+  public CommandStatuses(final Map<CommandId, CommandStatus.Status> statuses) {
     super(statuses);
   }
 
-  public static CommandStatuses fromFullStatuses(Map<CommandId, CommandStatus> fullStatuses) {
-    Map<CommandId, CommandStatus.Status> statuses = fullStatuses.entrySet().stream().collect(
+  public static CommandStatuses fromFullStatuses(final Map<CommandId, CommandStatus> fullStatuses) {
+    final Map<CommandId, CommandStatus.Status> statuses = fullStatuses.entrySet().stream().collect(
         Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus())
     );
     return new CommandStatuses(statuses);

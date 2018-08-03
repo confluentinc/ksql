@@ -84,7 +84,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForCreateTable() {
-    HashMap<String, Expression> tableProperties = new HashMap<>();
+    final HashMap<String, Expression> tableProperties = new HashMap<>();
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
     final DdlCommand result = commandFactories.create(sqlExpression,
@@ -99,7 +99,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldFailCreateTableIfKeyNameIsIncorrect() {
-    HashMap<String, Expression> tableProperties = new HashMap<>();
+    final HashMap<String, Expression> tableProperties = new HashMap<>();
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
@@ -110,7 +110,7 @@ public class CommandFactoriesTest {
                           tableProperties)
       );
 
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
                                          + "WITH clause, COL3, exists in the defined schema."));
     }
@@ -119,7 +119,7 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldFailCreateTableIfTimestampColumnNameIsIncorrect() {
-    HashMap<String, Expression> tableProperties = new HashMap<>();
+    final HashMap<String, Expression> tableProperties = new HashMap<>();
     tableProperties.putAll(properties);
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
     try {
@@ -130,7 +130,7 @@ public class CommandFactoriesTest {
                           tableProperties)
       );
 
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
     }
 
@@ -145,7 +145,7 @@ public class CommandFactoriesTest {
                               ("COL2", new PrimitiveType(Type.KsqlType.STRING))), true, properties)
       );
 
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
     }
 

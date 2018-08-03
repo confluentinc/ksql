@@ -42,10 +42,10 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     private final short replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
-    public FakeTopic(String topicName,
-                     int numPartitions,
-                     short replicatonFactor,
-                     TopicCleanupPolicy cleanupPolicy) {
+    public FakeTopic(final String topicName,
+                     final int numPartitions,
+                     final short replicatonFactor,
+                     final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
@@ -65,8 +65,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
 
     public TopicDescription getDescription() {
-      Node node = new Node(0, "localhost", 9091);
-      List<TopicPartitionInfo> partitionInfoList =
+      final Node node = new Node(0, "localhost", 9091);
+      final List<TopicPartitionInfo> partitionInfoList =
           IntStream.range(0, numPartitions)
               .mapToObj(
                   p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
@@ -81,7 +81,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private Map<String, FakeTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicationFactor, Map<String, ?> configs) {
+  public void createTopic(final String topic, final int numPartitions, final short replicationFactor, final Map<String, ?> configs) {
     if (!topicMap.containsKey(topic)) {
       final TopicCleanupPolicy cleanUpPolicy =
           CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
@@ -93,7 +93,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public boolean isTopicExists(String topic) {
+  public boolean isTopicExists(final String topic) {
     return topicMap.containsKey(topic);
   }
 
@@ -111,7 +111,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     return listTopicNames()
         .stream()
         .filter(n -> topicNames.contains(n))
@@ -120,29 +120,29 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, String> getTopicConfig(String topicName) {
+  public Map<String, String> getTopicConfig(final String topicName) {
     return Collections.emptyMap();
   }
 
   @Override
-  public boolean addTopicConfig(String topicName, Map<String, ?> overrides) {
+  public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     return false;
   }
 
   @Override
-  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+  public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     return null;
   }
 
   @Override
-  public void deleteTopics(List<String> topicsToDelete) {
-    for (String topicName: topicsToDelete) {
+  public void deleteTopics(final List<String> topicsToDelete) {
+    for (final String topicName: topicsToDelete) {
       topicMap.remove(topicName);
     }
   }
 
   @Override
-  public void deleteInternalTopics(String applicationId) {
+  public void deleteInternalTopics(final String applicationId) {
   }
 
   @Override

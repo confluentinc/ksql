@@ -1093,8 +1093,7 @@ Scalar functions
 |                        |                                                            |                                                   |
 |                        |                                                            | **Deprecated**: As of version 5.1 of KSQL the     |
 |                        |                                                            | above version of ``SUBSTRING``is deprecated.      |
-|                        |                                                            | Please set                                        |
-|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                            | Set ``ksql.functions.substring.legacy.args`` to   |
 |                        |                                                            | ``false`` to switch ``SUBSTRING`` to the signature|
 |                        |                                                            | below. The default value for                      |
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` will be  |

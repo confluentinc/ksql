@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser;
 
-
 import org.antlr.v4.runtime.DefaultErrorStrategy;
 import org.antlr.v4.runtime.FailedPredicateException;
 import org.antlr.v4.runtime.InputMismatchException;

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-
 import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;

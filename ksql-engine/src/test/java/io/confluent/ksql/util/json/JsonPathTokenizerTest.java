@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util.json;
 
-
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;

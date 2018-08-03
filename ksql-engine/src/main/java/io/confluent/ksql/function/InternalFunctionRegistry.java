@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.function;
 
-
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;

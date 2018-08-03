@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.function;
 
-
 import io.confluent.ksql.util.KsqlException;
 import java.net.MalformedURLException;
 import java.net.URL;

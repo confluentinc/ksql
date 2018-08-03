@@ -16,7 +16,6 @@
 
 package org.damian.ksql.udf;
 
-
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.utils;
 
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;

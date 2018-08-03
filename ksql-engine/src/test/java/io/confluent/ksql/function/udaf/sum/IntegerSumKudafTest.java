@@ -1,6 +1,5 @@
 package io.confluent.ksql.function.udaf.sum;
 
-
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 

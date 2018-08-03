@@ -31,6 +31,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -132,14 +133,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Suffix for state store names in Tables. For instance if the suffix is "
                   + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
-          new CompatibilityBreakingConfigDef(
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
-              ConfigDef.Type.BOOLEAN,
-              true,
-              false,
-              ConfigDef.Importance.LOW,
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore ")
   );
 
   private static class CompatibilityBreakingConfigDef {
@@ -260,14 +254,21 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             "Enable the security manager for UDFs. Default is true and will stop UDFs from"
                + " calling System.exit or executing processes"
+        ).define(
+            KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            Importance.MEDIUM,
+            KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS
         )
         .withClientSslSupport();
-    for (final CompatibilityBreakingConfigDef compatiblityConfigDef
+
+    for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
-        compatiblityConfigDef.defineCurrent(configDef);
+        compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
-        compatiblityConfigDef.defineOld(configDef);
+        compatibilityBreakingConfigDef.defineOld(configDef);
       }
     }
     return configDef;

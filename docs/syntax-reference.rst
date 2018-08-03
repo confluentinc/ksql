@@ -1085,21 +1085,27 @@ Scalar functions
 |                        |                                                            | quotes in the timestamp format can be escaped with|
 |                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
-|                        |                                                            | Return a substring of ``str`` that starts at      |
-|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
-|                        |                                                            | the end of the string.                            |
-|                        |                                                            |                                                   |
-|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
-|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | **[default] Old (deprecated) version:**           |
+|                        |                                                            | ``SUBSTRING(str, start, [end])``                  |
 |                        |                                                            | Where ``start`` and ``end`` where base-zero       |
 |                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
 |                        |                                                            | the substring.                                    |
 |                        |                                                            |                                                   |
-|                        |                                                            | It is possible to switch back to this legacy mode |
-|                        |                                                            | by setting                                        |
+|                        |                                                            | **Deprecated**: As of version 5.1 of KSQL the     |
+|                        |                                                            | above version of ``SUBSTRING``is deprecated.      |
+|                        |                                                            | Please set                                        |
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                            | ``true``                                          |
+|                        |                                                            | ``false`` to switch ``SUBSTRING`` to the signature|
+|                        |                                                            | below. The default value for                      |
+|                        |                                                            | ``ksql.functions.substring.legacy.args`` will be  |
+|                        |                                                            | switched to ``false`` in a future release and     |
+|                        |                                                            | will be removed completely in a later release.    |
+|                        |                                                            |                                                   |
+|                        |                                                            | **New version:**                                  |
+|                        |                                                            | ``SUBSTRING(str, pos, [len])``.                   |
+|                        |                                                            | Return a substring of ``str`` that starts at      |
+|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                            | the end of the string.                            |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

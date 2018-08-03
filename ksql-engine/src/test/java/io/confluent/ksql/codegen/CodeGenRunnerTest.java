@@ -83,7 +83,8 @@ public class CodeGenRunnerTest {
     private CodeGenRunner codeGenRunner;
     private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-    private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    private final Map<String, Object> rawConfig = new HashMap<>();
+    private final KsqlConfig ksqlConfig = new KsqlConfig(rawConfig);
 
     @Before
     public void init() {
@@ -419,6 +420,8 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleStringUdfs() {
         // Given:
+        setConfig(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, false);
+
         final String query =
             "SELECT LCASE(col1), UCASE(col1), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 2, 4)"
             + " FROM codegen_test;";
@@ -527,6 +530,10 @@ public class CodeGenRunnerTest {
             .map(buildCodeGenFromParseTree)
             .map(md -> evaluate(md, inputValues))
             .collect(Collectors.toList());
+    }
+
+    private void setConfig(final String name, final Object value) {
+        rawConfig.put(name, value);
     }
 
     private Analysis analyzeQuery(String queryStr) {

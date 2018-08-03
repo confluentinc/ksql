@@ -68,7 +68,8 @@ public class KsqlEngineTest {
       topicClient,
       schemaRegistryClient,
       new DefaultKafkaClientSupplier(),
-      metaStore);
+      metaStore,
+      ksqlConfig);
 
   @After
   public void closeEngine() {
@@ -326,7 +327,8 @@ public class KsqlEngineTest {
     topicClient.close();
     expectLastCall();
     replay(topicClient);
-    final KsqlEngine ksqlEngine = new KsqlEngine(topicClient, schemaRegistryClient, metaStore);
+    final KsqlEngine ksqlEngine
+        = new KsqlEngine(topicClient, schemaRegistryClient, metaStore, ksqlConfig);
 
     // When:
     ksqlEngine.close();

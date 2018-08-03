@@ -570,7 +570,8 @@ class EndToEndEngineTestUtil {
     try (final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClient,
-        metaStore
+        metaStore,
+        ksqlConfig
     )) {
       query.initializeTopics(ksqlEngine);
       final TopologyTestDriver testDriver

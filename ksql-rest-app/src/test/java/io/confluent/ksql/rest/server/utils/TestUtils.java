@@ -79,7 +79,8 @@ public class TestUtils {
         super(
             topicClient,
             schemaRegistryClient,
-            new MetaStoreImpl(new InternalFunctionRegistry()));
+            new MetaStoreImpl(new InternalFunctionRegistry()),
+            ksqlConfig);
       }
     };
 

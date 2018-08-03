@@ -66,12 +66,7 @@ public class KsqlContext {
               StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
     }
 
-    final KsqlEngine engine = new KsqlEngine(
-        new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        schemaRegistryClient == null
-            ? new KsqlSchemaRegistryClientFactory(ksqlConfig).create() : schemaRegistryClient,
-        clientSupplier
-    );
+    final KsqlEngine engine = new KsqlEngine(ksqlConfig);
 
     return new KsqlContext(ksqlConfig, engine);
   }

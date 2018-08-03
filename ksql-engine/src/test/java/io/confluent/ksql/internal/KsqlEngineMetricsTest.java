@@ -23,7 +23,10 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,14 +44,21 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class KsqlEngineMetricsTest {
+
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngine ksqlEngine;
   private KsqlEngineMetrics engineMetrics;
+  private final String ksqlServiceId = "test-ksql-service-id";
+  private final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId;
 
   @Before
   public void setUp() {
     MetricCollectors.initialize();
     ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId));
+    EasyMock.expect(ksqlEngine.getKsqlConfig()).andReturn(ksqlConfig);
+    EasyMock.replay(ksqlEngine);
     engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine);
   }
 
@@ -72,20 +82,22 @@ public class KsqlEngineMetricsTest {
 
   @Test
   public void shouldRecordNumberOfActiveQueries() {
+    EasyMock.reset(ksqlEngine);
     EasyMock.expect(ksqlEngine.numberOfLiveQueries()).andReturn(3L);
     EasyMock.replay(ksqlEngine);
     Metrics metrics = MetricCollectors.getMetrics();
-    double value = getMetricValue(metrics, "num-active-queries");
+    double value = getMetricValue(metrics, metricNamePrefix + "num-active-queries");
     assertEquals(3.0, value, 0.0);
   }
 
 
   @Test
   public void shouldRecordNumberOfPersistentQueries() {
+    EasyMock.reset(ksqlEngine);
     EasyMock.expect(ksqlEngine.numberOfPersistentQueries()).andReturn(3L);
     EasyMock.replay(ksqlEngine);
     Metrics metrics = MetricCollectors.getMetrics();
-    double value = getMetricValue(metrics, "num-persistent-queries");
+    double value = getMetricValue(metrics, metricNamePrefix + "num-persistent-queries");
     assertEquals(3.0, value, 0.0);
   }
 
@@ -96,7 +108,7 @@ public class KsqlEngineMetricsTest {
     consumeMessages(numMessagesConsumed, "group1");
     Metrics metrics = MetricCollectors.getMetrics();
     engineMetrics.updateMetrics();
-    double value = getMetricValue(metrics, "messages-consumed-per-sec");
+    double value = getMetricValue(metrics, metricNamePrefix + "messages-consumed-per-sec");
     assertEquals(numMessagesConsumed / 100, Math.floor(value), 0.01);
   }
 
@@ -107,7 +119,7 @@ public class KsqlEngineMetricsTest {
     produceMessages(numMessagesProduced);
     Metrics metrics = MetricCollectors.getMetrics();
     engineMetrics.updateMetrics();
-    double value = getMetricValue(metrics, "messages-produced-per-sec");
+    double value = getMetricValue(metrics, metricNamePrefix + "messages-produced-per-sec");
     assertEquals(numMessagesProduced / 100, Math.floor(value), 0.01);
   }
 
@@ -119,9 +131,9 @@ public class KsqlEngineMetricsTest {
     consumeMessages(numMessagesConsumed * 100, "group2");
     Metrics metrics = MetricCollectors.getMetrics();
     engineMetrics.updateMetrics();
-    double maxValue = getMetricValue(metrics, "messages-consumed-max");
+    double maxValue = getMetricValue(metrics, metricNamePrefix + "messages-consumed-max");
     assertEquals(numMessagesConsumed, Math.floor(maxValue), 5.0);
-    double minValue = getMetricValue(metrics, "messages-consumed-min");
+    double minValue = getMetricValue(metrics, metricNamePrefix + "messages-consumed-min");
     assertEquals(numMessagesConsumed / 100, Math.floor(minValue), 0.01);
   }
 

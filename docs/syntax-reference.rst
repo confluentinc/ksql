@@ -562,7 +562,7 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
+    PRINT qualifiedName [FROM BEGINNING] [(INTERVAL|SAMPLE) n]
 
 **Description**
 
@@ -577,7 +577,7 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
+| [(INTERVAL|SAMPLE) n]   | Print every nth message. The default is 1, meaning that every message is printed.                                |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:

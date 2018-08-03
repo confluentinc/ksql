@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableList;
-
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
-import org.junit.Test;
-
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,12 +29,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IntTopkKudafTest {
 

@@ -16,9 +16,11 @@
 
 package io.confluent.ksql.function.udf;
 
+import static junit.framework.TestCase.fail;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,10 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.KsqlException;
-
-import static junit.framework.TestCase.fail;
 
 /**
  * Helper for testing KUDFs.

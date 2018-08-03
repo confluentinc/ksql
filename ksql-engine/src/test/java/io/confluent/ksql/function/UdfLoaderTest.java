@@ -16,34 +16,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
-import io.confluent.ksql.function.udf.UdfParameter;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import io.confluent.common.Configurable;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.PluggableUdf;
-import io.confluent.ksql.function.udf.Udf;
-import io.confluent.ksql.function.udf.UdfDescription;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-
 import static io.confluent.ksql.util.KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -54,6 +26,31 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.common.Configurable;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.PluggableUdf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.

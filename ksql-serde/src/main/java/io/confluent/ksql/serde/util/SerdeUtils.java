@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.serde.util;
 
-import java.util.Objects;
-
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public final class SerdeUtils {
   private SerdeUtils() {

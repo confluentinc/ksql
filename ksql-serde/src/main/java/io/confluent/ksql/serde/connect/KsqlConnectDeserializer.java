@@ -17,11 +17,10 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
+import java.util.Map;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.storage.Converter;
-
-import java.util.Map;
 
 public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   final Converter converter;

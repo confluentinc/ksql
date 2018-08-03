@@ -16,20 +16,16 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.util.JsonMapper;
-import org.junit.Assert;
-import io.confluent.ksql.util.KsqlConfig;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class CommandTest {
   @Test

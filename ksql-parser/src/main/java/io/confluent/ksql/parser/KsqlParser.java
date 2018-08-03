@@ -16,13 +16,15 @@
 
 package io.confluent.ksql.parser;
 
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -32,9 +34,6 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class KsqlParser {

@@ -16,9 +16,10 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -35,10 +35,6 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.StreamedRow;
 
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)

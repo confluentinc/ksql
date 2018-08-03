@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Schema;
 
 public class KsqlFunction {
 

@@ -18,29 +18,6 @@ package io.confluent.ksql.cli.console;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.StringTokenizer;
-import org.apache.commons.lang3.StringUtils;
-import org.jline.reader.EndOfFileException;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -73,6 +50,26 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.StringUtil;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.StringTokenizer;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.jline.reader.EndOfFileException;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class Console implements Closeable {
 

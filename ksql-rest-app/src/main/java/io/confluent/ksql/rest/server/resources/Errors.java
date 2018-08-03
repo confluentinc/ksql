@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import javax.ws.rs.core.Response;
 
 public final class Errors {
   public static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;

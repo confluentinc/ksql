@@ -1,32 +1,28 @@
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableList;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.confluent.ksql.rest.util.JsonMapper;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
-import org.junit.Test;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.util.KafkaConsumerGroupClient;
-import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.util.KafkaConsumerGroupClient;
+import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.TopicPartitionInfo;
+import org.junit.Test;
 
 public class KafkaTopicsListTest {
 

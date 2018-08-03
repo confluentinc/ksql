@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.parser.ParsingException;
+import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.parser.ParsingException;
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public final class GenericLiteral
     extends Literal {

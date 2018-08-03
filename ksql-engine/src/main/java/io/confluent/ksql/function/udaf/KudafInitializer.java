@@ -17,13 +17,12 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.streams.kstream.Initializer;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.streams.kstream.Initializer;
 
 public class KudafInitializer implements Initializer<GenericRow> {
 

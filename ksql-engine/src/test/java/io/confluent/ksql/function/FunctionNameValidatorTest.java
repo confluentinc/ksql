@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.function;
 
-import org.antlr.v4.runtime.Vocabulary;
-import org.junit.Test;
-
-import io.confluent.ksql.parser.SqlBaseParser;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import io.confluent.ksql.parser.SqlBaseParser;
+import org.antlr.v4.runtime.Vocabulary;
+import org.junit.Test;
 
 public class FunctionNameValidatorTest {
 

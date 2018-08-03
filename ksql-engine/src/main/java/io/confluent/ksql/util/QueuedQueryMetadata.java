@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.Topology;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.DataSource;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.DataSource;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.Topology;
 
 public class QueuedQueryMetadata extends QueryMetadata {
 

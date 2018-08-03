@@ -18,7 +18,6 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

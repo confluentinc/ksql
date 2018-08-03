@@ -17,11 +17,10 @@
 package io.confluent.ksql.metastore;
 
 
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.function.TestFunctionRegistry;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

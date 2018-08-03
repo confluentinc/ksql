@@ -17,29 +17,24 @@
 package io.confluent.ksql;
 
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
-import javax.ws.rs.ProcessingException;
+import static io.confluent.ksql.TestResult.build;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
+import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
@@ -61,25 +56,27 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-
-import static io.confluent.ksql.TestResult.build;
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import javax.ws.rs.ProcessingException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.

@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.cli.console;
 
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
-
+import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import io.confluent.ksql.rest.client.KsqlRestClient;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 public class JLineTerminal extends Console {
 

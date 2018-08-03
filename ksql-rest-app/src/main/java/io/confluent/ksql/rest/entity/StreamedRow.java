@@ -20,13 +20,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.server.resources.Errors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})

@@ -18,8 +18,8 @@ package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.kafka.streams.processor.TimestampExtractor;
 import java.util.Objects;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public class LongColumnTimestampExtractionPolicy implements TimestampExtractionPolicy {
 

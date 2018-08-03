@@ -17,24 +17,20 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.Pair;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public class RestoreCommandsTest {
 

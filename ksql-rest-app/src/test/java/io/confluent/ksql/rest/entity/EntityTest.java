@@ -16,23 +16,19 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableSet;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.rest.util.ClassFinder;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.rest.util.ClassFinder;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class EntityTest {

@@ -16,16 +16,14 @@
 
 package io.confluent.ksql;
 
+import static junit.framework.TestCase.fail;
+
 import io.confluent.ksql.cli.Cli;
-
-import org.apache.kafka.test.TestUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-
-import static junit.framework.TestCase.fail;
+import org.apache.kafka.test.TestUtils;
 
 public abstract class TestRunner {
 

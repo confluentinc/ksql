@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Collections;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -27,6 +25,7 @@ import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 
 public class DropSourceCommand implements DdlCommand {
 

@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Optional;
 
 public class FieldReference
     extends Expression {

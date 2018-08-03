@@ -60,7 +60,7 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestClient implements Closeable, AutoCloseable {
+public class KsqlRestClient implements Closeable {
 
   private final Client client;
 
@@ -220,7 +220,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;

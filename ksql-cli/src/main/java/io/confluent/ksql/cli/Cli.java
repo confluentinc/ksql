@@ -76,7 +76,7 @@ import io.confluent.ksql.util.WelcomeMsgUtils;
 
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
-public class Cli implements Closeable, AutoCloseable {
+public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 

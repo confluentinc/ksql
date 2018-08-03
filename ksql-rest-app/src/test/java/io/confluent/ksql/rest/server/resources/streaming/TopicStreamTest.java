@@ -36,6 +36,17 @@ import org.apache.kafka.common.utils.Bytes;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.utils.Bytes;
+import org.junit.Test;
+
 public class TopicStreamTest {
 
   private SchemaRegistryClient schemaRegistryClient;

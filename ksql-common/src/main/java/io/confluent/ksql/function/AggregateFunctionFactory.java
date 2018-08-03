@@ -16,13 +16,11 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-
-import io.confluent.ksql.function.udf.UdfMetadata;
+import org.apache.kafka.connect.data.Schema;
 
 
 public abstract class AggregateFunctionFactory {

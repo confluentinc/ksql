@@ -68,7 +68,6 @@ import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.Pair;
-
 import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>

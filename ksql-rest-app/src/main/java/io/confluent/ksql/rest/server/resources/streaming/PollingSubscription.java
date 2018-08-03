@@ -19,10 +19,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class PollingSubscription<T> implements Flow.Subscription {
 

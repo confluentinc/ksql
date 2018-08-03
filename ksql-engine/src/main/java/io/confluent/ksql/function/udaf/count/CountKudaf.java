@@ -18,14 +18,12 @@ package io.confluent.ksql.function.udaf.count;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-
 import java.util.Collections;
 import java.util.List;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class CountKudaf
     extends BaseAggregateFunction<Object, Long> implements TableAggregationFunction<Object, Long> {

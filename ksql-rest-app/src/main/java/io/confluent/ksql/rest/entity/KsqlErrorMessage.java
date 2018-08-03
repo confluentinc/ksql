@@ -19,17 +19,15 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.rest.entities.ErrorMessage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.rest.entities.ErrorMessage;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,

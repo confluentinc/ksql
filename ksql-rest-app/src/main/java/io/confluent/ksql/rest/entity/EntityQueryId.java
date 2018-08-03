@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.confluent.ksql.query.QueryId;
-
 import java.util.Objects;
 
 public class EntityQueryId {

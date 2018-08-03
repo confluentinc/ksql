@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.TopicPartitionInfo;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
+import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -28,9 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
-import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.

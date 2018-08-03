@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.util.ErrorMessageUtil;
-
 import java.util.Collections;
 import java.util.List;
 

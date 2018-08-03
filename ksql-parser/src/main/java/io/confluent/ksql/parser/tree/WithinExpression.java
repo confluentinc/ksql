@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import org.apache.kafka.streams.kstream.JoinWindows;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.streams.kstream.JoinWindows;
 
 public class WithinExpression extends Node {
 

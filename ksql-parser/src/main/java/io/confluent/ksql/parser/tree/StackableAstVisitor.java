@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.LinkedList;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class StackableAstVisitor<R, C>
     extends AstVisitor<R, StackableAstVisitor.StackableAstVisitorContext<C>> {

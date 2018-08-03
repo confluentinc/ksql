@@ -17,13 +17,6 @@
 package io.confluent.ksql.rest.server.utils;
 
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -33,6 +26,11 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class TestUtils {
 

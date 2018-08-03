@@ -16,8 +16,18 @@
 package io.confluent.ksql.internal;
 
 
-import com.google.common.collect.ImmutableMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.metrics.ProducerCollector;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -30,19 +40,6 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metrics.ConsumerCollector;
-import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.metrics.ProducerCollector;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";

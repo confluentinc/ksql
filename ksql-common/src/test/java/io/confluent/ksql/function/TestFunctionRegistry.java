@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.function.udf.UdfMetadata;
+import org.apache.kafka.connect.data.Schema;
 
 
 public class TestFunctionRegistry implements FunctionRegistry {

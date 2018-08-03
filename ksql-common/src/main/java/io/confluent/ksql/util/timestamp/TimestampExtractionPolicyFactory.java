@@ -16,14 +16,12 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public class TimestampExtractionPolicyFactory {
 

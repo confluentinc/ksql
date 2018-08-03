@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
-
 import java.util.Map;
 import java.util.Objects;
 

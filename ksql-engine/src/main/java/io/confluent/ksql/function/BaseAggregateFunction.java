@@ -17,10 +17,9 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFunction<V, A> {
   /** An index of the function argument in the row that is used for computing the aggregate.

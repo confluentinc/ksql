@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.testutils;
 
+import java.io.IOException;
+import java.net.BindException;
 import org.apache.curator.test.TestingServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.BindException;
 
 /**
  * Runs an in-memory, "embedded" instance of a ZooKeeper server.

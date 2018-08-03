@@ -17,11 +17,8 @@
 package io.confluent.ksql.planner;
 
 
-import org.apache.kafka.common.utils.Utils;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Set;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -30,9 +27,10 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.util.Set;
+import org.apache.kafka.common.utils.Utils;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PlanSourceExtractorVisitorTest {
 

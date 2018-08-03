@@ -16,12 +16,7 @@
 
 package io.confluent.ksql.metrics;
 
-import org.apache.kafka.common.metrics.JmxReporter;
-import org.apache.kafka.common.metrics.MetricConfig;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.utils.SystemTime;
-
+import io.confluent.common.utils.Time;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,8 +25,11 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.confluent.common.utils.Time;
+import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.utils.SystemTime;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to

@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>> {

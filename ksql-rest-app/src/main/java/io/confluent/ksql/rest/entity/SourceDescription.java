@@ -20,22 +20,19 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.connect.data.Field;
-
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.connect.data.Field;
 
 @JsonTypeName("description")
 @JsonSubTypes({})

@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public interface FunctionRegistry {
 

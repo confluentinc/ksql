@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public class IntegerLiteral
     extends Literal {

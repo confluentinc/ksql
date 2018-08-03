@@ -16,9 +16,14 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.FileInputStream;
@@ -31,15 +36,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Version;
-import io.confluent.ksql.util.WelcomeMsgUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandaloneExecutor implements Executable {
 

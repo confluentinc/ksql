@@ -16,14 +16,12 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import org.apache.kafka.common.utils.Utils;
-
 import io.confluent.ksql.rest.entity.CommandStatus;
-
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.common.utils.Utils;
 
 
 public class CommandStatusFuture implements Future<CommandStatus> {

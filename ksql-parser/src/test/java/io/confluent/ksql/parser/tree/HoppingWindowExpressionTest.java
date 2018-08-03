@@ -17,6 +17,11 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.easymock.EasyMock.same;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -26,13 +31,6 @@ import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.state.WindowStore;
 import org.easymock.EasyMock;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
-
-import static org.easymock.EasyMock.same;
 
 public class HoppingWindowExpressionTest {
 

@@ -16,21 +16,18 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import io.confluent.rest.RestConfig;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.rest.RestConfig;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Test;
 
 public class KsqlRestConfigTest {
 

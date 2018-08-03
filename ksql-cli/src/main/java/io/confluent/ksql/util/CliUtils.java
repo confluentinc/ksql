@@ -18,11 +18,11 @@ package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.codehaus.jackson.JsonParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,12 +30,9 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.rest.entity.PropertiesList;
+import org.codehaus.jackson.JsonParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CliUtils {
 

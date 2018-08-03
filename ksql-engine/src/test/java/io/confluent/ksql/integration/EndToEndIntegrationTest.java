@@ -15,7 +15,32 @@
  **/
 package io.confluent.ksql.integration;
 
+import static java.lang.String.format;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.UserDataProvider;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -29,33 +54,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.UserDataProvider;
-
-import static java.lang.String.format;
-import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage

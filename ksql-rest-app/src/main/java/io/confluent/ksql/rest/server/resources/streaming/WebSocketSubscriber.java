@@ -16,22 +16,19 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.closeSession;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.confluent.ksql.rest.util.EntityUtil;
-import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Collection;
-
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
-
-import static io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.closeSession;
+import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoCloseable {
 

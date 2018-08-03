@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.testutils.secure;
 
-import org.apache.kafka.test.TestUtils;
+import static java.lang.System.lineSeparator;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -24,8 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
-
-import static java.lang.System.lineSeparator;
+import org.apache.kafka.test.TestUtils;
 
 /**
  * Util class for working with test key & trust stores.

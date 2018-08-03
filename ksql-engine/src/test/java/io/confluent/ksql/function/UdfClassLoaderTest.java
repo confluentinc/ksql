@@ -16,15 +16,14 @@
 
 package io.confluent.ksql.function;
 
-import org.junit.Test;
-
-import java.io.File;
-import java.nio.file.Path;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
+
+import java.io.File;
+import java.nio.file.Path;
+import org.junit.Test;
 
 public class UdfClassLoaderTest {
 

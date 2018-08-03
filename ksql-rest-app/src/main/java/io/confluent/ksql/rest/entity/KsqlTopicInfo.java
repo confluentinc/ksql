@@ -19,10 +19,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
-
+import io.confluent.ksql.serde.DataSource;
 import java.util.Objects;
 
 @JsonSubTypes({})

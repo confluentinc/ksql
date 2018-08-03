@@ -44,8 +44,9 @@ Conversely, using boxed types indicates the function can accept null values for 
 It is up to the implementor of the UDF to chose which is the most appropriate.
 A common pattern is to return ``null`` if the input is ``null``, though generally this is only for
 parameters that are expected to be supplied from the source row being processed. For example,
-a ``substring(String value, int beginIndex)`` UDF might return null if ``value`` is null, but a
-null ``beginIndex`` parameter would be treated as an error, and hence should be a primitive.
+a ``substring(String str, int pos)`` UDF might return null if ``str`` is null, but a
+null ``pos`` parameter would be treated as an error, and hence should be a primitive.
+(In actual fact, the in-built substring is more lenient and would return null if pos was null).
 
 The return type of a UDF can also be a primitive or boxed type. A primitive return type indicates
 the function will never return ``null``, where as a boxed type indicates it may return ``null``.
@@ -129,15 +130,12 @@ of the UDF does, for example:
 
 .. code:: java
 
-    @Udf(description = "Returns a string that is a substring of this string. The"
-        + " substring begins with the character at the specified startIndex and"
-        + " extends to the end of this string.")
-    public String substring(final String value, final int startIndex)
+    @Udf(description = "Returns a substring of str that starts at pos"
+      + " and continues to the end of the string")
+    public String substring(final String str, final int pos)
 
-    @Udf(description = "Returns a string that is a substring of this string. The"
-        + " substring begins with the character at the specified startIndex and"
-        + " extends to the character at endIndex -1.")
-    public String substring(final String value, final int startIndex, final int endIndex)
+    @Udf(description = "Returns a substring of str that starts at pos and is of length len")
+    public String substring(final String str, final int pos, final int len)
 
 UdfParameter Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,8 +152,8 @@ can be used to better describe what the parameter does, for example:
 
     @Udf
     public String substring(
-       @UdfParameter("Value") final String value,
-       @UdfParameter(value = "Value", description = "Zero based start index") final int startIndex)
+       @UdfParameter("str") final String str,
+       @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
 
 Configurable UDF
 ~~~~~~~~~~~~~~~~

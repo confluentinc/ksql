@@ -1058,8 +1058,21 @@ Scalar functions
 |                        |                                                            | quotes in the timestamp format can be escaped with|
 |                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices.                                          |
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
+|                        |                                                            | Return a substring of ``str`` that starts at      |
+|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                            | the end of the string.                            |
+|                        |                                                            |                                                   |
+|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
+|                        |                                                            | Where ``start`` and ``end`` where base-zero       |
+|                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
+|                        |                                                            | the substring.                                    |
+|                        |                                                            |                                                   |
+|                        |                                                            | It is possible to switch back to this legacy mode |
+|                        |                                                            | by setting                                        |
+|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                            | ``true``                                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

@@ -63,6 +63,7 @@ import io.confluent.ksql.util.TopicProducer;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 
 import static io.confluent.ksql.TestResult.build;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
@@ -265,14 +266,15 @@ public class CliTest extends TestRunner {
 
   @Test
   public void testPrint() throws InterruptedException {
+    final Thread thread =
+        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+    thread.start();
 
-    Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-    wait.start();
-    Thread.sleep(1000);
-    wait.interrupt();
-
-    String terminalOutput = terminal.getOutputString();
-    assertThat(terminalOutput, containsString("Format:JSON"));
+    try {
+      assertThatEventually(() -> terminal.getOutputString(), containsString("Format:JSON"));
+    } finally {
+      thread.interrupt();
+    }
   }
 
   @Test
@@ -564,27 +566,34 @@ public class CliTest extends TestRunner {
 
   @Test
   public void shouldDescribeOverloadedScalarFunction() throws Exception {
-    final String expectedSummary =
-        "Name        : SUBSTRING\n"
-        + "Author      : Confluent\n"
-        + "Overview    : returns a substring of the passed in value\n"
-        + "Type        : scalar\n"
-        + "Jar         : internal\n"
-        + "Variations  : \n";
-
-    final String expectedVariant =
-        "\tVariation   : SUBSTRING(value VARCHAR, startIndex INT, endIndex INT)\n"
-        + "\tReturns     : VARCHAR\n"
-        + "\tDescription : Returns a string that is a substring of this string. "
-        + "The substring begins with the character at the specified startIndex and extends to the character at endIndex -1.\n"
-        + "\tstartIndex  : The zero-based start index, inclusive.\n"
-        + "\tendIndex    : The zero-based end index, exclusive.";
-
+    // Given:
     localCli.handleLine("describe function substring;");
 
+    // Then:
     final String output = terminal.getOutputString();
-    assertThat(output, containsString(expectedSummary));
-    assertThat(output, containsString(expectedVariant));
+
+    // Summary output:
+    assertThat(output, containsString(
+        "Name        : SUBSTRING\n"
+        + "Author      : Confluent\n"
+        + "Overview    : Returns a substring of the passed in value.\n"
+    ));
+    assertThat(output, containsString(
+        "Type        : scalar\n"
+        + "Jar         : internal\n"
+        + "Variations  :"
+    ));
+
+    // Variant output:
+    assertThat(output, containsString(
+        "\tVariation   : SUBSTRING(str VARCHAR, pos INT)\n"
+        + "\tReturns     : VARCHAR\n"
+        + "\tDescription : Returns a substring of str that starts at pos and continues to the end"
+    ));
+    assertThat(output, containsString(
+        "\tstr         : The source string. If null, then function returns null.\n"
+        + "\tpos         : The base-one position the substring starts from."
+    ));
   }
 
   @Test

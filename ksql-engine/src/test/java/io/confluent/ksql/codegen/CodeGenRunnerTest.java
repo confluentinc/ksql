@@ -423,7 +423,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleStringUdfs() {
         // Given:
         final String query =
-            "SELECT LCASE(col1), UCASE(col1), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 1, 3)"
+            "SELECT LCASE(col1), UCASE(col1), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 2, 4)"
             + " FROM codegen_test;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(1, " Hello ");
@@ -432,7 +432,7 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
 
         // Then:
-        assertThat(columns, contains(" hello ", " HELLO ", "Hello", " Hello _test", "He"));
+        assertThat(columns, contains(" hello ", " HELLO ", "Hello", " Hello _test", "Hell"));
     }
 
     @Test

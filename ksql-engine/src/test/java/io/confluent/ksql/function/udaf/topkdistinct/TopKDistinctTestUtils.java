@@ -1,11 +1,9 @@
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.AggregateFunctionArguments;
 import java.util.Arrays;
 import java.util.Collections;
-
-import io.confluent.ksql.function.AggregateFunctionArguments;
+import org.apache.kafka.connect.data.Schema;
 
 public class TopKDistinctTestUtils {
   @SuppressWarnings("unchecked")

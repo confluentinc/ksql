@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,9 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.Pair;
 
 class RestoreCommands {
 
@@ -53,10 +52,10 @@ class RestoreCommands {
   interface ForEach {
 
     void apply(
-        final CommandId commandId,
-        final Command command,
-        final Map<QueryId, CommandId> terminatedQueries,
-        final boolean dropped
+        CommandId commandId,
+        Command command,
+        Map<QueryId, CommandId> terminatedQueries,
+        boolean dropped
     );
   }
 

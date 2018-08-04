@@ -16,6 +16,11 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -23,12 +28,6 @@ import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(EasyMockRunner.class)
 public class WelcomeMsgUtilsTest {

@@ -17,7 +17,14 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -26,16 +33,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 
 public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 

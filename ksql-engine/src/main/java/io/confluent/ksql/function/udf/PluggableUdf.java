@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.function.udf;
 
-import java.util.Objects;
-
 import io.confluent.ksql.function.UdfInvoker;
 import io.confluent.ksql.security.ExtensionSecurityManager;
+import java.util.Objects;
 
 /**
  * Class to allow conversion from Kudf to UdfInvoker.

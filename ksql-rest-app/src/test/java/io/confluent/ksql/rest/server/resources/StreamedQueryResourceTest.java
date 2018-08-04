@@ -16,46 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
-import org.junit.Test;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueuedQueryMetadata;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -69,6 +29,42 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
+import org.junit.Test;
 
 public class StreamedQueryResourceTest {
   @Test

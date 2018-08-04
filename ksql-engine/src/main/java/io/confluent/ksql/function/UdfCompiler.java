@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.common.metrics.Metrics;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IScriptEvaluator;
-import org.codehaus.janino.JavaSourceClassLoader;
-import org.codehaus.janino.util.resource.Resource;
-import org.codehaus.janino.util.resource.ResourceFinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import avro.shaded.com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdfArgSupplier;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,14 +40,14 @@ import java.util.Scanner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import avro.shaded.com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.function.udaf.TableUdaf;
-import io.confluent.ksql.function.udaf.Udaf;
-import io.confluent.ksql.function.udaf.UdfArgSupplier;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
+import org.apache.kafka.common.metrics.Metrics;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IScriptEvaluator;
+import org.codehaus.janino.JavaSourceClassLoader;
+import org.codehaus.janino.util.resource.Resource;
+import org.codehaus.janino.util.resource.ResourceFinder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class takes methods that have been marked with the Udf or UdfFactory annotation.
@@ -96,11 +94,11 @@ public class UdfCompiler {
           .build();
 
   // Templates used to generate the UDF code
-  private static final String genericTemplate =
+  private static final String GENERIC_TEMPLATE =
       "#TYPE arg#INDEX;\n"
-          + "if(args[#INDEX] == null && #IS_PRIMITIVE)\n"
-          + "throw new KsqlFunctionException(\"Can't coerce argument at index #INDEX from "
-          + "null to a primitive type\");"
+          + "if(args[#INDEX] == null && #IS_PRIMITIVE)"
+          + " throw new KsqlFunctionException(\"Can't coerce argument at index #INDEX from"
+          + " null to a primitive type\");\n"
           + "if(args[#INDEX] == null) arg#INDEX = null;\n"
           + "else if (args[#INDEX] instanceof #TYPE) arg#INDEX = (#TYPE)args[#INDEX];\n"
           + "else if (args[#INDEX] instanceof String) \n"
@@ -133,7 +131,7 @@ public class UdfCompiler {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   public UdfCompiler(final Optional<Metrics> metrics) {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
-    try (final InputStream inputStream = getClass().getClassLoader()
+    try (InputStream inputStream = getClass().getClassLoader()
         .getResourceAsStream("KsqlAggregateFunction.java-template")) {
       final Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
       final StringBuilder builder = new StringBuilder();
@@ -317,7 +315,7 @@ public class UdfCompiler {
       }
       return converter.apply(i);
     }).collect(Collectors.joining("\n", "", "\nreturn (("
-        + method.getDeclaringClass().getSimpleName()
+        + method.getDeclaringClass().getName().replaceAll("\\$", ".")
         + ") thiz)." + method.getName() + "("
     ));
 
@@ -353,7 +351,7 @@ public class UdfCompiler {
     }
 
     final StringBuilder builder = new StringBuilder();
-    builder.append(genericTemplate);
+    builder.append(GENERIC_TEMPLATE);
     if (type.equals("Integer")) {
       builder.append(INTEGER_NUMBER_TEMPLATE);
     } else if (!type.equals("String") && !type.equals("Boolean")) {

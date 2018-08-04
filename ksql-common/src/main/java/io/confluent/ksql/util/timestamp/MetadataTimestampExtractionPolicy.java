@@ -17,10 +17,8 @@
 package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-
-import java.util.Map;
-
-import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public class MetadataTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
@@ -28,6 +26,7 @@ public class MetadataTimestampExtractionPolicy implements TimestampExtractionPol
   public MetadataTimestampExtractionPolicy(){}
 
   @Override
-  public void applyTo(final KsqlConfig config, final Map<String, Object> newStreamProperties) {
+  public TimestampExtractor create(final int columnIndex) {
+    return new FailOnInvalidTimestamp();
   }
 }

@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import io.confluent.ksql.function.udf.KudfTester;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.function.udf.KudfTester;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ConcatKudfTest {
 

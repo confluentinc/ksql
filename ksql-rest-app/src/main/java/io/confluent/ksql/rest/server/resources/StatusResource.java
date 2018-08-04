@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import java.util.Optional;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
 
 @Path("/status")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})

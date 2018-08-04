@@ -16,11 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigDef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,9 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
 import kafka.admin.AdminClient;
 import kafka.admin.ConsumerGroupCommand;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Acts as a ConsumerGroup facade over the scala layer
@@ -113,7 +111,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
         = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
     configFile.deleteOnExit();
 
-    try (final FileOutputStream outputStream = new FileOutputStream(configFile)) {
+    try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
       final Properties clientProps = new Properties();
       for (Map.Entry<String, String> property
           : configProps.entrySet()) {

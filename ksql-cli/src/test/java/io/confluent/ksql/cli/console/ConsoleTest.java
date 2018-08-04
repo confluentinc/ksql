@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,33 +16,23 @@
 
 package io.confluent.ksql.cli.console;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableList;
-
-import io.confluent.ksql.rest.entity.EntityQueryId;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.FieldInfo;
-import io.confluent.ksql.rest.util.EntityUtil;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -58,18 +48,27 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.SchemaUtil;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {
 
-  private TestTerminal terminal;
-  private KsqlRestClient client;
+  private final TestTerminal terminal;
+  private final KsqlRestClient client;
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
@@ -160,6 +159,77 @@ public class ConsoleTest {
       assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
     } else {
       assertThat(output, containsString("Kafka topic          : kadka-topic (partitions: 2, replication: 1)"));
+    }
+  }
+
+  @Test
+  public void shouldPrintFunctionDescription() throws IOException {
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new FunctionDescriptionList(
+            "DESCRIBE FUNCTION foo;",
+            "FOO",
+            "Description that is very, very, very, very, very, very, very, very, very, "
+                + "very, very, very, very, very, very, very, very, very, very, very, very long\n"
+                + "and containing new lines\n"
+                + "\tAND TABS\n"
+                + "too!",
+            "Andy",
+            "v1.1.0",
+            "some.jar",
+            ImmutableList.of(new FunctionInfo(
+                ImmutableList.of(
+                    new ArgumentInfo(
+                        "arg1",
+                        "INT",
+                        "Another really, really, really, really, really, really, really,"
+                            + "really, really, really, really, really, really, really, really "
+                            + " really, really, really, really, really, really, really, long\n"
+                            + "description\n"
+                            + "\tContaining Tabs\n"
+                            + "and stuff"
+                        )
+                ),
+                "LONG",
+                "The function description, which too can be really, really, really, "
+                    + "really, really, really, really, really, really, really, really, really, "
+                    + "really, really, really, really, really, really, really, really, long\n"
+                    + "and contains\n\ttabs and stuff"
+            )), FunctionType.scalar)));
+
+    terminal.printKsqlEntityList(entityList);
+
+    final String output = terminal.getOutputString();
+    if (terminal.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, containsString("\"name\" : \"FOO\""));
+    } else {
+      final String expected = ""
+          + "Name        : FOO\n"
+          + "Author      : Andy\n"
+          + "Version     : v1.1.0\n"
+          + "Overview    : Description that is very, very, very, very, very, very, very, very, very, very, very, \n"
+          + "              very, very, very, very, very, very, very, very, very, very long\n"
+          + "              and containing new lines\n"
+          + "              \tAND TABS\n"
+          + "              too!\n"
+          + "Type        : scalar\n"
+          + "Jar         : some.jar\n"
+          + "Variations  : \n"
+          + "\n"
+          + "\tVariation   : FOO(arg1 INT)\n"
+          + "\tReturns     : LONG\n"
+          + "\tDescription : The function description, which too can be really, really, really, really, really, \n"
+          + "                really, really, really, really, really, really, really, really, really, really, \n"
+          + "                really, really, really, really, really, long\n"
+          + "                and contains\n"
+          + "                \ttabs and stuff\n"
+          + "\targ1        : Another really, really, really, really, really, really, really,really, really, \n"
+          + "                really, really, really, really, really, really  really, really, really, really, \n"
+          + "                really, really, really, long\n"
+          + "                description\n"
+          + "                \tContaining Tabs\n"
+          + "                and stuff";
+
+      assertThat(output, containsString(expected));
     }
   }
 

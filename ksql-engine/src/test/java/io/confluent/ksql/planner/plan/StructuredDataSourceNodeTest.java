@@ -16,23 +16,13 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
-import java.util.stream.Collectors;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -45,14 +35,21 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
-
-import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StructuredDataSourceNodeTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -120,11 +117,6 @@ public class StructuredDataSourceNodeTest {
   @Test
   public void shouldBeOfTypeSchemaKStreamWhenDataSourceIsKsqlStream() {
     assertThat(stream.getClass(), equalTo(SchemaKStream.class));
-  }
-
-  @Test
-  public void shouldAddTimestampIndexToConfig() {
-    assertThat(ksqlConfig.getKsqlTimestampColumnIndex(), equalTo(1));
   }
 
   @Test

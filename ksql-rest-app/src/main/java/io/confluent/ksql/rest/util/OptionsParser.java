@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.util;
 import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
-
 import java.io.IOException;
 
 public final class OptionsParser {

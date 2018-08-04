@@ -17,7 +17,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.util.StringUtil;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

@@ -24,7 +24,12 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -34,11 +39,6 @@ import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
   private final KGroupedTable kgroupedTable;
 
@@ -47,12 +47,14 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final KGroupedTable kgroupedTable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    super(schema, null, keyField, sourceSchemaKStreams, functionRegistry, schemaRegistryClient);
-    Objects.requireNonNull(kgroupedTable);
-    this.kgroupedTable = kgroupedTable;
+    super(schema, null, keyField, sourceSchemaKStreams,
+        ksqlConfig, functionRegistry, schemaRegistryClient);
+
+    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
   }
 
   @SuppressWarnings("unchecked")
@@ -102,6 +104,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         sourceSchemaKStreams,
         false,
         SchemaKStream.Type.AGGREGATE,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

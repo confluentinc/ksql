@@ -16,17 +16,15 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlFunctionException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TimestampToStringTest {
 

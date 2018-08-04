@@ -16,19 +16,18 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.rest.entity.PropertiesList;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import java.util.Collections;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.junit.Test;
 
 /**
  * Unit tests for class {@link CliUtils}.

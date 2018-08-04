@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.embedded;
 
-import java.util.Collections;
-
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 
 public final class EmbeddedKsql {
 

@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KsqlServerMain {
 

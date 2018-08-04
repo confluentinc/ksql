@@ -16,12 +16,11 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class PageViewDataProvider extends TestDataProvider {
   private static final String namePrefix =

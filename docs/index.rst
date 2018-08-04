@@ -93,3 +93,4 @@ KSQL CLI
     udf
     api
     faq
+    changelog

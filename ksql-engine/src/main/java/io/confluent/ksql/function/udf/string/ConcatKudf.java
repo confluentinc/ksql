@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.Kudf;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
 
 public class ConcatKudf implements Kudf {
   public static final String NAME = "CONCAT";

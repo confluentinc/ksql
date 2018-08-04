@@ -16,16 +16,13 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableList;
+import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.util.JsonMapper;
-import org.junit.Test;
-
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 
 public class KsqlTopicsListTest {

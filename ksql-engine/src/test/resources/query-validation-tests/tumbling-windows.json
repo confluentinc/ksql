@@ -25,12 +25,12 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 35000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000}}
 
       ]
     },
@@ -49,10 +49,10 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
-        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 10000, "window": {"start": 0, "end": 30000}},
         {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 30000, "window": {"start": 30000, "end": 60000}},
-        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 30000, "window": {"start": 30000, "end": 60000}}
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 45000, "window": {"start": 30000, "end": 60000}},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 50000, "window": {"start": 30000, "end": 60000}}
       ]
     },
     {

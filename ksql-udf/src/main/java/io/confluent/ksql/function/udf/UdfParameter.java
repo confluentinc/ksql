@@ -30,7 +30,7 @@ public @interface UdfParameter {
   /**
    * The name of the parameter
    *
-   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    * @return parameter name.
    */
   String value();
@@ -38,7 +38,7 @@ public @interface UdfParameter {
   /**
    * The parameter description.
    *
-   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    * @return parameter description.
    */
   String description() default "";

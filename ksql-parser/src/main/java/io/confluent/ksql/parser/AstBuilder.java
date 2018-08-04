@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.parser;
 
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -24,29 +28,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
-import io.confluent.ksql.parser.tree.DescribeFunction;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.parser.tree.ShowFunctions;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -63,6 +44,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -82,6 +64,7 @@ import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -96,6 +79,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
+import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
@@ -117,6 +101,7 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -140,11 +125,23 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
+import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
-import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
@@ -411,10 +408,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final List<SelectItem> selectItems = new ArrayList<>();
     for (final SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        selectItems.addAll(getSelectStartItems(selectItem, from));
+        selectItems.addAll(getSelectStarItems(selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
-        selectItems.add((SingleColumn) selectItem);
+        selectItems.add(selectItem);
       } else {
         throw new IllegalArgumentException(
             "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -423,52 +420,41 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final Relation from) {
+  private List<SelectItem> getSelectStarItems(final SelectItem selectItem, final Relation from) {
     final List<SelectItem> selectItems = new ArrayList<>();
     final AllColumns allColumns = (AllColumns) selectItem;
 
+    final NodeLocation location = allColumns.getLocation().orElse(null);
     if (from instanceof Join) {
       final Join join = (Join) from;
-      final AliasedRelation left = (AliasedRelation) join.getLeft();
-      final StructuredDataSource
-          leftDataSource =
-          dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
-      if (leftDataSource == null) {
-        throw new InvalidColumnReferenceException(left.getRelation().toString()
-                                                  + " does not exist.");
-      }
-      final AliasedRelation right = (AliasedRelation) join.getRight();
-      final StructuredDataSource rightDataSource =
-          dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
-      if (rightDataSource == null) {
-        throw new InvalidColumnReferenceException(right.getRelation().toString()
-                                                  + " does not exist.");
-      }
-      for (final Field field : leftDataSource.getSchema().fields()) {
-        final QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(
-                allColumns.getLocation().get(),
-                QualifiedName.of(left.getAlias() + "." + field.name())
-            );
-        final SingleColumn newSelectItem =
-            new SingleColumn(
-                qualifiedNameReference,
-                left.getAlias() + "_" + field.name()
-            );
-        selectItems.add(newSelectItem);
-      }
-      for (final Field field : rightDataSource.getSchema().fields()) {
-        final QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(
-                allColumns.getLocation().get(),
-                QualifiedName.of(right.getAlias() + "." + field.name())
-            );
-        final SingleColumn newSelectItem =
-            new SingleColumn(
-                qualifiedNameReference,
-                right.getAlias() + "_" + field.name()
-            );
-        selectItems.add(newSelectItem);
+      if (allColumns.getPrefix().isPresent()) {
+        final String alias = allColumns.getPrefix().get().toString();
+        final StructuredDataSource source
+            = getDataSourceForAlias(join,
+            alias);
+        if (source == null) {
+          throw new InvalidColumnReferenceException("Source for alias '"
+            + allColumns.getPrefix().get() + "' doesn't exist");
+        }
+        addFieldsFromDataSource(selectItems, source, location, alias);
+      } else {
+        final AliasedRelation left = (AliasedRelation) join.getLeft();
+        final StructuredDataSource
+            leftDataSource =
+            dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
+        if (leftDataSource == null) {
+          throw new InvalidColumnReferenceException(left.getRelation().toString()
+              + " does not exist.");
+        }
+        final AliasedRelation right = (AliasedRelation) join.getRight();
+        final StructuredDataSource rightDataSource =
+            dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
+        if (rightDataSource == null) {
+          throw new InvalidColumnReferenceException(right.getRelation().toString()
+              + " does not exist.");
+        }
+        addFieldsFromDataSource(selectItems, leftDataSource, location, left.getAlias());
+        addFieldsFromDataSource(selectItems, rightDataSource, location, right.getAlias());
       }
     } else {
       final AliasedRelation fromRel = (AliasedRelation) from;
@@ -482,7 +468,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
       for (final Field field : fromDataSource.getSchema().fields()) {
         final QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+            new QualifiedNameReference(location, QualifiedName
                 .of(fromDataSource.getName() + "." + field.name()));
         final SingleColumn newSelectItem =
             new SingleColumn(qualifiedNameReference, field.name());
@@ -490,6 +476,42 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
     }
     return selectItems;
+  }
+
+  private void addFieldsFromDataSource(final List<SelectItem> selectItems,
+                                       final StructuredDataSource dataSource,
+                                       final NodeLocation location,
+                                       final String alias) {
+    for (final Field field : dataSource.getSchema().fields()) {
+      final QualifiedNameReference qualifiedNameReference =
+          new QualifiedNameReference(
+              location,
+              QualifiedName.of(alias + "." + field.name())
+          );
+      selectItems.add(new SingleColumn(
+          qualifiedNameReference,
+          alias + "_" + field.name()
+      ));
+    }
+  }
+
+  private StructuredDataSource getDataSourceForAlias(final Join join,
+                                                     final String alias) {
+    final AliasedRelation leftAliased = (AliasedRelation) join.getLeft();
+    final AliasedRelation rightAliased = (AliasedRelation) join.getRight();
+    if (leftAliased.getAlias().equalsIgnoreCase(alias)) {
+      return dataSourceExtractor
+          .getMetaStore()
+          .getSource(leftAliased.getRelation().toString());
+    } else if (rightAliased.getAlias().equalsIgnoreCase(alias)) {
+      return dataSourceExtractor
+          .getMetaStore()
+          .getSource(rightAliased.getRelation().toString());
+    }
+    throw new KsqlException("Invalid alias used in join: alias='"
+        + alias + "'. Available aliases '"
+        + leftAliased.getAlias() + "' and '"
+        + rightAliased.getAlias() + "'");
   }
 
   @Override

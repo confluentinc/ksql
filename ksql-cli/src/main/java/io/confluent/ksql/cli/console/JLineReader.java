@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.cli.console;
 
+import io.confluent.ksql.util.CliUtils;
+import java.io.IOException;
+import java.nio.file.Path;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -26,11 +29,6 @@ import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.file.Path;
-
-import io.confluent.ksql.util.CliUtils;
 
 public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 

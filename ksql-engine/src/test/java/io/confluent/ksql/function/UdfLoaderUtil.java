@@ -16,11 +16,9 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.test.TestUtils;
-
-import java.util.Optional;
-
 import io.confluent.ksql.metastore.MetaStore;
+import java.util.Optional;
+import org.apache.kafka.test.TestUtils;
 
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}

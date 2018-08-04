@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class FrameBound
     extends Node {

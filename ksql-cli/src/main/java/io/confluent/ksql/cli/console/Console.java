@@ -18,28 +18,6 @@ package io.confluent.ksql.cli.console;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jline.reader.EndOfFileException;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -72,6 +50,26 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.StringUtil;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.StringTokenizer;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.jline.reader.EndOfFileException;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class Console implements Closeable {
 
@@ -700,19 +698,21 @@ public abstract class Console implements Closeable {
 
   private void printFunctionDescription(final FunctionDescriptionList describeFunction) {
     final String functionName = describeFunction.getName().toUpperCase();
-    writer().printf("%-12s: %s%n", "Name", functionName);
+    final String baseFormat = "%-12s: %s%n";
+    final String subFormat = "\t%-12s: %s%n";
+    writer().printf(baseFormat, "Name", functionName);
     if (!describeFunction.getAuthor().trim().isEmpty()) {
-      writer().printf("%-12s: %s%n", "Author", describeFunction.getAuthor());
+      writer().printf(baseFormat, "Author", describeFunction.getAuthor());
     }
     if (!describeFunction.getVersion().trim().isEmpty()) {
-      writer().printf("%-12s: %s%n", "Version", describeFunction.getVersion());
+      writer().printf(baseFormat, "Version", describeFunction.getVersion());
     }
-    if (!describeFunction.getDescription().trim().isEmpty()) {
-      writer().printf("%-12s: %s%n", "Overview", describeFunction.getDescription());
-    }
-    writer().printf("%-12s: %s%n", "Type", describeFunction.getType().name());
-    writer().printf("%-12s: %s%n", "Jar", describeFunction.getPath());
-    writer().printf("%-12s: %n", "Variations");
+
+    printDescription(baseFormat, "Overview", describeFunction.getDescription());
+
+    writer().printf(baseFormat, "Type", describeFunction.getType().name());
+    writer().printf(baseFormat, "Jar", describeFunction.getPath());
+    writer().printf(baseFormat, "Variations", "");
     final Collection<FunctionInfo> functions = describeFunction.getFunctions();
     functions.forEach(functionInfo -> {
           final String arguments = functionInfo.getArguments().stream()
@@ -722,16 +722,58 @@ public abstract class Console implements Closeable {
               .collect(Collectors.joining(", "));
 
           writer().printf("%n\t%-12s: %s(%s)%n", "Variation", functionName, arguments);
-          writer().printf("\t%-12s: %s%n", "Returns", functionInfo.getReturnType());
-          if (!functionInfo.getDescription().trim().isEmpty()) {
-            writer().printf("\t%-12s: %s%n", "Description", functionInfo.getDescription());
-          }
 
-          functionInfo.getArguments().stream()
-              .filter(a -> !a.getDescription().trim().isEmpty())
-              .forEach(a -> writer().printf("\t%-12s: %s%n", a.getName(), a.getDescription()));
+          writer().printf(subFormat, "Returns", functionInfo.getReturnType());
+          printDescription(subFormat, "Description", functionInfo.getDescription());
+          functionInfo.getArguments()
+              .forEach(a -> printDescription(subFormat, a.getName(), a.getDescription()));
         }
     );
+  }
+
+  private void printDescription(final String format, final String name, final String description) {
+    final String trimmed = description.trim();
+    if (trimmed.isEmpty()) {
+      return;
+    }
+
+    final int labelLen = String.format(format.replace("%n", ""), name, "")
+        .replace("\t", "  ")
+        .length();
+
+    final int width = Math.max(getWidth(), 80) - labelLen;
+
+    final String fixedWidth = splitLongLine(trimmed, width);
+
+    final String indent = String.format("%-" + labelLen + "s", "");
+
+    final String result = fixedWidth
+        .replace(System.lineSeparator(), System.lineSeparator() + indent);
+
+    writer().printf(format, name, result);
+  }
+
+  private static String splitLongLine(final String input, final int maxLineLength) {
+    final StringTokenizer spaceTok = new StringTokenizer(input, " \n", true);
+    final StringBuilder output = new StringBuilder(input.length());
+    int lineLen = 0;
+    while (spaceTok.hasMoreTokens()) {
+      final String word = spaceTok.nextToken();
+      final boolean isNewLineChar = word.equals("\n");
+
+      if (isNewLineChar || lineLen + word.length() > maxLineLength) {
+        output.append(System.lineSeparator());
+        lineLen = 0;
+
+        if (isNewLineChar) {
+          continue;
+        }
+      }
+
+      output.append(word);
+      lineLen += word.length();
+    }
+    return output.toString();
   }
 
   private void printAsJson(final Object o) throws IOException {

@@ -15,16 +15,15 @@
  **/
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
 
 
 public class PlanTestUtil {

@@ -17,18 +17,6 @@
 package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
-
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -49,13 +37,20 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
-
-  private final Schema schema;
-  private final FunctionRegistry functionRegistry;
-  private final ExpressionTypeManager expressionTypeManager;
 
   public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
@@ -64,14 +59,25 @@ public class CodeGenRunner {
       "java.util.List",
       "java.util.ArrayList");
 
-  public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
+  private final Schema schema;
+  private final FunctionRegistry functionRegistry;
+  private final ExpressionTypeManager expressionTypeManager;
+  private final KsqlConfig ksqlConfig;
+
+  public CodeGenRunner(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
     this.schema = schema;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public Set<ParameterType> getParameterInfo(final Expression expression) {
-    Visitor visitor = new Visitor(schema, functionRegistry, expressionTypeManager);
+    final Visitor visitor =
+        new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
+
     visitor.process(expression, null);
     return visitor.parameters;
   }
@@ -112,20 +118,23 @@ public class CodeGenRunner {
     return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
-  private static class Visitor extends AstVisitor<Object, Object> {
+  private static final class Visitor extends AstVisitor<Object, Object> {
 
     private final Schema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
+    private final KsqlConfig ksqlConfig;
 
     private int functionCounter = 0;
 
-    Visitor(
+    private Visitor(
         final Schema schema,
         final FunctionRegistry functionRegistry,
-        final ExpressionTypeManager expressionTypeManager) {
+        final ExpressionTypeManager expressionTypeManager,
+        final KsqlConfig ksqlConfig) {
       this.schema = schema;
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
       this.expressionTypeManager = expressionTypeManager;
@@ -134,7 +143,7 @@ public class CodeGenRunner {
     private void addParameter(final Field schemaField) {
       parameters.add(new ParameterType(
           SchemaUtil.getJavaType(schemaField.schema()),
-          schemaField.name().replace(".", "_")));
+          schemaField.name().replace(".", "_"), ksqlConfig));
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -154,7 +163,7 @@ public class CodeGenRunner {
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
       parameters.add(new ParameterType(function,
-          node.getName().getSuffix() + "_" + functionNumber));
+          node.getName().getSuffix() + "_" + functionNumber, ksqlConfig));
       return null;
     }
 
@@ -243,26 +252,35 @@ public class CodeGenRunner {
 
   }
 
-  public static class ParameterType {
+  public static final class ParameterType {
     private final Class type;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;
     private final String name;
+    private final KsqlConfig ksqlConfig;
 
-    ParameterType(final Class type, final String name) {
-      this(null, Objects.requireNonNull(type, "type can't be null"), name);
+    private ParameterType(final Class type, final String name, final KsqlConfig ksqlConfig) {
+      this(null, Objects.requireNonNull(type, "type can't be null"), name, ksqlConfig);
     }
 
-    ParameterType(final KsqlFunction function, final String name) {
+    private ParameterType(
+        final KsqlFunction function,
+        final String name,
+        final KsqlConfig ksqlConfig) {
       this(Objects.requireNonNull(function, "function can't be null"),
           function.getKudfClass(),
-          name);
+          name, ksqlConfig);
     }
 
-    private ParameterType(final KsqlFunction function, final Class type, final String name) {
+    private ParameterType(
+        final KsqlFunction function,
+        final Class type,
+        final String name,
+        final KsqlConfig ksqlConfig) {
       this.function = Optional.ofNullable(function);
-      this.type = type;
-      this.name = Objects.requireNonNull(name);
+      this.type = Objects.requireNonNull(type, "type");
+      this.name = Objects.requireNonNull(name, "name");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
     public Class getType() {
@@ -274,7 +292,7 @@ public class CodeGenRunner {
     }
 
     public Kudf getKudf() {
-      return function.map(KsqlFunction::newInstance).orElse(null);
+      return function.map(f -> f.newInstance(ksqlConfig)).orElse(null);
     }
 
     @Override

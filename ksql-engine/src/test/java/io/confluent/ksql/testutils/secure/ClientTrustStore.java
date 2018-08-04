@@ -17,12 +17,10 @@
 package io.confluent.ksql.testutils.secure;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.apache.kafka.common.config.SslConfigs;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.common.config.SslConfigs;
 
 /**
  * Helper for creating a client trust store to enable SSL in tests.

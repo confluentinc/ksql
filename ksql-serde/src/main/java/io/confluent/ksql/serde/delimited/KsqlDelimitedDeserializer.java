@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
 
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 

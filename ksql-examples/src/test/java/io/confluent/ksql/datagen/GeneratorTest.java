@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.datagen;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static io.confluent.ksql.datagen.util.ResourceUtil.getResourceRoot;
+import static io.confluent.ksql.datagen.util.ResourceUtil.loadContent;
 
+import io.confluent.avro.random.generator.Generator;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,11 +27,9 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.confluent.avro.random.generator.Generator;
-
-import static io.confluent.ksql.datagen.util.ResourceUtil.getResourceRoot;
-import static io.confluent.ksql.datagen.util.ResourceUtil.loadContent;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class GeneratorTest {

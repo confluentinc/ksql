@@ -1,8 +1,7 @@
 package io.confluent.ksql.cli.console;
 
-import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,9 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
+import org.junit.Test;
 
 public class JLineReaderTest {
 

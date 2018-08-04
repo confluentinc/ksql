@@ -17,9 +17,8 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class TestDataProvider {
   final String topicName;

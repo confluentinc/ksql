@@ -16,15 +16,21 @@
 
 package io.confluent.ksql.rest.client;
 
-import com.google.common.collect.Maps;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
-import org.apache.commons.compress.utils.IOUtils;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
-
+import com.google.common.collect.Maps;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,25 +46,14 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
-
 import javax.naming.AuthenticationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import org.apache.commons.compress.utils.IOUtils;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
 

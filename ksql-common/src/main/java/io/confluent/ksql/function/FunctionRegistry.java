@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public interface FunctionRegistry {
 
@@ -26,7 +25,7 @@ public interface FunctionRegistry {
 
   void addFunction(KsqlFunction ksqlFunction);
 
-  boolean addFunctionFactory(final UdfFactory factory);
+  boolean addFunctionFactory(UdfFactory factory);
 
   boolean isAggregate(String functionName);
 

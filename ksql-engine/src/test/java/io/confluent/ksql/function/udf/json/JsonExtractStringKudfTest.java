@@ -16,17 +16,15 @@
 
 package io.confluent.ksql.function.udf.json;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.udf.KudfTester;
-import io.confluent.ksql.function.KsqlFunctionException;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.KudfTester;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class JsonExtractStringKudfTest {
   private final String JSON_DOC = "{"

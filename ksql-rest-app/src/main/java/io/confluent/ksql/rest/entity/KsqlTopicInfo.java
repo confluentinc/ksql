@@ -20,11 +20,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
-import java.util.Objects;
-
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.DataSource;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})

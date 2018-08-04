@@ -17,36 +17,26 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.config.ConfigException;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericRow;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConstants;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked")
 public class StringTimestampExtractorTest {
 
-  private final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor();
   private final String format = "yyyy-MMM-dd";
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldExtractTimestampFromStringWIthFormat() throws ParseException {
-    final Map props = new HashMap() {{
-      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, format);
-      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
-    }};
-    timestampExtractor.configure(props);
+  public void shouldExtractTimestampFromStringWithFormat() throws ParseException {
+    final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor(format, 0);
+
     final String stringTime = "2010-Jan-11";
     final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
     final long actualTime = timestampExtractor.extract(new ConsumerRecord("topic",
@@ -57,37 +47,15 @@ public class StringTimestampExtractorTest {
     assertThat(actualTime, equalTo(expectedTime));
   }
 
-  @Test(expected = ConfigException.class)
-  public void shouldThrowIfFormatNotSuppliedDuringConfigure() {
-    timestampExtractor.configure(Collections.singletonMap(
-        KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX,
-        0));
-  }
-
-  @Test(expected = ConfigException.class)
-  public void shouldThrowIfColumnIndexNotSet() {
-    timestampExtractor.configure(Collections.singletonMap(
-        KsqlConstants.STRING_TIMESTAMP_FORMAT,
-        format));
-  }
-
-  @Test(expected = ConfigException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfColumnIndexIsNegative() {
-    final Map props = new HashMap() {{
-      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, format);
-      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, -1);
-    }};
-    timestampExtractor.configure(props);
+    new StringTimestampExtractor(format, -1);
   }
+
 
   @SuppressWarnings("unchecked")
-  @Test(expected = ConfigException.class)
-  public void shouldThrowOnInvalidFormat() {
-    final Map props = new HashMap() {{
-      put(KsqlConstants.STRING_TIMESTAMP_FORMAT, "lahdfl");
-      put(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
-    }};
-    timestampExtractor.configure(props);
-
+  @Test(expected = NullPointerException.class)
+  public void shouldThrowOnNullFormat() {
+    new StringTimestampExtractor(null, -1);
   }
 }

@@ -168,12 +168,29 @@ public class SchemaKStream {
         return fromStream.getKeyField();
       }
       for (int i = 0; i < expressionPairList.size(); i++) {
-        String toName = expressionPairList.get(i).left;
-        Expression toExpression = expressionPairList.get(i).right;
+        final String toName = expressionPairList.get(i).left;
+        final Expression toExpression = expressionPairList.get(i).right;
 
+        /*
+         * Sometimes a column reference is a DereferenceExpression, and sometimes its
+         * a QualifiedNameReference. We have an issue
+         * (https://github.com/confluentinc/ksql/issues/1695)
+         * to track cleaning this up and using DereferenceExpression for all column references.
+         * Until then, we have to check for both here.
+         */
         if (toExpression instanceof DereferenceExpression) {
-          String fromName = ((DereferenceExpression) toExpression).getFieldName();
-          if (fromStream.getKeyField().name().equals(fromName)) {
+          final DereferenceExpression dereferenceExpression
+              = (DereferenceExpression) toExpression;
+          if (SchemaUtil.matchFieldName(
+              fromStream.getKeyField(), dereferenceExpression.toString())) {
+            return new Field(toName, i, fromStream.getKeyField().schema());
+          }
+        } else if (toExpression instanceof QualifiedNameReference) {
+          final QualifiedNameReference qualifiedNameReference
+              = (QualifiedNameReference) toExpression;
+          if (SchemaUtil.matchFieldName(
+              fromStream.getKeyField(),
+              qualifiedNameReference.getName().getSuffix())) {
             return new Field(toName, i, fromStream.getKeyField().schema());
           }
         }

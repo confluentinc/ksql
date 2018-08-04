@@ -190,6 +190,23 @@ public class SchemaKStreamTest {
   }
 
   @Test
+  public void shouldPreserveKeyOnSelectStar() {
+    String selectQuery = "SELECT * FROM test1;";
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry, schemaRegistryClient);
+
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    assertThat(
+        projectedSchemaKStream.getKeyField(),
+        equalTo(new Field("COL0", 2, Schema.OPTIONAL_INT64_SCHEMA)));
+  }
+
+  @Test
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
     String selectQuery = "SELECT col2, col0, col3 FROM test1;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);

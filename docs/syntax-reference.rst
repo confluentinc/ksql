@@ -113,6 +113,7 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
 - SET, UNSET statements
+- INSERT INTO statement
 
 It does not support statements such as:
 

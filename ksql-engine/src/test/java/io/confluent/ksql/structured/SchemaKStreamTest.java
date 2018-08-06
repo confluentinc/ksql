@@ -194,10 +194,14 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT * FROM test1;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+    initialSchemaKStream = new SchemaKStream(
+        logicalPlan.getTheSourceNode().getSchema(),
+        kStream,
+        ksqlStream.getKeyField(),
+        new ArrayList<>(),
+        SchemaKStream.Type.SOURCE,
+        functionRegistry,
+        new MockSchemaRegistryClient());
 
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);

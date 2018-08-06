@@ -29,6 +29,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -61,7 +62,8 @@ public class KsqlContext {
       final SchemaRegistryClient schemaRegistryClient,
       final KafkaClientSupplier clientSupplier
   ) {
-
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
+    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient cannot be null.");
     final KafkaTopicClient kafkaTopicClient = new
         KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());

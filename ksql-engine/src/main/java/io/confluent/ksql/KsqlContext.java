@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +42,7 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
-  public static KsqlContext create(KsqlConfig ksqlConfig) {
+  public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
         new CachedSchemaRegistryClient(
@@ -51,26 +50,17 @@ public class KsqlContext {
   }
 
   public static KsqlContext create(
-      KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
   }
 
   public static KsqlContext create(
-      KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient,
-      KafkaClientSupplier clientSupplier
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaClientSupplier clientSupplier
   ) {
-    if (ksqlConfig == null) {
-      ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    }
-    if (!ksqlConfig.getKsqlStreamConfigProps().containsKey(
-        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(
-          Collections.singletonMap(
-              StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
-    }
 
     final KafkaTopicClient kafkaTopicClient = new
         KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());

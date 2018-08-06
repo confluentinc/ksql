@@ -1,13 +1,12 @@
 package io.confluent.ksql.metrics;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collection;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Test;
-
-import java.util.Collection;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
 
 @SuppressWarnings("unchecked")
 public class ProducerCollectorTest {

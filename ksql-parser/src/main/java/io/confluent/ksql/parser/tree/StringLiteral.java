@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.airlift.slice.Slice;
-
-import java.util.Objects;
-import java.util.Optional;
-
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.util.Objects.requireNonNull;
+
+import io.airlift.slice.Slice;
+import java.util.Objects;
+import java.util.Optional;
 
 public class StringLiteral
     extends Literal {

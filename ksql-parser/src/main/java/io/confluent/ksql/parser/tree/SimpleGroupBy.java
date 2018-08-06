@@ -16,19 +16,17 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import io.confluent.ksql.parser.ExpressionFormatter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.collect.Iterables.getOnlyElement;
-import static java.util.Objects.requireNonNull;
 
 public class SimpleGroupBy
     extends GroupingElement {

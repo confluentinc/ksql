@@ -17,9 +17,6 @@
 package io.confluent.ksql.parser.rewrite;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Objects;
-
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -32,6 +29,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
+import java.util.Objects;
 
 public class StatementRewriteForStruct {
 

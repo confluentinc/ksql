@@ -18,11 +18,9 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import io.confluent.ksql.util.Pair;
 import java.util.Iterator;
 import java.util.Optional;
-
-import io.confluent.ksql.util.Pair;
 
 public final class ExpressionTreeRewriter<C> {
 

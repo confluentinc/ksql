@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import javax.annotation.concurrent.Immutable;
-
-import static java.util.Objects.requireNonNull;
 
 @Immutable
 public class PlanNodeId {

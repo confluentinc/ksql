@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import java.util.Objects;
-
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
@@ -27,6 +25,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;

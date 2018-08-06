@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Set;
-
 import io.confluent.ksql.util.Pair;
+import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>
     extends AstVisitor<R, C> {

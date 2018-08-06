@@ -16,8 +16,21 @@
 
 package io.confluent.ksql.planner.plan;
 
-import junit.framework.AssertionFailedError;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Map;
+import java.util.Optional;
+import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -26,22 +39,6 @@ import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.util.Map;
-import java.util.Optional;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @RunWith(EasyMockRunner.class)

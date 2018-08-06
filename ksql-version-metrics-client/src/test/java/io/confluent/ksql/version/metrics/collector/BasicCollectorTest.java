@@ -16,22 +16,20 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import static org.junit.Assert.assertEquals;
-
-import java.util.Collection;
-import java.util.EnumSet;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.Clock;
 import io.confluent.support.metrics.common.time.TimeUtils;
+import java.util.Collection;
+import java.util.EnumSet;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class BasicCollectorTest {

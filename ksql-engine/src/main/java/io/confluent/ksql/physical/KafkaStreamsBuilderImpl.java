@@ -14,13 +14,12 @@
 
 package io.confluent.ksql.physical;
 
+import java.util.Objects;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-
-import java.util.Objects;
 
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
 

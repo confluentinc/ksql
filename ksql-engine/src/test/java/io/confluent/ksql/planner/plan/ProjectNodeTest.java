@@ -16,16 +16,8 @@
 
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -37,9 +29,15 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class ProjectNodeTest {
 

@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.metrics;
 
+import java.util.Collection;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-
-import java.util.Collection;
-import java.util.Map;
 
 interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
   default ConsumerRecords onConsume(ConsumerRecords consumerRecords) {

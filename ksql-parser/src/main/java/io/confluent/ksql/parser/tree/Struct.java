@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import io.confluent.ksql.util.Pair;
-
-import static java.util.Objects.requireNonNull;
 
 public final class Struct
     extends Type {

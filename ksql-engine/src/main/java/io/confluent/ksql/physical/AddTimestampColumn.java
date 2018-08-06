@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
-
-import io.confluent.ksql.GenericRow;
 
 public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, GenericRow> {
   @Override

@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import org.apache.avro.generic.GenericContainer;
-
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.TimeUtils;
+import org.apache.avro.generic.GenericContainer;
 
 public class BasicCollector extends Collector {
 

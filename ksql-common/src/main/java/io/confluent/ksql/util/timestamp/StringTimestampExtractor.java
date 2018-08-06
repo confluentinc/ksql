@@ -17,14 +17,11 @@
 package io.confluent.ksql.util.timestamp;
 
 import com.google.common.base.Preconditions;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.streams.processor.TimestampExtractor;
-
-import java.util.Objects;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public class StringTimestampExtractor implements TimestampExtractor {
   private final StringToTimestampParser timestampParser;

@@ -16,14 +16,12 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-
-import java.util.Collections;
-
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 

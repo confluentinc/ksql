@@ -1,4 +1,16 @@
 package io.confluent.ksql.function.udaf;
+
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.TableAggregationFunction;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
@@ -9,19 +21,6 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.udaf.Udaf;
-import io.confluent.ksql.function.udaf.TableUdaf;
-import io.confluent.ksql.function.TableAggregationFunction;
 
 /**
  * This is the template used to generate UDAF classes that are built from

@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.util;
 
-import org.junit.Test;
-
-import java.net.ConnectException;
-import java.sql.SQLDataException;
-
 import static io.confluent.ksql.util.ErrorMessageUtil.buildErrorMessage;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.net.ConnectException;
+import java.sql.SQLDataException;
+import org.junit.Test;
 
 public class ErrorMessageUtilTest {
 

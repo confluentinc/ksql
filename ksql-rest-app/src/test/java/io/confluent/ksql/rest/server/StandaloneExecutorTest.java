@@ -16,24 +16,22 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.test.TestUtils;
-import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.eq;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.eq;
+import org.apache.kafka.test.TestUtils;
+import org.easymock.EasyMock;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StandaloneExecutorTest {
 

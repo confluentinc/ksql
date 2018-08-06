@@ -16,8 +16,13 @@
 
 package io.confluent.ksql;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -39,7 +44,10 @@ public class KsqlContext {
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
   public static KsqlContext create(KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, null);
+    return create(
+        ksqlConfig,
+        new CachedSchemaRegistryClient(
+            KsqlConfig.defaultSchemaRegistryUrl, 1000));
   }
 
   public static KsqlContext create(
@@ -64,7 +72,15 @@ public class KsqlContext {
               StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
     }
 
-    final KsqlEngine engine = new KsqlEngine(ksqlConfig);
+    final KafkaTopicClient kafkaTopicClient = new
+        KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final KsqlEngine engine = new KsqlEngine(
+        kafkaTopicClient,
+        schemaRegistryClient,
+        clientSupplier,
+        metaStore,
+        ksqlConfig);
 
     return new KsqlContext(ksqlConfig, engine);
   }

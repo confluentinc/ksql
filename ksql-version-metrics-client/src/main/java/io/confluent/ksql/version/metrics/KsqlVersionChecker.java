@@ -31,12 +31,16 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
+      String threadName,
+      boolean isDaemon,
       BaseSupportConfig ksqlVersionCheckerConfig,
       Runtime serverRuntime,
       KsqlModuleType moduleType,
       boolean enableSettlingTime
   ) {
     super(
+        threadName,
+        isDaemon,
         ksqlVersionCheckerConfig,
         null,
         new KsqlVersionCheckerResponseHandler(),

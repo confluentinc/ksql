@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.metastore;
 
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;

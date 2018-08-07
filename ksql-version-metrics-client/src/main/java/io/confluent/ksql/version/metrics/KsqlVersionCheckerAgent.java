@@ -28,8 +28,6 @@ import io.confluent.support.metrics.PhoneHomeConfig;
 
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
-  private Thread versionCheckerThread;
-
   private KsqlVersionChecker ksqlVersionChecker;
 
   private boolean enableSettlingTime;
@@ -55,16 +53,19 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
         ksqlVersionChecker =
             new KsqlVersionChecker(
+                "KsqlVersionCheckerAgent",
+                true,
                 ksqlVersionCheckerConfig,
                 serverRuntime,
                 moduleType,
                 enableSettlingTime
             );
         ksqlVersionChecker.init();
-        versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
+        ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
+            -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
+        ksqlVersionChecker.start();
         long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
         long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
-        versionCheckerThread.start();
         // We log at WARN level to increase the visibility of this information.
         log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
 
@@ -76,14 +77,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
     } else {
       log.warn(legalDisclaimerProactiveSupportDisabled());
     }
-  }
-
-  private static Thread newThread(String name, Runnable runnable) {
-    Thread thread = new Thread(runnable, name);
-    thread.setDaemon(true);
-    thread.setUncaughtExceptionHandler((t, e)
-        -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
-    return thread;
   }
 
   private static String legalDisclaimerProactiveSupportEnabled(long reportIntervalHours) {

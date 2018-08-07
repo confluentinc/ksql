@@ -172,5 +172,5 @@ if [ "x$DAEMON_MODE" = "xtrue" ]; then
   echo "Writing console output to $DAEMON_STDOUT_FILE"
   nohup "$JAVA" -cp "$KSQL_CLASSPATH" "${OPTIONS[@]}" "$MAIN" "$@" 2>&1 < /dev/null > "$DAEMON_STDOUT_FILE" &
 else
-  exec "$JAVA" -cp "$KSQL_CLASSPATH" "${OPTIONS[@]}" "$MAIN" "$@"
+  exec "$JAVA" -cp "$KSQL_CLASSPATH" -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=4000,suspend=n "${OPTIONS[@]}" "$MAIN" "$@"
 fi

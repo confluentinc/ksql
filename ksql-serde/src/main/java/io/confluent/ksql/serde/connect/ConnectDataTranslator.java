@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +46,37 @@ public class ConnectDataTranslator implements DataTranslator {
     if (!schema.type().equals(Schema.Type.STRUCT)) {
       throw new KsqlException("Schema for a KSQL row should be a struct");
     }
+
+
+
+
     final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData, "");
+
+    System.out.printf("ROW STRUCT: %s", rowStruct == null ? "FUCK" :  rowStruct.toString());
+
+
     if (rowStruct == null) {
       return null;
     }
-    return new GenericRow(
-        schema.fields()
-            .stream()
-            .map(f -> rowStruct.get(f.name()))
-            .collect(Collectors.toList())
-    );
+
+    GenericRow result = null;
+
+    try {
+      result = new GenericRow(
+              schema.fields()
+                      .stream()
+                      .map(f -> rowStruct.get(f.name()))
+                      .collect(Collectors.toList())
+      );
+    } catch (Exception ex) {
+       ex.printStackTrace();
+    }
+
+    System.out.printf("RETURNING ROW: %s", result == null ? "null" : result.toString());
+
+    return result == null ?
+            new GenericRow(schema.fields().stream().map(x -> "N/A").collect(Collectors.toList()))
+            : result;
   }
 
   private RuntimeException createTypeMismatchException(final String pathStr,
@@ -114,6 +136,7 @@ public class ConnectDataTranslator implements DataTranslator {
   }
 
   private Object maybeConvertLogicalType(final Schema connectSchema, final Object connectValue) {
+    System.out.printf("CONVERTING VALUE WITH SCHEMA [%s]: %s\n", connectSchema.name(), connectValue == null ? "FUCK" : connectValue.toString());
     if (connectSchema.name() == null) {
       return connectValue;
     }
@@ -145,6 +168,8 @@ public class ConnectDataTranslator implements DataTranslator {
       return null;
     }
     final Object convertedValue = maybeConvertLogicalType(connectSchema, connectValue);
+    System.out.printf("CONVERTED VALUE: %s WITH SCHEMA [%s]\n", connectValue, schema.type());
+
     switch (schema.type()) {
       case INT64:
         return ((Number) convertedValue).longValue();
@@ -160,9 +185,11 @@ public class ConnectDataTranslator implements DataTranslator {
             schema.keySchema(), connectSchema.keySchema(),
             schema.valueSchema(), connectSchema.valueSchema(), (Map) convertedValue, pathStr);
       case STRUCT:
+        System.out.printf("CREATING STRUCT ...[%s]\n", pathStr);
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
       case STRING:
         // use String.valueOf to convert various int types and Boolean to string
+        System.out.printf("CONVERTED VALUE IS STRING: %s\n", String.valueOf(convertedValue));
         return String.valueOf(convertedValue);
       default:
         return convertedValue;
@@ -202,17 +229,56 @@ public class ConnectDataTranslator implements DataTranslator {
                               final String pathStr) {
     // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
+
+    Struct newConnectStruct = connectStruct;
+    Schema newConnectSchema = connectSchema;
+    if(connectSchema.name() == "io.confluent.connect.avro.Union") {
+      Field innerField = connectSchema.fields().stream().filter(f -> connectStruct.getStruct(f.name()) != null)
+              .findFirst()
+              .get();
+      newConnectStruct = connectStruct.getStruct(innerField.name());
+      newConnectSchema = innerField.schema();
+      //new Field()
+    }
+
+    System.out.printf("TO KSQL STRUCT STARTING... [%s]\n", newConnectSchema.schema().name());
+
     final Map<String, String> caseInsensitiveFieldNameMap
-        = getCaseInsensitiveFieldMap(connectStruct.schema());
+        = getCaseInsensitiveFieldMap(newConnectSchema.schema());
+
+    System.out.println("FIELDS IN MAP: ");
+    for(String f: caseInsensitiveFieldNameMap.keySet()) {
+      System.out.println(f + " -> " + caseInsensitiveFieldNameMap.getOrDefault(f, "FUCK"));
+    }
+
+    System.out.println("SCHEMA FIELDS:");
+    schema.fields().stream().forEach(f -> System.out.printf("%s [%s]\n", f.name(), f.schema().type()));
+
+
+
+
     for (Field field : schema.fields()) {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema
+
+      System.out.printf("LOOKING FOR FIELD [%s] IN STRUCT [%s][%s]\n",
+              fieldNameUppercase,
+              newConnectStruct == null ? "N/A" : newConnectStruct.toString(),
+              caseInsensitiveFieldNameMap.containsKey(fieldNameUppercase)
+      );
+
       if (caseInsensitiveFieldNameMap.containsKey(fieldNameUppercase)) {
-        final Object fieldValue = connectStruct.get(
-            caseInsensitiveFieldNameMap.get(fieldNameUppercase));
-        final Schema fieldSchema = connectSchema.field(
-            caseInsensitiveFieldNameMap.get(fieldNameUppercase)).schema();
+        String fieldName = caseInsensitiveFieldNameMap.get(fieldNameUppercase);
+        Object fieldValue = null;
+        try {
+          fieldValue = newConnectSchema.field(fieldName) == null ? null : newConnectStruct.get(fieldName);
+        } catch (Exception ex) { ex.printStackTrace(); }
+
+        final Schema fieldSchema =  newConnectSchema.field(fieldName) != null ?
+                newConnectSchema.field(fieldName).schema() :
+                schema.field(fieldNameUppercase).schema();
+
         ksqlStruct.put(
             field.name(),
             toKsqlValue(
@@ -222,6 +288,14 @@ public class ConnectDataTranslator implements DataTranslator {
                 pathStr + PATH_SEPARATOR + field.name()));
       }
     }
+
+
+    //schema.fields().add(new Field("ROWTYPE", schema.fields().size(),  SchemaBuilder.STRING_SCHEMA));
+    //ConnectSchema s = (ConnectSchema)newConnectSchema.schema();
+    //new ConnectSchema(s.type(), s.isOptional(), s.defaultValue(), s.name(), s.version(), s.doc(), s.parameters(), s.fields(), s.keySchema(), s.valueSchema());
+
+    System.out.printf("RESULT STRUCT: %s\n", ksqlStruct);
+
     return ksqlStruct;
   }
 

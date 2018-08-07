@@ -204,7 +204,7 @@ public class KsqlEngineMetrics implements Closeable {
 
   private Sensor configureIdleQueriesSensor(Metrics metrics) {
     Sensor sensor = createSensor(metrics, "num-idle-queries");
-    sensor.add(metrics.metricName("num-idle-queries", this.metricGroupName), new Value());
+    sensor.add(metrics.metricName(ksqlServiceId + "num-idle-queries", this.metricGroupName), new Value());
     return sensor;
   }
 

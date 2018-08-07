@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Schema;
 
 public class AvroSchemaTranslator extends ConnectSchemaTranslator {
 

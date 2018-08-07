@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.rest.client;
 
-import java.util.Objects;
-
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import java.util.Objects;
 
 // Don't tell anybody, but this is basically Haskell's Either datatype...
 // I swear it seemed like the best way to do things

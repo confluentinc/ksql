@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.parser;
 
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -68,14 +71,10 @@ import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
-
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
 public final class ExpressionFormatter {
 

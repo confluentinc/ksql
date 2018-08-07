@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.TopicDescription;
-
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.admin.TopicDescription;
 
 public interface KafkaTopicClient extends Closeable {
 

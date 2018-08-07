@@ -1,15 +1,14 @@
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import org.junit.Test;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import org.junit.Test;
 
 public class KsqlExceptionMapperTest {
   KsqlExceptionMapper exceptionMapper = new KsqlExceptionMapper();

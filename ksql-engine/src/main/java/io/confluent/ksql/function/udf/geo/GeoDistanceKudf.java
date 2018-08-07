@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.function.udf.geo;
 
-import java.util.List;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
+import java.util.List;
 
 /**
  * Compute the distance between two points on the surface of the earth, according to the Haversine

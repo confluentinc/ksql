@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import javax.annotation.concurrent.Immutable;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class Extract

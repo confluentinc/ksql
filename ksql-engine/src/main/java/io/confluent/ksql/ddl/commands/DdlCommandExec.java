@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Execute DDL Commands

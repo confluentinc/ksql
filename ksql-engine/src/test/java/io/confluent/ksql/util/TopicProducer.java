@@ -16,13 +16,9 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -30,10 +26,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.connect.data.Schema;
 
 public class TopicProducer {
 

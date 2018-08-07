@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.Kudf;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
 
 public class TimestampToString implements Kudf {
 

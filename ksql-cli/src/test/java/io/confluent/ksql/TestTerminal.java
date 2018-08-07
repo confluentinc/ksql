@@ -18,14 +18,12 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.OutputFormat;
-
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
 
 public class TestTerminal extends Console {
 

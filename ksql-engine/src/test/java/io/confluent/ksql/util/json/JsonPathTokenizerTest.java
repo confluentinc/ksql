@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.util.json;
 
-
-import com.google.common.collect.ImmutableList;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.List;
+import org.junit.Test;
 
 public class JsonPathTokenizerTest {
 

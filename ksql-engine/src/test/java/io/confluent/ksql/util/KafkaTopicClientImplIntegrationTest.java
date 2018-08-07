@@ -16,8 +16,20 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -28,21 +40,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {

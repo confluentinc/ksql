@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.base.Preconditions;
-
-import java.util.Objects;
-import java.util.Optional;
-
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
+
+import com.google.common.base.Preconditions;
+import java.util.Objects;
+import java.util.Optional;
 
 public class BooleanLiteral
     extends Literal {

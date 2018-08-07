@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import java.util.Map;
 import java.util.Set;
-
-import io.confluent.ksql.function.FunctionRegistry;
 
 public interface MetaStore extends FunctionRegistry {
 

@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.metastore;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class StructuredDataSource implements DataSource {
 

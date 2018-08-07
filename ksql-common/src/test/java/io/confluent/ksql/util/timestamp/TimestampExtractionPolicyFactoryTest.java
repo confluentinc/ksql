@@ -17,15 +17,14 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Test;
-
-import io.confluent.ksql.util.KsqlException;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
+import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Test;
 
 public class TimestampExtractionPolicyFactoryTest {
 

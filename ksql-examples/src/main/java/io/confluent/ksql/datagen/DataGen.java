@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.datagen;
 
+import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,9 +27,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
-
-import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.util.KsqlConfig;
 
 public final class DataGen {
 

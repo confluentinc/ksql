@@ -112,7 +112,7 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
-- SET statement
+- SET, UNSET statements
 
 It does not support statements such as:
 
@@ -317,8 +317,8 @@ CREATE STREAM AS SELECT
     CREATE STREAM stream_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
-      [ LEFT JOIN join_table ON join_criteria ]
+      FROM from_stream
+      [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
       [ WHERE condition ]
       [PARTITION BY column_name];
 
@@ -389,7 +389,8 @@ CREATE TABLE AS SELECT
     CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
+      FROM from_table
+      [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
@@ -647,13 +648,23 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
+    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
 
 **Description**
 
 Print the contents of Kafka topics to the KSQL CLI.
 
 .. important:: SQL grammar defaults to uppercase formatting. You can use quotations (``"``) to print topics that contain lowercase characters.
+
+The PRINT statement supports the following properties:
+
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                                      |
++=========================+==================================================================================================================+
+| FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:
 
@@ -919,6 +930,53 @@ they are explicitly terminated.
 
 .. _operators:
 
+=========
+Operators
+=========
+
+KSQL supports the following operators in value expressions:
+
+The explanation for each operator includes a supporting example based on the following table:
+
+.. code:: sql
+
+  CREATE TABLE USERS (
+      USERID BIGINT
+      FIRST_NAME STRING,
+      LAST_NAME STRING,
+      NICKNAMES ARRAY<STRING>,
+      ADDRESS STRUCT<STREET_NAME STRING, NUMBER INTEGER>
+  ) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO', KEY='USERID');
+
+- Arithmetic (``+,-,/,*,%``) The usual arithmetic operators may be applied to numeric types
+  (INT, BIGINT, DOUBLE)
+
+.. code:: sql
+
+  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
+
+- Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
+
+.. code:: sql
+
+  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
+
+- Source Dereference (``.``) The source dereference operator can be used to specify columns
+  by dereferencing the source stream or table.
+
+.. code:: sql
+
+  SELECT USERS.FIRST_NAME FROM USERS;
+
+- Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
+  an array index or a map key.
+
+.. code:: sql
+
+  SELECT NICKNAMES[0] FROM USERS;
+
+.. _functions:
+
 ================
 Scalar functions
 ================
@@ -1010,8 +1068,21 @@ Scalar functions
 |                        |                                                            | quotes in the timestamp format can be escaped with|
 |                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices.                                          |
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
+|                        |                                                            | Return a substring of ``str`` that starts at      |
+|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                            | the end of the string.                            |
+|                        |                                                            |                                                   |
+|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
+|                        |                                                            | Where ``start`` and ``end`` where base-zero       |
+|                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
+|                        |                                                            | the substring.                                    |
+|                        |                                                            |                                                   |
+|                        |                                                            | It is possible to switch back to this legacy mode |
+|                        |                                                            | by setting                                        |
+|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                            | ``true``                                          |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

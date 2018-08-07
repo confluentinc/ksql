@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Merger;
-
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>> {

@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.planner;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -27,6 +24,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanVisitor;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import java.util.HashSet;
+import java.util.Set;
 
 public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
 

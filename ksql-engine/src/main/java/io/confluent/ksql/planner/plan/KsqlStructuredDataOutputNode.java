@@ -16,21 +16,9 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,6 +32,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -115,7 +111,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
         ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
@@ -126,6 +121,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final SchemaKStream result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
+        ksqlConfig,
         functionRegistry,
         outputProperties,
         schemaRegistryClient
@@ -164,6 +160,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private SchemaKStream createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
       final SchemaRegistryClient schemaRegistryClient
@@ -179,6 +176,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         this.getKeyField(),
         Collections.singletonList(schemaKStream),
         SchemaKStream.Type.SINK,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );

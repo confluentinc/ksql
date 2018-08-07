@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
+import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.util.KsqlException;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
+import java.util.Optional;
 
 public class PrimitiveType extends Type {
 

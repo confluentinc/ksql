@@ -18,7 +18,27 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -35,30 +55,6 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.apache.kafka.streams.processor.TimestampExtractor;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.annotation.concurrent.Immutable;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.physical.AddTimestampColumn;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
 public class StructuredDataSourceNode
@@ -182,6 +178,7 @@ public class StructuredDataSourceNode
           new ArrayList<>(),
           table.isWindowed(),
           SchemaKStream.Type.SOURCE,
+          ksqlConfig,
           functionRegistry,
           schemaRegistryClient
       );
@@ -195,7 +192,7 @@ public class StructuredDataSourceNode
                 .withTimestampExtractor(timestampExtractor)
         ).mapValues(nonWindowedValueMapper).transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient
+        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, schemaRegistryClient
     );
   }
 

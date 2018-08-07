@@ -19,12 +19,17 @@ package io.confluent.ksql.serde.connect;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.*;
-import org.apache.kafka.connect.errors.DataException;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
+import org.apache.kafka.connect.errors.DataException;
 
 public class ConnectDataTranslator implements DataTranslator {
   private static final String PATH_SEPARATOR = "->";

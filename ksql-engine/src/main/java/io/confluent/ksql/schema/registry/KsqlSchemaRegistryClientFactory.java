@@ -16,18 +16,15 @@
 
 package io.confluent.ksql.schema.registry;
 
-import org.apache.kafka.common.network.Mode;
-import org.apache.kafka.common.security.ssl.SslFactory;
-
-import java.util.Map;
-import java.util.function.Supplier;
-
-import javax.net.ssl.SSLContext;
-
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
+import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import org.apache.kafka.common.network.Mode;
+import org.apache.kafka.common.security.ssl.SslFactory;
 
 /**
  * Configurable Schema Registry client factory, enabling SSL.

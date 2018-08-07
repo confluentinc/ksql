@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import org.junit.Test;
-
-import java.util.Arrays;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import io.confluent.support.metrics.validate.KSqlValidModuleType;
 import io.confluent.support.metrics.validate.MetricsValidation;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import java.util.Arrays;
+import org.junit.Test;
 
 public class KsqlModuleTypeTest {
 

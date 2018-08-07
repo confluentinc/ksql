@@ -356,7 +356,7 @@ The WITH clause for the result supports the following properties:
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field. By default,                |
 |               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|               | Timestamps have a millisecond accuracy.
+|               | Timestamps have a millisecond accuracy.                                                              |
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |

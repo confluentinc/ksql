@@ -112,15 +112,15 @@ public class KsqlEngine implements Closeable {
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaClientSupplier clientSupplier;
 
-  private final KsqlConfig ksqlConfig;
+  private final KsqlConfig initializationKsqlConfig;
 
-  public KsqlEngine(final KsqlConfig ksqlConfig) {
+  public KsqlEngine(final KsqlConfig initializationKsqlConfig) {
     this(
-        new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
+        new KafkaTopicClientImpl(initializationKsqlConfig.getKsqlAdminClientConfigProps()),
+        new KsqlSchemaRegistryClientFactory(initializationKsqlConfig).create(),
         new DefaultKafkaClientSupplier(),
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig
+        initializationKsqlConfig
     );
   }
 
@@ -128,14 +128,14 @@ public class KsqlEngine implements Closeable {
   public KsqlEngine(final KafkaTopicClient topicClient,
                     final SchemaRegistryClient schemaRegistryClient,
                     final MetaStore metaStore,
-                    final KsqlConfig ksqlConfig
+                    final KsqlConfig initializationKsqlConfig
   ) {
     this(
         topicClient,
         schemaRegistryClient,
         new DefaultKafkaClientSupplier(),
         metaStore,
-        ksqlConfig
+        initializationKsqlConfig
     );
   }
 
@@ -144,14 +144,15 @@ public class KsqlEngine implements Closeable {
              final SchemaRegistryClient schemaRegistryClient,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore,
-             final KsqlConfig ksqlConfig
+             final KsqlConfig initializationKsqlConfig
   ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
     this.schemaRegistryClient =
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");;
+    this.initializationKsqlConfig =
+        Objects.requireNonNull(initializationKsqlConfig, "ksqlConfig can't be null");;
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
@@ -537,8 +538,8 @@ public class KsqlEngine implements Closeable {
     return ddlCommandExec;
   }
 
-  public KsqlConfig getKsqlConfig() {
-    return ksqlConfig;
+  public KsqlConfig getInitializationKsqlConfig() {
+    return initializationKsqlConfig;
   }
 
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {

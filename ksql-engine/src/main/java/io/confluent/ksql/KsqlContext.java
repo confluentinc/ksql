@@ -16,11 +16,11 @@
 
 package io.confluent.ksql;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -41,13 +41,11 @@ public class KsqlContext {
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
-        new CachedSchemaRegistryClient(
-            KsqlConfig.defaultSchemaRegistryUrl, 1000));
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).create());
   }
 
   public static KsqlContext create(

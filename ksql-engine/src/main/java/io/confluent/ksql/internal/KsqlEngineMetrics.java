@@ -54,7 +54,7 @@ public class KsqlEngineMetrics implements Closeable {
   public KsqlEngineMetrics(String metricGroupPrefix, KsqlEngine ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlEngine.getKsqlConfig().getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+        + ksqlEngine.getInitializationKsqlConfig().getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
@@ -204,7 +204,9 @@ public class KsqlEngineMetrics implements Closeable {
 
   private Sensor configureIdleQueriesSensor(Metrics metrics) {
     Sensor sensor = createSensor(metrics, "num-idle-queries");
-    sensor.add(metrics.metricName(ksqlServiceId + "num-idle-queries", this.metricGroupName), new Value());
+    sensor.add(metrics.metricName(
+        ksqlServiceId + "num-idle-queries", this.metricGroupName),
+        new Value());
     return sensor;
   }
 

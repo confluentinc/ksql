@@ -332,6 +332,11 @@ its corresponding topic.
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key.
 
+For joins, the key of the resulting stream will be the value from the column
+from the left stream that was used in the join criteria. This column will be
+registered as the key of the resulting stream if included in the selected
+columns.
+
 The WITH clause for the result supports the following properties:
 
 +---------------+------------------------------------------------------------------------------------------------------+
@@ -402,6 +407,11 @@ CREATE TABLE AS SELECT
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
 Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
+
+For joins, the key of the resulting table will be the value from the column
+from the left table that was used in the join criteria. This column will be
+registered as the key of the resulting table if included in the selected
+columns.
 
 The WITH clause supports the following properties:
 

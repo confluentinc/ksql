@@ -1,3 +1,5 @@
+.. _ksql-supported-versions:
+
 You can use KSQL with compatible |cp| and Apache Kafka versions.
 
 ==================== ================

@@ -57,7 +57,7 @@ public class KsqlEngineMetricsTest {
     ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId));
-    EasyMock.expect(ksqlEngine.getInitializationKsqlConfig()).andReturn(ksqlConfig);
+    EasyMock.expect(ksqlEngine.getServiceId()).andReturn(ksqlServiceId);
     EasyMock.replay(ksqlEngine);
     engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine);
   }

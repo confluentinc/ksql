@@ -53,8 +53,7 @@ public class KsqlEngineMetrics implements Closeable {
 
   public KsqlEngineMetrics(String metricGroupPrefix, KsqlEngine ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
-    this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlEngine.getInitializationKsqlConfig().getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 

@@ -112,7 +112,7 @@ public class KsqlEngine implements Closeable {
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaClientSupplier clientSupplier;
 
-  private final KsqlConfig initializationKsqlConfig;
+  private final String serviceId;
 
   public KsqlEngine(final KsqlConfig initializationKsqlConfig) {
     this(
@@ -151,8 +151,7 @@ public class KsqlEngine implements Closeable {
     this.schemaRegistryClient =
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
-    this.initializationKsqlConfig =
-        Objects.requireNonNull(initializationKsqlConfig, "ksqlConfig can't be null");;
+    this.serviceId = initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
@@ -538,8 +537,8 @@ public class KsqlEngine implements Closeable {
     return ddlCommandExec;
   }
 
-  public KsqlConfig getInitializationKsqlConfig() {
-    return initializationKsqlConfig;
+  public String getServiceId() {
+    return serviceId;
   }
 
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {

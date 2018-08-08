@@ -113,6 +113,7 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
 - SET, UNSET statements
+- INSERT INTO statement
 
 It does not support statements such as:
 
@@ -355,7 +356,7 @@ The WITH clause for the result supports the following properties:
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field. By default,                |
 |               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|               | Timestamps have a millisecond accuracy.
+|               | Timestamps have a millisecond accuracy.                                                              |
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |

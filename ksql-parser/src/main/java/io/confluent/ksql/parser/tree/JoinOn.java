@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
 
 public class JoinOn
     extends JoinCriteria {

@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import org.eclipse.jetty.http.HttpStatus;
-import org.junit.Test;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import org.eclipse.jetty.http.HttpStatus;
+import org.junit.Test;
 
 /**
  * @author andy

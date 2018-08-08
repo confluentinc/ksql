@@ -1,17 +1,16 @@
 package io.confluent.ksql.rest.entity;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.rest.util.JsonMapper;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class SchemaDescriptionFormatTest {
   private ObjectMapper newObjectMapper() {

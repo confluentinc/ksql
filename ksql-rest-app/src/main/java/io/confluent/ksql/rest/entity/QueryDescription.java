@@ -19,16 +19,14 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {

@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Statement;
-
 import java.util.List;
 
 public class StatementParser {

@@ -16,24 +16,14 @@
 
 package io.confluent.ksql.testutils;
 
+import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.security.JaasUtils;
-import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.common.security.plain.PlainLoginModule;
-import org.apache.kafka.test.TestUtils;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.testutils.secure.ClientTrustStore;
+import io.confluent.ksql.testutils.secure.Credentials;
+import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
+import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,11 +38,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.confluent.ksql.testutils.secure.ClientTrustStore;
-import io.confluent.ksql.testutils.secure.Credentials;
-import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
-import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import kafka.security.auth.Acl;
 import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
@@ -61,9 +46,21 @@ import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
 import kafka.utils.ZKConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.security.JaasUtils;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.kafka.test.TestUtils;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
-
-import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.

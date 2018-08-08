@@ -19,10 +19,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.util.Objects;
-
 import io.confluent.ksql.query.QueryId;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EntityQueryId {

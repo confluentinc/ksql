@@ -16,16 +16,13 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.hamcrest.CoreMatchers.equalTo;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.util.JsonMapper;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.IOException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class ServerInfoTest {
   private static final String VERSION = "test-version";

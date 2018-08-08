@@ -16,10 +16,40 @@
  */
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableMap;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.QueryMetadata;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -38,42 +68,6 @@ import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.stream.Collectors;
-
-import io.confluent.connect.avro.AvroData;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.QueryMetadata;
-
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.junit.matchers.JUnitMatchers.isThrowable;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();

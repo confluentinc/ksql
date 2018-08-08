@@ -16,17 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.config.types.Password;
-import org.apache.kafka.streams.StreamsConfig;
-import org.hamcrest.core.IsEqual;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,9 +25,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
+import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.core.IsEqual;
+import org.junit.Test;
 
 public class KsqlConfigTest {
 

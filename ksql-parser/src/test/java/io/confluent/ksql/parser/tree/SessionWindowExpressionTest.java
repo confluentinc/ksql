@@ -16,6 +16,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.same;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -27,16 +35,6 @@ import org.apache.kafka.streams.state.SessionStore;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
-
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.same;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SessionWindowExpressionTest {
 

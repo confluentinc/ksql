@@ -17,15 +17,13 @@
 package io.confluent.ksql.serde.json;
 
 import io.confluent.ksql.GenericRow;
-
+import java.util.Collections;
+import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
-
-import java.util.Collections;
-import java.util.Map;
 
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
 

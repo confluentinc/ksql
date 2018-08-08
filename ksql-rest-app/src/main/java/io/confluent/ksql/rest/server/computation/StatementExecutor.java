@@ -16,40 +16,38 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.common.errors.WakeupException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.Future;
-
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Future;
+import org.apache.kafka.common.errors.WakeupException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well

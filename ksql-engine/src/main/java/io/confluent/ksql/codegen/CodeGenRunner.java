@@ -17,19 +17,6 @@
 package io.confluent.ksql.codegen;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
-
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -52,6 +39,16 @@ import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
 

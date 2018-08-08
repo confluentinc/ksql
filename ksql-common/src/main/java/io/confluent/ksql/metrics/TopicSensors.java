@@ -17,21 +17,18 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.base.MoreObjects;
-
-import org.apache.kafka.common.metrics.KafkaMetric;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Rate;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.common.utils.Time;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.common.utils.Time;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Rate;
 
 class TopicSensors<R> {
 

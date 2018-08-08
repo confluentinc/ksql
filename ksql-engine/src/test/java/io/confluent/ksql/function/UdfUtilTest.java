@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.function;
 
-import org.junit.Test;
-
 import io.confluent.ksql.util.KsqlException;
+import org.junit.Test;
 
 public class UdfUtilTest {
 

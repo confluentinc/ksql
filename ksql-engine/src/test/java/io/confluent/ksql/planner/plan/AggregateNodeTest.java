@@ -16,18 +16,13 @@
 
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.TopologyDescription;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -37,14 +32,17 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.TopologyDescription;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class AggregateNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);

@@ -1,16 +1,18 @@
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableList;
+import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.avro.Schema;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
+import com.google.common.collect.ImmutableList;
+import io.confluent.avro.random.generator.Generator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,16 +24,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.avro.random.generator.Generator;
-
-import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import org.apache.avro.Schema;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 
 @RunWith(Parameterized.class)

@@ -17,15 +17,14 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import org.apache.avro.Schema;
-import org.apache.kafka.common.serialization.Serializer;
-
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.avro.Schema;
+import org.apache.kafka.common.serialization.Serializer;
 
 public class AvroProducer extends DataGenProducer {
 

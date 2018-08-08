@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.io.BaseEncoding;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.confluent.ksql.parser.ParsingException;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
-
-import static java.util.Objects.requireNonNull;
 
 public class BinaryLiteral
     extends Literal {

@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.ExpressionFormatter;
-
 import java.util.Optional;
 
 public abstract class Expression extends Node {

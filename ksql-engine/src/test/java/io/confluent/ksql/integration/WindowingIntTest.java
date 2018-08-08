@@ -1,5 +1,21 @@
 package io.confluent.ksql.integration;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.QueryMetadata;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -10,24 +26,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
 public class WindowingIntTest {

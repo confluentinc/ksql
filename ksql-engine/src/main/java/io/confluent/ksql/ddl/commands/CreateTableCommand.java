@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
@@ -27,6 +25,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 

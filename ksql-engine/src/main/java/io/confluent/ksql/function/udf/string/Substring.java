@@ -21,7 +21,6 @@ import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;

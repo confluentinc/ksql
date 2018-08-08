@@ -21,7 +21,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.Pair;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

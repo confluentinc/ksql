@@ -16,36 +16,23 @@
 
 package io.confluent.ksql.cli.console;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableList;
-
-import io.confluent.ksql.rest.entity.ArgumentInfo;
-import io.confluent.ksql.rest.entity.EntityQueryId;
-import io.confluent.ksql.rest.entity.FunctionDescriptionList;
-import io.confluent.ksql.rest.entity.FunctionInfo;
-import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.FieldInfo;
-import io.confluent.ksql.rest.util.EntityUtil;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionInfo;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -61,12 +48,21 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.SchemaUtil;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {

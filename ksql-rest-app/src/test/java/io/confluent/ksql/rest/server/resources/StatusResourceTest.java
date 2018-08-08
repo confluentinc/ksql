@@ -16,18 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import org.junit.Test;
-
-import javax.ws.rs.core.Response;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
@@ -36,6 +24,17 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import javax.ws.rs.core.Response;
+import org.junit.Test;
 
 public class StatusResourceTest {
 

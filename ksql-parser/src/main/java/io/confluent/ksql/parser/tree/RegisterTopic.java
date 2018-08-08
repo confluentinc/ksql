@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class RegisterTopic
     extends Statement implements DdlStatement {

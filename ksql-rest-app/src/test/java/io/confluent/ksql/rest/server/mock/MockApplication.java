@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import javax.ws.rs.core.Configurable;
-
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.rest.Application;
+import javax.ws.rs.core.Configurable;
 import org.glassfish.jersey.server.ServerProperties;
 
 

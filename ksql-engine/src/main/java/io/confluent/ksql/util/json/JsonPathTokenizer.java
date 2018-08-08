@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.util.json;
 
-import com.google.common.base.VerifyException;
-import com.google.common.collect.AbstractIterator;
-import io.confluent.ksql.util.KsqlException;
-
 import static com.google.common.base.Verify.verify;
 import static java.lang.Character.isLetterOrDigit;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+
+import com.google.common.base.VerifyException;
+import com.google.common.collect.AbstractIterator;
+import io.confluent.ksql.util.KsqlException;
 
 public class JsonPathTokenizer
     extends AbstractIterator<String> {

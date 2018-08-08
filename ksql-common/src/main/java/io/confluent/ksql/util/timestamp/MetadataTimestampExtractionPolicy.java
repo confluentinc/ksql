@@ -17,7 +17,6 @@
 package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 

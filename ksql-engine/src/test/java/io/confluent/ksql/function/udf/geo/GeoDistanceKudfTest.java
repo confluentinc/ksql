@@ -1,10 +1,11 @@
 package io.confluent.ksql.function.udf.geo;
 
+import static org.junit.Assert.assertEquals;
+
+import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import io.confluent.ksql.function.KsqlFunctionException;
-import static org.junit.Assert.assertEquals;
 
 public class GeoDistanceKudfTest {
   private GeoDistanceKudf distanceUdf = new GeoDistanceKudf();

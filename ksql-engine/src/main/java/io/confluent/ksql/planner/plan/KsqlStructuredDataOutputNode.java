@@ -16,21 +16,9 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,6 +32,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 

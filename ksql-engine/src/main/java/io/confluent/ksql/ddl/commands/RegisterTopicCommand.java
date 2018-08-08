@@ -17,18 +17,17 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
-
 import java.util.Map;
 
 public class RegisterTopicCommand implements DdlCommand {

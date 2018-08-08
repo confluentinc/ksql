@@ -16,35 +16,24 @@
 
 package io.confluent.ksql.serde.connect;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.avro.AvroDataTranslator;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
-import org.apache.kafka.connect.storage.Converter;
-import org.easymock.Capture;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericRow;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.DataException;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class ConnectDataTranslatorTest {
   @Test

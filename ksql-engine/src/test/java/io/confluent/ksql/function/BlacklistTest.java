@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.function;
 
+import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertTrue;
+
 import com.google.common.collect.ImmutableList;
-
-import org.apache.kafka.test.TestUtils;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
-
-import static junit.framework.TestCase.assertFalse;
-import static junit.framework.TestCase.assertTrue;
+import org.apache.kafka.test.TestUtils;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BlacklistTest {
 

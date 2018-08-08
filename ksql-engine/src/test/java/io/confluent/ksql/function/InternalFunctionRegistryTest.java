@@ -16,19 +16,6 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
-
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.KsqlException;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,6 +23,17 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Supplier;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class InternalFunctionRegistryTest {
 

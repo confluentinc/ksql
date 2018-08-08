@@ -16,15 +16,6 @@
 
 package io.confluent.ksql.metastore;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -33,6 +24,13 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.Pair;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
 
 public final class MetaStoreImpl implements MetaStore, Cloneable {
 

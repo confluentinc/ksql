@@ -282,7 +282,9 @@ public class JoinNode extends PlanNode {
     }
 
 
-    protected SchemaKTable buildTable(final PlanNode node, final String keyFieldName) {
+    protected SchemaKTable buildTable(final PlanNode node,
+                                      final String keyFieldName,
+                                      final String tableName) {
 
       final Map<String, Object> joinTableProps = new HashMap<>(props);
       joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -299,10 +301,13 @@ public class JoinNode extends PlanNode {
       }
 
       if (schemaKStream.getKeyField() != null
+          && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
           && !SchemaUtil.matchFieldName(schemaKStream.getKeyField(), keyFieldName)) {
         throw new KsqlException(
             String.format(
-                "Source table key column (%s) is not the column used in the join criteria (%s).",
+                "Source table (%s) key column (%s) " +
+                    "is not the column used in the join criteria (%s).",
+                tableName,
                 schemaKStream.getKeyField().name(),
                 keyFieldName
             )
@@ -426,7 +431,8 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKTable rightTable = buildTable(joinNode.getRight(),
-                                                 joinNode.getRightKeyFieldName());
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
                                                    joinNode.getLeftKeyFieldName());
 
@@ -477,9 +483,11 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKTable leftTable = buildTable(joinNode.getLeft(),
-                                                joinNode.getLeftKeyFieldName());
+                                                joinNode.getLeftKeyFieldName(),
+                                                joinNode.getLeftAlias());
       final SchemaKTable rightTable = buildTable(joinNode.getRight(),
-                                                 joinNode.getRightKeyFieldName());
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

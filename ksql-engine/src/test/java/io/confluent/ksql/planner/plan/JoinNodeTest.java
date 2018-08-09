@@ -31,6 +31,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -54,8 +55,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -483,6 +486,20 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
+  private static Optional<String> getColumn(final Schema schema, final Predicate<String> filter) {
+    return schema.fields().stream()
+        .map(Field::name)
+        .filter(filter::test)
+        .findFirst();
+  }
+
+  private static Optional<String> getNonKeyColumn(final Schema schema, final String keyName) {
+    return getColumn(
+        schema,
+        s -> !ImmutableList.of(SchemaUtil.ROWKEY_NAME, SchemaUtil.ROWTIME_NAME, keyName).contains(s)
+    );
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
@@ -491,12 +508,13 @@ public class JoinNodeTest {
     expectKeyField(rightSchemaKTable, rightKeyFieldName);
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
 
+    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
     final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
         JoinNode.JoinType.LEFT,
         left,
         right,
         leftKeyFieldName,
-        "COL0",
+        rightCriteriaColumn,
         leftAlias,
         rightAlias,
         null,
@@ -514,8 +532,12 @@ public class JoinNodeTest {
       assertThat(
           e.getMessage(),
           equalTo(
-              "Source table key column (COL1) is not the column " +
-                  "used in the join criteria (COL0)."));
+              String.format(
+                  "Source table (s) key column (%s) is not the column " +
+                      "used in the join criteria (%s).",
+              rightAlias,
+              rightKeyFieldName,
+              rightCriteriaColumn)));
       return;
     }
     fail("buildStream did not throw exception");
@@ -709,11 +731,12 @@ public class JoinNodeTest {
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
 
+    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftKeyFieldName).get();
     final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
         JoinNode.JoinType.LEFT,
         left,
         right,
-        "COL1",
+        leftCriteriaColumn,
         rightKeyFieldName,
         leftAlias,
         rightAlias,
@@ -732,8 +755,12 @@ public class JoinNodeTest {
       assertThat(
           e.getMessage(),
           equalTo(
-              "Source table key column (COL0) is not the column " +
-                  "used in the join criteria (COL1)."));
+              String.format(
+                  "Source table (s) key column (%s) is not the column " +
+                      "used in the join criteria (%s).",
+                  leftAlias,
+                  leftKeyFieldName,
+                  leftCriteriaColumn)));
       return;
     }
     fail("buildStream did not throw exception");
@@ -748,12 +775,13 @@ public class JoinNodeTest {
     expectKeyField(rightSchemaKTable, rightKeyFieldName);
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
 
+    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
     final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
         JoinNode.JoinType.LEFT,
         left,
         right,
         leftKeyFieldName,
-        "COL0",
+        rightCriteriaColumn,
         leftAlias,
         rightAlias,
         null,
@@ -771,8 +799,12 @@ public class JoinNodeTest {
       assertThat(
           e.getMessage(),
           equalTo(
-              "Source table key column (COL1) is not the column " +
-                  "used in the join criteria (COL0)."));
+              String.format(
+                  "Source table (s) key column (%s) is not the column " +
+                      "used in the join criteria (%s).",
+                  rightAlias,
+                  rightKeyFieldName,
+                  rightCriteriaColumn)));
       return;
     }
     fail("buildStream did not throw exception");

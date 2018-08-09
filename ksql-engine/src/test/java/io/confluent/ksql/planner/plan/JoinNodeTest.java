@@ -58,6 +58,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.Node;
@@ -131,7 +133,7 @@ public class JoinNodeTest {
 
   public void buildJoin() {
     buildJoin("SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
-        + "ON t1.col1 = t2.col1;");
+        + "ON t1.col1 = t2.col0;");
   }
 
   public void buildJoin(String queryString) {
@@ -483,6 +485,44 @@ public class JoinNodeTest {
 
   @SuppressWarnings("unchecked")
   @Test
+  public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
+    setupStream(left, leftSchemaKStream, leftSchema, 2);
+    setupTable(right, rightSchemaKTable, rightSchema, 2);
+    expectKeyField(rightSchemaKTable, rightKeyFieldName);
+    replay(left, right, leftSchemaKStream, rightSchemaKTable);
+
+    final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        leftKeyFieldName,
+        "COL0",
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KSTREAM,
+        DataSource.DataSourceType.KTABLE);
+
+    try {
+      joinNode.buildStream(mockStreamsBuilder,
+          mockKsqlConfig,
+          mockKafkaTopicClient,
+          mockFunctionRegistry,
+          properties,
+          mockSchemaRegistryClient);
+    } catch (KsqlException e) {
+      assertThat(
+          e.getMessage(),
+          equalTo(
+              "Source table key column (COL1) is not the column " +
+                  "used in the join criteria (COL0)."));
+      return;
+    }
+    fail("buildStream did not throw exception");
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
   public void shouldPerformStreamToTableLeftJoin() {
     setupStream(left, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
@@ -661,6 +701,82 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
+    setupTable(left, leftSchemaKTable, leftSchema, 2);
+    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    setupTable(right, rightSchemaKTable, rightSchema, 2);
+    replay(left, right, leftSchemaKTable, rightSchemaKTable);
+
+    final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        "COL1",
+        rightKeyFieldName,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KTABLE,
+        DataSource.DataSourceType.KTABLE);
+
+    try {
+      joinNode.buildStream(mockStreamsBuilder,
+          mockKsqlConfig,
+          mockKafkaTopicClient,
+          mockFunctionRegistry,
+          properties,
+          mockSchemaRegistryClient);
+    } catch (KsqlException e) {
+      assertThat(
+          e.getMessage(),
+          equalTo(
+              "Source table key column (COL0) is not the column " +
+                  "used in the join criteria (COL1)."));
+      return;
+    }
+    fail("buildStream did not throw exception");
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
+    setupTable(left, leftSchemaKTable, leftSchema, 2);
+    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    setupTable(right, rightSchemaKTable, rightSchema, 2);
+    expectKeyField(rightSchemaKTable, rightKeyFieldName);
+    replay(left, right, leftSchemaKTable, rightSchemaKTable);
+
+    final JoinNode joinNode = new JoinNode(new PlanNodeId("join"),
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        leftKeyFieldName,
+        "COL0",
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KTABLE,
+        DataSource.DataSourceType.KTABLE);
+
+    try {
+      joinNode.buildStream(mockStreamsBuilder,
+          mockKsqlConfig,
+          mockKafkaTopicClient,
+          mockFunctionRegistry,
+          properties,
+          mockSchemaRegistryClient);
+    } catch (KsqlException e) {
+      assertThat(
+          e.getMessage(),
+          equalTo(
+              "Source table key column (COL1) is not the column " +
+                  "used in the join criteria (COL0)."));
+      return;
+    }
+    fail("buildStream did not throw exception");
+  }
 
   @SuppressWarnings("unchecked")
   @Test
@@ -880,8 +996,8 @@ public class JoinNodeTest {
 
   private void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
     final Field field = niceMock(Field.class);
-    expect(stream.getKeyField()).andReturn(field);
-    expect(field.name()).andReturn(keyFieldName);
+    expect(stream.getKeyField()).andStubReturn(field);
+    expect(field.name()).andStubReturn(keyFieldName);
     replay(field);
   }
 

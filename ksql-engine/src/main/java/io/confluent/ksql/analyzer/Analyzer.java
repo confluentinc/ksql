@@ -217,26 +217,25 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   @Override
   protected Node visitJoin(final Join node, final AnalysisContext context) {
-    AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
-    AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
+    final AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
+    final AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
 
-    String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
-    StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
+    final String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
+    final StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
     if (leftDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
     }
 
-    String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
-    StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
+    final String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
+    final StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
     }
 
+    final String leftAlias = left.getAlias();
+    final String rightAlias = right.getAlias();
 
-    String leftAlias = left.getAlias();
-    String rightAlias = right.getAlias();
-
-    JoinNode.JoinType joinType = getJoinType(node);
+    final JoinNode.JoinType joinType = getJoinType(node);
 
     if (!node.getCriteria().isPresent()) {
       throw new KsqlException(String.format(
@@ -246,35 +245,35 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           : ""
       ));
     }
-    JoinOn joinOn = (JoinOn) (node.getCriteria().get());
-    ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
+    final JoinOn joinOn = (JoinOn) (node.getCriteria().get());
+    final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
-    Pair<String, String> leftSide = fetchKeyFieldName(
+    final Pair<String, String> leftSide = fetchKeyFieldName(
         comparisonExpression,
         leftAlias,
         leftDataSource.getSchema()
     );
-    Pair<String, String> rightSide = fetchKeyFieldName(
+    final Pair<String, String> rightSide = fetchKeyFieldName(
         comparisonExpression,
         rightAlias,
         rightDataSource.getSchema()
     );
 
-    String leftKeyFieldName = leftSide.getRight();
-    String rightKeyFieldName = rightSide.getRight();
+    final String leftKeyFieldName = leftSide.getRight();
+    final String rightKeyFieldName = rightSide.getRight();
 
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
       throw new KsqlException("Only equality join criteria is supported.");
     }
 
-    StructuredDataSourceNode
+    final StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(
             new PlanNodeId("KafkaTopic_Left"),
             leftDataSource,
             leftDataSource.getSchema()
         );
-    StructuredDataSourceNode
+    final StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(
             new PlanNodeId("KafkaTopic_Right"),
@@ -282,7 +281,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             rightDataSource.getSchema()
         );
 
-    JoinNode joinNode =
+    final JoinNode joinNode =
         new JoinNode(
             new PlanNodeId("Join"),
             joinType,
@@ -320,7 +319,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   /**
-   * From the join criteria expression fetch the key field corresponding to the given source
+   * From the join criteria expression fetch the field corresponding to the given source
    * alias.
    */
   private Pair<String, String> fetchKeyFieldName(
@@ -328,13 +327,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       String sourceAlias,
       Schema sourceSchema
   ) {
-    Pair<String, String> keyInfo = fetchKeyFieldNameFromExpr(
+    Pair<String, String> keyInfo = fetchFieldNameFromExpr(
         comparisonExpression.getLeft(),
         sourceAlias,
         sourceSchema
     );
     if (keyInfo == null) {
-      keyInfo = fetchKeyFieldNameFromExpr(
+      keyInfo = fetchFieldNameFromExpr(
           comparisonExpression.getRight(),
           sourceAlias,
           sourceSchema
@@ -343,7 +342,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (keyInfo == null) {
       throw new KsqlException(
           String.format(
-              "%s : Invalid join criteria %s. Key for %s is not set correctly. ",
+              "%s : Invalid join criteria %s. Could not find an operand for %s. ",
               comparisonExpression.getLocation().isPresent()
               ? comparisonExpression.getLocation().get().toString()
               : "", comparisonExpression, sourceAlias
@@ -358,7 +357,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
    * DereferenceExpression
    * or QualifiedNameReference and if the variable prefix matches the source Alias.
    */
-  private Pair<String, String> fetchKeyFieldNameFromExpr(
+  private Pair<String, String> fetchFieldNameFromExpr(
       Expression expression, String sourceAlias,
       Schema sourceSchema
   ) {
@@ -367,17 +366,17 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           (DereferenceExpression) expression;
       String sourceAliasVal = dereferenceExpression.getBase().toString();
       if (sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
-        String keyFieldName = dereferenceExpression.getFieldName();
-        if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
-          return new Pair<>(sourceAliasVal, keyFieldName);
+        String fieldName = dereferenceExpression.getFieldName();
+        if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
+          return new Pair<>(sourceAliasVal, fieldName);
         }
       }
     } else if (expression instanceof QualifiedNameReference) {
       QualifiedNameReference qualifiedNameReference =
           (QualifiedNameReference) expression;
-      String keyFieldName = qualifiedNameReference.getName().getSuffix();
-      if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
-        return new Pair<>(sourceAlias, keyFieldName);
+      String fieldName = qualifiedNameReference.getName().getSuffix();
+      if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
+        return new Pair<>(sourceAlias, fieldName);
       }
     }
     return null;

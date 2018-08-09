@@ -71,6 +71,8 @@ KSQL CLI
 
 ---------------------
 
+.. _ksql-supported-versions:
+
 .. include:: includes/ksql-supported-versions.rst
 
 

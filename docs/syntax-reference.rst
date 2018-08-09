@@ -337,6 +337,9 @@ from the left stream that was used in the join criteria. This column will be
 registered as the key of the resulting stream if included in the selected
 columns.
 
+For stream-table joins, the column used in the join criteria for the table
+must be the table key.
+
 The WITH clause for the result supports the following properties:
 
 +---------------+------------------------------------------------------------------------------------------------------+
@@ -412,6 +415,9 @@ For joins, the key of the resulting table will be the value from the column
 from the left table that was used in the join criteria. This column will be
 registered as the key of the resulting table if included in the selected
 columns.
+
+For joins, the columns used in the join criteria must be the keys of the
+tables being joined.
 
 The WITH clause supports the following properties:
 

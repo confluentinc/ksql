@@ -107,7 +107,7 @@
       ]
     },
     {
-      "name": "Project field with reserved name",
+      "name": "Project fields with reserved name",
       "statements": [
         "CREATE STREAM TEST (START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
         "CREATE STREAM S1 AS SELECT `END` FROM TEST;"
@@ -122,7 +122,7 @@
       ]
     },
     {
-      "name": "Project struct field with reserved name",
+      "name": "Project struct fields with reserved name",
       "statements": [
         "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
         "CREATE STREAM S1 AS SELECT S->`END` FROM TEST;"

@@ -314,7 +314,7 @@
       ]
     },
     {
-      "name": "multi-way join",
+      "name": "table join pipeline",
       "format": ["JSON"],
       "statements": [
         "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",

@@ -105,6 +105,36 @@
       "outputs": [
         {"topic": "topic_s", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
       ]
+    },
+    {
+      "name": "Project field with reserved name",
+      "statements": [
+        "CREATE STREAM TEST (START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT `END` FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"START": "hello", "END": "foo"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"START": "world", "END": "bar"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": {"END": "foo"}, "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": {"END": "bar"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "Project struct field with reserved name",
+      "statements": [
+        "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT S->`END` FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "hello", "END": "foo"}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "world", "END": "bar"}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": {"S__END": "foo"}, "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": {"S__END": "bar"}, "timestamp": 0}
+      ]
     }
   ]
 }

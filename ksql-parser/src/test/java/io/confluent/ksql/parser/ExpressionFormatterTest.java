@@ -363,6 +363,18 @@ public class ExpressionFormatterTest {
   }
 
   @Test
+  public void shouldFormatStructWithColumnWithReservedWordName() {
+    final Struct struct
+        = new Struct(
+        ImmutableList.of(
+            new Pair<>("END", new PrimitiveType(Type.KsqlType.INTEGER))
+        ));
+    assertThat(
+        ExpressionFormatter.formatExpression(struct),
+        equalTo("STRUCT<`END` INTEGER>"));
+  }
+
+  @Test
   public void shouldFormatMap() {
     final Map map = new Map(new PrimitiveType(Type.KsqlType.BIGINT));
     assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));

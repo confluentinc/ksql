@@ -305,8 +305,8 @@ public class JoinNode extends PlanNode {
           && !SchemaUtil.matchFieldName(schemaKStream.getKeyField(), keyFieldName)) {
         throw new KsqlException(
             String.format(
-                "Source table (%s) key column (%s) " +
-                    "is not the column used in the join criteria (%s).",
+                "Source table (%s) key column (%s) "
+                    + "is not the column used in the join criteria (%s).",
                 tableName,
                 schemaKStream.getKeyField().name(),
                 keyFieldName

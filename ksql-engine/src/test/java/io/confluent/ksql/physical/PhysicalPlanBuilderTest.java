@@ -189,7 +189,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -221,7 +222,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createStream + "\n " + insertIntoQuery,
@@ -249,7 +251,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -278,7 +281,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -316,7 +320,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -342,7 +347,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -371,7 +377,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -583,7 +590,8 @@ public class PhysicalPlanBuilderTest {
     KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
         csasQuery + "\n " +

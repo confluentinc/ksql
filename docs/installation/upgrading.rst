@@ -39,3 +39,12 @@ Notable changes in 4.1:
 * Configuration: Advanced KSQL users can configure the Kafka Streams and Kafka producer/consumer client settings used
   by KSQL.  This is achieved by using prefixes for the respective configuration settings.
   See :ref:`ksql-param-reference` as well as :ref:`ksql-server-config` and :ref:`install_cli-config` for details.
+
+Upgrading from KSQL 5.0.0 and below to KSQL 5.1
+-----------------------------------------------
+
+* KSQL server:
+
+    * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
+      tool you need to update your metric names.
+      For instance, assuming ``ksql.service.id`` is set to ``default``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.

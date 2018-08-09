@@ -17,8 +17,11 @@
 package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -26,9 +29,9 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,40 +41,36 @@ public class KsqlContext {
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
-  public static KsqlContext create(KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, null);
+  public static KsqlContext create(final KsqlConfig ksqlConfig) {
+    return create(
+        ksqlConfig,
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).create());
   }
 
   public static KsqlContext create(
-      KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
   }
 
   public static KsqlContext create(
-      KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient,
-      KafkaClientSupplier clientSupplier
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaClientSupplier clientSupplier
   ) {
-    if (ksqlConfig == null) {
-      ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    }
-    if (!ksqlConfig.getKsqlStreamConfigProps().containsKey(
-        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(
-          Collections.singletonMap(
-              StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT));
-    }
-
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
+    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient cannot be null.");
+    final KafkaTopicClient kafkaTopicClient = new
+        KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final KsqlEngine engine = new KsqlEngine(
-        new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        schemaRegistryClient == null
-            ? new KsqlSchemaRegistryClientFactory(ksqlConfig).create() : schemaRegistryClient,
-        clientSupplier
-    );
+        kafkaTopicClient,
+        schemaRegistryClient,
+        clientSupplier,
+        metaStore,
+        ksqlConfig);
 
     return new KsqlContext(ksqlConfig, engine);
   }

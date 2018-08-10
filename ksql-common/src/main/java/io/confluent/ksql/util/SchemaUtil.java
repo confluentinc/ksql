@@ -113,17 +113,16 @@ public final class SchemaUtil {
     return schema.build();
   }
 
+  public static boolean matchFieldName(final Field field, final String fieldName) {
+    return field.name().equals(fieldName)
+        || field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1));
+  }
+
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
-    if (schema.fields() != null) {
-      for (Field field : schema.fields()) {
-        if (field.name().equals(fieldName)) {
-          return Optional.of(field);
-        } else if (field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1))) {
-          return Optional.of(field);
-        }
-      }
-    }
-    return Optional.empty();
+    return schema.fields()
+        .stream()
+        .filter(f -> matchFieldName(f, fieldName))
+        .findFirst();
   }
 
   public static Schema getTypeSchema(final String sqlType) {

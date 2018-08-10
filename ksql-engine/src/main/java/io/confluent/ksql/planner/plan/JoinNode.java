@@ -93,18 +93,18 @@ public class JoinNode extends PlanNode {
 
   private Schema buildSchema(final PlanNode left, final PlanNode right) {
 
-    Schema leftSchema = left.getSchema();
-    Schema rightSchema = right.getSchema();
+    final Schema leftSchema = left.getSchema();
+    final Schema rightSchema = right.getSchema();
 
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (Field field : leftSchema.fields()) {
-      String fieldName = leftAlias + "." + field.name();
+    for (final Field field : leftSchema.fields()) {
+      final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (Field field : rightSchema.fields()) {
-      String fieldName = rightAlias + "." + field.name();
+    for (final Field field : rightSchema.fields()) {
+      final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
@@ -282,7 +282,9 @@ public class JoinNode extends PlanNode {
     }
 
 
-    protected SchemaKTable buildTable(final PlanNode node) {
+    protected SchemaKTable buildTable(final PlanNode node,
+                                      final String keyFieldName,
+                                      final String tableName) {
 
       final Map<String, Object> joinTableProps = new HashMap<>(props);
       joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -296,6 +298,20 @@ public class JoinNode extends PlanNode {
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
+      }
+
+      if (schemaKStream.getKeyField() != null
+          && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
+          && !SchemaUtil.matchFieldName(schemaKStream.getKeyField(), keyFieldName)) {
+        throw new KsqlException(
+            String.format(
+                "Source table (%s) key column (%s) "
+                    + "is not the column used in the join criteria (%s).",
+                tableName,
+                schemaKStream.getKeyField().name(),
+                keyFieldName
+            )
+        );
       }
 
       return (SchemaKTable) schemaKStream;
@@ -414,7 +430,9 @@ public class JoinNode extends PlanNode {
                                 + " the WITHIN clause) and try to execute your join again.");
       }
 
-      final SchemaKTable rightTable = buildTable(joinNode.getRight());
+      final SchemaKTable rightTable = buildTable(joinNode.getRight(),
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
                                                    joinNode.getLeftKeyFieldName());
 
@@ -464,8 +482,12 @@ public class JoinNode extends PlanNode {
                                 + "join again.");
       }
 
-      final SchemaKTable leftTable = buildTable(joinNode.getLeft());
-      final SchemaKTable rightTable = buildTable(joinNode.getRight());
+      final SchemaKTable leftTable = buildTable(joinNode.getLeft(),
+                                                joinNode.getLeftKeyFieldName(),
+                                                joinNode.getLeftAlias());
+      final SchemaKTable rightTable = buildTable(joinNode.getRight(),
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

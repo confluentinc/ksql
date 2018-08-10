@@ -221,6 +221,24 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldMatchName() {
+    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    assertThat(SchemaUtil.matchFieldName(field, "foo"), is(true));
+  }
+
+  @Test
+  public void shouldNotMatchDifferentName() {
+    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    assertThat(SchemaUtil.matchFieldName(field, "bar"), is(false));
+  }
+
+  @Test
+  public void shouldMatchNameWithAlias() {
+    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    assertThat(SchemaUtil.matchFieldName(field, "bar.foo"), is(true));
+  }
+
+  @Test
   public void shouldGetTheCorrectFieldName() {
     Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
     Assert.assertTrue(field.isPresent());

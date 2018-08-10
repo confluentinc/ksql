@@ -164,7 +164,11 @@ public class QueryAnalyzerTest {
     try {
       queryAnalyzer.analyze("sqlExpression", query);
     } catch (KsqlException ex) {
-      assertThat(ex.getMessage().trim(), equalTo("Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). Key for TEST2 is not set correctly."));
+      assertThat(
+          ex.getMessage().trim(),
+          equalTo(
+              "Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). "
+                  + "Could not find a join criteria operand for TEST2." ));
     }
   }
 

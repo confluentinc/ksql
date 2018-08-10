@@ -48,8 +48,8 @@ public class QueryEngineTest {
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
       schemaRegistryClient,
-      new DefaultKafkaClientSupplier(),
-      metaStore);
+      metaStore,
+      ksqlConfig);
 
 
   @Test

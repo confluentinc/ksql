@@ -202,7 +202,7 @@ public class SchemaKStreamTest {
         logicalPlan.getTheSourceNode().getSchema(),
         kStream,
         ksqlStream.getKeyField(),
-        new ArrayList<>(),
+        new ArrayList<SchemaKStream>(),
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,

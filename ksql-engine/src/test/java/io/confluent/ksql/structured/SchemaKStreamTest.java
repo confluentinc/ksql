@@ -204,6 +204,7 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(),
         new ArrayList<>(),
         SchemaKStream.Type.SOURCE,
+        ksqlConfig,
         functionRegistry,
         new MockSchemaRegistryClient());
 
@@ -308,14 +309,9 @@ public class SchemaKStreamTest {
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(),
-<<<<<<< HEAD
         SchemaKStream.Type.SOURCE, ksqlConfig,
         functionRegistry, schemaRegistryClient);
-    SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
-=======
-        SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
->>>>>>> upstream/5.0.x
         .getSchema().fields()
         .get(3), true);
     assertThat(rekeyedSchemaKStream.getKeyField().name().toUpperCase(), equalTo("TEST1.COL1"));

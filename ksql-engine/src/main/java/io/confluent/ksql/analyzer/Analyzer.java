@@ -342,7 +342,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (keyInfo == null) {
       throw new KsqlException(
           String.format(
-              "%s : Invalid join criteria %s. Could not find an operand for %s. ",
+              "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
               comparisonExpression.getLocation().isPresent()
               ? comparisonExpression.getLocation().get().toString()
               : "", comparisonExpression, sourceAlias

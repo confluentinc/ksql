@@ -533,7 +533,7 @@ public class JoinNodeTest {
           e.getMessage(),
           equalTo(
               String.format(
-                  "Source table (s) key column (%s) is not the column " +
+                  "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
               rightAlias,
               rightKeyFieldName,
@@ -756,7 +756,7 @@ public class JoinNodeTest {
           e.getMessage(),
           equalTo(
               String.format(
-                  "Source table (s) key column (%s) is not the column " +
+                  "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   leftAlias,
                   leftKeyFieldName,
@@ -800,7 +800,7 @@ public class JoinNodeTest {
           e.getMessage(),
           equalTo(
               String.format(
-                  "Source table (s) key column (%s) is not the column " +
+                  "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   rightAlias,
                   rightKeyFieldName,

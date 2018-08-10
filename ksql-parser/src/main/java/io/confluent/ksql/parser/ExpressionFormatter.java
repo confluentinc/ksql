@@ -72,6 +72,8 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.ParserUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -116,7 +118,8 @@ public final class ExpressionFormatter {
     protected String visitStruct(Struct node, Boolean unmangleNames) {
       return "STRUCT<" + Joiner.on(", ").join(node.getItems().stream()
           .map((child) ->
-              child.getLeft() + " " + process(child.getRight(), unmangleNames))
+              ParserUtil.escapeIfLiteral(child.getLeft())
+                  + " " + process(child.getRight(), unmangleNames))
           .collect(toList())) + ">";
     }
 

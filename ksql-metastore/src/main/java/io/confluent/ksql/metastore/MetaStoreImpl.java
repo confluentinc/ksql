@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -75,6 +76,16 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
       return null;
     }
     return dataSourceMap.get(sourceName).getLeft();
+  }
+
+  @Override
+  public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
+    return dataSourceMap.values()
+        .stream()
+        .filter(p -> p.getLeft().getKsqlTopic().getName() != null
+            && p.getLeft().getKsqlTopic().getName().equals(ksqlTopicName))
+        .map(Pair::getLeft)
+        .findFirst();
   }
 
   @Override
@@ -263,4 +274,5 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
   public List<AggregateFunctionFactory> listAggregateFunctions() {
     return functionRegistry.listAggregateFunctions();
   }
+
 }

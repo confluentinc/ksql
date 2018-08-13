@@ -545,6 +545,12 @@ public class CliTest extends TestRunner {
   }
 
   @Test
+  public void shouldHandlLineWithNonBreakingSpace() throws Exception {
+    localCli.handleLine("list" + (char) 0xa0 + "streams;");
+    assertThat(terminal.getOutputString(), containsString("Stream Name | Kafka Topic | Format"));
+  }
+
+  @Test
   public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +

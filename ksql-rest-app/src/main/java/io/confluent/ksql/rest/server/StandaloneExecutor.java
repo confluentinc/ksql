@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,8 +64,6 @@ public class StandaloneExecutor implements Executable {
   private final String queriesFile;
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-  private final Map<Class<? extends Statement>, BiConsumer<String, Statement>>
-      functionMap;
   private final Map<String, Object> configProperties = new HashMap<>();
 
   StandaloneExecutor(final KsqlConfig ksqlConfig,
@@ -77,43 +74,103 @@ public class StandaloneExecutor implements Executable {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
-    functionMap =
-        ImmutableMap.<Class<? extends Statement>, BiConsumer<String, Statement>>builder()
-        .put(SetProperty.class, (queryString, statement) -> {
-          final SetProperty setProperty = (SetProperty) statement;
-          configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-        })
-        .put(UnsetProperty.class, (queryString, statement) -> {
-          final UnsetProperty unsetProperty = (UnsetProperty) statement;
-          configProperties.remove(unsetProperty.getPropertyName());
-        })
-        .put(CreateStream.class, (queryString, statement) -> {
-          ksqlEngine.buildMultipleQueries(queryString,
-              ksqlConfig,
-              configProperties);
-        })
-        .put(CreateTable.class, (queryString, statement) -> {
-          ksqlEngine.buildMultipleQueries(queryString,
-              ksqlConfig,
-              configProperties);
-        })
-        .put(CreateStreamAsSelect.class, (queryString, statement) -> {
-          handlePersistentQuery(statement,
-              queryString,
-              configProperties);
-        })
-        .put(CreateTableAsSelect.class, (queryString, statement) -> {
-          handlePersistentQuery(statement,
-              queryString,
-              configProperties);
-        })
-        .put(InsertInto.class, (queryString, statement) -> {
-          handlePersistentQuery(statement,
-              queryString,
-              configProperties);
-        })
-        .build();
   }
+
+
+
+  // Define a suitable 'handler' interface:
+  private interface Handler<T extends Statement> {
+    void handle(StandaloneExecutor executor, String queryString, T statement);
+  }
+
+  // Build your static & immutable map of handler functions:
+  private static final Map<Class<? extends Statement>, Handler<Statement>> HANDLERS =
+      ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
+          .put(SetProperty.class,
+              castHandler(StandaloneExecutor::handleSetProperty, SetProperty.class))
+          .put(UnsetProperty.class,
+              castHandler(StandaloneExecutor::handleUnsetProperty, UnsetProperty.class))
+          .put(CreateStream.class,
+              castHandler(StandaloneExecutor::handleCreateStream, CreateStream.class))
+          .put(CreateTable.class,
+              castHandler(StandaloneExecutor::handleCreateTable, CreateTable.class))
+          .put(CreateStreamAsSelect.class,
+              castHandler(StandaloneExecutor::handleCreateStreamAsSelect,
+                  CreateStreamAsSelect.class))
+          .put(CreateTableAsSelect.class, castHandler(StandaloneExecutor::handleCreateTableAsSelect,
+              CreateTableAsSelect.class))
+          .put(InsertInto.class,
+              castHandler(StandaloneExecutor::handleInsertInto, InsertInto.class))
+          .build();
+
+  // Each member function is passed its required arguments, (pre-cast to the right type).
+  @SuppressWarnings("unused")
+  private void handleSetProperty(final String ignored, final SetProperty statement) {
+    configProperties.put(statement.getPropertyName(), statement.getPropertyValue());
+  }
+
+  @SuppressWarnings("unused")
+  private void handleUnsetProperty(final String ignored, final UnsetProperty statement) {
+    configProperties.remove(statement.getPropertyName());
+  }
+
+  @SuppressWarnings("unused")
+  private void handleCreateStream(final String queryString, final CreateStream ignored) {
+    ksqlEngine.buildMultipleQueries(queryString, ksqlConfig, configProperties);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleCreateTable(final String queryString, final CreateTable ignored) {
+    ksqlEngine.buildMultipleQueries(queryString, ksqlConfig, configProperties);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleCreateStreamAsSelect(
+      final String queryString,
+      final CreateStreamAsSelect statement) {
+    handlePersistentQuery(statement,
+        queryString,
+        configProperties);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleCreateTableAsSelect(
+      final String queryString,
+      final CreateTableAsSelect statement) {
+    handlePersistentQuery(statement,
+        queryString,
+        configProperties);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleInsertInto(final String queryString, final InsertInto statement) {
+    handlePersistentQuery(statement,
+        queryString,
+        configProperties);
+  }
+
+  // Define a default handler to call when no other handler registered.
+  @SuppressWarnings("unused")
+  private void defaultHandler(final String queryString, final Statement ignored) {
+    final String message = String.format(
+            "Ignoring statements: %s"
+                + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
+                + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
+        queryString
+        );
+    System.err.println(message);
+    log.warn(message);
+    throw new KsqlException(message);
+  }
+
+  // A little casting magic in a single place:
+  private static <T extends Statement> Handler<Statement> castHandler(
+      final Handler<? super T> handler,
+      final Class<T> type) {
+    return (executor, queryString, statement) ->
+        handler.handle(executor, queryString, type.cast(statement));
+  }
+
 
   public void start() {
     try {
@@ -168,29 +225,17 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
+  // Then executeStatements can simply be:
   private void executeStatements(final String queries) {
     final List<Pair<String, Statement>> statementPairs =
         ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
     for (final Pair<String, Statement> statementPair: statementPairs) {
-      final String statementString = statementPair.getLeft();
       final Statement statement = statementPair.getRight();
-      final BiConsumer<String, Statement> function = functionMap.get(statement.getClass());
-      if (function == null) {
-        final String message = String.format(
-            "Ignoring statements: %s"
-                + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
-                + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
-            statementPair.getLeft()
-        );
-        System.err.println(message);
-        log.warn(message);
-      }
-      functionMap.get(statement.getClass()).accept(statementPair.getLeft(),
-          statementPair.getRight());
+      HANDLERS
+          .getOrDefault(statement.getClass(), StandaloneExecutor::defaultHandler)
+          .handle(this, statementPair.getLeft(), statement);
     }
-
   }
-
 
   private void handlePersistentQuery(
       final Statement statement,
@@ -199,9 +244,7 @@ public class StandaloneExecutor implements Executable {
     final Query query = getQueryFromStatement(statementString, statement);
     final QueryMetadata queryMetadata =
         ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-    if (statement instanceof CreateAsSelect) {
-      validateCsasCtas(queryMetadata, (CreateAsSelect) statement);
-    }
+    validateCsasCtas(queryMetadata, statement);
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
     if (queryMetadataList.size() != 1
@@ -223,7 +266,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void validateCsasCtas(final QueryMetadata queryMetadata,
-      final CreateAsSelect createAsSelect) {
+      final Statement createAsSelect) {
     if (createAsSelect instanceof CreateStreamAsSelect
         && queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
       throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. "
@@ -248,7 +291,7 @@ public class StandaloneExecutor implements Executable {
     }
   }
 
-  public Map<String, Object> getConfigProperties() {
+  public Map<String, ?> getConfigProperties() {
     return configProperties;
   }
 }

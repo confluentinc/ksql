@@ -205,8 +205,8 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    final List<PreparedStatement> parsedStatements = ksqlEngine.parseQueries(
-        runScriptContent.toString(), metaStore.clone());
+    final List<PreparedStatement> parsedStatements = ksqlEngine.parseStatements(
+        runScriptContent.toString(), metaStore.clone(), true);
 
     assertThat(parsedStatements.size(), equalTo(3));
 

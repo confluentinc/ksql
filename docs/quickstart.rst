@@ -16,6 +16,9 @@ KSQL Tutorials and Examples
       a simple workflow using KSQL to write streaming queries against messages in Kafka.
     - :ref:`Clickstream Data Analysis Pipeline Using KSQL <ksql_tutorials>`. Learn how to use KSQL,
       ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
+    - There are a number of ways for a Java streams application to deserialize
+      and ingest data. For a full code example, see `connect-streams-pipeline <https://github.com/confluentinc/quickstart-demos/tree/master/connect-streams-pipeline>`_.
+
 
 
 

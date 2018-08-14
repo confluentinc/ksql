@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>4.1.3-SNAPSHOT</version>
+        <version>4.1.3-beta180814192459</version>
     </parent>
 
     <artifactId>ksql-serde</artifactId>

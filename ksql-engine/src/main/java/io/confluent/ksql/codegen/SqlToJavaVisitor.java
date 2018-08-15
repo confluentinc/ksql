@@ -54,6 +54,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -66,14 +67,19 @@ import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
 
-  private Schema schema;
-  private FunctionRegistry functionRegistry;
+  private final Schema schema;
+  private final FunctionRegistry functionRegistry;
+  private final KsqlConfig ksqlConfig;
 
   private final ExpressionTypeManager expressionTypeManager;
 
-  public SqlToJavaVisitor(final Schema schema, final FunctionRegistry functionRegistry) {
+  public SqlToJavaVisitor(
+      final Schema schema,
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig) {
     this.schema = schema;
     this.functionRegistry = functionRegistry;
+    this.ksqlConfig = ksqlConfig;
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
   }
@@ -538,12 +544,19 @@ public class SqlToJavaVisitor {
           SchemaUtil.getJavaType(internalSchema).getCanonicalName();
       switch (internalSchema.type()) {
         case ARRAY:
+          final String indexString =
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG)
+                  ? String.format("((int)(%s))",
+                  process(node.getIndex(), unmangleNames).getLeft())
+                  : String.format("((int)(%s)) - 1",
+                      process(node.getIndex(), unmangleNames).getLeft());
+
           return new Pair<>(
-              String.format("((%s) ((%s)%s).get(((int)(%s)) - 1))",
+              String.format("((%s) ((%s)%s).get(%s))",
                   SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
                   internalSchemaJavaType,
                   process(node.getBase(), unmangleNames).getLeft(),
-                  process(node.getIndex(), unmangleNames).getLeft()
+                  indexString
               ),
               internalSchema.valueSchema()
           );

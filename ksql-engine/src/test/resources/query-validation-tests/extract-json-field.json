@@ -22,7 +22,7 @@
       "name": "extract JSON array field",
       "statements": [
         "CREATE STREAM TEST (array_field ARRAY<VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT EXTRACTJSONFIELD(array_field[1], '$.nested') AS Col1, EXTRACTJSONFIELD(array_field[2], '$.nested') AS Col2 FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT EXTRACTJSONFIELD(array_field[0], '$.nested') AS Col1, EXTRACTJSONFIELD(array_field[1], '$.nested') AS Col2 FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"array_field": ["{\"nested\": \"nest0\"}","{\"nested\": \"nest1\"}"]}, "timestamp": 0},

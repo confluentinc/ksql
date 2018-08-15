@@ -104,6 +104,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
       + " and the last argument is the length of the substring to extract.";
 
+  public static final String KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG =
+      KSQ_FUNCTIONS_PROPERTY_PREFIX + "array.legacy.base";
+  private static final String
+      KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_DOCS = "Switch the array base into legacy mode,"
+      + " i.e., array indexes starting from 0 as it was in version 5.0 and earlier of KSQL."
+      + " Up to version 5.0.x array indexes started from 0. By setting this config variable to"
+      + " false the array indexes will start from one. The default for this is true until we"
+      + " switch to arrays with index startiing from one.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -139,7 +148,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               true,
               false,
               ConfigDef.Importance.LOW,
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
+           new CompatibilityBreakingConfigDef(
+              KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+          true,
+          true,
+              ConfigDef.Importance.LOW,
+              KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_DOCS)
   );
 
   private static class CompatibilityBreakingConfigDef {

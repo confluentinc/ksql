@@ -80,6 +80,7 @@ public class CodeGenRunnerTest {
     private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    private Schema schema;
 
     @Before
     public void init() {
@@ -90,7 +91,7 @@ public class CodeGenRunnerTest {
         final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
 
 
-        final Schema schema = SchemaBuilder.struct()
+        schema = SchemaBuilder.struct()
             .field("CODEGEN_TEST.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("CODEGEN_TEST.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("CODEGEN_TEST.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -182,6 +183,23 @@ public class CodeGenRunnerTest {
         final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
         final ExpressionMetadata expressionEvaluatorMetadata = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
+        final List<String> innerArray2 = Arrays.asList("item_21", "item_22");
+        final Object[] args = new Object[]{Arrays.asList(innerArray1, innerArray2)};
+        final Object result = expressionEvaluatorMetadata.getExpressionEvaluator().evaluate(args);
+        assertThat(result, instanceOf(String.class));
+        assertThat(result, equalTo("item_11"));
+    }
+
+    @Test
+    public void shouldHandleMultiDimensionalArrayWithBaseStartingFrom1() throws Exception {
+        final KsqlConfig localKsqlConfig =
+            new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG, false));
+        final CodeGenRunner localCodeGenRunner = new CodeGenRunner(schema, localKsqlConfig, functionRegistry);
+        final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST;";
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionMetadata expressionEvaluatorMetadata = localCodeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
         final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
         final List<String> innerArray2 = Arrays.asList("item_21", "item_22");

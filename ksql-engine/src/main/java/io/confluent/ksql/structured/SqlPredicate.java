@@ -87,7 +87,8 @@ public class SqlPredicate {
 
       final String expressionStr = new SqlToJavaVisitor(
           schema,
-          functionRegistry
+          functionRegistry,
+          ksqlConfig
       ).process(filterExpression);
 
       ee.cook(expressionStr);

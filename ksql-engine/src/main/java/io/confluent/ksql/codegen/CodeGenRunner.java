@@ -102,7 +102,8 @@ public class CodeGenRunner {
       index++;
     }
 
-    final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
+    final String javaCode = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
+        .process(expression);
 
     final IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();

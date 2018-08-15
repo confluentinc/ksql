@@ -202,7 +202,7 @@ public class KsqlParserTest {
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
     Assert.assertTrue("testProjectionWithArrayMap fails", column3.getExpression().toString()
-        .equalsIgnoreCase("TEST1.COL4[1]"));
+        .equalsIgnoreCase("TEST1.COL4[0]"));
     Assert.assertTrue("testProjectionWithArrayMap fails", column4.getExpression().toString()
         .equalsIgnoreCase("TEST1.COL5['key1']"));
   }

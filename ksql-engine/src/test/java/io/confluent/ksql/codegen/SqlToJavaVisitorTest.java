@@ -10,6 +10,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -20,6 +22,7 @@ public class SqlToJavaVisitorTest {
   private MetaStore metaStore;
   private Schema schema;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Before
   public void init() {
@@ -51,7 +54,7 @@ public class SqlToJavaVisitorTest {
     final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
@@ -62,11 +65,11 @@ public class SqlToJavaVisitorTest {
     final String simpleQuery = "SELECT col4[1] FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
-        equalTo("((Double) ((java.util.List)TEST1_COL4).get(((int)(Integer.parseInt(\"1\"))) - 1))"));
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get(((int)(Integer.parseInt(\"0\"))) - 1))"));
   }
 
   @Test
@@ -74,7 +77,7 @@ public class SqlToJavaVisitorTest {
     final String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
@@ -89,11 +92,11 @@ public class SqlToJavaVisitorTest {
         + "col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final String javaExpression0 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression0 = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
-    final String javaExpression1 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression1 = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(1));
-    final String javaExpression2 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression2 = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(2));
 
     assertThat(javaExpression0, equalTo("(new Long(TEST1_COL0).intValue())"));
@@ -107,7 +110,7 @@ public class SqlToJavaVisitorTest {
         "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) FROM test1;",
         metaStore);
 
-    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, is(
@@ -122,7 +125,7 @@ public class SqlToJavaVisitorTest {
     final Analysis analysis = analyzeQuery(
         "SELECT * FROM test1 WHERE col3 > -10.0;", metaStore);
 
-    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getWhereExpression());
     assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
   }

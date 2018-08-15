@@ -166,14 +166,17 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 1)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only.)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
    the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
    accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
 
-Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
+You can configure the base index for arrays to start from 0 or 1 using ``ksql.functions.array.legacy.base`` configuration value.
+The current default value of ``ksql.functions.array.legacy.base`` is true indicating that the array indexes start from 0.
+You can set ``ksql.functions.array.legacy.base`` to false in order to have array indexes startinhg from 1.
+We plan to set the default base for array indexes to 1 in future releases.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -245,14 +248,17 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 1)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only.)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
    the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
    accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
 
-Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
+You can configure the base index for arrays to start from 0 or 1 using ``ksql.functions.array.legacy.base`` configuration value.
+The current default value of ``ksql.functions.array.legacy.base`` is true indicating that the array indexes start from 0.
+You can set ``ksql.functions.array.legacy.base`` to false in order to have array indexes startinhg from 1.
+We plan to set the default base for array indexes to 1 in future releases.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -991,11 +997,15 @@ The explanation for each operator includes a supporting example based on the fol
 
 - Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
   an array index or a map key.
-  Note that starting KSQL 5.1 array index starts from 1. For the versions of KSQL before 5.1, array index starts from 0.
+
+You can configure the base index for arrays to start from 0 or 1 using ``ksql.functions.array.legacy.base`` configuration value.
+The current default value of ``ksql.functions.array.legacy.base`` is true indicating that the array indexes start from 0.
+You can set ``ksql.functions.array.legacy.base`` to false in order to have array indexes startinhg from 1.
+We plan to set the default base for array indexes to 1 in future releases.
 
 .. code:: sql
 
-  SELECT NICKNAMES[1] FROM USERS;
+  SELECT NICKNAMES[0] FROM USERS;
 
 .. _functions:
 

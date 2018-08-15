@@ -80,7 +80,6 @@ public class StatementRewriterTest {
   public void testProjectionWithArrayMap() {
     final String queryStr = "SELECT col0, col2, col3, col4[1], col5['key1'] FROM test1;";
     final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
-
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -98,7 +97,7 @@ public class StatementRewriterTest {
 
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
-    assertThat("testProjectionWithArrayMap fails", column3.getExpression().toString(), equalTo("TEST1.COL4[1]"));
+    assertThat("testProjectionWithArrayMap fails", column3.getExpression().toString(), equalTo("TEST1.COL4[0]"));
     assertThat("testProjectionWithArrayMap fails", column4.getExpression().toString(), equalTo("TEST1.COL5['key1']"));
   }
 

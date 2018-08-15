@@ -22,10 +22,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.LinkedList;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -51,7 +52,7 @@ public class AvroDataTranslator implements DataTranslator {
     if (avroCompatibleRow == null) {
       return null;
     }
-    final List<Object> columns = new LinkedList<>();
+    final List<Object> columns = new ArrayList<>(avroCompatibleRow.getColumns().size());
     for (int i = 0; i < avroCompatibleRow.getColumns().size(); i++) {
       columns.add(
           replaceSchema(
@@ -63,7 +64,7 @@ public class AvroDataTranslator implements DataTranslator {
 
   @Override
   public Struct toConnectRow(final GenericRow genericRow) {
-    final List<Object> columns = new LinkedList<>();
+    final List<Object> columns = new ArrayList<>(genericRow.getColumns().size());
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       columns.add(
           replaceSchema(
@@ -147,17 +148,19 @@ public class AvroDataTranslator implements DataTranslator {
     }
     switch (schema.type()) {
       case ARRAY:
-        return ((List) object).stream()
-            .map(e -> replaceSchema(schema.valueSchema(), e))
-            .collect(Collectors.toList());
+        final List<Object> ksqlArray = new ArrayList<>(((List) object).size());
+        ((List) object).forEach(
+            e -> ksqlArray.add(replaceSchema(schema.valueSchema(), e)));
+        return ksqlArray;
+
       case MAP:
-        return ((Map<Object, Object>) object).entrySet().stream()
-            .collect(
-                Collectors.toMap(
-                    e -> replaceSchema(schema.keySchema(), e.getKey()),
-                    e -> replaceSchema(schema.valueSchema(), e.getValue())
-                )
-            );
+        final Map<Object, Object> ksqlMap = new HashMap<>();
+        ((Map<Object, Object>) object).forEach(
+            (key, value) -> ksqlMap.put(
+                replaceSchema(schema.keySchema(), key),
+                replaceSchema(schema.valueSchema(), value)
+            ));
+        return ksqlMap;
 
       case STRUCT:
         final Struct struct = new Struct(schema);
@@ -167,6 +170,7 @@ public class AvroDataTranslator implements DataTranslator {
                 replaceSchema(f.schema(), ((Struct) object).get(f.name())))
         );
         return struct;
+
       default:
         return object;
     }

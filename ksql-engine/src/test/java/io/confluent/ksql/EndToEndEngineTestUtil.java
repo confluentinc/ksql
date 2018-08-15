@@ -44,6 +44,10 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,6 +66,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -419,6 +424,8 @@ final class EndToEndEngineTestUtil {
     private final List<Record> outputRecords;
     private final List<String> statements;
     private final ExpectedException expectedException;
+    private String generatedTopology;
+    private String expectedTopology;
 
     public String getName() {
       return name;
@@ -441,6 +448,14 @@ final class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+    }
+
+    public void setGeneratedTopology(String generatedTopology) {
+      this.generatedTopology = generatedTopology;
+    }
+
+    public void setExpectedTopology(String expectedTopology) {
+      this.expectedTopology = expectedTopology;
     }
 
     public Map<String, Object> properties() {
@@ -705,7 +720,8 @@ final class EndToEndEngineTestUtil {
     try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient)) {
       query.initializeTopics(ksqlEngine);
       final TopologyTestDriver testDriver
-          = buildStreamsTopology(query, ksqlEngine, ksqlConfig, streamsProperties);
+          = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
+      assertEquals(query.expectedTopology, query.generatedTopology);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);
 

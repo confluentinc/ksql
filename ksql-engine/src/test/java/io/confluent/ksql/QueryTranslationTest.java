@@ -1,5 +1,6 @@
 package io.confluent.ksql;
 
+import static io.confluent.ksql.EndToEndEngineTestUtil.CURRENT_TOPOLOGY_CHECKS_DIR;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
@@ -10,6 +11,8 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplie
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
 import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
+import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -69,7 +72,16 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
+    final Map<String, String> expectedTopologies = loadExpectedTopologies(CURRENT_TOPOLOGY_CHECKS_DIR);
+    return buildQueryList().stream()
+          .peek(q -> q.setExpectedTopology(expectedTopologies.get(formatQueryName(q.getName()))))
+          .map(query -> new Object[]{query.getName(), query})
+          .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  static List<Query> buildQueryList()  throws IOException {
     final List<String> testFiles = findTests(QUERY_VALIDATION_TEST_DIR);
+
     return testFiles.stream().flatMap(test -> {
       final String testPath = QUERY_VALIDATION_TEST_DIR + "/" + test;
       final JsonNode tests;
@@ -82,17 +94,16 @@ public class QueryTranslationTest {
       }
       final List<Query> queries = new ArrayList<>();
       tests.findValue("tests").elements().forEachRemaining(query -> {
-          final JsonNode formats = query.get("format");
-          if (formats == null) {
-            queries.add(createTest(testPath, query, ""));
-          } else {
-            formats.iterator().forEachRemaining(
-                format -> queries.add(createTest(testPath, query, format.asText())));
-          }
+        final JsonNode formats = query.get("format");
+        if (formats == null) {
+          queries.add(createTest(testPath, query, ""));
+        } else {
+          formats.iterator().forEachRemaining(
+              format -> queries.add(createTest(testPath, query, format.asText())));
+        }
       });
-      return queries.stream()
-          .map(query -> new Object[]{query.getName(), query});
-    }).collect(Collectors.toCollection(ArrayList::new));
+      return queries.stream();
+    }).collect(Collectors.toList());
   }
 
   private static Query createTest(final String testPath, final JsonNode query, final String format) {

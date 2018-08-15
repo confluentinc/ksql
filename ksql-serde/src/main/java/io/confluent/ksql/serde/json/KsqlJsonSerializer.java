@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,12 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KsqlJsonSerializer implements Serializer<GenericRow> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerializer.class);
 
   private final Schema schema;
   private final JsonConverter jsonConverter;
@@ -46,6 +50,10 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
 
   @Override
   public byte[] serialize(final String topic, final GenericRow data) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Serializing row. topic:{}, row:{}", topic, data);
+    }
+
     if (data == null) {
       return null;
     }

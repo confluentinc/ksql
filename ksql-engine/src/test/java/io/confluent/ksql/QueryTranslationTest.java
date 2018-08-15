@@ -1,22 +1,27 @@
 package io.confluent.ksql;
 
-import static io.confluent.ksql.EndToEndEngineTestUtil.CURRENT_TOPOLOGY_CHECKS_DIR;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
-import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
-import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -30,29 +35,26 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+
+import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
+import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
+  private static final String CURRENT_TOPOLOGY_CHECKS_DIR = "5_0_expected_topology";
+  private static final String PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP = "topology.dir";
 
   private final Query query;
 
@@ -72,7 +74,8 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
-    final Map<String, String> expectedTopologies = loadExpectedTopologies(CURRENT_TOPOLOGY_CHECKS_DIR);
+    final String topologyDirectory = System.getProperty(PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP, CURRENT_TOPOLOGY_CHECKS_DIR);
+    final Map<String, String> expectedTopologies = loadExpectedTopologies(topologyDirectory);
     return buildQueryList().stream()
           .peek(q -> q.setExpectedTopology(expectedTopologies.get(formatQueryName(q.getName()))))
           .map(query -> new Object[]{query.getName(), query})

@@ -80,7 +80,6 @@ import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  static final String CURRENT_TOPOLOGY_CHECKS_DIR = "5_0_expected_topology";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -719,8 +718,7 @@ final class EndToEndEngineTestUtil {
 
     try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient)) {
       query.initializeTopics(ksqlEngine);
-      final TopologyTestDriver testDriver
-          = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
+      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
       assertEquals(query.expectedTopology, query.generatedTopology);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);

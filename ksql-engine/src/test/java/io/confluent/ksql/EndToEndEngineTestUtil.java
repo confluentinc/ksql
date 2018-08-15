@@ -550,10 +550,10 @@ final class EndToEndEngineTestUtil {
 
     final Random randomPort = new Random();
     queryList.forEach(query -> {
-      final KsqlEngine ksqlEngine = getKsqlEngine(new MockSchemaRegistryClient());
       final Map<String, Object> config = getConfigs(null);
       config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
       final KsqlConfig ksqlConfig = new KsqlConfig(config);
+      final KsqlEngine ksqlEngine = getKsqlEngine(new MockSchemaRegistryClient(), ksqlConfig);
       final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
       writeExpectedTopologyFile(query.name, topology, topologyDir);
     });
@@ -669,13 +669,15 @@ final class EndToEndEngineTestUtil {
   }
 
 
-  private static KsqlEngine getKsqlEngine(final SchemaRegistryClient client) {
+  private static KsqlEngine getKsqlEngine(final SchemaRegistryClient client,
+                                          final KsqlConfig ksqlConfig) {
       final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
      return new KsqlEngine(
           new FakeKafkaTopicClient(),
           client,
-          metaStore);
+          metaStore,
+          ksqlConfig);
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
@@ -716,7 +718,7 @@ final class EndToEndEngineTestUtil {
     final KsqlConfig ksqlConfig = new KsqlConfig(config);
 
 
-    try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient)) {
+    try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient, ksqlConfig)) {
       query.initializeTopics(ksqlEngine);
       final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
       assertEquals(query.expectedTopology, query.generatedTopology);

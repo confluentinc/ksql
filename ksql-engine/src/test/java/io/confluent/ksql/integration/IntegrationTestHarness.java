@@ -15,6 +15,7 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -190,8 +191,8 @@ public class IntegrationTestHarness {
       long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd &&
              continueConsuming(result.size(), expectedNumMessages)) {
-        for (ConsumerRecord<K, GenericRow> record :
-            consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+        final Duration duration = Duration.ofMillis(Math.max(1, pollEnd - System.currentTimeMillis()));
+        for (ConsumerRecord<K, GenericRow> record : consumer.poll(duration)) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
           }

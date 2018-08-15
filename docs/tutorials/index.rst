@@ -47,6 +47,9 @@ Clickstream Data Analysis Pipeline
 KSQL Examples
     :ref:`These examples <ksql_examples>` provide common KSQL usage operations.
 
+    There are a number of ways for a Java streams application to deserialize
+    and ingest data. For a full code example, see `connect-streams-pipeline <https://github.com/confluentinc/quickstart-demos/tree/master/connect-streams-pipeline>`_.
+
 KSQL in a Kafka Streaming ETL
 
     To learn how to deploy a Kafka streaming ETL using KSQL for stream processing, you can run the :ref:`Confluent Platform demo<cp-demo>`. All components in the |cp| demo have encryption, authentication, and authorization configured end-to-end.

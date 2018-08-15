@@ -449,11 +449,11 @@ final class EndToEndEngineTestUtil {
       this.expectedException = expectedException;
     }
 
-    public void setGeneratedTopology(String generatedTopology) {
+    void setGeneratedTopology(final String generatedTopology) {
       this.generatedTopology = generatedTopology;
     }
 
-    public void setExpectedTopology(String expectedTopology) {
+    void setExpectedTopology(final String expectedTopology) {
       this.expectedTopology = expectedTopology;
     }
 

@@ -55,7 +55,7 @@ public final class UdfClassLoader extends URLClassLoader {
         if (shouldLoadFromChild(name)) {
           clazz = findClass(name);
         }
-      } catch (ClassNotFoundException e) {
+      } catch (final ClassNotFoundException e) {
         logger.trace("Class {} not found in {} using parent classloader",
             name,
             path);
@@ -88,7 +88,7 @@ public final class UdfClassLoader extends URLClassLoader {
   private static URL[] toUrl(final Path path) {
     try {
       return new URL[]{path.toUri().toURL()};
-    } catch (MalformedURLException e) {
+    } catch (final MalformedURLException e) {
       throw new KsqlException("Unable to create classloader for path:" + path, e);
     }
   }

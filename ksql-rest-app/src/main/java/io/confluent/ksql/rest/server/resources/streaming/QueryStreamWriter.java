@@ -57,7 +57,7 @@ class QueryStreamWriter implements StreamingOutput {
       final Map<String, Object> overriddenProperties,
       final ObjectMapper objectMapper
   ) throws Exception {
-    QueryMetadata queryMetadata =
+    final QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(
             queryString, ksqlConfig, overriddenProperties).get(0);
     this.objectMapper = objectMapper;
@@ -78,10 +78,10 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   @Override
-  public void write(OutputStream out) {
+  public void write(final OutputStream out) {
     try {
       while (queryMetadata.isRunning() && !limitReached) {
-        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
+        final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
@@ -120,7 +120,7 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private void write(OutputStream output, GenericRow row) throws IOException {
+  private void write(final OutputStream output, final GenericRow row) throws IOException {
     objectMapper.writeValue(output, StreamedRow.row(row));
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
@@ -159,7 +159,7 @@ class QueryStreamWriter implements StreamingOutput {
 
   private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
     @Override
-    public void uncaughtException(Thread thread, Throwable exception) {
+    public void uncaughtException(final Thread thread, final Throwable exception) {
       streamsException = exception instanceof Exception
           ? (Exception) exception
           : new RuntimeException(exception);

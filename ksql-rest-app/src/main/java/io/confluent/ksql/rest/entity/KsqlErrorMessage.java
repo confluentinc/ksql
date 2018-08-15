@@ -43,22 +43,22 @@ public class KsqlErrorMessage extends ErrorMessage {
 
   @JsonCreator
   public KsqlErrorMessage(
-      @JsonProperty("error_code") int errorCode,
-      @JsonProperty("message") String message,
-      @JsonProperty("stackTrace") List<String> stackTrace) {
+      @JsonProperty("error_code") final int errorCode,
+      @JsonProperty("message") final String message,
+      @JsonProperty("stackTrace") final List<String> stackTrace) {
     super(errorCode, message);
     this.stackTrace = stackTrace;
   }
 
-  public KsqlErrorMessage(int errorCode, Throwable exception) {
+  public KsqlErrorMessage(final int errorCode, final Throwable exception) {
     this(errorCode, ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
   }
 
-  public KsqlErrorMessage(int errorCode, String message) {
+  public KsqlErrorMessage(final int errorCode, final String message) {
     this(errorCode, message, Collections.emptyList());
   }
 
-  protected static List<String> getStackTraceStrings(Throwable exception) {
+  protected static List<String> getStackTraceStrings(final Throwable exception) {
     return Arrays.stream(exception.getStackTrace())
         .map(StackTraceElement::toString)
         .collect(Collectors.toList());
@@ -70,10 +70,10 @@ public class KsqlErrorMessage extends ErrorMessage {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append(getMessage());
     sb.append("\n");
-    for (String line : stackTrace) {
+    for (final String line : stackTrace) {
       sb.append(line);
       sb.append("\n");
     }
@@ -81,14 +81,14 @@ public class KsqlErrorMessage extends ErrorMessage {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KsqlErrorMessage)) {
       return false;
     }
-    KsqlErrorMessage that = (KsqlErrorMessage) o;
+    final KsqlErrorMessage that = (KsqlErrorMessage) o;
     return Objects.equals(getMessage(), that.getMessage())
            && Objects.equals(getStackTrace(), that.getStackTrace());
   }

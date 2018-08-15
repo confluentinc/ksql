@@ -41,17 +41,18 @@ public class KsqlParser {
   /**
    * Builds an AST from the given query string.
    */
-  public List<Statement> buildAst(String sql, MetaStore metaStore) {
+  public List<Statement> buildAst(final String sql, final MetaStore metaStore) {
 
     try {
-      ParserRuleContext tree = getParseTree(sql);
-      SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
-      List<Statement> astNodes = new ArrayList<>();
-      for (SqlBaseParser.SingleStatementContext statementContext : statementsContext
+      final ParserRuleContext tree = getParseTree(sql);
+      final SqlBaseParser.StatementsContext statementsContext =
+          (SqlBaseParser.StatementsContext) tree;
+      final List<Statement> astNodes = new ArrayList<>();
+      for (final SqlBaseParser.SingleStatementContext statementContext : statementsContext
           .singleStatement()) {
-        DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+        final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
         dataSourceExtractor.extractDataSources(statementContext);
-        Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
+        final Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
         Statement statement = (Statement) root;
         if (StatementRewriteForStruct.requiresRewrite(statement)) {
           statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
@@ -60,29 +61,30 @@ public class KsqlParser {
         astNodes.add(statement);
       }
       return astNodes;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       // if we fail, parse with LL mode
       throw new ParseFailedException(e.getMessage(), e);
     }
   }
 
-  public List<SqlBaseParser.SingleStatementContext> getStatements(String sql) {
+  public List<SqlBaseParser.SingleStatementContext> getStatements(final String sql) {
     try {
-      ParserRuleContext tree = getParseTree(sql);
-      SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
+      final ParserRuleContext tree = getParseTree(sql);
+      final SqlBaseParser.StatementsContext statementsContext =
+          (SqlBaseParser.StatementsContext) tree;
       return statementsContext.singleStatement();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), e);
     }
   }
 
 
   public Pair<Statement, DataSourceExtractor> prepareStatement(
-      SqlBaseParser.SingleStatementContext statementContext, MetaStore metaStore) {
-    DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+      final SqlBaseParser.SingleStatementContext statementContext, final MetaStore metaStore) {
+    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
     dataSourceExtractor.extractDataSources(statementContext);
-    AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
-    Node root = astBuilder.visit(statementContext);
+    final AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
+    final Node root = astBuilder.visit(statementContext);
     Statement statement = (Statement) root;
     if (StatementRewriteForStruct.requiresRewrite(statement)) {
       statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
@@ -92,13 +94,13 @@ public class KsqlParser {
   }
 
 
-  private ParserRuleContext getParseTree(String sql) {
+  private ParserRuleContext getParseTree(final String sql) {
 
-    SqlBaseLexer
+    final SqlBaseLexer
         sqlBaseLexer =
         new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
-    CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
-    SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
+    final CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
+    final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
 
     sqlBaseLexer.removeErrorListeners();
     sqlBaseLexer.addErrorListener(ERROR_LISTENER);
@@ -106,13 +108,13 @@ public class KsqlParser {
     sqlBaseParser.removeErrorListeners();
     sqlBaseParser.addErrorListener(ERROR_LISTENER);
 
-    Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
+    final Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
     ParserRuleContext tree;
     try {
       // first, try parsing with potentially faster SLL mode
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
       tree = parseFunction.apply(sqlBaseParser);
-    } catch (ParseCancellationException ex) {
+    } catch (final ParseCancellationException ex) {
       // if we fail, parse with LL mode
       tokenStream.reset(); // rewind input stream
       sqlBaseParser.reset();
@@ -126,8 +128,13 @@ public class KsqlParser {
 
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
-    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
-                            int charPositionInLine, String message, RecognitionException e) {
+    public void syntaxError(
+        final Recognizer<?, ?> recognizer,
+        final Object offendingSymbol,
+        final int line,
+        final int charPositionInLine,
+        final String message,
+        final RecognitionException e) {
       throw new ParsingException(message, e, line, charPositionInLine);
     }
   };

@@ -80,14 +80,14 @@ public class WithinExpression extends Node {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    WithinExpression withinExpression = (WithinExpression) o;
+    final WithinExpression withinExpression = (WithinExpression) o;
     return before == withinExpression.before && after == withinExpression.after
            && Objects.equals(beforeTimeUnit, withinExpression.beforeTimeUnit)
            && Objects.equals(afterTimeUnit, withinExpression.afterTimeUnit);

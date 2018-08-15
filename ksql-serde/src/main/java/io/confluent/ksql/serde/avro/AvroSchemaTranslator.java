@@ -27,7 +27,7 @@ public class AvroSchemaTranslator extends ConnectSchemaTranslator {
   public static Schema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
-    AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+    final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
     return new AvroSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
   }
 

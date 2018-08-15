@@ -46,14 +46,14 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   private static class NoOpExpander extends DefaultExpander {
 
     @Override
-    public String expandHistory(History history, String line) {
+    public String expandHistory(final History history, final String line) {
       return line;
     }
   }
 
   public JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
-    DefaultParser parser = new DefaultParser();
+    final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
     parser.setEscapeChars(new char[]{'\\'});
@@ -93,7 +93,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   @Override
   public String readLine() throws IOException {
-    String line = lineReader.readLine(prompt);
+    final String line = lineReader.readLine(prompt);
     history.add(line);
     history.save();
     return line;

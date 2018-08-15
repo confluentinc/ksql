@@ -67,7 +67,7 @@ public class UdfMetricProducerTest {
 
     try {
       metricProducer.evaluate("foo");
-    } catch (Exception e) {
+    } catch (final Exception e) {
       // ignored
     }
 

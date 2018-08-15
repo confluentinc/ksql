@@ -43,11 +43,11 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
   private final ListeningScheduledExecutorService exec;
 
   public StreamPublisher(
-      KsqlConfig ksqlConfig,
-      KsqlEngine ksqlEngine,
-      ListeningScheduledExecutorService exec,
-      String queryString,
-      Map<String, Object> clientLocalProperties
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final ListeningScheduledExecutorService exec,
+      final String queryString,
+      final Map<String, Object> clientLocalProperties
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
@@ -57,13 +57,13 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
   }
 
   @Override
-  public synchronized void subscribe(Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
+  public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
+    final QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
         queryString,
         ksqlConfig,
         clientLocalProperties).get(0);
 
-    StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
+    final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
     queryMetadata.getKafkaStreams().start();
@@ -77,8 +77,8 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
     private boolean closed = false;
 
     StreamSubscription(
-        Subscriber<Collection<StreamedRow>> subscriber,
-        QueuedQueryMetadata queryMetadata
+        final Subscriber<Collection<StreamedRow>> subscriber,
+        final QueuedQueryMetadata queryMetadata
     ) {
       super(exec, subscriber, queryMetadata.getResultSchema());
       this.queryMetadata = queryMetadata;
@@ -91,7 +91,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
 
     @Override
     public Collection<StreamedRow> poll() {
-      List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
+      final List<KeyValue<String, GenericRow>> rows = Lists.newLinkedList();
       queryMetadata.getRowQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;

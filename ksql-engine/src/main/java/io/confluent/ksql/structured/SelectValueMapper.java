@@ -69,7 +69,7 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
         newColumns.add(
             expressionEvaluators.get(i).getExpressionEvaluator().evaluate(parameterObjects)
         );
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error(
             "Error calculating column with index {} : {}",
             i,

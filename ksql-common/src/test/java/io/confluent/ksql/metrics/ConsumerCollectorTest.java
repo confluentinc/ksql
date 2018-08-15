@@ -24,20 +24,20 @@ public class ConsumerCollectorTest {
   @Test
   public void shouldDisplayRateThroughput() throws Exception {
 
-    ConsumerCollector collector = new ConsumerCollector();//
+    final ConsumerCollector collector = new ConsumerCollector();//
     collector.configure(new Metrics(), "group", new SystemTime());
 
     for (int i = 0; i < 100; i++){
 
-      Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
+      final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
               new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
                       new ConsumerRecord<>(TEST_TOPIC, 1, i,  1l, TimestampType.CREATE_TIME,  1l, 10, 10, "key", "1234567890")) );
-      ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+      final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
 
       collector.onConsume(consumerRecords);
     }
 
-    Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC, false);
+    final Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC, false);
     assertNotNull(stats);
 
     assertThat( stats.toString(), containsString("name=consumer-messages-per-sec,"));

@@ -43,7 +43,7 @@ public class PageViewDataProvider extends TestDataProvider {
   }
 
   private Map<String, GenericRow> buildData() {
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
 
     // Create page view records with:
     // key = page_id

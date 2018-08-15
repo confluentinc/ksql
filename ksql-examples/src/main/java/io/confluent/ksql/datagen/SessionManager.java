@@ -24,32 +24,32 @@ public class SessionManager {
   private int maxSessionDurationSeconds = 30;
   private int maxSessions = 5;
 
-  public void setMaxSessionDurationSeconds(int maxSessionDurationSeconds) {
+  public void setMaxSessionDurationSeconds(final int maxSessionDurationSeconds) {
     this.maxSessionDurationSeconds = maxSessionDurationSeconds;
   }
 
-  public void setMaxSessions(int maxSessions) {
+  public void setMaxSessions(final int maxSessions) {
     this.maxSessions = maxSessions;
   }
 
-  public boolean isActive(String sessionId) {
+  public boolean isActive(final String sessionId) {
     return activeSessions.containsKey(sessionId);
   }
 
-  public boolean isExpired(String sessionId) {
+  public boolean isExpired(final String sessionId) {
     if (activeSessions.containsKey(sessionId)) {
-      SessionObject sessionObject = activeSessions.get(sessionId);
+      final SessionObject sessionObject = activeSessions.get(sessionId);
       return sessionObject.isExpired();
     }
     return expiredSessions.containsKey(sessionId);
   }
 
-  public boolean isActiveAndExpire(String sessionId) {
-    boolean b = isActive(sessionId);
+  public boolean isActiveAndExpire(final String sessionId) {
+    final boolean b = isActive(sessionId);
     if (b) {
-      SessionObject sessionObject = activeSessions.get(sessionId);
+      final SessionObject sessionObject = activeSessions.get(sessionId);
       if (sessionObject.isExpired()) {
-        SessionObject removed = activeSessions.remove(sessionId);
+        final SessionObject removed = activeSessions.remove(sessionId);
         expiredSessions.put(sessionId, removed);
         return false;
       }
@@ -59,20 +59,20 @@ public class SessionManager {
   }
 
 
-  public void newSession(String sessionToken) {
+  public void newSession(final String sessionToken) {
     if (activeSessions.containsKey(sessionToken)) {
       throw new RuntimeException("Session" + sessionToken + " already exists");
     }
     activeSessions.putIfAbsent(sessionToken, new SessionObject(maxSessionDurationSeconds));
   }
 
-  public boolean isExpiredSession(String sessionId) {
+  public boolean isExpiredSession(final String sessionId) {
     return expiredSessions.containsKey(sessionId);
   }
 
   public String recycleOldestExpired() {
     Map.Entry<String, SessionObject> oldest = null;
-    for (Map.Entry<String, SessionObject> entry : expiredSessions.entrySet()) {
+    for (final Map.Entry<String, SessionObject> entry : expiredSessions.entrySet()) {
       if (oldest == null || (entry.getValue().created < oldest.getValue().created)) {
         oldest = entry;
       }
@@ -85,7 +85,7 @@ public class SessionManager {
   }
 
   public String getRandomActiveToken() {
-    int randomIndex = (int) (Math.random() * activeSessions.size());
+    final int randomIndex = (int) (Math.random() * activeSessions.size());
     return new ArrayList<String>(activeSessions.keySet()).get(randomIndex);
   }
 
@@ -100,14 +100,14 @@ public class SessionManager {
 
   }
 
-  public String getToken(String s) {
+  public String getToken(final String s) {
     if (activeSessions.containsKey(s)) {
       return s;
     }
 
     // MaxedOut = then reuse active key
     if (activeSessions.size() == maxSessions) {
-      int randomIndex = (int) (Math.random() * activeSessions.size());
+      final int randomIndex = (int) (Math.random() * activeSessions.size());
       return new ArrayList<String>(activeSessions.keySet()).get(randomIndex);
     }
 
@@ -137,7 +137,7 @@ public class SessionManager {
 
   public static class SessionObject {
 
-    public SessionObject(int duration) {
+    public SessionObject(final int duration) {
       this.sessionDurationSecs = duration;
     }
 

@@ -116,10 +116,10 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addAggregateFunctionFactory(
         new AggregateFunctionFactory("my_aggregate", Collections.emptyList()) {
           @Override
-          public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+          public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
             return new KsqlAggregateFunction() {
               @Override
-              public KsqlAggregateFunction getInstance(AggregateFunctionArguments aggregateFunctionArguments) {
+              public KsqlAggregateFunction getInstance(final AggregateFunctionArguments aggregateFunctionArguments) {
                 return null;
               }
 
@@ -144,12 +144,12 @@ public class InternalFunctionRegistryTest {
               }
 
               @Override
-              public boolean hasSameArgTypes(List argTypeList) {
+              public boolean hasSameArgTypes(final List argTypeList) {
                 return false;
               }
 
               @Override
-              public Object aggregate(Object currentValue, Object aggregateValue) {
+              public Object aggregate(final Object currentValue, final Object aggregateValue) {
                 return null;
               }
 

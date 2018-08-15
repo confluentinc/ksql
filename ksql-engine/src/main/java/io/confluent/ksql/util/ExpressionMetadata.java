@@ -27,8 +27,11 @@ public class ExpressionMetadata {
   private final Kudf[] udfs;
   private final Schema expressionType;
 
-  public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, Kudf[] udfs,
-                            Schema expressionType) {
+  public ExpressionMetadata(
+      final IExpressionEvaluator expressionEvaluator,
+      final int[] indexes,
+      final Kudf[] udfs,
+      final Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
     this.indexes = indexes;
     this.udfs = udfs;

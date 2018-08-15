@@ -47,7 +47,7 @@ public final class ResourceUtil {
   public static Path getResourceRoot() throws IOException, URISyntaxException {
     final URI uri = GeneratorTest.class.getClassLoader().getResource("product.avro").toURI();
     if ("jar".equals(uri.getScheme())) {
-      FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap(), null);
+      final FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap(), null);
       return fileSystem.getPath("path/to/folder/inside/jar").getParent();
     } else {
       return Paths.get(uri).getParent();

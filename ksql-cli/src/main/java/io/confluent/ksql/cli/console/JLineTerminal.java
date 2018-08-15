@@ -29,12 +29,12 @@ public class JLineTerminal extends Console {
 
   private final org.jline.terminal.Terminal terminal;
 
-  public JLineTerminal(OutputFormat outputFormat, KsqlRestClient restClient) {
+  public JLineTerminal(final OutputFormat outputFormat, final KsqlRestClient restClient) {
     super(outputFormat, restClient);
 
     try {
       terminal = TerminalBuilder.builder().system(true).build();
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException("JLineTerminal failed to start!", e);
     }
     // Ignore ^C when not reading a line
@@ -77,14 +77,14 @@ public class JLineTerminal extends Console {
   }
 
   @Override
-  public void puts(InfoCmp.Capability capability) {
+  public void puts(final InfoCmp.Capability capability) {
     terminal.puts(capability);
   }
 
   @Override
   public Terminal.SignalHandler handle(
-      Terminal.Signal signal,
-      Terminal.SignalHandler signalHandler
+      final Terminal.Signal signal,
+      final Terminal.SignalHandler signalHandler
   ) {
     return terminal.handle(signal, signalHandler);
   }

@@ -30,10 +30,10 @@ public class IntegerMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMax() {
-    IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
-    int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
+    final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
+    final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     int currentMax = Integer.MIN_VALUE;
-    for (int i: values) {
+    for (final int i: values) {
       currentMax = integerMaxKudaf.aggregate(i, currentMax);
     }
     assertThat(8, equalTo(currentMax));
@@ -41,19 +41,19 @@ public class IntegerMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
-    Merger<String, Integer> merger = integerMaxKudaf.getMerger();
-    Integer mergeResult1 = merger.apply("Key", 10, 12);
+    final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
+    final Merger<String, Integer> merger = integerMaxKudaf.getMerger();
+    final Integer mergeResult1 = merger.apply("Key", 10, 12);
     assertThat(mergeResult1, equalTo(12));
-    Integer mergeResult2 = merger.apply("Key", 10, -12);
+    final Integer mergeResult2 = merger.apply("Key", 10, -12);
     assertThat(mergeResult2, equalTo(10));
-    Integer mergeResult3 = merger.apply("Key", -10, 0);
+    final Integer mergeResult3 = merger.apply("Key", -10, 0);
     assertThat(mergeResult3, equalTo(0));
 
   }
 
   private IntegerMaxKudaf getIntegerMaxKudaf() {
-    KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
         .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     assertThat(aggregateFunction, instanceOf(IntegerMaxKudaf.class));
     return  (IntegerMaxKudaf) aggregateFunction;

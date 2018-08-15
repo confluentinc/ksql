@@ -149,7 +149,7 @@ public class ConnectDataTranslatorTest {
     try {
       connectToKsqlTranslator.toKsqlRow(badSchema, badData);
       Assert.fail("Translation failed to detect bad connect type");
-    } catch (DataException e) {
+    } catch (final DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
       assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
       assertThat(e.getMessage(), containsString("FIELD"));
@@ -226,7 +226,7 @@ public class ConnectDataTranslatorTest {
     try {
       connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct);
       Assert.fail("Translation failed to check nested field");
-    } catch (DataException e) {
+    } catch (final DataException e) {
       assertThat(e.getMessage(), containsString(Schema.Type.INT32.getName()));
       assertThat(e.getMessage(), containsString(Schema.Type.STRING.getName()));
       assertThat(e.getMessage(), containsString("STRUCT->INT"));

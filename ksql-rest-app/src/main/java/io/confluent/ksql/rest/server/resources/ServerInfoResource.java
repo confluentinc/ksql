@@ -29,7 +29,7 @@ public class ServerInfoResource {
 
   private final io.confluent.ksql.rest.entity.ServerInfo serverInfo;
 
-  public ServerInfoResource(io.confluent.ksql.rest.entity.ServerInfo serverInfo) {
+  public ServerInfoResource(final io.confluent.ksql.rest.entity.ServerInfo serverInfo) {
     this.serverInfo = serverInfo;
   }
 

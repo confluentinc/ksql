@@ -28,14 +28,14 @@ public class KsqlTable extends StructuredDataSource {
   private final boolean isWindowed;
 
   public KsqlTable(
-      String sqlExpression,
+      final String sqlExpression,
       final String datasourceName,
       final Schema schema,
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
       final String stateStoreName,
-      boolean isWindowed
+      final boolean isWindowed
   ) {
     super(
         sqlExpression,
@@ -70,7 +70,7 @@ public class KsqlTable extends StructuredDataSource {
 
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
-    Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KsqlTable(
         sqlExpression,
         dataSourceName,

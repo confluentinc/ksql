@@ -51,8 +51,8 @@ public class LogicalPlanner {
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
-      Analysis analysis,
-      AggregateAnalysis aggregateAnalysis,
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.analysis = analysis;
@@ -85,7 +85,7 @@ public class LogicalPlanner {
 
   private OutputNode buildOutputNode(final Schema inputSchema,
                                      final PlanNode sourcePlanNode) {
-    StructuredDataSource intoDataSource = analysis.getInto();
+    final StructuredDataSource intoDataSource = analysis.getInto();
 
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
     final TimestampExtractionPolicy extractionPolicy = getTimestampExtractionPolicy(
@@ -132,15 +132,15 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode
   ) {
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema,
         functionRegistry
     );
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      Expression expression = analysis.getSelectExpressions().get(i);
-      String alias = analysis.getSelectExpressionAlias().get(i);
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       aggregateSchema = aggregateSchema.field(alias, expressionType);
     }
@@ -161,15 +161,15 @@ public class LogicalPlanner {
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     SchemaBuilder projectionSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema,
         functionRegistry
     );
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      Expression expression = analysis.getSelectExpressions().get(i);
-      String alias = analysis.getSelectExpressionAlias().get(i);
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       projectionSchema = projectionSchema.field(alias, expressionType);
 
@@ -185,14 +185,14 @@ public class LogicalPlanner {
 
   private FilterNode buildFilterNode(final PlanNode sourcePlanNode) {
 
-    Expression filterExpression = analysis.getWhereExpression();
+    final Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
   private StructuredDataSourceNode buildSourceNode() {
 
-    Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
-    Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
+    final Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
+    final Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
         dataSource.left.getSchema(),
         dataSource.right
     );

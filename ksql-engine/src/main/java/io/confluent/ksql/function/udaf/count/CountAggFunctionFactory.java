@@ -30,7 +30,7 @@ public class CountAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     return getAggregateFunctionList().get(0);
   }
 }

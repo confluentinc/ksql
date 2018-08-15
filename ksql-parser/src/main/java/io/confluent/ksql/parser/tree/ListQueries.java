@@ -24,7 +24,7 @@ import java.util.Optional;
 public class ListQueries extends Statement {
   boolean showExtended;
 
-  public ListQueries(Optional<NodeLocation> location, boolean showExtended) {
+  public ListQueries(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
     this.showExtended = showExtended;
   }
@@ -39,7 +39,7 @@ public class ListQueries extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

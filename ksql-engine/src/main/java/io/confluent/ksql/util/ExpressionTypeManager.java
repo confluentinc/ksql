@@ -50,7 +50,7 @@ public class ExpressionTypeManager
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(Schema schema, final FunctionRegistry functionRegistry) {
+  public ExpressionTypeManager(final Schema schema, final FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.functionRegistry = functionRegistry;
   }
@@ -79,7 +79,7 @@ public class ExpressionTypeManager
       return schema.type();
     }
 
-    public void setSchema(Schema schema) {
+    public void setSchema(final Schema schema) {
       this.schema = schema;
     }
   }
@@ -88,9 +88,9 @@ public class ExpressionTypeManager
   protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
                                              final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
-    Schema leftType = expressionTypeContext.getSchema();
+    final Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
-    Schema rightType = expressionTypeContext.getSchema();
+    final Schema rightType = expressionTypeContext.getSchema();
     expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
     return null;
   }
@@ -98,7 +98,7 @@ public class ExpressionTypeManager
   protected Expression visitCast(final Cast node,
                                  final ExpressionTypeContext expressionTypeContext) {
 
-    Schema castType = SchemaUtil.getTypeSchema(node.getType());
+    final Schema castType = SchemaUtil.getTypeSchema(node.getType());
     expressionTypeContext.setSchema(castType);
     return null;
   }
@@ -113,7 +113,8 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitQualifiedNameReference(
       final QualifiedNameReference node, final ExpressionTypeContext expressionTypeContext) {
-    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+    final Optional<Field> schemaField =
+        SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
     if (!schemaField.isPresent()) {
       throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
     }
@@ -125,7 +126,7 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitDereferenceExpression(
       final DereferenceExpression node, final ExpressionTypeContext expressionTypeContext) {
-    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+    final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
     if (!schemaField.isPresent()) {
       throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
     }
@@ -172,20 +173,20 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitLikePredicate(LikePredicate node,
-                                          ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitLikePredicate(final LikePredicate node,
+                                          final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
-  protected Expression visitIsNotNullPredicate(IsNotNullPredicate node,
-                                               ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitIsNotNullPredicate(final IsNotNullPredicate node,
+                                               final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
-  protected Expression visitIsNullPredicate(IsNullPredicate node,
-                                            ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitIsNullPredicate(final IsNullPredicate node,
+                                            final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }

@@ -28,8 +28,8 @@ public class SetProperty extends Statement implements DdlStatement {
   private final String propertyValue;
 
 
-  public SetProperty(Optional<NodeLocation> location, String propertyName,
-                      String propertyValue) {
+  public SetProperty(final Optional<NodeLocation> location, final String propertyName,
+                      final String propertyValue) {
     super(location);
     requireNonNull(propertyName, "propertyName is null");
     requireNonNull(propertyValue, "propertyValue is null");
@@ -51,7 +51,7 @@ public class SetProperty extends Statement implements DdlStatement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -59,7 +59,7 @@ public class SetProperty extends Statement implements DdlStatement {
       return false;
     }
 
-    SetProperty setProperty = (SetProperty) o;
+    final SetProperty setProperty = (SetProperty) o;
 
     if (!propertyName.equals(setProperty.propertyName)) {
       return false;

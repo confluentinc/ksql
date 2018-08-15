@@ -126,7 +126,7 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
-    StructuredDataSourceNode node = new StructuredDataSourceNode(
+    final StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
         new KsqlTable("sqlExpression", "datasource",
             schema,
@@ -143,7 +143,7 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldTransformKStreamToKTableCorrectly() {
-    StructuredDataSourceNode node = new StructuredDataSourceNode(
+    final StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
         new KsqlTable("sqlExpression", "datasource",
             schema,
@@ -156,21 +156,21 @@ public class StructuredDataSourceNodeTest {
         schema);
     builder = new StreamsBuilder();
     build(node);
-    Topology topology = builder.build();
+    final Topology topology = builder.build();
     final TopologyDescription description = topology.describe();
 
-    List<String> expectedPlan = Arrays.asList(
+    final List<String> expectedPlan = Arrays.asList(
         "SOURCE", "MAPVALUES", "TRANSFORMVALUES", "MAPVALUES", "AGGREGATE");
 
     assertThat(description.subtopologies().size(), equalTo(1));
-    Set<TopologyDescription.Node> nodes = description.subtopologies().iterator().next().nodes();
+    final Set<TopologyDescription.Node> nodes = description.subtopologies().iterator().next().nodes();
     // Get the source node
     TopologyDescription.Node streamsNode = nodes.iterator().next();
     while (!streamsNode.predecessors().isEmpty()) {
       streamsNode = streamsNode.predecessors().iterator().next();
     }
     // Walk the plan and make sure it matches
-    ListIterator<String> expectedPlanIt = expectedPlan.listIterator();
+    final ListIterator<String> expectedPlanIt = expectedPlan.listIterator();
     assertThat(nodes.size(), equalTo(expectedPlan.size()));
     while (true) {
       assertThat(streamsNode.name(), startsWith("KSTREAM-" + expectedPlanIt.next()));

@@ -34,14 +34,17 @@ public class CreateTable
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public CreateTable(QualifiedName name, List<TableElement> elements, boolean notExists,
-                     Map<String, Expression> properties) {
+  public CreateTable(
+      final QualifiedName name,
+      final List<TableElement> elements,
+      final boolean notExists,
+      final Map<String, Expression> properties) {
     this(Optional.empty(), name, elements, notExists, properties);
   }
 
-  public CreateTable(Optional<NodeLocation> location, QualifiedName name,
-                      List<TableElement> elements, boolean notExists,
-                      Map<String, Expression> properties) {
+  public CreateTable(final Optional<NodeLocation> location, final QualifiedName name,
+                      final List<TableElement> elements, final boolean notExists,
+                      final Map<String, Expression> properties) {
     super(location);
     this.name = requireNonNull(name, "table is null");
     this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
@@ -58,8 +61,8 @@ public class CreateTable
   }
 
   @Override
-  public AbstractStreamCreateStatement copyWith(List<TableElement> elements,
-                                                Map<String, Expression> properties) {
+  public AbstractStreamCreateStatement copyWith(final List<TableElement> elements,
+                                                final Map<String, Expression> properties) {
     return new CreateTable(name, elements, notExists, properties);
   }
 
@@ -72,7 +75,7 @@ public class CreateTable
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateTable(this, context);
   }
 
@@ -82,14 +85,14 @@ public class CreateTable
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateTable o = (CreateTable) obj;
+    final CreateTable o = (CreateTable) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(elements, o.elements)
            && Objects.equals(notExists, o.notExists)

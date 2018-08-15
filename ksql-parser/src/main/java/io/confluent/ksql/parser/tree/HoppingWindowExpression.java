@@ -35,20 +35,20 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   private final TimeUnit advanceByUnit;
 
   public HoppingWindowExpression(
-      long size,
-      TimeUnit sizeUnit,
-      long advanceBy,
-      TimeUnit advanceByUnit
+      final long size,
+      final TimeUnit sizeUnit,
+      final long advanceBy,
+      final TimeUnit advanceByUnit
   ) {
     this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
   private HoppingWindowExpression(
-      Optional<NodeLocation> location,
-      long size,
-      TimeUnit sizeUnit,
-      long advanceBy,
-      TimeUnit advanceByUnit
+      final Optional<NodeLocation> location,
+      final long size,
+      final TimeUnit sizeUnit,
+      final long advanceBy,
+      final TimeUnit advanceByUnit
   ) {
     super(location);
     this.size = size;
@@ -74,7 +74,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitHoppingWindowExpression(this, context);
   }
 
@@ -90,14 +90,14 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
+    final HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
     return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
         && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
         .advanceByUnit == advanceByUnit;
@@ -106,10 +106,10 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   @SuppressWarnings("unchecked")
   @Override
   public KTable applyAggregate(
-      KGroupedStream groupedStream,
-      Initializer initializer,
-      UdafAggregator aggregator,
-      Materialized<String, GenericRow, ?> materialized
+      final KGroupedStream groupedStream,
+      final Initializer initializer,
+      final UdafAggregator aggregator,
+      final Materialized<String, GenericRow, ?> materialized
   ) {
     return groupedStream.windowedBy(
         TimeWindows.of(sizeUnit.toMillis(size))

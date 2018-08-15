@@ -108,7 +108,7 @@ public class PhysicalPlanBuilder {
             schemaRegistryClient
         );
     final OutputNode outputNode = resultStream.outputNode();
-    boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
+    final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
     // Check to make sure the logical and physical plans match up;
     // important to do this BEFORE actually starting up
@@ -121,10 +121,10 @@ public class PhysicalPlanBuilder {
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = getServiceId();
-    String persistanceQueryPrefix =
+    final String serviceId = getServiceId();
+    final String persistanceQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    String transientQueryPrefix =
+    final String transientQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
 
     if (isBareQuery) {
@@ -173,7 +173,7 @@ public class PhysicalPlanBuilder {
         transientQueryPrefix
     ));
 
-    KafkaStreams streams = buildStreams(
+    final KafkaStreams streams = buildStreams(
         bareOutputNode,
         builder,
         applicationId,
@@ -181,7 +181,7 @@ public class PhysicalPlanBuilder {
         overriddenStreamsProperties
     );
 
-    SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
+    final SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
     return new QueuedQueryMetadata(
         statement,
@@ -200,7 +200,7 @@ public class PhysicalPlanBuilder {
 
 
   private QueryMetadata buildPlanForStructuredOutputNode(
-      String sqlExpression, final SchemaKStream schemaKStream,
+      final String sqlExpression, final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode outputNode,
       final String serviceId,
       final String persistanceQueryPrefix,
@@ -210,9 +210,9 @@ public class PhysicalPlanBuilder {
     if (metaStore.getTopic(outputNode.getKafkaTopicName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
-    StructuredDataSource sinkDataSource;
+    final StructuredDataSource sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
-      SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
+      final SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
           new KsqlTable(
               sqlExpression,
@@ -249,7 +249,7 @@ public class PhysicalPlanBuilder {
     }
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
-    KafkaStreams streams = buildStreams(
+    final KafkaStreams streams = buildStreams(
         outputNode,
         builder,
         applicationId,
@@ -257,7 +257,7 @@ public class PhysicalPlanBuilder {
         overriddenStreamsProperties
     );
 
-    Topology topology = builder.build();
+    final Topology topology = builder.build();
 
     return new PersistentQueryMetadata(
         statement,
@@ -281,7 +281,8 @@ public class PhysicalPlanBuilder {
     if (updateMetastore && outputNode.isDoCreateInto()) {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
     } else {
-      StructuredDataSource structuredDataSource = metaStore.getSource(sinkDataSource.getName());
+      final StructuredDataSource structuredDataSource =
+          metaStore.getSource(sinkDataSource.getName());
       if (structuredDataSource.getDataSourceType() != sinkDataSource.getDataSourceType()) {
         throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
                                               + " (%s) type is %s but select query result is %s.",
@@ -289,7 +290,7 @@ public class PhysicalPlanBuilder {
                                               sinkDataSource.getDataSourceType(),
                                               structuredDataSource.getDataSourceType()));
       }
-      Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+      final Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
           sinkDataSource.cloneWithTimeKeyColumns().getSchema());
       if (!SchemaUtil.areEqualSchemas(
           resultSchema,
@@ -307,24 +308,27 @@ public class PhysicalPlanBuilder {
     }
   }
 
-  private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {
+  private String getBareQueryApplicationId(
+      final String serviceId,
+      final String transientQueryPrefix) {
     return serviceId + transientQueryPrefix + Math.abs(ThreadLocalRandom.current().nextLong());
   }
 
-  private String addTimeSuffix(String original) {
+  private String addTimeSuffix(final String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
   }
 
   @SuppressWarnings("unchecked")
-  private void updateListProperty(Map<String, Object> properties, String key, Object value) {
-    Object obj = properties.getOrDefault(key, new LinkedList<String>());
-    List valueList;
+  private void updateListProperty(
+      final Map<String, Object> properties, final String key, final Object value) {
+    final Object obj = properties.getOrDefault(key, new LinkedList<String>());
+    final List valueList;
     // The property value is either a comma-separated string of class names, or a list of class
     // names
     if (obj instanceof String) {
       // If its a string just split it on the separator so we dont have to worry about adding a
       // separator
-      String asString = (String) obj;
+      final String asString = (String) obj;
       valueList = new LinkedList<>(Arrays.asList(asString.split("\\s*,\\s*")));
     } else if (obj instanceof List) {
       // The incoming list could be an instance of an immutable list. So we create a modifiable
@@ -362,7 +366,7 @@ public class PhysicalPlanBuilder {
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 
-  private void enforceKeyEquivalence(Field sinkKeyField, Field resultKeyField) {
+  private void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {
     if (sinkKeyField == null && resultKeyField == null) {
       return;
     } else if (sinkKeyField != null && resultKeyField != null) {

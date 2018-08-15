@@ -686,7 +686,7 @@ final class EndToEndEngineTestUtil {
           put("commit.interval.ms", 0);
           put("cache.max.bytes.buffering", 0);
           put("auto.offset.reset", "earliest");
-          put("", "");
+          put("topology.optimization", "all");
           put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
       }};
       if(additionalConfigs != null){

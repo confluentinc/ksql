@@ -3,14 +3,14 @@ package io.confluent.ksql.integration;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.function.UdfCompiler;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.util.ItemDataProvider;
@@ -20,14 +20,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -48,12 +47,12 @@ public class UdfIntTest {
   private static final AtomicInteger COUNTER = new AtomicInteger();
   private static final IntegrationTestHarness TEST_HARNESS = new IntegrationTestHarness();
 
-  private static Schema ITEM_DATA_SCHEMA;
   private static Map<String, RecordMetadata> jsonRecordMetadataMap;
   private static Map<String, RecordMetadata> avroRecordMetadataMap;
 
   private final DataSourceSerDe format;
   private final String sourceStreamName;
+  private final String sourceTopicName;
   private final Map<String, RecordMetadata> recordMetadata;
 
   private String resultStreamName;
@@ -61,7 +60,7 @@ public class UdfIntTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<DataSource.DataSourceSerDe> formats() {
-    return ImmutableList.of(DataSourceSerDe.AVRO, DataSourceSerDe.JSON);
+    return ImmutableList.of(DataSourceSerDe.AVRO, DataSourceSerDe.JSON, DataSourceSerDe.DELIMITED);
   }
 
   @BeforeClass
@@ -89,8 +88,6 @@ public class UdfIntTest {
         itemDataProvider,
         null,
         DataSource.DataSourceSerDe.DELIMITED);
-
-    ITEM_DATA_SCHEMA = itemDataProvider.schema();
   }
 
   @AfterClass
@@ -102,12 +99,19 @@ public class UdfIntTest {
     this.format = format;
     switch (format) {
       case AVRO:
+        this.sourceTopicName = AVRO_TOPIC_NAME;
         this.sourceStreamName = AVRO_STREAM_NAME;
         this.recordMetadata = avroRecordMetadataMap;
         break;
-      default:
+      case JSON:
+        this.sourceTopicName = JSON_TOPIC_NAME;
         this.sourceStreamName = JSON_STREAM_NAME;
         this.recordMetadata = jsonRecordMetadataMap;
+        break;
+      default:
+        this.sourceTopicName = DELIMITED_TOPIC_NAME;
+        this.sourceStreamName = DELIMITED_STREAM_NAME;
+        this.recordMetadata = Collections.emptyMap();
         break;
     }
   }
@@ -118,14 +122,9 @@ public class UdfIntTest {
 
     ksqlContext = KsqlContext.create(TEST_HARNESS.ksqlConfig, TEST_HARNESS.schemaRegistryClient);
 
-    // load substring udf from classpath
-    new UdfLoader(ksqlContext.getMetaStore(),
-        TestUtils.tempDirectory(),
-        UdfIntTest.class.getClassLoader(),
-        value -> true, new UdfCompiler(Optional.empty()), Optional.empty(), true)
-        .load();
+    UdfLoaderUtil.load(ksqlContext.getMetaStore());
 
-    createSourceStreams();
+    createSourceStream();
   }
 
   @After
@@ -135,6 +134,8 @@ public class UdfIntTest {
 
   @Test
   public void testApplyUdfsToColumns() {
+    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
@@ -160,6 +161,8 @@ public class UdfIntTest {
 
   @Test
   public void testShouldCastSelectedColumns() {
+    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
@@ -184,6 +187,8 @@ public class UdfIntTest {
 
   @Test
   public void testTimestampColumnSelection() {
+    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+
     // Given:
     final String originalStream = "ORIGINALSTREAM" + COUNTER.getAndIncrement();
 
@@ -211,6 +216,8 @@ public class UdfIntTest {
 
   @Test
   public void testApplyUdfsToColumnsDelimited() {
+    Assume.assumeThat(format, is(DataSourceSerDe.DELIMITED));
+
     // Given:
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
@@ -221,50 +228,35 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<String, GenericRow> results =
-        consumeOutputMessages(ITEM_DATA_SCHEMA, DataSource.DataSourceSerDe.DELIMITED);
+    final Map<String, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, equalTo(Collections.singletonMap("ITEM_1",
         new GenericRow(Arrays.asList("ITEM_1", "home cinema")))));
   }
 
-  private void createSourceStreams() {
-    createOrdersStream(JSON_TOPIC_NAME, JSON_STREAM_NAME, DataSourceSerDe.JSON);
-    createOrdersStream(AVRO_TOPIC_NAME, AVRO_STREAM_NAME, DataSourceSerDe.AVRO);
-
-    ksqlContext.sql(String.format("CREATE STREAM %s (ID varchar, DESCRIPTION varchar) WITH "
-            + "(kafka_topic='%s', value_format='%s');",
-        DELIMITED_STREAM_NAME,
-        DELIMITED_TOPIC_NAME,
-        DataSource.DataSourceSerDe.DELIMITED.name()));
-  }
-
-  private void createOrdersStream(
-      final String topicName, final String streamName, final DataSource.DataSourceSerDe format) {
-
-    ksqlContext.sql(String.format("CREATE STREAM %s ("
-            + "ORDERTIME bigint, "
-            + "ORDERID varchar, "
-            + "ITEMID varchar, "
-            + "ORDERUNITS double, "
-            + "PRICEARRAY array<double>, "
-            + "KEYVALUEMAP map<varchar, double>) "
-            + "WITH (kafka_topic='%s', value_format='%s');",
-        streamName,
-        topicName,
-        format.name()));
+  private void createSourceStream() {
+    if (format == DataSourceSerDe.DELIMITED) {
+      // Delimited does not support array or map types, so use simplier schema:
+      ksqlContext.sql(String.format("CREATE STREAM %s (ID varchar, DESCRIPTION varchar) WITH "
+              + "(kafka_topic='%s', value_format='%s');",
+          sourceStreamName, sourceTopicName, format));
+    } else {
+      ksqlContext.sql(String.format("CREATE STREAM %s ("
+              + "ORDERTIME bigint, "
+              + "ORDERID varchar, "
+              + "ITEMID varchar, "
+              + "ORDERUNITS double, "
+              + "TIMESTAMP varchar, "
+              + "PRICEARRAY array<double>, "
+              + "KEYVALUEMAP map<varchar, double>) "
+              + "WITH (kafka_topic='%s', value_format='%s');",
+          sourceStreamName, sourceTopicName, format.name()));
+    }
   }
 
   private Map<String, GenericRow> consumeOutputMessages() {
     final Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
         ksqlContext.getMetaStore().getSource(resultStreamName).getSchema());
-
-    return consumeOutputMessages(resultSchema, format);
-  }
-
-  private Map<String, GenericRow> consumeOutputMessages(
-      final Schema resultSchema,
-      final DataSourceSerDe serDeFormat) {
 
     return TEST_HARNESS.consumeData(
         resultStreamName,
@@ -272,6 +264,6 @@ public class UdfIntTest {
         1,
         new StringDeserializer(),
         IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
-        serDeFormat);
+        format);
   }
 }

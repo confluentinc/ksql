@@ -29,6 +29,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -83,7 +84,7 @@ public class StructuredDataSourceNodeTest {
         ksqlConfig,
         new FakeKafkaTopicClient(),
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new HashMap<>(), new MockSchemaRegistryClientFactory());
   }
 
 

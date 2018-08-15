@@ -75,6 +75,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -93,6 +94,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -118,12 +120,18 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+        = new MockSchemaRegistryClientFactory();
+    final SchemaRegistryClient schemaRegistryClient = schemaRegistryClientFactory.get();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    ksqlEngine = TestUtils.createKsqlEngine(ksqlConfig, kafkaTopicClient, schemaRegistryClient);
+    ksqlEngine = TestUtils.createKsqlEngine(
+        ksqlConfig,
+        kafkaTopicClient,
+        schemaRegistryClientFactory,
+        schemaRegistryClient);
   }
 
   @After

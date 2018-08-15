@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -70,6 +71,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
+        new MockSchemaRegistryClientFactory(),
         new MockSchemaRegistryClient());
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);

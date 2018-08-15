@@ -29,6 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -320,7 +321,7 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, null);
+        initialSchemaKStream.getSchema(), null, false, (SchemaRegistryClient) null);
     final List<Expression> groupByExpressions = Arrays.asList(keyExpression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
@@ -342,7 +343,7 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, null);
+        initialSchemaKStream.getSchema(), null, false, (SchemaRegistryClient) null);
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);

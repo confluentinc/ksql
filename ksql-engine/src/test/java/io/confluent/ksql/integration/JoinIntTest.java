@@ -55,6 +55,7 @@ public class JoinIntTest {
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps),
+                                     testHarness.schemaRegistryClientFactory,
                                      testHarness.schemaRegistryClient);
 
     /**

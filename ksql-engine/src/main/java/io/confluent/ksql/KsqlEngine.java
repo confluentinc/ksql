@@ -81,6 +81,8 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -108,6 +110,7 @@ public class KsqlEngine implements Closeable {
   private final Set<QueryMetadata> allLiveQueries;
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaClientSupplier clientSupplier;
@@ -115,18 +118,21 @@ public class KsqlEngine implements Closeable {
   public KsqlEngine(final KsqlConfig ksqlConfig) {
     this(
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig).get(),
         new DefaultKafkaClientSupplier(),
         new MetaStoreImpl(new InternalFunctionRegistry())
     );
   }
 
   public KsqlEngine(final KafkaTopicClient kafkaTopicClient,
+                    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                     final SchemaRegistryClient schemaRegistryClient,
                     final KafkaClientSupplier clientSupplier
   ) {
     this(
         kafkaTopicClient,
+        schemaRegistryClientFactory,
         schemaRegistryClient,
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry())
@@ -135,11 +141,13 @@ public class KsqlEngine implements Closeable {
 
   // called externally by tests only
   public KsqlEngine(final KafkaTopicClient topicClient,
+                    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                     final SchemaRegistryClient schemaRegistryClient,
                     final MetaStore metaStore
   ) {
     this(
         topicClient,
+        schemaRegistryClientFactory,
         schemaRegistryClient,
         new DefaultKafkaClientSupplier(),
         metaStore
@@ -148,12 +156,16 @@ public class KsqlEngine implements Closeable {
 
   // called externally by tests only
   KsqlEngine(final KafkaTopicClient topicClient,
+             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final SchemaRegistryClient schemaRegistryClient,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore
   ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
+    this.schemaRegistryClientFactory =
+        Objects.requireNonNull(
+            schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null");
     this.schemaRegistryClient =
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
@@ -602,11 +614,12 @@ public class KsqlEngine implements Closeable {
     return queryEngine.handleDdlStatement(sqlExpression, statement);
   }
 
+  public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
+    return schemaRegistryClientFactory;
+  }
+
   public SchemaRegistryClient getSchemaRegistryClient() {
-    if (schemaRegistryClient != null) {
-      return schemaRegistryClient;
-    }
-    throw new KsqlException("Cannot access the Schema Registry. Schema Registry client is null.");
+    return schemaRegistryClient;
   }
 
   public QueryIdGenerator getQueryIdGenerator() {

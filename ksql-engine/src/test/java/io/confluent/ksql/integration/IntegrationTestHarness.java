@@ -4,6 +4,7 @@ package io.confluent.ksql.integration;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
@@ -26,6 +27,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -55,12 +59,14 @@ public class IntegrationTestHarness {
   public KsqlConfig ksqlConfig;
   private KafkaTopicClientImpl topicClient;
 
+  public Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   public SchemaRegistryClient schemaRegistryClient;
 
   private final Map<String, Object> unifiedConfigs = new HashMap<>();
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
+    this.schemaRegistryClientFactory = () -> this.schemaRegistryClient;
   }
 
   public KafkaTopicClient topicClient() {

@@ -31,6 +31,7 @@ import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class TestUtils {
 
@@ -74,11 +75,13 @@ public class TestUtils {
 
   public static KsqlEngine createKsqlEngine(final KsqlConfig ksqlConfig,
                                             final KafkaTopicClient topicClient,
+                                            final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                                             final SchemaRegistryClient schemaRegistryClient) {
     class TestKsqlEngine extends KsqlEngine {
       private TestKsqlEngine() {
         super(
             topicClient,
+            schemaRegistryClientFactory,
             schemaRegistryClient,
             new MetaStoreImpl(new InternalFunctionRegistry()));
       }

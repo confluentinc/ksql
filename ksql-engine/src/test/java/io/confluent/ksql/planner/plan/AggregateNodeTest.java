@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -147,7 +148,7 @@ public class AggregateNodeTest {
         ksqlConfig,
         topicClient,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new HashMap<>(), new MockSchemaRegistryClientFactory());
   }
 
 }

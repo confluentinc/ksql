@@ -33,6 +33,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -178,7 +179,7 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlConfig,
         topicClient,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new HashMap<>(), new MockSchemaRegistryClientFactory());
   }
 
   @Test
@@ -196,7 +197,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForNonWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -216,7 +217,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory());
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -235,7 +236,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory());
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
     EasyMock.verify();
 

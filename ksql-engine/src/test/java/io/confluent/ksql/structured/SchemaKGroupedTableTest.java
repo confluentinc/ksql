@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -72,7 +73,7 @@ public class SchemaKGroupedTableTest {
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, null);
+        initialSchemaKTable.getSchema(), null, false, (SchemaRegistryClient) null);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
@@ -95,7 +96,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, null)
+              ksqlTable.getSchema(), ksqlConfig, false, (SchemaRegistryClient) null)
       );
       Assert.fail("Should fail to build topology for aggregation with window");
     } catch(final KsqlException e) {
@@ -120,7 +121,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, null)
+              ksqlTable.getSchema(), ksqlConfig, false, (SchemaRegistryClient) null)
       );
       Assert.fail("Should fail to build topology for aggregation with unsupported function");
     } catch(final KsqlException e) {

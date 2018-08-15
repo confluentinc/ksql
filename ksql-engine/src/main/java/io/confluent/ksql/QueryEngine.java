@@ -189,7 +189,7 @@ class QueryEngine {
         overriddenProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
-        ksqlEngine.getSchemaRegistryClient(),
+        ksqlEngine.getSchemaRegistryClientFactory(),
         ksqlEngine.getQueryIdGenerator(),
         new KafkaStreamsBuilderImpl(clientSupplier)
     );

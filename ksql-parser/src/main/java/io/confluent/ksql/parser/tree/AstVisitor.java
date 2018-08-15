@@ -20,389 +20,389 @@ import javax.annotation.Nullable;
 
 public abstract class AstVisitor<R, C> {
 
-  public R process(Node node, @Nullable C context) {
+  public R process(final Node node, @Nullable final C context) {
     return node.accept(this, context);
   }
 
-  protected R visitNode(Node node, C context) {
+  protected R visitNode(final Node node, final C context) {
     return null;
   }
 
-  protected R visitExpression(Expression node, C context) {
+  protected R visitExpression(final Expression node, final C context) {
     return visitNode(node, context);
   }
 
 
-  protected R visitExtract(Extract node, C context) {
+  protected R visitExtract(final Extract node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitArithmeticBinary(ArithmeticBinaryExpression node, C context) {
+  protected R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitBetweenPredicate(BetweenPredicate node, C context) {
+  protected R visitBetweenPredicate(final BetweenPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
 
-  protected R visitComparisonExpression(ComparisonExpression node, C context) {
+  protected R visitComparisonExpression(final ComparisonExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitLiteral(Literal node, C context) {
+  protected R visitLiteral(final Literal node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitDoubleLiteral(DoubleLiteral node, C context) {
+  protected R visitDoubleLiteral(final DoubleLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitDecimalLiteral(DecimalLiteral node, C context) {
+  protected R visitDecimalLiteral(final DecimalLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitStatements(Statements node, C context) {
+  protected R visitStatements(final Statements node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitStatement(Statement node, C context) {
+  protected R visitStatement(final Statement node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitQuery(Query node, C context) {
+  protected R visitQuery(final Query node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitExplain(Explain node, C context) {
+  protected R visitExplain(final Explain node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitShowCatalogs(ShowCatalogs node, C context) {
+  protected R visitShowCatalogs(final ShowCatalogs node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitShowColumns(ShowColumns node, C context) {
+  protected R visitShowColumns(final ShowColumns node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitShowPartitions(ShowPartitions node, C context) {
+  protected R visitShowPartitions(final ShowPartitions node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitShowCreate(ShowCreate node, C context) {
+  protected R visitShowCreate(final ShowCreate node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitShowFunctions(ShowFunctions node, C context) {
+  protected R visitShowFunctions(final ShowFunctions node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitSetSession(SetSession node, C context) {
+  protected R visitSetSession(final SetSession node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitGenericLiteral(GenericLiteral node, C context) {
+  protected R visitGenericLiteral(final GenericLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitTimeLiteral(TimeLiteral node, C context) {
+  protected R visitTimeLiteral(final TimeLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitExplainOption(ExplainOption node, C context) {
+  protected R visitExplainOption(final ExplainOption node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitWithQuery(WithQuery node, C context) {
+  protected R visitWithQuery(final WithQuery node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitSelect(Select node, C context) {
+  protected R visitSelect(final Select node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitRelation(Relation node, C context) {
+  protected R visitRelation(final Relation node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitQueryBody(QueryBody node, C context) {
+  protected R visitQueryBody(final QueryBody node, final C context) {
     return visitRelation(node, context);
   }
 
-  protected R visitQuerySpecification(QuerySpecification node, C context) {
+  protected R visitQuerySpecification(final QuerySpecification node, final C context) {
     return visitQueryBody(node, context);
   }
 
-  protected R visitSetOperation(SetOperation node, C context) {
+  protected R visitSetOperation(final SetOperation node, final C context) {
     return visitQueryBody(node, context);
   }
 
-  protected R visitTimestampLiteral(TimestampLiteral node, C context) {
+  protected R visitTimestampLiteral(final TimestampLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitWhenClause(WhenClause node, C context) {
+  protected R visitWhenClause(final WhenClause node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitIntervalLiteral(IntervalLiteral node, C context) {
+  protected R visitIntervalLiteral(final IntervalLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitInPredicate(InPredicate node, C context) {
+  protected R visitInPredicate(final InPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitFunctionCall(FunctionCall node, C context) {
+  protected R visitFunctionCall(final FunctionCall node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
+  protected R visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitStringLiteral(StringLiteral node, C context) {
+  protected R visitStringLiteral(final StringLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitBinaryLiteral(BinaryLiteral node, C context) {
+  protected R visitBinaryLiteral(final BinaryLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitBooleanLiteral(BooleanLiteral node, C context) {
+  protected R visitBooleanLiteral(final BooleanLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitInListExpression(InListExpression node, C context) {
+  protected R visitInListExpression(final InListExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitQualifiedNameReference(QualifiedNameReference node, C context) {
+  protected R visitQualifiedNameReference(final QualifiedNameReference node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitDereferenceExpression(DereferenceExpression node, C context) {
+  protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitNullIfExpression(NullIfExpression node, C context) {
+  protected R visitNullIfExpression(final NullIfExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitNullLiteral(NullLiteral node, C context) {
+  protected R visitNullLiteral(final NullLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitArithmeticUnary(ArithmeticUnaryExpression node, C context) {
+  protected R visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitNotExpression(NotExpression node, C context) {
+  protected R visitNotExpression(final NotExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSelectItem(SelectItem node, C context) {
+  protected R visitSelectItem(final SelectItem node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitSingleColumn(SingleColumn node, C context) {
+  protected R visitSingleColumn(final SingleColumn node, final C context) {
     return visitSelectItem(node, context);
   }
 
-  protected R visitAllColumns(AllColumns node, C context) {
+  protected R visitAllColumns(final AllColumns node, final C context) {
     return visitSelectItem(node, context);
   }
 
-  protected R visitSearchedCaseExpression(SearchedCaseExpression node, C context) {
+  protected R visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitLikePredicate(LikePredicate node, C context) {
+  protected R visitLikePredicate(final LikePredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitIsNotNullPredicate(IsNotNullPredicate node, C context) {
+  protected R visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitIsNullPredicate(IsNullPredicate node, C context) {
+  protected R visitIsNullPredicate(final IsNullPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSubscriptExpression(SubscriptExpression node, C context) {
+  protected R visitSubscriptExpression(final SubscriptExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitLongLiteral(LongLiteral node, C context) {
+  protected R visitLongLiteral(final LongLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitIntegerLiteral(IntegerLiteral node, C context) {
+  protected R visitIntegerLiteral(final IntegerLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitLogicalBinaryExpression(LogicalBinaryExpression node, C context) {
+  protected R visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSubqueryExpression(SubqueryExpression node, C context) {
+  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitTable(Table node, C context) {
+  protected R visitTable(final Table node, final C context) {
     return visitQueryBody(node, context);
   }
 
-  protected R visitValues(Values node, C context) {
+  protected R visitValues(final Values node, final C context) {
     return visitQueryBody(node, context);
   }
 
-  protected R visitPrimitiveType(PrimitiveType node, C context) {
+  protected R visitPrimitiveType(final PrimitiveType node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitArray(Array node, C context) {
+  protected R visitArray(final Array node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitMap(Map node, C context) {
+  protected R visitMap(final Map node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitStruct(Struct node, C context) {
+  protected R visitStruct(final Struct node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitTableSubquery(TableSubquery node, C context) {
+  protected R visitTableSubquery(final TableSubquery node, final C context) {
     return visitQueryBody(node, context);
   }
 
-  protected R visitAliasedRelation(AliasedRelation node, C context) {
+  protected R visitAliasedRelation(final AliasedRelation node, final C context) {
     return visitRelation(node, context);
   }
 
-  protected R visitSampledRelation(SampledRelation node, C context) {
+  protected R visitSampledRelation(final SampledRelation node, final C context) {
     return visitRelation(node, context);
   }
 
-  protected R visitJoin(Join node, C context) {
+  protected R visitJoin(final Join node, final C context) {
     return visitRelation(node, context);
   }
 
-  protected R visitExists(ExistsPredicate node, C context) {
+  protected R visitExists(final ExistsPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitCast(Cast node, C context) {
+  protected R visitCast(final Cast node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitFieldReference(FieldReference node, C context) {
+  protected R visitFieldReference(final FieldReference node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitWindow(Window node, C context) {
+  protected R visitWindow(final Window node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitWindowExpression(WindowExpression node, C context) {
+  protected R visitWindowExpression(final WindowExpression node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitTumblingWindowExpression(TumblingWindowExpression node, C context) {
+  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitHoppingWindowExpression(HoppingWindowExpression node, C context) {
+  protected R visitHoppingWindowExpression(final HoppingWindowExpression node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitSessionWindowExpression(SessionWindowExpression node, C context) {
+  protected R visitSessionWindowExpression(final SessionWindowExpression node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitWindowFrame(WindowFrame node, C context) {
+  protected R visitWindowFrame(final WindowFrame node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitFrameBound(FrameBound node, C context) {
+  protected R visitFrameBound(final FrameBound node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitTableElement(TableElement node, C context) {
+  protected R visitTableElement(final TableElement node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitCreateTopic(RegisterTopic node, C context) {
+  protected R visitCreateTopic(final RegisterTopic node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitCreateStream(CreateStream node, C context) {
+  protected R visitCreateStream(final CreateStream node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitCreateStreamAsSelect(CreateStreamAsSelect node, C context) {
+  protected R visitCreateStreamAsSelect(final CreateStreamAsSelect node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitCreateTable(CreateTable node, C context) {
+  protected R visitCreateTable(final CreateTable node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitCreateTableAsSelect(CreateTableAsSelect node, C context) {
+  protected R visitCreateTableAsSelect(final CreateTableAsSelect node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitInsertInto(InsertInto node, C context) {
+  protected R visitInsertInto(final InsertInto node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitDropTopic(DropTopic node, C context) {
+  protected R visitDropTopic(final DropTopic node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitDropStream(DropStream node, C context) {
+  protected R visitDropStream(final DropStream node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitDropTable(DropTable node, C context) {
+  protected R visitDropTable(final DropTable node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitRenameTable(RenameTable node, C context) {
+  protected R visitRenameTable(final RenameTable node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitRenameColumn(RenameColumn node, C context) {
+  protected R visitRenameColumn(final RenameColumn node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitCreateView(CreateView node, C context) {
+  protected R visitCreateView(final CreateView node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitDropView(DropView node, C context) {
+  protected R visitDropView(final DropView node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitDelete(Delete node, C context) {
+  protected R visitDelete(final Delete node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitGroupBy(GroupBy node, C context) {
+  protected R visitGroupBy(final GroupBy node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitGroupingElement(GroupingElement node, C context) {
+  protected R visitGroupingElement(final GroupingElement node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitSimpleGroupBy(SimpleGroupBy node, C context) {
+  protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     return visitGroupingElement(node, context);
   }
 
-  protected R visitSymbolReference(SymbolReference node, C context) {
+  protected R visitSymbolReference(final SymbolReference node, final C context) {
     return visitExpression(node, context);
   }
 }

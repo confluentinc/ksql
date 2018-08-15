@@ -24,16 +24,16 @@ public class DropTopicCommand implements DdlCommand {
 
   private final String topicName;
 
-  public DropTopicCommand(DropTopic dropTopic) {
+  public DropTopicCommand(final DropTopic dropTopic) {
     this.topicName = dropTopic.getTopicName().getSuffix();
   }
 
-  DropTopicCommand(String topicName) {
+  DropTopicCommand(final String topicName) {
     this.topicName = topicName;
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     metaStore.deleteTopic(topicName);
     return new DdlCommandResult(true, "Topic " + topicName + " was dropped");
   }

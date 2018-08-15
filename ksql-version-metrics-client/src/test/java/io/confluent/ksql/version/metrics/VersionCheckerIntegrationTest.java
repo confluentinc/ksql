@@ -40,8 +40,8 @@ public class VersionCheckerIntegrationTest {
 
   @Test
   public void testMetricsAgent() throws InterruptedException {
-    KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
-    Properties versionCheckProps = new Properties();
+    final KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
+    final Properties versionCheckProps = new Properties();
     versionCheckProps.setProperty(BaseSupportConfig
         .CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG, "false");
     versionCheckProps.setProperty(
@@ -54,7 +54,7 @@ public class VersionCheckerIntegrationTest {
           try {
             clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
             return true;
-          } catch (AssertionError e) {
+          } catch (final AssertionError e) {
             return false;
           }
         },

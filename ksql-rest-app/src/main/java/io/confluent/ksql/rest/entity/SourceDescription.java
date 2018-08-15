@@ -57,20 +57,20 @@ public class SourceDescription {
 
   @JsonCreator
   public SourceDescription(
-      @JsonProperty("name") String name,
-      @JsonProperty("readQueries") List<RunningQuery> readQueries,
-      @JsonProperty("writeQueries") List<RunningQuery> writeQueries,
-      @JsonProperty("fields") List<FieldInfo> fields,
-      @JsonProperty("type") String type,
-      @JsonProperty("key") String key,
-      @JsonProperty("timestamp") String timestamp,
-      @JsonProperty("statistics") String statistics,
-      @JsonProperty("errorStats") String errorStats,
-      @JsonProperty("extended") boolean extended,
-      @JsonProperty("format") String format,
-      @JsonProperty("topic") String topic,
-      @JsonProperty("partitions") int partitions,
-      @JsonProperty("replication") int replication
+      @JsonProperty("name") final String name,
+      @JsonProperty("readQueries") final List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("type") final String type,
+      @JsonProperty("key") final String key,
+      @JsonProperty("timestamp") final String timestamp,
+      @JsonProperty("statistics") final String statistics,
+      @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("extended") final boolean extended,
+      @JsonProperty("format") final String format,
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partitions") final int partitions,
+      @JsonProperty("replication") final int replication
   ) {
     this.name = name;
     this.readQueries = Collections.unmodifiableList(readQueries);
@@ -89,12 +89,12 @@ public class SourceDescription {
   }
 
   public SourceDescription(
-      StructuredDataSource dataSource,
-      boolean extended,
-      String format,
-      List<RunningQuery> readQueries,
-      List<RunningQuery> writeQueries,
-      KafkaTopicClient topicClient
+      final StructuredDataSource dataSource,
+      final boolean extended,
+      final String format,
+      final List<RunningQuery> readQueries,
+      final List<RunningQuery> writeQueries,
+      final KafkaTopicClient topicClient
   ) {
     this(
         dataSource.getName(),
@@ -129,10 +129,11 @@ public class SourceDescription {
     );
   }
 
-  private static int getPartitions(KafkaTopicClient topicClient, String kafkaTopicName) {
-    Map<String, TopicDescription> stringTopicDescriptionMap =
+  private static int getPartitions(
+      final KafkaTopicClient topicClient, final String kafkaTopicName) {
+    final Map<String, TopicDescription> stringTopicDescriptionMap =
         topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
+    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().size();
   }
 
@@ -140,10 +141,11 @@ public class SourceDescription {
     return partitions;
   }
 
-  private static int getReplication(KafkaTopicClient topicClient, String kafkaTopicName) {
-    Map<String, TopicDescription> stringTopicDescriptionMap =
+  private static int getReplication(
+      final KafkaTopicClient topicClient, final String kafkaTopicName) {
+    final Map<String, TopicDescription> stringTopicDescriptionMap =
         topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
+    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().iterator().next().replicas().size();
   }
 
@@ -199,7 +201,7 @@ public class SourceDescription {
     return errorStats;
   }
 
-  private boolean equals2(SourceDescription that) {
+  private boolean equals2(final SourceDescription that) {
     if (!Objects.equals(topic, that.topic)) {
       return false;
     }
@@ -225,14 +227,14 @@ public class SourceDescription {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof SourceDescription)) {
       return false;
     }
-    SourceDescription that = (SourceDescription) o;
+    final SourceDescription that = (SourceDescription) o;
     if (!Objects.equals(name, that.name)) {
       return false;
     }

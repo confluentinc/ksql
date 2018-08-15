@@ -25,9 +25,9 @@ public class DelimitedProducer extends DataGenProducer {
 
   @Override
   protected Serializer<GenericRow> getSerializer(
-      Schema avroSchema,
-      org.apache.kafka.connect.data.Schema kafkaSchema,
-      String topicName
+      final Schema avroSchema,
+      final org.apache.kafka.connect.data.Schema kafkaSchema,
+      final String topicName
   ) {
     return new KsqlDelimitedSerializer(kafkaSchema);
   }

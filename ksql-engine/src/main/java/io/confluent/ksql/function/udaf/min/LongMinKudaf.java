@@ -25,7 +25,7 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
 
-  LongMinKudaf(String functionName, int argIndexInValue) {
+  LongMinKudaf(final String functionName, final int argIndexInValue) {
     super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         "Computes the minimum long value for a key."
@@ -33,7 +33,7 @@ public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
   }
 
   @Override
-  public Long aggregate(Long currentValue, Long aggregateValue) {
+  public Long aggregate(final Long currentValue, final Long aggregateValue) {
     if (currentValue < aggregateValue) {
       return currentValue;
     }

@@ -27,14 +27,14 @@ public class BasicCollector extends Collector {
   private final TimeUtils timeUtils;
   private final KsqlModuleType moduleType;
 
-  public BasicCollector(KsqlModuleType moduleType, TimeUtils timeUtils) {
+  public BasicCollector(final KsqlModuleType moduleType, final TimeUtils timeUtils) {
     this.timeUtils = timeUtils;
     this.moduleType = moduleType;
   }
 
   @Override
   public GenericContainer collectMetrics() {
-    KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
+    final KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
     metricsRecord.setTimestamp(timeUtils.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());

@@ -80,12 +80,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (!(o instanceof PersistentQueryMetadata)) {
       return false;
     }
 
-    PersistentQueryMetadata that = (PersistentQueryMetadata) o;
+    final PersistentQueryMetadata that = (PersistentQueryMetadata) o;
 
     return Objects.equals(this.id, that.id) && super.equals(o);
   }

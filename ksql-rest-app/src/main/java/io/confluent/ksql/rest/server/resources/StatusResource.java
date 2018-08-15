@@ -35,7 +35,7 @@ public class StatusResource {
 
   private final StatementExecutor statementExecutor;
 
-  public StatusResource(StatementExecutor statementExecutor) {
+  public StatusResource(final StatementExecutor statementExecutor) {
     this.statementExecutor = statementExecutor;
   }
 
@@ -47,12 +47,12 @@ public class StatusResource {
   @GET
   @Path("/{type}/{entity}/{action}")
   public Response getStatus(
-      @PathParam("type") String type,
-      @PathParam("entity") String entity,
-      @PathParam("action") String action) {
-    CommandId commandId = new CommandId(type, entity, action);
+      @PathParam("type") final String type,
+      @PathParam("entity") final String entity,
+      @PathParam("action") final String action) {
+    final CommandId commandId = new CommandId(type, entity, action);
 
-    Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 
     if (!commandStatus.isPresent()) {
       return Errors.notFound("Command not found");

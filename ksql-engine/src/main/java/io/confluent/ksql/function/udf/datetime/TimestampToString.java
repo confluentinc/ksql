@@ -27,7 +27,7 @@ public class TimestampToString implements Kudf {
   private DateTimeFormatter threadSafeFormatter;
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("TimestampToString udf should have two input argument:"
                                       + " date value and format.");
@@ -40,7 +40,7 @@ public class TimestampToString implements Kudf {
       return timestamp.toLocalDateTime()
           .atZone(ZoneId.systemDefault())
           .format(threadSafeFormatter);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] + " , "
                                       + args[1] + ") : " + e.getMessage(), e);
     }

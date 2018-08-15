@@ -95,7 +95,7 @@ public class SchemaKStreamTest {
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
-    StreamsBuilder builder = new StreamsBuilder();
+    final StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
                              Consumed.with(Serdes.String(),
                                            getRowSerde(ksqlStream.getKsqlTopic(),

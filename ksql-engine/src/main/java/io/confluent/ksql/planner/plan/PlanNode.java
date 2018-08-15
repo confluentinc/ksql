@@ -50,7 +50,7 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);
   }
 

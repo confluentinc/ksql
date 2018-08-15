@@ -174,7 +174,7 @@ public class QueryTranslationTest {
     }
   }
 
-  private static Schema addNames(Schema schema) {
+  private static Schema addNames(final Schema schema) {
     final SchemaBuilder builder;
     switch(schema.type()) {
       case ARRAY:
@@ -189,7 +189,7 @@ public class QueryTranslationTest {
       case STRUCT:
         builder = SchemaBuilder.struct();
         builder.name("TestSchema" + UUID.randomUUID().toString().replace("-", ""));
-        for (Field field : schema.fields()) {
+        for (final Field field : schema.fields()) {
           builder.field(field.name(), addNames(field.schema()));
         }
         break;
@@ -269,7 +269,7 @@ public class QueryTranslationTest {
       try {
         topicValue = objectMapper.readValue(
             objectMapper.writeValueAsString(node.findValue("value")), Object.class);
-      } catch (IOException e) {
+      } catch (final IOException e) {
         throw new RuntimeException(e);
       }
     }

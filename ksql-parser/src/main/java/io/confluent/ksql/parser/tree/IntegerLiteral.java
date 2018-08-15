@@ -26,15 +26,15 @@ public class IntegerLiteral
 
   private final int value;
 
-  public IntegerLiteral(int value) {
+  public IntegerLiteral(final int value) {
     this (Optional.empty(), value);
   }
 
-  public IntegerLiteral(NodeLocation location, int value) {
+  public IntegerLiteral(final NodeLocation location, final int value) {
     this(Optional.of(location), value);
   }
 
-  private IntegerLiteral(Optional<NodeLocation> location, int value) {
+  private IntegerLiteral(final Optional<NodeLocation> location, final int value) {
     super(location);
     requireNonNull(value, "value is null");
     this.value = value;
@@ -45,12 +45,12 @@ public class IntegerLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitIntegerLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

@@ -41,7 +41,7 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
-    String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
         .format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }
@@ -52,7 +52,7 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
+    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
         .format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }

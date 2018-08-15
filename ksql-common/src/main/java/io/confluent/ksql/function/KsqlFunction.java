@@ -96,14 +96,14 @@ public class KsqlFunction {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    KsqlFunction that = (KsqlFunction) o;
+    final KsqlFunction that = (KsqlFunction) o;
     return Objects.equals(returnType, that.returnType)
         && Objects.equals(arguments, that.arguments)
         && Objects.equals(functionName, that.functionName)

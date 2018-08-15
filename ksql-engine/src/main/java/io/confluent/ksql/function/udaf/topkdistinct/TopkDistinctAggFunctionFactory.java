@@ -51,7 +51,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }

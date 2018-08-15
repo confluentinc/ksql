@@ -117,7 +117,7 @@ public class QueryAnalyzerTest {
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       // ok
     }
 
@@ -134,7 +134,7 @@ public class QueryAnalyzerTest {
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       // ok
     }
   }
@@ -163,7 +163,7 @@ public class QueryAnalyzerTest {
     final Query query = (Query) statements.get(0);
     try {
       queryAnalyzer.analyze("sqlExpression", query);
-    } catch (KsqlException ex) {
+    } catch (final KsqlException ex) {
       assertThat(
           ex.getMessage().trim(),
           equalTo(

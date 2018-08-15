@@ -25,7 +25,7 @@ import javax.ws.rs.core.Response;
 public class KsqlRestException extends RuntimeException {
   Response response;
 
-  public KsqlRestException(Response response) {
+  public KsqlRestException(final Response response) {
     this.response = response;
   }
 

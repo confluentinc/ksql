@@ -92,7 +92,7 @@ public class StreamedRow {
     return Objects.hash(row, errorMessage, finalMessage);
   }
 
-  private static void checkUnion(Object... fields) {
+  private static void checkUnion(final Object... fields) {
     final List<Object> fs = Arrays.asList(fields);
     final long count = fs.stream()
         .filter(Objects::nonNull)

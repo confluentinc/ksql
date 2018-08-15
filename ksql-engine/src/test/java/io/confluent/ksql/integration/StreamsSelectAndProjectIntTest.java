@@ -203,11 +203,11 @@ public class StreamsSelectAndProjectIntTest {
     assertThat(timestamp, equalTo(dateFormat.parse("2018-01-04").getTime()));
   }
 
-  private void testTimestampColumnSelection(String stream1Name,
-                                            String stream2Name,
-                                            String inputStreamName,
-                                            DataSource.DataSourceSerDe dataSourceSerDe,
-                                            Map<String, RecordMetadata> recordMetadataMap)
+  private void testTimestampColumnSelection(final String stream1Name,
+                                            final String stream2Name,
+                                            final String inputStreamName,
+                                            final DataSource.DataSourceSerDe dataSourceSerDe,
+                                            final Map<String, RecordMetadata> recordMetadataMap)
       throws Exception {
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
@@ -222,7 +222,7 @@ public class StreamsSelectAndProjectIntTest {
 
     ksqlContext.sql(query1String);
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8",
         new GenericRow(Arrays.asList(null,
             null,
@@ -234,9 +234,9 @@ public class StreamsSelectAndProjectIntTest {
             "ORDER_6",
             "ITEM_8")));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
-    Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema ,
+    final Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema ,
         expectedResults.size(),
         new StringDeserializer(),
         IntegrationTestHarness
@@ -246,26 +246,26 @@ public class StreamsSelectAndProjectIntTest {
     assertThat(results2, equalTo(expectedResults));
   }
 
-  private void testSelectProjectKeyTimestamp(String resultStream,
-                                             String inputStreamName,
-                                             DataSource.DataSourceSerDe dataSourceSerDe,
-                                             Map<String, RecordMetadata> recordMetadataMap)
+  private void testSelectProjectKeyTimestamp(final String resultStream,
+                                             final String inputStreamName,
+                                             final DataSource.DataSourceSerDe dataSourceSerDe,
+                                             final Map<String, RecordMetadata> recordMetadataMap)
       throws Exception {
 
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME "
                                   + "AS RTIME, ITEMID FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
                                   + "'ITEM_8';", resultStream, inputStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> results = testHarness.consumeData(resultStream, resultSchema ,
+    final Map<String, GenericRow> results = testHarness.consumeData(resultStream, resultSchema ,
                                                               dataProvider.data().size(),
                                                               new StringDeserializer(),
                                                               IntegrationTestHarness
                                                                   .RESULTS_POLL_MAX_TIME_MS,
                                                               dataSourceSerDe);
 
-    Map<String, GenericRow> expectedResults =
+    final Map<String, GenericRow> expectedResults =
         Collections.singletonMap("8",
                                  new GenericRow(
                                      Arrays.asList(null,
@@ -277,17 +277,17 @@ public class StreamsSelectAndProjectIntTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  private void testSelectProject(String resultStream,
-                                 String inputStreamName,
-                                 DataSource
+  private void testSelectProject(final String resultStream,
+                                 final String inputStreamName,
+                                 final DataSource
       .DataSourceSerDe dataSourceSerDe) throws Exception {
 
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> easyOrdersData =
+    final Map<String, GenericRow> easyOrdersData =
         testHarness.consumeData(resultStream,
                                 resultSchema,
                                 dataProvider.data().size(),
@@ -295,7 +295,7 @@ public class StreamsSelectAndProjectIntTest {
                                 IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
                                 dataSourceSerDe);
 
-    GenericRow value = easyOrdersData.values().iterator().next();
+    final GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2));
   }
@@ -304,35 +304,35 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void testSelectProjectAvroJson() throws Exception {
 
-    String resultStream = "PROJECT_STREAM_AVRO";
+    final String resultStream = "PROJECT_STREAM_AVRO";
     ksqlContext.sql(String.format("CREATE STREAM %s WITH ( value_format = 'JSON') AS SELECT "
                                   + "ITEMID, "
                                   + "ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, avroStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> easyOrdersData =
+    final Map<String, GenericRow> easyOrdersData =
         testHarness.consumeData(resultStream, resultSchema,
                                 dataProvider.data().size(),
                                 new StringDeserializer(),
                                 IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
                                 DataSource.DataSourceSerDe.JSON);
 
-    GenericRow value = easyOrdersData.values().iterator().next();
+    final GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
   }
 
-  private void testSelectStar(String resultStream,
-                              String inputStreamName,
-                              DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
+  private void testSelectStar(final String resultStream,
+                              final String inputStreamName,
+                              final DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
 
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s;",
                                   resultStream,
                                   inputStreamName));
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream,
+    final Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream,
                                                                      dataProvider.schema(),
                                                                      dataProvider.data().size(),
                                                                      new StringDeserializer(),
@@ -343,14 +343,14 @@ public class StreamsSelectAndProjectIntTest {
     assertThat(easyOrdersData, equalTo(dataProvider.data()));
   }
 
-  private void testSelectWithFilter(String resultStream,
-                                    String inputStreamName,
-                                    DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
+  private void testSelectWithFilter(final String resultStream,
+                                    final String inputStreamName,
+                                    final DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
 
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s WHERE ORDERUNITS > 40;",
                                   resultStream, inputStreamName));
 
-    Map<String, GenericRow> results = testHarness.consumeData(resultStream,
+    final Map<String, GenericRow> results = testHarness.consumeData(resultStream,
                                                               dataProvider.schema(),
                                                               4,
                                                               new StringDeserializer(),
@@ -371,16 +371,16 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("INSERT INTO PROJECT_STREAM SELECT ITEMID, ORDERUNITS, PRICEARRAY "
                             + "FROM %s;", jsonStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
+    final Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
                                                                      resultSchema, dataProvider
                                                                          .data().size(), new
                                                                          StringDeserializer(),
                                                                      IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
                                                                      DataSource.DataSourceSerDe.JSON);
 
-    GenericRow value = easyOrdersData.values().iterator().next();
+    final GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
   }
@@ -395,16 +395,16 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("INSERT INTO PROJECT_STREAM SELECT ITEMID, ORDERUNITS, PRICEARRAY "
                                   + "FROM %s;", avroStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
+    final Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM",
                                                                      resultSchema, dataProvider
                                                                          .data().size(), new
                                                                          StringDeserializer(),
                                                                      IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
                                                                      DataSource.DataSourceSerDe.AVRO);
 
-    GenericRow value = easyOrdersData.values().iterator().next();
+    final GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
   }
@@ -416,7 +416,7 @@ public class StreamsSelectAndProjectIntTest {
                                   + "'HELLO';", jsonStreamName));
     ksqlContext.sql(String.format("INSERT INTO EASYORDERS SELECT * FROM %s;", jsonStreamName));
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
+    final Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
         .schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness
         .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.JSON);
 
@@ -430,7 +430,7 @@ public class StreamsSelectAndProjectIntTest {
                                   + "'HELLO';", avroStreamName));
     ksqlContext.sql(String.format("INSERT INTO EASYORDERS SELECT * FROM %s;", avroStreamName));
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
+    final Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider
         .schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness
                                                                          .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
 
@@ -445,7 +445,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("INSERT INTO BIGORDERS_json SELECT * FROM %s WHERE ORDERUNITS > 40;"
                                   + "", jsonStreamName));
 
-    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_json", dataProvider
+    final Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_json", dataProvider
                                                                   .schema()
         , 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.JSON);
 
@@ -460,7 +460,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("INSERT INTO BIGORDERS_avro SELECT * FROM %s WHERE ORDERUNITS > 40;"
                                   + "", avroStreamName));
 
-    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_avro", dataProvider
+    final Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS_avro", dataProvider
                                                                   .schema()
         , 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
                                                               DataSource.DataSourceSerDe.AVRO);

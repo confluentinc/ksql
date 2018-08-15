@@ -55,7 +55,7 @@ public class Command {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     return
         o instanceof Command
         && Objects.equals(statement, ((Command)o).statement)

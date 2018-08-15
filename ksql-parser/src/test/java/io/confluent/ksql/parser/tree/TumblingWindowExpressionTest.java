@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.util.TimeWindowsMatcher.timeWindows;
 import static org.easymock.EasyMock.same;
 
 import io.confluent.ksql.GenericRow;
@@ -43,7 +44,7 @@ public class TumblingWindowExpressionTest {
     final Initializer initializer = () -> 0;
     final Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store = Materialized.as("store");
 
-    EasyMock.expect(stream.windowedBy(TimeWindows.of(10000L))).andReturn(windowedKStream);
+    EasyMock.expect(stream.windowedBy(timeWindows(TimeWindows.of(10000L)))).andReturn(windowedKStream);
     EasyMock.expect(windowedKStream.aggregate(same(initializer), same(aggregator), same(store))).andReturn(null);
     EasyMock.replay(stream, windowedKStream);
 

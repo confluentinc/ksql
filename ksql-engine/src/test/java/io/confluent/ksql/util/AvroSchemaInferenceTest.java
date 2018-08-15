@@ -387,7 +387,7 @@ public class AvroSchemaInferenceTest {
 
   private Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
     final SchemaBuilder builder = SchemaBuilder.struct();
-    for (TableElement tableElement : statement.getElements()) {
+    for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
           TypeUtil.getTypeSchema(tableElement.getType())

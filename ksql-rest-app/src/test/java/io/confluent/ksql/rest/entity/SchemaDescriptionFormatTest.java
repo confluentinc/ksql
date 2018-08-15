@@ -14,7 +14,7 @@ import org.junit.Test;
 
 public class SchemaDescriptionFormatTest {
   private ObjectMapper newObjectMapper() {
-    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.registerModule(new Jdk8Module());
     return objectMapper;
   }

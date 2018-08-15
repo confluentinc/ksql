@@ -71,7 +71,7 @@ class Masker {
     return c;
   }
 
-  static int getMaskCharacter(String stringMask) {
+  static int getMaskCharacter(final String stringMask) {
     return stringMask == null ? NO_MASK : stringMask.codePointAt(0);
   }
 }

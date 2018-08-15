@@ -13,7 +13,7 @@ public class LongSumKudafTest extends BaseSumKudafTest<Long, LongSumKudaf> {
   }
 
   protected LongSumKudaf getSumKudaf() {
-    KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
+    final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
         .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA));
     assertThat(aggregateFunction, instanceOf(LongSumKudaf.class));
     return  (LongSumKudaf) aggregateFunction;

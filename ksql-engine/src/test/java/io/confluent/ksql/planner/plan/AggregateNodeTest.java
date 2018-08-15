@@ -90,7 +90,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
     buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
     final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
@@ -98,7 +98,7 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBuildCorrectAggregateSchema() {
-    SchemaKStream stream = build();
+    final SchemaKStream stream = build();
     final List<Field> expected = Arrays.asList(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
@@ -108,13 +108,13 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBeSchemaKTableResult() {
-    SchemaKStream stream = build();
+    final SchemaKStream stream = build();
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
-    SchemaKStream stream = build();
+    final SchemaKStream stream = build();
     assertTrue(((SchemaKTable)stream).isWindowed());
   }
 
@@ -132,17 +132,17 @@ public class AggregateNodeTest {
         + "GROUP BY col1;");
   }
 
-  private SchemaKStream buildQuery(String queryString) {
-    AggregateNode aggregateNode = buildAggregateNode(queryString);
+  private SchemaKStream buildQuery(final String queryString) {
+    final AggregateNode aggregateNode = buildAggregateNode(queryString);
     return buildStream(aggregateNode);
   }
 
-  private AggregateNode buildAggregateNode(String queryString) {
+  private AggregateNode buildAggregateNode(final String queryString) {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry())).buildLogicalPlan(queryString);
     return (AggregateNode) planNode.getSource();
   }
 
-  private SchemaKStream buildStream(AggregateNode aggregateNode) {
+  private SchemaKStream buildStream(final AggregateNode aggregateNode) {
     return aggregateNode.buildStream(builder,
         ksqlConfig,
         topicClient,

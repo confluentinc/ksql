@@ -41,41 +41,41 @@ public class MetastoreTest {
 
   @Test
   public void testTopicMap() {
-    KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe());
     metaStore.putTopic(ksqlTopic1);
-    KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
+    final KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);
 
     // Check non-existent topic
-    KsqlTopic ksqlTopic3 = metaStore.getTopic("TESTTOPIC_");
+    final KsqlTopic ksqlTopic3 = metaStore.getTopic("TESTTOPIC_");
     Assert.assertNull(ksqlTopic3);
   }
 
   @Test
   public void testStreamMap() {
-    StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
+    final StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
     Assert.assertNotNull(structuredDataSource1);
     Assert.assertTrue(structuredDataSource1.dataSourceType == DataSource.DataSourceType.KSTREAM);
 
     // Check non-existent stream
-    StructuredDataSource structuredDataSource2 = metaStore.getSource("nonExistentStream");
+    final StructuredDataSource structuredDataSource2 = metaStore.getSource("nonExistentStream");
     Assert.assertNull(structuredDataSource2);
   }
 
   @Test
   public void testDelete() {
-    StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
+    final StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
+    final StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
                                                                structuredDataSource1.getTimestampExtractionPolicy(),
                                                                structuredDataSource1.getKsqlTopic());
 
     metaStore.putSource(structuredDataSource2);
-    StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");
+    final StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");
     Assert.assertNotNull(structuredDataSource3);
     metaStore.deleteSource("testStream");
-    StructuredDataSource structuredDataSource4 = metaStore.getSource("testStream");
+    final StructuredDataSource structuredDataSource4 = metaStore.getSource("testStream");
     Assert.assertNull(structuredDataSource4);
   }
 

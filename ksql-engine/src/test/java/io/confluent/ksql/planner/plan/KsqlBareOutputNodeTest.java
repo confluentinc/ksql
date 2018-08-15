@@ -123,7 +123,7 @@ public class KsqlBareOutputNodeTest {
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
-  private TopologyDescription.Node getNodeByName(String nodeName) {
+  private TopologyDescription.Node getNodeByName(final String nodeName) {
     return PlanTestUtil.getNodeByName(builder.build(), nodeName);
   }
 

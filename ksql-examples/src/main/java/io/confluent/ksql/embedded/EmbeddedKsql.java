@@ -25,9 +25,9 @@ public final class EmbeddedKsql {
   private EmbeddedKsql() {
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(final String[] args) throws Exception {
 
-    KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
+    final KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

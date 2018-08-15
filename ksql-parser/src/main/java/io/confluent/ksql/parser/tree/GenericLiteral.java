@@ -28,15 +28,18 @@ public final class GenericLiteral
   private final String type;
   private final String value;
 
-  public GenericLiteral(String type, String value) {
+  public GenericLiteral(final String type, final String value) {
     this(Optional.empty(), type, value);
   }
 
-  public GenericLiteral(NodeLocation location, String type, String value) {
+  public GenericLiteral(final NodeLocation location, final String type, final String value) {
     this(Optional.of(location), type, value);
   }
 
-  private GenericLiteral(Optional<NodeLocation> location, String type, String value) {
+  private GenericLiteral(
+      final Optional<NodeLocation> location,
+      final String type,
+      final String value) {
     super(location);
     requireNonNull(type, "type is null");
     requireNonNull(value, "value is null");
@@ -61,7 +64,7 @@ public final class GenericLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitGenericLiteral(this, context);
   }
 
@@ -71,7 +74,7 @@ public final class GenericLiteral
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
@@ -79,7 +82,7 @@ public final class GenericLiteral
       return false;
     }
 
-    GenericLiteral other = (GenericLiteral) obj;
+    final GenericLiteral other = (GenericLiteral) obj;
     return Objects.equals(this.value, other.value)
            && Objects.equals(this.type, other.type);
   }

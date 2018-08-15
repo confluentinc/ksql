@@ -129,7 +129,7 @@ public class StatementRewriteForStructTest {
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
 
-  private QuerySpecification getQuerySpecification(Statement statement) {
+  private QuerySpecification getQuerySpecification(final Statement statement) {
     assertThat(statement, instanceOf(Query.class));
     final Query query = (Query) statement;
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));

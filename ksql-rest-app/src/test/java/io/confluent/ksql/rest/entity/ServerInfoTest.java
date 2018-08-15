@@ -33,9 +33,9 @@ public class ServerInfoTest {
 
   @Test
   public void testSerializeDeserialize() throws IOException {
-    ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
-    byte[] bytes = mapper.writeValueAsBytes(serverInfo);
-    ServerInfo deserializedServerInfo = mapper.readValue(bytes, ServerInfo.class);
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final byte[] bytes = mapper.writeValueAsBytes(serverInfo);
+    final ServerInfo deserializedServerInfo = mapper.readValue(bytes, ServerInfo.class);
     Assert.assertThat(serverInfo, equalTo(deserializedServerInfo));
   }
 }

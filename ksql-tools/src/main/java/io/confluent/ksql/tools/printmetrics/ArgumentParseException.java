@@ -17,7 +17,7 @@
 package io.confluent.ksql.tools.printmetrics;
 
 public class ArgumentParseException extends RuntimeException {
-  public ArgumentParseException(String message) {
+  public ArgumentParseException(final String message) {
     super(message);
   }
 }

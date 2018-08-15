@@ -41,7 +41,7 @@ public class KsqlConnectSerializer implements Serializer<GenericRow> {
     final Struct struct = translator.toConnectRow(genericRow);
     try {
       return converter.fromConnectData(topic, struct.schema(), struct);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException(
           "Error serializing row to topic " + topic + " using Converter API", e);
     }

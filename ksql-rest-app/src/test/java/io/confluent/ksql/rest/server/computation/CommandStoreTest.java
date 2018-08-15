@@ -106,12 +106,12 @@ public class CommandStoreTest {
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     final String statementText = "test-statement";
 
-    Statement statement = mock(Statement.class);
-    CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
-    Capture<ProducerRecord<CommandId, Command>> recordCapture = Capture.newInstance();
-    Future<RecordMetadata> future = mock(Future.class);
+    final Statement statement = mock(Statement.class);
+    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
+    final Capture<ProducerRecord<CommandId, Command>> recordCapture = Capture.newInstance();
+    final Future<RecordMetadata> future = mock(Future.class);
 
-    CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
     expect(commandIdAssigner.getCommandId(statement)).andReturn(commandId);
     expect(commandProducer.send(capture(recordCapture))).andReturn(future);
     future.get();
@@ -123,7 +123,7 @@ public class CommandStoreTest {
 
     verify(commandIdAssigner, commandProducer, future);
 
-    ProducerRecord<CommandId, Command> record = recordCapture.getValue();
+    final ProducerRecord<CommandId, Command> record = recordCapture.getValue();
     assertThat(record.key(), equalTo(commandId));
     assertThat(record.value().getStatement(), equalTo(statementText));
     assertThat(record.value().getOverwriteProperties(), equalTo(overrideProperties));
@@ -154,7 +154,7 @@ public class CommandStoreTest {
     return createCommandStore(new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry())));
   }
 
-  private CommandStore createCommandStore(CommandIdAssigner commandIdAssigner) {
+  private CommandStore createCommandStore(final CommandIdAssigner commandIdAssigner) {
     return new CommandStore(
         COMMAND_TOPIC,
         commandConsumer,
@@ -162,7 +162,7 @@ public class CommandStoreTest {
         commandIdAssigner);
   }
 
-  private List<Pair<CommandId, Command>> getPriorCommands(CommandStore command) {
+  private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore command) {
     final RestoreCommands priorCommands = command.getRestoreCommands();
     final List<Pair<CommandId, Command>> commands = new ArrayList<>();
     priorCommands.forEach(((id, cmd, terminatedQueries, droppedEntities) -> commands.add(new Pair<>(id, cmd))));

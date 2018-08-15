@@ -112,12 +112,12 @@ public abstract class OutputNode
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitOutput(this, context);
   }
 

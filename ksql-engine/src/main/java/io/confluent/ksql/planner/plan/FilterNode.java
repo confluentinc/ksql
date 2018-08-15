@@ -79,12 +79,12 @@ public class FilterNode
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitFilter(this, context);
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 

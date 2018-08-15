@@ -32,17 +32,17 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   private String stateStoreName;
 
   public CreateTableCommand(
-      String sqlExpression,
-      CreateTable createTable,
-      KafkaTopicClient kafkaTopicClient,
-      boolean enforceTopicExistence
+      final String sqlExpression,
+      final CreateTable createTable,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean enforceTopicExistence
   ) {
     super(sqlExpression,
           createTable,
         kafkaTopicClient,
           enforceTopicExistence);
 
-    Map<String, Expression> properties = createTable.getProperties();
+    final Map<String, Expression> properties = createTable.getProperties();
 
     if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       throw new KsqlException(
@@ -60,12 +60,12 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlTable ksqlTable = new KsqlTable(
+    final KsqlTable ksqlTable = new KsqlTable(
         sqlExpression,
         sourceName,
         schema,

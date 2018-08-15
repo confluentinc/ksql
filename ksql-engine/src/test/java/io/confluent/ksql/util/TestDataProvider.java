@@ -28,7 +28,7 @@ public abstract class TestDataProvider {
   final Map<String, GenericRow> data;
   final String kstreamName;
 
-  public TestDataProvider(String namePrefix, String ksqlSchemaString, String key, Schema schema, Map<String, GenericRow> data) {
+  public TestDataProvider(final String namePrefix, final String ksqlSchemaString, final String key, final Schema schema, final Map<String, GenericRow> data) {
     this.topicName = namePrefix + "_TOPIC";
     this.kstreamName =  namePrefix + "_KSTREAM";
     this.ksqlSchemaString = ksqlSchemaString;

@@ -35,13 +35,13 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     this(true);
   }
 
-  KsqlVersionCheckerAgent(boolean enableSettlingTime) {
+  KsqlVersionCheckerAgent(final boolean enableSettlingTime) {
     this.enableSettlingTime = enableSettlingTime;
   }
 
   @Override
-  public void start(KsqlModuleType moduleType, Properties ksqlProperties) {
-    BaseSupportConfig ksqlVersionCheckerConfig =
+  public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
+    final BaseSupportConfig ksqlVersionCheckerConfig =
         new PhoneHomeConfig(ksqlProperties, "ksql");
 
     if (!ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
@@ -50,7 +50,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     }
 
     try {
-      Runtime serverRuntime = Runtime.getRuntime();
+      final Runtime serverRuntime = Runtime.getRuntime();
 
       ksqlVersionChecker =
           new KsqlVersionChecker(
@@ -65,12 +65,12 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
           -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
       ksqlVersionChecker.start();
-      long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
-      long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
+      final long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
+      final long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
       // We log at WARN level to increase the visibility of this information.
       log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
 
-    } catch (Exception e) {
+    } catch (final Exception e) {
       // We catch any exceptions to prevent collateral damage to the more important broker
       // threads that are running in the same JVM.
       log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
@@ -78,7 +78,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   }
 
-  private static String legalDisclaimerProactiveSupportEnabled(long reportIntervalHours) {
+  private static String legalDisclaimerProactiveSupportEnabled(final long reportIntervalHours) {
     return "Please note that the version check feature of KSQL is enabled.  "
         + "With this enabled, this instance is configured to collect and report "
         + "anonymously the version information to Confluent, Inc. "

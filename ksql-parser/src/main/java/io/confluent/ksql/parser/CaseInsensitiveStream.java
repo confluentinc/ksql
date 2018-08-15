@@ -25,12 +25,12 @@ public class CaseInsensitiveStream
 
   private final CharStream stream;
 
-  public CaseInsensitiveStream(CharStream stream) {
+  public CaseInsensitiveStream(final CharStream stream) {
     this.stream = stream;
   }
 
   @Override
-  public String getText(Interval interval) {
+  public String getText(final Interval interval) {
     return stream.getText(interval);
   }
 
@@ -40,8 +40,8 @@ public class CaseInsensitiveStream
   }
 
   @Override
-  public int LA(int i) {
-    int result = stream.LA(i);
+  public int LA(final int i) {
+    final int result = stream.LA(i);
 
     switch (result) {
       case 0:
@@ -58,7 +58,7 @@ public class CaseInsensitiveStream
   }
 
   @Override
-  public void release(int marker) {
+  public void release(final int marker) {
     stream.release(marker);
   }
 
@@ -68,7 +68,7 @@ public class CaseInsensitiveStream
   }
 
   @Override
-  public void seek(int index) {
+  public void seek(final int index) {
     stream.seek(index);
   }
 

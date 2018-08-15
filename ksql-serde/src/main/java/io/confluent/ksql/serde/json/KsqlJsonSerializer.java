@@ -56,7 +56,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
       }
 
       return jsonConverter.fromConnectData(topic, schema, struct);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }
   }
@@ -79,7 +79,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     }
   }
 
-  private boolean compareStructSchema(Schema schema1, Schema schema2) {
+  private boolean compareStructSchema(final Schema schema1, final Schema schema2) {
     if (schema1.fields().size() != schema2.fields().size()) {
       return false;
     }

@@ -62,7 +62,7 @@ public class AggregateAnalysis {
     return havingExpression;
   }
 
-  public void setHavingExpression(Expression havingExpression) {
+  public void setHavingExpression(final Expression havingExpression) {
     this.havingExpression = havingExpression;
   }
 

@@ -33,14 +33,14 @@ public class CommandStatusFuture implements Future<CommandStatus> {
   private Cleanup cleanup;
   private final AtomicReference<CommandStatus> result;
 
-  public CommandStatusFuture(CommandId commandId, Cleanup cleanup) {
+  public CommandStatusFuture(final CommandId commandId, final Cleanup cleanup) {
     this.commandId = commandId;
     this.cleanup = cleanup;
     this.result = new AtomicReference<>(null);
   }
 
   @Override
-  public boolean cancel(boolean mayInterruptIfRunning) {
+  public boolean cancel(final boolean mayInterruptIfRunning) {
     return false;
   }
 
@@ -64,9 +64,9 @@ public class CommandStatusFuture implements Future<CommandStatus> {
   }
 
   @Override
-  public CommandStatus get(long timeout, TimeUnit unit)
+  public CommandStatus get(final long timeout, final TimeUnit unit)
           throws InterruptedException, TimeoutException {
-    long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
+    final long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
     while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
       Utils.sleep(1);
     }
@@ -77,7 +77,7 @@ public class CommandStatusFuture implements Future<CommandStatus> {
     return result.get();
   }
 
-  public void complete(CommandStatus result) {
+  public void complete(final CommandStatus result) {
     this.result.set(result);
   }
 }

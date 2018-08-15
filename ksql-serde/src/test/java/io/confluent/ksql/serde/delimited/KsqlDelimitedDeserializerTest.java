@@ -44,11 +44,11 @@ public class KsqlDelimitedDeserializerTest {
 
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
-    String rowString = "1511897796092,1,item_1,10.0\r\n";
+    final String rowString = "1511897796092,1,item_1,10.0\r\n";
 
-    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -59,11 +59,11 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
 
-    String rowString = "1511897796092,1,item_1,\r\n";
+    final String rowString = "1511897796092,1,item_1,\r\n";
 
-    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));

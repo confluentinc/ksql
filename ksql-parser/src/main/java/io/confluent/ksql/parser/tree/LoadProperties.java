@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public class LoadProperties extends Statement {
 
-  public LoadProperties(Optional<NodeLocation> location) {
+  public LoadProperties(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -33,7 +33,7 @@ public class LoadProperties extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

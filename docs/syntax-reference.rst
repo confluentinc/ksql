@@ -166,7 +166,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only.)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starting from 0 but this is configurable. Refer to below for more details.)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
@@ -248,7 +248,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only.)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starting from 0 but this is configurable. Refer to below for more details.)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of

@@ -96,7 +96,7 @@
       ]
     },
     {
-      "name": "Json Multi Dimensional Array",
+      "name": "Json 2 Dimensional Array",
       "statements": [
         "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S3 as SELECT ID, ARRAY_COL[0][1] AS array_item FROM array_array;"
@@ -117,7 +117,32 @@
       ]
     },
     {
-      "name": "Json Multi Dimensional Array",
+      "name": "Json 2 Dimensional Array Base Starting from 1",
+      "format": ["JSON"],
+      "properties": {
+        "ksql.functions.array.legacy.base": false
+      },
+      "statements": [
+        "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S3 as SELECT ID, ARRAY_COL[1][2] AS array_item FROM array_array;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 1, "array_col": [["item_00_1","item_01_1"],["item_10_1","item_11_1"]]}},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 2, "array_col": [["item_00_2","item_01_2"],["item_10_2","item_11_2"]]}},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 3, "array_col": [["item_00_3","item_01_3"],["item_10_3","item_11_3"]]}},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 4, "array_col": [["item_00_4","item_01_4"],["item_10_4","item_11_4"]]}},
+        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 5, "array_col": [["item_00_5"],["item_10_5","item_11_5"]]}}
+      ],
+      "outputs": [
+        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 1, "ARRAY_ITEM": "item_01_1"}},
+        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 2, "ARRAY_ITEM": "item_01_2"}},
+        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 3, "ARRAY_ITEM": "item_01_3"}},
+        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_01_4"}},
+        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 5, "ARRAY_ITEM": null}}
+      ]
+    },
+    {
+      "name": "Json 3 Dimensional Array",
       "statements": [
         "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S3 as SELECT ID, ARRAY_COL[0][0][0] AS array_item FROM array_array;"

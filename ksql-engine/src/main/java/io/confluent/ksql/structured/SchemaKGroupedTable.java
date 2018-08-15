@@ -66,7 +66,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
-    List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
+    final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
         .stream()
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(function -> function.getFunctionName())

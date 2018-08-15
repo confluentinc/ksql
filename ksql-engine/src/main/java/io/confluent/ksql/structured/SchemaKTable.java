@@ -49,8 +49,8 @@ public class SchemaKTable extends SchemaKStream {
       final KTable ktable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      boolean isWindowed,
-      Type type,
+      final boolean isWindowed,
+      final Type type,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -72,7 +72,7 @@ public class SchemaKTable extends SchemaKStream {
   public SchemaKTable into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+      final Set<Integer> rowkeyIndexes
   ) {
     if (isWindowed) {
       final Serde<Windowed<String>> windowedSerde
@@ -119,13 +119,13 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable filter(final Expression filterExpression) {
-    SqlPredicate predicate = new SqlPredicate(
+    final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         isWindowed,
         functionRegistry
     );
-    KTable filteredKTable = ktable.filter(predicate.getPredicate());
+    final KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(
         schema,
         filteredKTable,
@@ -141,7 +141,7 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-    Selection selection = new Selection(expressionPairList, functionRegistry, this);
+    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
     return new SchemaKTable(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

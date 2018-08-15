@@ -53,7 +53,7 @@ public class PollingSubscriptionTest {
     Subscription subscription;
 
     @Override
-    public void onNext(String item) {
+    public void onNext(final String item) {
       if (done.getCount() == 0) {
         throw new IllegalStateException("already done");
       }
@@ -62,7 +62,7 @@ public class PollingSubscriptionTest {
     }
 
     @Override
-    public void onError(Throwable e) {
+    public void onError(final Throwable e) {
       if (done.getCount() == 0) {
         throw new IllegalStateException("already done");
       }
@@ -79,7 +79,7 @@ public class PollingSubscriptionTest {
     }
 
     @Override
-    public void onSchema(Schema s) {
+    public void onSchema(final Schema s) {
       if (done.getCount() == 0) {
         throw new IllegalStateException("already done");
       }
@@ -87,7 +87,7 @@ public class PollingSubscriptionTest {
     }
 
     @Override
-    public void onSubscribe(Subscription subscription) {
+    public void onSubscribe(final Subscription subscription) {
       this.subscription = subscription;
       subscription.request(1);
     }
@@ -98,12 +98,12 @@ public class PollingSubscriptionTest {
     TestPollingSubscription subscription;
 
     @Override
-    public void subscribe(Subscriber<String> subscriber) {
+    public void subscribe(final Subscriber<String> subscriber) {
       subscription = createSubscription(subscriber);
       subscriber.onSubscribe(subscription);
     }
 
-    TestPollingSubscription createSubscription(Subscriber<String> subscriber) {
+    TestPollingSubscription createSubscription(final Subscriber<String> subscriber) {
       return new TestPollingSubscription(subscriber, exec);
     }
   }
@@ -112,7 +112,8 @@ public class PollingSubscriptionTest {
     boolean closed;
     Queue<String> queue = Lists.newLinkedList(ELEMENTS);
 
-    public TestPollingSubscription(Subscriber<String> subscriber, ScheduledExecutorService exec) {
+    public TestPollingSubscription(
+        final Subscriber<String> subscriber, final ScheduledExecutorService exec) {
       super(
           MoreExecutors.listeningDecorator(exec),
           subscriber,
@@ -122,7 +123,7 @@ public class PollingSubscriptionTest {
 
     @Override
     String poll() {
-      String value = queue.poll();
+      final String value = queue.poll();
       if (value != null) {
         return value;
       } else {
@@ -142,8 +143,8 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testBasicFlow() throws Exception {
-    TestSubscriber testSubscriber = new TestSubscriber();
-    TestPublisher testPublisher = new TestPublisher();
+    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestPublisher testPublisher = new TestPublisher();
     testPublisher.subscribe(testSubscriber);
 
     assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
@@ -157,17 +158,17 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testErrorDrainsNextElement() throws Exception {
-    TestSubscriber testSubscriber = new TestSubscriber();
-    TestPublisher testPublisher = new TestPublisher() {
+    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
-          Subscriber<String> subscriber
+          final Subscriber<String> subscriber
       ) {
         return new TestPollingSubscription(subscriber, exec) {
           @Override
           String poll() {
             // return one element, then set error
-            String value = super.poll();
+            final String value = super.poll();
             if (value != null) {
               setError(new RuntimeException("something bad"));
               return value;
@@ -190,11 +191,11 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testMultithreaded() throws Exception {
-    TestSubscriber testSubscriber = new TestSubscriber();
-    TestPublisher testPublisher = new TestPublisher() {
+    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
-          Subscriber<String> subscriber
+          final Subscriber<String> subscriber
       ) {
         return new TestPollingSubscription(subscriber, multithreadedExec);
       }
@@ -212,11 +213,11 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testReentrantNextElement() throws Exception {
-    TestSubscriber testSubscriber = new TestSubscriber();
-    TestPublisher testPublisher = new TestPublisher() {
+    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
-          Subscriber<String> subscriber
+          final Subscriber<String> subscriber
       ) {
         return new TestPollingSubscription(subscriber, multithreadedExec) {
           String nextValue;
@@ -224,7 +225,7 @@ public class PollingSubscriptionTest {
           @Override
           String poll() {
             // set Error, then return last element
-            String value = super.poll();
+            final String value = super.poll();
             if (nextValue == null) {
               nextValue = value;
               setError(new RuntimeException("something bad"));
@@ -248,11 +249,11 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testEmpty() throws Exception {
-    TestSubscriber testSubscriber = new TestSubscriber();
-    TestPublisher testPublisher = new TestPublisher() {
+    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
-          Subscriber<String> subscriber
+          final Subscriber<String> subscriber
       ) {
         return new TestPollingSubscription(subscriber, exec) {
           @Override
@@ -276,13 +277,13 @@ public class PollingSubscriptionTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testExpectsNEqualsOne() {
-    TestSubscriber testSubscriber = new TestSubscriber() {
+    final TestSubscriber testSubscriber = new TestSubscriber() {
       @Override
-      public void onSubscribe(Subscription subscription) {
+      public void onSubscribe(final Subscription subscription) {
         subscription.request(2);
       }
     };
-    TestPublisher testPublisher = new TestPublisher();
+    final TestPublisher testPublisher = new TestPublisher();
     testPublisher.subscribe(testSubscriber);
   }
 }

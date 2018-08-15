@@ -42,16 +42,16 @@ public class MockStatusResource {
 
   @GET
   public Response getAllStatuses() {
-    CommandStatuses commandStatuses = new CommandStatuses(statuses);
+    final CommandStatuses commandStatuses = new CommandStatuses(statuses);
     return Response.ok(commandStatuses).build();
   }
 
   @GET
   @Path("/{type}/{entity}/{action}")
-  public Response getStatus(@PathParam("type") String type,
-                            @PathParam("entity") String entity,
-                            @PathParam("action") String action) {
-    CommandStatus.Status status = statuses.get(new CommandId(type, entity, action));
+  public Response getStatus(@PathParam("type") final String type,
+                            @PathParam("entity") final String entity,
+                            @PathParam("action") final String action) {
+    final CommandStatus.Status status = statuses.get(new CommandId(type, entity, action));
     if (status == null) {
       return Response.status(Response.Status.NOT_FOUND).build();
     }

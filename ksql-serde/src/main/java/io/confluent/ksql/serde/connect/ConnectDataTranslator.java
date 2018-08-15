@@ -197,7 +197,7 @@ public class ConnectDataTranslator implements DataTranslator {
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, String> caseInsensitiveFieldNameMap
         = getCaseInsensitiveFieldMap(connectStruct.schema());
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema

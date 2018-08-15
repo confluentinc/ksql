@@ -27,9 +27,9 @@ public class CommandStatusEntity extends KsqlEntity {
   private final CommandStatus commandStatus;
 
   public CommandStatusEntity(
-      String statementText,
-      CommandId commandId,
-      CommandStatus commandStatus
+      final String statementText,
+      final CommandId commandId,
+      final CommandStatus commandStatus
   ) {
     super(statementText);
     this.commandId = commandId;
@@ -37,10 +37,10 @@ public class CommandStatusEntity extends KsqlEntity {
   }
 
   public CommandStatusEntity(
-      String statementText,
-      String commandId,
-      String status,
-      String message
+      final String statementText,
+      final String commandId,
+      final String status,
+      final String message
   ) {
     this(
         statementText,
@@ -50,7 +50,7 @@ public class CommandStatusEntity extends KsqlEntity {
   }
 
   @JsonCreator
-  public CommandStatusEntity(Map<String, Object> properties) {
+  public CommandStatusEntity(final Map<String, Object> properties) {
     this(
         (String) properties.get("statementText"),
         (String) properties.get("commandId"),
@@ -69,14 +69,14 @@ public class CommandStatusEntity extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof CommandStatusEntity)) {
       return false;
     }
-    CommandStatusEntity that = (CommandStatusEntity) o;
+    final CommandStatusEntity that = (CommandStatusEntity) o;
     return Objects.equals(getCommandId(), that.getCommandId())
         && Objects.equals(getCommandStatus(), that.getCommandStatus());
   }

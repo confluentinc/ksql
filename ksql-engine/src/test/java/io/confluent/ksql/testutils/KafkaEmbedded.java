@@ -130,7 +130,7 @@ public class KafkaEmbedded {
    *
    * @param topic The name of the topic.
    */
-  public void createTopic(String topic) {
+  public void createTopic(final String topic) {
     createTopic(topic, 1, 1, new Properties());
   }
 
@@ -141,7 +141,7 @@ public class KafkaEmbedded {
    * @param partitions  The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
-  public void createTopic(String topic, int partitions, int replication) {
+  public void createTopic(final String topic, final int partitions, final int replication) {
     createTopic(topic, partitions, replication, new Properties());
   }
 
@@ -153,27 +153,27 @@ public class KafkaEmbedded {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(String topic,
-                          int partitions,
-                          int replication,
-                          Properties topicConfig) {
+  public void createTopic(final String topic,
+                          final int partitions,
+                          final int replication,
+                          final Properties topicConfig) {
     log.debug("Creating topic { name: {}, partitions: {}, replication: {}, config: {} }",
         topic, partitions, replication, topicConfig);
     // Note: You must initialize the ZkClient with ZKStringSerializer.  If you don't, then
     // registerTopic() will only seem to work (it will return without error).  The topic will exist in
     // only ZooKeeper and will be returned when listing topics, but Kafka itself does not create the
     // topic.
-    ZkClient zkClient = new ZkClient(
+    final ZkClient zkClient = new ZkClient(
         zookeeperConnect(),
         DEFAULT_ZK_SESSION_TIMEOUT_MS,
         DEFAULT_ZK_CONNECTION_TIMEOUT_MS,
         ZKStringSerializer$.MODULE$);
-    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect()), false);
+    final ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect()), false);
     AdminUtils.createTopic(zkUtils, topic, partitions, replication, topicConfig, RackAwareMode.Enforced$.MODULE$);
     zkClient.close();
   }
 
-  private static Properties effectiveConfigFrom(Properties initialConfig, File logDir) throws IOException {
+  private static Properties effectiveConfigFrom(final Properties initialConfig, final File logDir) throws IOException {
     final Properties effectiveConfig = new Properties();
     effectiveConfig.put(KafkaConfig.BrokerIdProp(), 0);
     effectiveConfig.put(KafkaConfig.HostNameProp(), "127.0.0.1");

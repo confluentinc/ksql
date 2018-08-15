@@ -37,10 +37,10 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(Schema schema, KsqlConfig ksqlConfig,
-                                              boolean isInternal,
-                                              SchemaRegistryClient schemaRegistryClient) {
-    Map<String, Object> serdeProps = new HashMap<>();
+  public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
+                                              final boolean isInternal,
+                                              final SchemaRegistryClient schemaRegistryClient) {
+    final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);

@@ -32,8 +32,8 @@ public class CommandStatus {
 
   @JsonCreator
   public CommandStatus(
-      @JsonProperty("status")  Status status,
-      @JsonProperty("message") String message) {
+      @JsonProperty("status") final Status status,
+      @JsonProperty("message") final String message) {
     this.status = status;
     this.message = message;
   }
@@ -47,14 +47,14 @@ public class CommandStatus {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof CommandStatus)) {
       return false;
     }
-    CommandStatus that = (CommandStatus) o;
+    final CommandStatus that = (CommandStatus) o;
     return getStatus() == that.getStatus()
         && Objects.equals(getMessage(), that.getMessage());
   }

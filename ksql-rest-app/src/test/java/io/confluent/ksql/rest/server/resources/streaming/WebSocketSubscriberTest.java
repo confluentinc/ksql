@@ -63,7 +63,7 @@ public class WebSocketSubscriberTest {
     replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
-    Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
+    final Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
     async.sendText(EasyMock.capture(json), EasyMock.anyObject());
     EasyMock.expectLastCall().times(3);
 
@@ -88,7 +88,7 @@ public class WebSocketSubscriberTest {
     replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
-    Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
+    final Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
     async.sendText(EasyMock.capture(json), EasyMock.anyObject());
     subscription.request(1);
     subscription.cancel();
@@ -109,11 +109,11 @@ public class WebSocketSubscriberTest {
 
     session.getBasicRemote();
     EasyMock.expectLastCall().andReturn(basic).once();
-    Capture<String> schema = EasyMock.newCapture();
+    final Capture<String> schema = EasyMock.newCapture();
     basic.sendText(EasyMock.capture(schema));
     EasyMock.expectLastCall().andThrow(new IOException("bad bad io")).once();
 
-    Capture<CloseReason> reason = EasyMock.newCapture();
+    final Capture<CloseReason> reason = EasyMock.newCapture();
     session.close(EasyMock.capture(reason));
     subscription.cancel();
 
@@ -143,7 +143,7 @@ public class WebSocketSubscriberTest {
   public void testOnError() throws Exception {
     replayOnSubscribe();
 
-    Capture<CloseReason> reason = EasyMock.newCapture();
+    final Capture<CloseReason> reason = EasyMock.newCapture();
     EasyMock.expect(session.getId()).andReturn("abc123").once();
     session.close(EasyMock.capture(reason));
     EasyMock.expectLastCall().once();

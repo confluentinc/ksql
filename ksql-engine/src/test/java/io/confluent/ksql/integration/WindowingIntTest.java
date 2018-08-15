@@ -81,7 +81,7 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
      items **/, 20.0, 2.0));
@@ -95,14 +95,14 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -152,8 +152,8 @@ public class WindowingIntTest {
         KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
-  private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
-    for (Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
+  private void updateResults(final Map<String, GenericRow> results, final Map<Windowed<String>, GenericRow> windowedResults) {
+    for (final Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
       results.put(entry.getKey().key(), entry.getValue());
     }
   }
@@ -175,7 +175,7 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
@@ -189,14 +189,14 @@ public class WindowingIntTest {
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -221,10 +221,10 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
-    GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
+    final GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
 
@@ -235,14 +235,14 @@ public class WindowingIntTest {
       return expectedResults.equals(actual) && results.size() == 6;
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -251,7 +251,7 @@ public class WindowingIntTest {
 
   }
 
-  private int alignTimeToWindowSize(int secondOfMinuteModulus) throws InterruptedException {
+  private int alignTimeToWindowSize(final int secondOfMinuteModulus) throws InterruptedException {
     while (LocalTime.now().getSecond() % secondOfMinuteModulus != 0){
       Thread.sleep(500);
     }

@@ -194,7 +194,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         );
   }
 
-  protected Node visitStatements(Statements node, final Object context) {
+  protected Node visitStatements(final Statements node, final Object context) {
     return new Statements(
         node.statementList
             .stream()
@@ -257,19 +257,19 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitQuerySpecification(final QuerySpecification node, final Object context) {
-    Optional<WindowExpression> windowExpression = node.getWindowExpression().isPresent()
+    final Optional<WindowExpression> windowExpression = node.getWindowExpression().isPresent()
         ? Optional.ofNullable((WindowExpression) process(node.getWindowExpression().get(), context))
         : Optional.empty();
-    Optional<Expression> where = node.getWhere().isPresent()
+    final Optional<Expression> where = node.getWhere().isPresent()
         ? Optional.ofNullable((Expression) process(node.getWhere().get(),
         context))
         : Optional.empty();
 
-    Optional<GroupBy> groupBy = node.getGroupBy().isPresent()
+    final Optional<GroupBy> groupBy = node.getGroupBy().isPresent()
         ? Optional.ofNullable((GroupBy) process(node.getGroupBy().get(), context))
         : Optional.empty();
 
-    Optional<Expression> having = node.getHaving().isPresent()
+    final Optional<Expression> having = node.getHaving().isPresent()
         ? Optional.ofNullable((Expression) process(node.getHaving().get(), context))
         : Optional.empty();
 
@@ -303,7 +303,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         );
   }
 
-  protected Node visitTimestampLiteral(TimestampLiteral node, final Object context) {
+  protected Node visitTimestampLiteral(final TimestampLiteral node, final Object context) {
     return node.getLocation()
         .map(location ->
             new TimeLiteral(node.getLocation().get(), node.getValue())
@@ -359,7 +359,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitFunctionCall(final FunctionCall node, final Object context) {
-    Optional<Window> window = node.getWindow().isPresent()
+    final Optional<Window> window = node.getWindow().isPresent()
         ? Optional.ofNullable((Window) process(node.getWindow().get(), context))
         : Optional.empty();
 
@@ -388,7 +388,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitSimpleCaseExpression(final SimpleCaseExpression node, final Object context) {
-    Optional<Expression> defaultValue = node.getDefaultValue().isPresent()
+    final Optional<Expression> defaultValue = node.getDefaultValue().isPresent()
         ? Optional.ofNullable((Expression) process(node.getDefaultValue().get(), context))
         : Optional.empty();
     return node.getLocation()
@@ -789,7 +789,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   protected Node visitSampledRelation(final SampledRelation node, final Object context) {
 
-    Optional<List<Expression>> columnsToStratifyOn = node.getColumnsToStratifyOn().isPresent()
+    final Optional<List<Expression>> columnsToStratifyOn = node.getColumnsToStratifyOn().isPresent()
         ? Optional.ofNullable(
         node.getColumnsToStratifyOn().get()
             .stream()

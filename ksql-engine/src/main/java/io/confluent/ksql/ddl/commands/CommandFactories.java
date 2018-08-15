@@ -88,7 +88,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   @Override
   public DdlCommand create(
-      String sqlExpression,
+      final String sqlExpression,
       final DdlStatement ddlStatement
   ) {
     if (!factories.containsKey(ddlStatement.getClass())) {

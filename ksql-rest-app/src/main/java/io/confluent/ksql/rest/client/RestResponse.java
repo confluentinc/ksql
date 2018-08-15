@@ -32,24 +32,24 @@ public abstract class RestResponse<R> {
 
   public abstract R getResponse();
 
-  public static <R> RestResponse<R> erroneous(KsqlErrorMessage errorMessage) {
+  public static <R> RestResponse<R> erroneous(final KsqlErrorMessage errorMessage) {
     return new Erroneous<>(errorMessage);
   }
 
-  public static <R> RestResponse<R> erroneous(int errorCode, String message) {
+  public static <R> RestResponse<R> erroneous(final int errorCode, final String message) {
     return new Erroneous<>(
         new KsqlErrorMessage(errorCode, message));
   }
 
-  public static <R> RestResponse<R> successful(R response) {
+  public static <R> RestResponse<R> successful(final R response) {
     return new Successful<>(response);
   }
 
-  public static <R> RestResponse<R> of(KsqlErrorMessage errorMessage) {
+  public static <R> RestResponse<R> of(final KsqlErrorMessage errorMessage) {
     return erroneous(errorMessage);
   }
 
-  public static <R> RestResponse<R> of(R response) {
+  public static <R> RestResponse<R> of(final R response) {
     return successful(response);
   }
 
@@ -64,7 +64,7 @@ public abstract class RestResponse<R> {
   private static class Erroneous<R> extends RestResponse<R> {
     private final KsqlErrorMessage errorMessage;
 
-    public Erroneous(KsqlErrorMessage errorMessage) {
+    Erroneous(final KsqlErrorMessage errorMessage) {
       this.errorMessage = errorMessage;
     }
 
@@ -92,7 +92,7 @@ public abstract class RestResponse<R> {
   private static class Successful<R> extends RestResponse<R> {
     private final R response;
 
-    public Successful(R response) {
+    Successful(final R response) {
       this.response = response;
     }
 
@@ -117,14 +117,14 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
       if (!(o instanceof Successful)) {
         return false;
       }
-      Successful<?> that = (Successful<?>) o;
+      final Successful<?> that = (Successful<?>) o;
       return Objects.equals(getResponse(), that.getResponse());
     }
 

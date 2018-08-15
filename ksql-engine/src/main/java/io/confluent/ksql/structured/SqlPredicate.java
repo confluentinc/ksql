@@ -50,7 +50,7 @@ public class SqlPredicate {
   SqlPredicate(
       final Expression filterExpression,
       final Schema schema,
-      boolean isWindowedKey,
+      final boolean isWindowedKey,
       final FunctionRegistry functionRegistry
   ) {
     this.filterExpression = filterExpression;
@@ -81,13 +81,13 @@ public class SqlPredicate {
 
       ee.setExpressionType(boolean.class);
 
-      String expressionStr = new SqlToJavaVisitor(
+      final String expressionStr = new SqlToJavaVisitor(
           schema,
           functionRegistry
       ).process(filterExpression);
 
       ee.cook(expressionStr);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException(
           "Failed to generate code for SqlPredicate."
           + "filterExpression: "
@@ -114,8 +114,8 @@ public class SqlPredicate {
 
     return (key, row) -> {
       try {
-        Kudf[] kudfs = expressionEvaluator.getUdfs();
-        Object[] values = new Object[columnIndexes.length];
+        final Kudf[] kudfs = expressionEvaluator.getUdfs();
+        final Object[] values = new Object[columnIndexes.length];
         for (int i = 0; i < values.length; i++) {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs[i];
@@ -125,7 +125,7 @@ public class SqlPredicate {
           }
         }
         return (Boolean) ee.evaluate(values);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error(e.getMessage(), e);
       }
       log.error("Invalid format: " + key + " : " + row);
@@ -137,7 +137,7 @@ public class SqlPredicate {
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     try {
       return codeGenRunner.buildCodeGenFromParseTree(filterExpression);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException(
           "Failed to generate code for filterExpression:"
           + filterExpression
@@ -152,8 +152,8 @@ public class SqlPredicate {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
     return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
       try {
-        Kudf[] kudfs = expressionEvaluator.getUdfs();
-        Object[] values = new Object[columnIndexes.length];
+        final Kudf[] kudfs = expressionEvaluator.getUdfs();
+        final Object[] values = new Object[columnIndexes.length];
         for (int i = 0; i < values.length; i++) {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs[i];
@@ -167,7 +167,7 @@ public class SqlPredicate {
           }
         }
         return (Boolean) ee.evaluate(values);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error(e.getMessage(), e);
       }
       log.error("Invalid format: " + key + " : " + row);

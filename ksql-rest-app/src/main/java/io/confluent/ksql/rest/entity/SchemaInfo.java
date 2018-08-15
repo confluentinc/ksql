@@ -67,7 +67,7 @@ public class SchemaInfo {
   }
 
   @Override
-  public boolean equals(Object other) {
+  public boolean equals(final Object other) {
     return other instanceof SchemaInfo
         && Objects.equals(type, ((SchemaInfo)other).type)
         && Objects.equals(fields, ((SchemaInfo)other).fields)

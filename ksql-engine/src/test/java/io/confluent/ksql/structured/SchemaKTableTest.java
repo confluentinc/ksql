@@ -88,7 +88,7 @@ public class SchemaKTableTest {
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
-    StreamsBuilder builder = new StreamsBuilder();
+    final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
                            Consumed.with(Serdes.String(),
                                          getRowSerde(ksqlTable.getKsqlTopic(),
@@ -117,7 +117,7 @@ public class SchemaKTableTest {
 
   }
 
-  private Serde<GenericRow> getRowSerde(KsqlTopic topic, Schema schema) {
+  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(schema,
                                                         new KsqlConfig(Collections.emptyMap()),
                                                         false, new MockSchemaRegistryClient());
@@ -126,16 +126,16 @@ public class SchemaKTableTest {
 
   @Test
   public void testSelectSchemaKStream() throws Exception {
-    String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
                                            SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKTable projectedSchemaKStream = initialSchemaKTable
+    final SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -159,15 +159,15 @@ public class SchemaKTableTest {
 
   @Test
   public void testSelectWithExpression() throws Exception {
-    String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(),
                                            new ArrayList<>(), false,
                                            SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKTable projectedSchemaKStream = initialSchemaKTable
+    final SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -192,16 +192,16 @@ public class SchemaKTableTest {
 
   @Test
   public void testFilter() throws Exception {
-    String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
                                            SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
+    final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 7);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST2.COL0") ==
@@ -228,22 +228,22 @@ public class SchemaKTableTest {
 
   @Test
   public void testGroupBy() {
-    String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable(
         logicalPlan.getTheSourceNode().getSchema(), kTable,
         ksqlTable.getKeyField(), new ArrayList<>(), false,
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    Expression col1Expression = new DereferenceExpression(
+    final Expression col1Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
-    Expression col2Expression = new DereferenceExpression(
+    final Expression col2Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
-    KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
+    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
+    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
         initialSchemaKTable.getSchema(), null, false, null);
-    List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
-    SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
+    final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
 
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
@@ -255,37 +255,37 @@ public class SchemaKTableTest {
   public void shouldGroupKeysCorrectly() {
     // set up a mock KTable and KGroupedTable for the test. Set up the KTable to
     // capture the mapper that is passed in to produce new keys
-    KTable mockKTable = mock(KTable.class);
-    KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
-    Capture<KeyValueMapper> capturedKeySelector = Capture.newInstance();
+    final KTable mockKTable = mock(KTable.class);
+    final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
+    final Capture<KeyValueMapper> capturedKeySelector = Capture.newInstance();
     expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
     expect(mockKTable.groupBy(capture(capturedKeySelector), anyObject()))
         .andReturn(mockKGroupedTable);
     replay(mockKTable, mockKGroupedTable);
 
     // Build our test object from the mocks
-    String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable(
         logicalPlan.getTheSourceNode().getSchema(), mockKTable,
         ksqlTable.getKeyField(), new ArrayList<>(), false,
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
     // Given a grouping expression comprising COL1 and COL2
-    Expression col1Expression = new DereferenceExpression(
+    final Expression col1Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
-    Expression col2Expression = new DereferenceExpression(
+    final Expression col2Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
-    List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
-    Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
+    final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
         initialSchemaKTable.getSchema(), null, false, null);
 
     // Call groupBy and extract the captured mapper
     initialSchemaKTable.groupBy(Serdes.String(), rowSerde, groupByExpressions);
     verify(mockKTable, mockKGroupedTable);
-    KeyValueMapper keySelector = capturedKeySelector.getValue();
-    GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
-    KeyValue<String, GenericRow> keyValue =
+    final KeyValueMapper keySelector = capturedKeySelector.getValue();
+    final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
+    final KeyValue<String, GenericRow> keyValue =
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 
     // Validate that the captured mapper produces the correct key
@@ -361,17 +361,17 @@ public class SchemaKTableTest {
 
   }
 
-  Schema getJoinSchema(Schema leftSchema, Schema rightSchema) {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    String leftAlias = "left";
-    String rightAlias = "right";
-    for (Field field : leftSchema.fields()) {
-      String fieldName = leftAlias + "." + field.name();
+  Schema getJoinSchema(final Schema leftSchema, final Schema rightSchema) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final String leftAlias = "left";
+    final String rightAlias = "right";
+    for (final Field field : leftSchema.fields()) {
+      final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (Field field : rightSchema.fields()) {
-      String fieldName = rightAlias + "." + field.name();
+    for (final Field field : rightSchema.fields()) {
+      final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();

@@ -32,12 +32,12 @@ public class JLineReaderTest {
     assertThat(commands, contains(input.trim()));
   }
 
-  private JLineReader createReaderForInput(String input) throws IOException {
+  private JLineReader createReaderForInput(final String input) throws IOException {
     final InputStream inputStream = new ByteArrayInputStream(
         input.getBytes(StandardCharsets.UTF_8));
     final OutputStream outputStream = new ByteArrayOutputStream(512);
     final Terminal terminal = new DumbTerminal(inputStream, outputStream);
-    Path historyFilePath = Files.createTempFile("ksql-history", "txt");
+    final Path historyFilePath = Files.createTempFile("ksql-history", "txt");
     return new JLineReader(terminal, historyFilePath);
   }
 }

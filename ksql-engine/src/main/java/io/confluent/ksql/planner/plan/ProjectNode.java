@@ -84,7 +84,7 @@ public class ProjectNode
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 
@@ -98,7 +98,7 @@ public class ProjectNode
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
                               + "compatible.");
     }
-    List<Pair<String, Expression>> expressionPairs = new ArrayList<>();
+    final List<Pair<String, Expression>> expressionPairs = new ArrayList<>();
     for (int i = 0; i < projectExpressions.size(); i++) {
       expressionPairs.add(new Pair<>(schema.fields().get(i).name(), projectExpressions.get(i)));
     }
@@ -106,7 +106,7 @@ public class ProjectNode
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitProject(this, context);
   }
 

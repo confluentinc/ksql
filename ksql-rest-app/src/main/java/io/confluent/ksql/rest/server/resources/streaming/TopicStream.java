@@ -52,12 +52,13 @@ public class TopicStream {
 
     private Format format = Format.UNDEFINED;
 
-    public RecordFormatter(SchemaRegistryClient schemaRegistryClient, String topicName) {
+    public RecordFormatter(
+        final SchemaRegistryClient schemaRegistryClient, final String topicName) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.topicName = topicName;
     }
 
-    public List<String> format(ConsumerRecords<String, Bytes> records) {
+    public List<String> format(final ConsumerRecords<String, Bytes> records) {
       return StreamSupport
           .stream(records.records(topicName).spliterator(), false)
           .map((record) -> {
@@ -93,29 +94,29 @@ public class TopicStream {
 
       @Override
       public boolean isFormat(
-          String topicName, ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
+          final String topicName, final ConsumerRecord<String, Bytes> record,
+          final SchemaRegistryClient schemaRegistryClient
       ) {
         this.topicName = topicName;
         try {
           avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
           avroDeserializer.deserialize(topicName, record.value().get());
           return true;
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
           return false;
         }
       }
 
       @Override
-      String print(ConsumerRecord<String, Bytes> consumerRecord) {
-        String time = dateFormat.format(new Date(consumerRecord.timestamp()));
-        GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
+      String print(final ConsumerRecord<String, Bytes> consumerRecord) {
+        final String time = dateFormat.format(new Date(consumerRecord.timestamp()));
+        final GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
             topicName,
             consumerRecord
                 .value()
                 .get()
         );
-        String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
+        final String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
         return time + ", " + key + ", " + record.toString() + "\n";
       }
     },
@@ -124,25 +125,25 @@ public class TopicStream {
 
       @Override
       public boolean isFormat(
-          String topicName, ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
+          final String topicName, final ConsumerRecord<String, Bytes> record,
+          final SchemaRegistryClient schemaRegistryClient
       ) {
         try {
           objectMapper.readTree(record.value().toString());
           return true;
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
           return false;
         }
       }
 
       @Override
-      String print(ConsumerRecord<String, Bytes> record) throws IOException {
-        JsonNode jsonNode = objectMapper.readTree(record.value().toString());
-        ObjectNode objectNode = objectMapper.createObjectNode();
+      String print(final ConsumerRecord<String, Bytes> record) throws IOException {
+        final JsonNode jsonNode = objectMapper.readTree(record.value().toString());
+        final ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
         objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null) ? record.key() : "null");
         objectNode.setAll((ObjectNode) jsonNode);
-        StringWriter stringWriter = new StringWriter();
+        final StringWriter stringWriter = new StringWriter();
         objectMapper.writeValue(stringWriter, objectNode);
         return stringWriter.toString() + "\n";
       }
@@ -150,9 +151,9 @@ public class TopicStream {
     STRING {
       @Override
       public boolean isFormat(
-          String topicName,
-          ConsumerRecord<String, Bytes> record,
-          SchemaRegistryClient schemaRegistryClient
+          final String topicName,
+          final ConsumerRecord<String, Bytes> record,
+          final SchemaRegistryClient schemaRegistryClient
       ) {
         /**
          * STRING always returns true because its last in the enum list
@@ -164,9 +165,9 @@ public class TopicStream {
     final DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
 
     static Format getFormatter(
-        String topicName,
-        ConsumerRecord<String, Bytes> record,
-        SchemaRegistryClient schemaRegistryClient
+        final String topicName,
+        final ConsumerRecord<String, Bytes> record,
+        final SchemaRegistryClient schemaRegistryClient
     ) {
       Format result = Format.UNDEFINED;
       while (!(result.isFormat(topicName, record, schemaRegistryClient))) {
@@ -177,9 +178,9 @@ public class TopicStream {
     }
 
     boolean isFormat(
-        String topicName,
-        ConsumerRecord<String, Bytes> record,
-        SchemaRegistryClient schemaRegistryClient
+        final String topicName,
+        final ConsumerRecord<String, Bytes> record,
+        final SchemaRegistryClient schemaRegistryClient
     ) {
       return false;
     }

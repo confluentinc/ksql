@@ -39,24 +39,24 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   private Flow.Subscription subscription;
   private volatile boolean closed = false;
 
-  public WebSocketSubscriber(Session session, ObjectMapper mapper) {
+  WebSocketSubscriber(final Session session, final ObjectMapper mapper) {
     this.session = session;
     this.mapper = mapper;
   }
 
-  public void onSubscribe(Flow.Subscription subscription) {
+  public void onSubscribe(final Flow.Subscription subscription) {
     this.subscription = subscription;
     subscription.request(1);
   }
 
   @Override
-  public void onNext(Collection<T> rows) {
-    for (T row : rows) {
+  public void onNext(final Collection<T> rows) {
+    for (final T row : rows) {
       // check if session is closed inside the loop to avoid
       // logging too many async callback errors after close
       if (!closed) {
         try {
-          String buffer = mapper.writeValueAsString(row);
+          final String buffer = mapper.writeValueAsString(row);
           session.getAsyncRemote().sendText(
               buffer, result -> {
                 if (!result.isOK()) {
@@ -68,7 +68,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
                 }
               });
 
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
           log.warn("Error serializing row in session {}", session.getId(), e);
         }
       }
@@ -79,7 +79,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   }
 
   @Override
-  public void onError(Throwable e) {
+  public void onError(final Throwable e) {
     log.error("error in session {}", session.getId(), e);
     closeSession(session, new CloseReason(
         CloseCodes.UNEXPECTED_CONDITION,
@@ -93,12 +93,12 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   }
 
   @Override
-  public void onSchema(Schema schema) {
+  public void onSchema(final Schema schema) {
     try {
       session.getBasicRemote().sendText(
           mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))
       );
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("Error sending schema", e);
       closeSession(session, new CloseReason(
           CloseCodes.PROTOCOL_ERROR,

@@ -14,13 +14,13 @@ public class ProducerCollectorTest {
   @Test
   public void shouldDisplayRateThroughput() throws Exception {
 
-    ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
+    final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
 
     for (int i = 0; i < 1000; i++){
       collector.onSend(new ProducerRecord(TEST_TOPIC, 1, "key", "value"));
     }
 
-    Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);
+    final Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);
 
     assertThat( stats.toString(), containsString("name=messages-per-sec,"));
   }
@@ -28,13 +28,13 @@ public class ProducerCollectorTest {
   @Test
   public void shouldRecordErrors() throws Exception {
 
-    ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
+    final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
 
     for (int i = 0; i < 1000; i++){
       collector.recordError(TEST_TOPIC);
     }
 
-    Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
+    final Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
 
     assertThat( stats.toString(), containsString("failed-messages"));
     assertThat( stats.toString(), containsString("value=1000"));

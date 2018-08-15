@@ -25,8 +25,8 @@ public class SourceDescriptionEntity extends KsqlEntity {
 
   @JsonCreator
   public SourceDescriptionEntity(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("sourceDescription") SourceDescription sourceDescription) {
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("sourceDescription") final SourceDescription sourceDescription) {
     super(statementText);
     this.sourceDescription = sourceDescription;
   }
@@ -36,14 +36,14 @@ public class SourceDescriptionEntity extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof SourceDescriptionEntity)) {
       return false;
     }
-    SourceDescriptionEntity other = (SourceDescriptionEntity)o;
+    final SourceDescriptionEntity other = (SourceDescriptionEntity)o;
     return Objects.equals(sourceDescription, other.sourceDescription);
   }
 

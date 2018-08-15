@@ -29,7 +29,7 @@ import org.antlr.v4.runtime.misc.IntervalSet;
 
 public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
 
-  public void reportError(Parser recognizer, RecognitionException e) {
+  public void reportError(final Parser recognizer, final RecognitionException e) {
     if (!this.inErrorRecoveryMode(recognizer)) {
       this.beginErrorCondition(recognizer);
       if (e instanceof NoViableAltException) {
@@ -46,9 +46,9 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
     }
   }
 
-  protected void reportNoViableAlternative(Parser recognizer, NoViableAltException e) {
-    TokenStream tokens = recognizer.getInputStream();
-    String input;
+  protected void reportNoViableAlternative(final Parser recognizer, final NoViableAltException e) {
+    final TokenStream tokens = recognizer.getInputStream();
+    final String input;
     if (tokens != null) {
       if (e.getStartToken().getType() == -1) {
         input = "<EOF>";
@@ -59,36 +59,36 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
       input = "<unknown input>";
     }
 
-    String msg = "no viable alternative at input " + this.escapeWSAndQuote(input);
+    final String msg = "no viable alternative at input " + this.escapeWSAndQuote(input);
     recognizer.notifyErrorListeners(e.getOffendingToken(), msg, e);
   }
 
-  protected void reportInputMismatch(Parser recognizer, InputMismatchException e) {
-    String msg =
+  protected void reportInputMismatch(final Parser recognizer, final InputMismatchException e) {
+    final String msg =
         "Syntax error. There is a mismatch between the expected term and te term in the query. "
         + "Please check the line and column in the query.";
     recognizer.notifyErrorListeners(e.getOffendingToken(), msg, e);
   }
 
-  protected void reportUnwantedToken(Parser recognizer) {
+  protected void reportUnwantedToken(final Parser recognizer) {
     if (!this.inErrorRecoveryMode(recognizer)) {
       this.beginErrorCondition(recognizer);
-      Token t = recognizer.getCurrentToken();
-      String tokenName = this.getTokenErrorDisplay(t);
-      IntervalSet expecting = this.getExpectedTokens(recognizer);
-      String msg =
+      final Token t = recognizer.getCurrentToken();
+      final String tokenName = this.getTokenErrorDisplay(t);
+      final IntervalSet expecting = this.getExpectedTokens(recognizer);
+      final String msg =
           "extraneous input " + tokenName + " expecting "
           + expecting.toString(recognizer.getVocabulary());
       recognizer.notifyErrorListeners(t, msg, (RecognitionException) null);
     }
   }
 
-  protected void reportMissingToken(Parser recognizer) {
+  protected void reportMissingToken(final Parser recognizer) {
     if (!this.inErrorRecoveryMode(recognizer)) {
       this.beginErrorCondition(recognizer);
-      Token t = recognizer.getCurrentToken();
-      IntervalSet expecting = this.getExpectedTokens(recognizer);
-      String msg =
+      final Token t = recognizer.getCurrentToken();
+      final IntervalSet expecting = this.getExpectedTokens(recognizer);
+      final String msg =
           "missing " + expecting.toString(recognizer.getVocabulary()) + " at " + this
               .getTokenErrorDisplay(t);
       recognizer.notifyErrorListeners(t, msg, (RecognitionException) null);

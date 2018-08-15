@@ -40,21 +40,21 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
-  public static KsqlContext create(KsqlConfig ksqlConfig) {
+  public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(ksqlConfig, null);
   }
 
   public static KsqlContext create(
-      KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient
+      final KsqlConfig ksqlConfig,
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
   }
 
   public static KsqlContext create(
       KsqlConfig ksqlConfig,
-      SchemaRegistryClient schemaRegistryClient,
-      KafkaClientSupplier clientSupplier
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaClientSupplier clientSupplier
   ) {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -92,18 +92,18 @@ public class KsqlContext {
   /**
    * Execute the ksql statement in this context.
    */
-  public void sql(String sql) {
+  public void sql(final String sql) {
     sql(sql, Collections.emptyMap());
   }
 
-  public void sql(String sql, Map<String, Object> overriddenProperties) {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+  public void sql(final String sql, final Map<String, Object> overriddenProperties) {
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         sql, ksqlConfig, overriddenProperties);
 
-    for (QueryMetadata queryMetadata : queryMetadataList) {
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.getKafkaStreams().start();
+        final PersistentQueryMetadata persistent = (PersistentQueryMetadata) queryMetadata;
+        persistent.getKafkaStreams().start();
       } else {
         System.err.println("Ignoring statemenst: " + sql);
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");

@@ -74,7 +74,7 @@ public class SelectValueMapperTest {
                                                             final Schema schema) throws Exception {
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, new InternalFunctionRegistry());
     final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-    for (Pair<String, Expression> expressionPair : expressionPairList) {
+    for (final Pair<String, Expression> expressionPair : expressionPairList) {
       final ExpressionMetadata
           expressionEvaluator =
           codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());

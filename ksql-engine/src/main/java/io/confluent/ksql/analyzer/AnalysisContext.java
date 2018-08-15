@@ -28,7 +28,7 @@ public class AnalysisContext {
 
     private final String value;
 
-    ParentType(String value) {
+    ParentType(final String value) {
       this.value = value;
     }
 

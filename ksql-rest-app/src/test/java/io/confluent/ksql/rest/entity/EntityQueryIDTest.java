@@ -13,10 +13,10 @@ public class EntityQueryIDTest {
 
   @Test
   public void shouldSerializeCorrectly() throws IOException {
-    String id = "query-id";
-    String serialized = String.format("\"%s\"", id);
+    final String id = "query-id";
+    final String serialized = String.format("\"%s\"", id);
 
-    EntityQueryId deserialized = objectMapper.readValue(serialized, EntityQueryId.class);
+    final EntityQueryId deserialized = objectMapper.readValue(serialized, EntityQueryId.class);
 
     assertThat(deserialized.getId(), equalTo(id));
     assertThat(objectMapper.writeValueAsString(id), equalTo(serialized));

@@ -30,8 +30,8 @@ public class KsqlTopicsList extends KsqlEntity {
 
   @JsonCreator
   public KsqlTopicsList(
-          @JsonProperty("statementText") String statementText,
-          @JsonProperty("topics")        Collection<KsqlTopicInfo> topics
+          @JsonProperty("statementText") final String statementText,
+          @JsonProperty("topics") final Collection<KsqlTopicInfo> topics
   ) {
     super(statementText);
     Preconditions.checkNotNull(topics, "topics field must not be null");
@@ -43,14 +43,14 @@ public class KsqlTopicsList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KsqlTopicsList)) {
       return false;
     }
-    KsqlTopicsList that = (KsqlTopicsList) o;
+    final KsqlTopicsList that = (KsqlTopicsList) o;
     return Objects.equals(getTopics(), that.getTopics());
   }
 
@@ -59,9 +59,11 @@ public class KsqlTopicsList extends KsqlEntity {
     return Objects.hash(getTopics());
   }
 
-  public static KsqlTopicsList build(String statementText, Collection<KsqlTopic> ksqlTopics) {
-    List<KsqlTopicInfo> ksqlTopicInfoList = new ArrayList<>();
-    for (KsqlTopic ksqlTopic: ksqlTopics) {
+  public static KsqlTopicsList build(
+      final String statementText,
+      final Collection<KsqlTopic> ksqlTopics) {
+    final List<KsqlTopicInfo> ksqlTopicInfoList = new ArrayList<>();
+    for (final KsqlTopic ksqlTopic: ksqlTopics) {
       ksqlTopicInfoList.add(new KsqlTopicInfo(ksqlTopic));
     }
     return new KsqlTopicsList(statementText, ksqlTopicInfoList);

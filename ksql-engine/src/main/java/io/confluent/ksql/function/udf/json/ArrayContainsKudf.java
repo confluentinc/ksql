@@ -44,8 +44,8 @@ public class ArrayContainsKudf implements Kudf {
 
 
   interface Matcher {
-    boolean matches(final JsonParser parser,
-                    final Object searchValue) throws IOException;
+    boolean matches(JsonParser parser,
+                    Object searchValue) throws IOException;
   }
 
   private final Map<JsonToken, Matcher> matchers = new HashMap<>();
@@ -68,12 +68,12 @@ public class ArrayContainsKudf implements Kudf {
   }
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. "
           + "Given: " + Arrays.toString(args));
     }
-    Object searchValue = args[1];
+    final Object searchValue = args[1];
     if (args[0] instanceof String) {
       return jsonStringArrayContains(searchValue, (String) args[0]);
     } else if (args[0] instanceof Object[]) {
@@ -82,15 +82,15 @@ public class ArrayContainsKudf implements Kudf {
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
-  private boolean jsonStringArrayContains(Object searchValue, String jsonArray) {
-    JsonToken valueType = getType(searchValue);
+  private boolean jsonStringArrayContains(final Object searchValue, final String jsonArray) {
+    final JsonToken valueType = getType(searchValue);
     try (JsonParser parser = JSON_FACTORY.createParser(jsonArray)) {
       if (parser.nextToken() != START_ARRAY) {
         return false;
       }
 
       while (parser.currentToken() != null) {
-        JsonToken token = parser.nextToken();
+        final JsonToken token = parser.nextToken();
         if (token == null) {
           return searchValue == null;
         }
@@ -105,7 +105,7 @@ public class ArrayContainsKudf implements Kudf {
           }
         }
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Invalid JSON format: " + jsonArray, e);
     }
     return false;
@@ -114,7 +114,7 @@ public class ArrayContainsKudf implements Kudf {
   /**
    * Returns JsonToken type of the targetValue
    */
-  private JsonToken getType(Object searchValue) {
+  private JsonToken getType(final Object searchValue) {
     if (searchValue instanceof Long || searchValue instanceof Integer) {
       return VALUE_NUMBER_INT;
     } else if (searchValue instanceof Double) {
@@ -124,7 +124,7 @@ public class ArrayContainsKudf implements Kudf {
     } else if (searchValue == null) {
       return VALUE_NULL;
     } else if (searchValue instanceof Boolean) {
-      boolean value = (boolean) searchValue;
+      final boolean value = (boolean) searchValue;
       return value ? VALUE_TRUE : VALUE_FALSE;
     }
     throw new KsqlFunctionException("Invalid Type for search value " + searchValue);

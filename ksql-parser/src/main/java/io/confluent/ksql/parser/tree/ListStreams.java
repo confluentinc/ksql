@@ -25,7 +25,7 @@ public class ListStreams
     extends Statement {
   boolean showExtended;
 
-  public ListStreams(Optional<NodeLocation> location, boolean showExtended) {
+  public ListStreams(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
     this.showExtended = showExtended;
   }
@@ -40,7 +40,7 @@ public class ListStreams
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

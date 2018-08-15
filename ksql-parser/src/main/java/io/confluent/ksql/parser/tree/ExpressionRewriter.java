@@ -18,141 +18,151 @@ package io.confluent.ksql.parser.tree;
 
 public class ExpressionRewriter<C> {
 
-  public Expression rewriteExpression(Expression node, C context,
-                                      ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteExpression(final Expression node, final C context,
+                                      final ExpressionTreeRewriter<C> treeRewriter) {
     return null;
   }
 
-  public Expression rewriteStruct(Struct node, C context, ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteStruct(
+      final Struct node,
+      final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteArithmeticUnary(ArithmeticUnaryExpression node, C context,
-                                           ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteArithmeticUnary(final ArithmeticUnaryExpression node, final C context,
+                                           final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteArithmeticBinary(ArithmeticBinaryExpression node, C context,
-                                            ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteArithmeticBinary(final ArithmeticBinaryExpression node, final C context,
+                                            final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteComparisonExpression(ComparisonExpression node, C context,
-                                                ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteComparisonExpression(final ComparisonExpression node, final C context,
+                                                final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteBetweenPredicate(BetweenPredicate node, C context,
-                                            ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteBetweenPredicate(final BetweenPredicate node, final C context,
+                                            final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteLogicalBinaryExpression(LogicalBinaryExpression node, C context,
-                                                   ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteLogicalBinaryExpression(
+      final LogicalBinaryExpression node, final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteNotExpression(NotExpression node, C context,
-                                         ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteNotExpression(final NotExpression node, final C context,
+                                         final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteIsNullPredicate(IsNullPredicate node, C context,
-                                           ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteIsNullPredicate(final IsNullPredicate node, final C context,
+                                           final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteIsNotNullPredicate(IsNotNullPredicate node, C context,
-                                              ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteIsNotNullPredicate(final IsNotNullPredicate node, final C context,
+                                              final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteNullIfExpression(NullIfExpression node, C context,
-                                            ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteNullIfExpression(final NullIfExpression node, final C context,
+                                            final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSearchedCaseExpression(SearchedCaseExpression node, C context,
-                                                  ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteSearchedCaseExpression(
+      final SearchedCaseExpression node, final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSimpleCaseExpression(SimpleCaseExpression node, C context,
-                                                ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteSimpleCaseExpression(final SimpleCaseExpression node, final C context,
+                                                final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteWhenClause(WhenClause node, C context,
-                                      ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteWhenClause(final WhenClause node, final C context,
+                                      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteInListExpression(InListExpression node, C context,
-                                            ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteInListExpression(final InListExpression node, final C context,
+                                            final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteFunctionCall(FunctionCall node, C context,
-                                        ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteFunctionCall(final FunctionCall node, final C context,
+                                        final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteLikePredicate(LikePredicate node, C context,
-                                         ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteLikePredicate(final LikePredicate node, final C context,
+                                         final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteInPredicate(InPredicate node, C context,
-                                       ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteInPredicate(final InPredicate node, final C context,
+                                       final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExists(ExistsPredicate node, C context,
-                                  ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteExists(final ExistsPredicate node, final C context,
+                                  final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSubqueryExpression(SubqueryExpression node, C context,
-                                              ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteSubqueryExpression(final SubqueryExpression node, final C context,
+                                              final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteLiteral(Literal node, C context,
-                                   ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteLiteral(final Literal node, final C context,
+                                   final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSubscriptExpression(SubscriptExpression node, C context,
-                                               ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteSubscriptExpression(final SubscriptExpression node, final C context,
+                                               final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteQualifiedNameReference(QualifiedNameReference node, C context,
-                                                  ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteQualifiedNameReference(
+      final QualifiedNameReference node, final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteDereferenceExpression(DereferenceExpression node, C context,
-                                                 ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteDereferenceExpression(
+      final DereferenceExpression node, final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExtract(Extract node, C context,
-                                   ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteExtract(final Extract node, final C context,
+                                   final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteCast(Cast node, C context, ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteCast(
+      final Cast node,
+      final C context,
+      final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteFieldReference(FieldReference node, C context,
-                                          ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteFieldReference(final FieldReference node, final C context,
+                                          final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSymbolReference(SymbolReference node, C context,
-                                           ExpressionTreeRewriter<C> treeRewriter) {
+  public Expression rewriteSymbolReference(final SymbolReference node, final C context,
+                                           final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 }

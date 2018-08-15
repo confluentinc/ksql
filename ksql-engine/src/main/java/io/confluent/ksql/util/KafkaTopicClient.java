@@ -39,7 +39,10 @@ public interface KafkaTopicClient extends Closeable {
    *
    * @param topic name of the topic to create
    */
-  default void createTopic(String topic, int numPartitions, short replicationFactor) {
+  default void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor) {
     createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 

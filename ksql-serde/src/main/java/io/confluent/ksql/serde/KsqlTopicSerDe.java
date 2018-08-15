@@ -27,7 +27,7 @@ public abstract class KsqlTopicSerDe {
 
   private final DataSource.DataSourceSerDe serDe;
 
-  protected KsqlTopicSerDe(DataSource.DataSourceSerDe serDe) {
+  protected KsqlTopicSerDe(final DataSource.DataSourceSerDe serDe) {
     this.serDe = serDe;
   }
 
@@ -35,8 +35,8 @@ public abstract class KsqlTopicSerDe {
     return serDe;
   }
 
-  public abstract Serde<GenericRow> getGenericRowSerde(final Schema schema,
-                                                       final KsqlConfig ksqlConfig,
+  public abstract Serde<GenericRow> getGenericRowSerde(Schema schema,
+                                                       KsqlConfig ksqlConfig,
                                                        boolean isInternal,
                                                        SchemaRegistryClient schemaRegistryClient);
 }

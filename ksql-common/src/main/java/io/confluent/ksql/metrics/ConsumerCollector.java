@@ -45,7 +45,7 @@ public class ConsumerCollector implements MetricCollector {
   private String groupId;
   private Time time;
 
-  public void configure(Map<String, ?> map) {
+  public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
     if (id != null) {
       this.groupId = id;
@@ -80,34 +80,35 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   @Override
-  public ConsumerRecords onConsume(ConsumerRecords records) {
+  public ConsumerRecords onConsume(final ConsumerRecords records) {
     collect(records);
     return records;
   }
 
   @SuppressWarnings("unchecked")
-  private void collect(ConsumerRecords consumerRecords) {
-    Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
+  private void collect(final ConsumerRecords consumerRecords) {
+    final Stream<ConsumerRecord> stream =
+        StreamSupport.stream(consumerRecords.spliterator(), false);
     stream.forEach(record -> record(record.topic().toLowerCase(), false, record));
   }
 
-  public void recordError(String topic) {
+  public void recordError(final String topic) {
     record(topic, true, null);
   }
 
-  private void record(String topic, boolean isError, ConsumerRecord record) {
+  private void record(final String topic, final boolean isError, final ConsumerRecord record) {
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
         new TopicSensors<>(topic, buildSensors(k))
     ).increment(record, isError);
   }
 
-  private String getCounterKey(String topic) {
+  private String getCounterKey(final String topic) {
     return topic;
   }
 
-  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(String key) {
+  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(final String key) {
 
-    List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
+    final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
@@ -129,43 +130,43 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   private void addSensor(
-      String key,
-      String metricNameString,
-      MeasurableStat stat,
-      List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
-      boolean isError
+      final String key,
+      final String metricNameString,
+      final MeasurableStat stat,
+      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final boolean isError
   ) {
     addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double)1);
   }
 
   private void addSensor(
-      String key,
-      String metricNameString,
-      MeasurableStat stat,
-      List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
-      boolean isError,
-      Function<ConsumerRecord, Double> recordValue
+      final String key,
+      final String metricNameString,
+      final MeasurableStat stat,
+      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final boolean isError,
+      final Function<ConsumerRecord, Double> recordValue
   ) {
-    String name = "cons-" + key + "-" + metricNameString + "-" + id;
+    final String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
-    MetricName metricName = new MetricName(
+    final MetricName metricName = new MetricName(
         metricNameString,
         "consumer-metrics",
         "consumer-" + name,
         ImmutableMap.of("key", key, "id", id)
     );
-    Sensor existingSensor = metrics.getSensor(name);
-    Sensor sensor = metrics.sensor(name);
+    final Sensor existingSensor = metrics.getSensor(name);
+    final Sensor sensor = metrics.sensor(name);
 
     // re-use the existing measurable stats to share between consumers
     if (existingSensor == null || metrics.metrics().get(metricName) == null) {
       sensor.add(metricName, stat);
     }
 
-    KafkaMetric metric = metrics.metrics().get(metricName);
+    final KafkaMetric metric = metrics.metrics().get(metricName);
 
     sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time, isError) {
-      void record(ConsumerRecord record) {
+      void record(final ConsumerRecord record) {
         sensor.record(recordValue.apply(record));
         super.record(record);
       }
@@ -179,7 +180,7 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   @Override
-  public Collection<TopicSensors.Stat> stats(String topic, boolean isError) {
+  public Collection<TopicSensors.Stat> stats(final String topic, final boolean isError) {
     final List<TopicSensors.Stat> list = new ArrayList<>();
     topicSensors
         .values()

@@ -96,7 +96,7 @@ public class QueryStreamWriterTest {
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
 
-    Schema schema = SchemaBuilder.struct().field("col1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    final Schema schema = SchemaBuilder.struct().field("col1", Schema.OPTIONAL_STRING_SCHEMA).build();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 

@@ -25,15 +25,15 @@ public class InListExpression
 
   private final List<Expression> values;
 
-  public InListExpression(List<Expression> values) {
+  public InListExpression(final List<Expression> values) {
     this(Optional.empty(), values);
   }
 
-  public InListExpression(NodeLocation location, List<Expression> values) {
+  public InListExpression(final NodeLocation location, final List<Expression> values) {
     this(Optional.of(location), values);
   }
 
-  private InListExpression(Optional<NodeLocation> location, List<Expression> values) {
+  private InListExpression(final Optional<NodeLocation> location, final List<Expression> values) {
     super(location);
     this.values = values;
   }
@@ -43,12 +43,12 @@ public class InListExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitInListExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -56,7 +56,7 @@ public class InListExpression
       return false;
     }
 
-    InListExpression that = (InListExpression) o;
+    final InListExpression that = (InListExpression) o;
     return Objects.equals(values, that.values);
   }
 

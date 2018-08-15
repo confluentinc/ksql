@@ -39,7 +39,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Integer.parseInt((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to INT.", e);
       }
 
@@ -58,7 +58,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Long.parseLong((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to BIGINT.", e);
       }
 
@@ -77,7 +77,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Double.parseDouble((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to DOUBLE.", e);
       }
     }

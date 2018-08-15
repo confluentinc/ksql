@@ -25,21 +25,21 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
-  default ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+  default ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
     return consumerRecords;
   }
 
-  default ProducerRecord onSend(ProducerRecord producerRecord) {
+  default ProducerRecord onSend(final ProducerRecord producerRecord) {
     return producerRecord;
   }
 
-  default void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {  }
+  default void onAcknowledgement(final RecordMetadata recordMetadata, final Exception e) {  }
 
   default void close() {  }
 
-  default void onCommit(Map map) {  }
+  default void onCommit(final Map map) {  }
 
-  default void configure(Map<String, ?> map) {  }
+  default void configure(final Map<String, ?> map) {  }
 
   default String getGroupId() {
     return null;

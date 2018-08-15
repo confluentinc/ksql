@@ -29,13 +29,13 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
     this(new DefaultKafkaClientSupplier());
   }
 
-  public KafkaStreamsBuilderImpl(KafkaClientSupplier clientSupplier) {
+  public KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
     Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.clientSupplier = clientSupplier;
   }
 
   @Override
-  public KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf) {
+  public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final StreamsConfig conf) {
     return new KafkaStreams(builder.build(), conf, clientSupplier);
   }
 }

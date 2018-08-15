@@ -29,17 +29,17 @@ public class InsertInto
   private final Optional<Expression> partitionByColumn;
 
   public InsertInto(
-      QualifiedName target,
-      Query query, Optional<Expression> partitionByColumn
+      final QualifiedName target,
+      final Query query, final Optional<Expression> partitionByColumn
   ) {
     this(Optional.empty(), target, query, partitionByColumn);
   }
 
   public InsertInto(
-      Optional<NodeLocation> location,
-      QualifiedName target,
-      Query query,
-      Optional<Expression> partitionByColumn) {
+      final Optional<NodeLocation> location,
+      final QualifiedName target,
+      final Query query,
+      final Optional<Expression> partitionByColumn) {
     super(location);
     this.target = requireNonNull(target, "target is null");
     this.query = requireNonNull(query, "query is null");
@@ -59,7 +59,7 @@ public class InsertInto
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitInsertInto(this, context);
   }
 
@@ -70,14 +70,14 @@ public class InsertInto
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    InsertInto o = (InsertInto) obj;
+    final InsertInto o = (InsertInto) obj;
     return Objects.equals(target, o.target)
            && Objects.equals(query, o.query)
            && Objects.equals(partitionByColumn, o.partitionByColumn);

@@ -174,7 +174,7 @@ public class UdfCompiler {
           method,
           functionName,
           description);
-      LOGGER.debug("Generated class for functionName={}, method={} class{}\n",
+      LOGGER.trace("Generated class for functionName={}, method={} class{}\n",
           functionName,
           method.getName(),
           udafClass);
@@ -323,7 +323,7 @@ public class UdfCompiler {
         .collect(Collectors.joining(",",
             prefix, ");"));
 
-    LOGGER.debug("generated code for udf method = {}\n{}", method, code);
+    LOGGER.trace("generated code for udf method = {}\n{}", method, code);
     return code;
   }
 

@@ -50,10 +50,7 @@ public class UdfIntTest {
   private static Map<String, RecordMetadata> jsonRecordMetadataMap;
   private static Map<String, RecordMetadata> avroRecordMetadataMap;
 
-  private final DataSourceSerDe format;
-  private final String sourceStreamName;
-  private final String sourceTopicName;
-  private final Map<String, RecordMetadata> recordMetadata;
+  private final TestData testData;
 
   private String resultStreamName;
   private KsqlContext ksqlContext;
@@ -96,22 +93,18 @@ public class UdfIntTest {
   }
 
   public UdfIntTest(final DataSource.DataSourceSerDe format) {
-    this.format = format;
     switch (format) {
       case AVRO:
-        this.sourceTopicName = AVRO_TOPIC_NAME;
-        this.sourceStreamName = AVRO_STREAM_NAME;
-        this.recordMetadata = avroRecordMetadataMap;
+        this.testData =
+            new TestData(format, AVRO_TOPIC_NAME, AVRO_STREAM_NAME, avroRecordMetadataMap);
         break;
       case JSON:
-        this.sourceTopicName = JSON_TOPIC_NAME;
-        this.sourceStreamName = JSON_STREAM_NAME;
-        this.recordMetadata = jsonRecordMetadataMap;
+        this.testData =
+            new TestData(format, JSON_TOPIC_NAME, JSON_STREAM_NAME, jsonRecordMetadataMap);
         break;
       default:
-        this.sourceTopicName = DELIMITED_TOPIC_NAME;
-        this.sourceStreamName = DELIMITED_STREAM_NAME;
-        this.recordMetadata = Collections.emptyMap();
+        this.testData =
+            new TestData(format, DELIMITED_TOPIC_NAME, DELIMITED_STREAM_NAME, ImmutableMap.of());
         break;
     }
   }
@@ -134,7 +127,7 @@ public class UdfIntTest {
 
   @Test
   public void testApplyUdfsToColumns() {
-    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+    Assume.assumeThat(testData.format, is(not(DataSourceSerDe.DELIMITED)));
 
     // Given:
     final String queryString = String.format(
@@ -146,7 +139,7 @@ public class UdfIntTest {
             + "PRICEARRAY[1] > 1000 "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
         resultStreamName,
-        sourceStreamName
+        testData.sourceStreamName
     );
 
     // When:
@@ -161,7 +154,7 @@ public class UdfIntTest {
 
   @Test
   public void testShouldCastSelectedColumns() {
-    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+    Assume.assumeThat(testData.format, is(not(DataSourceSerDe.DELIMITED)));
 
     // Given:
     final String queryString = String.format(
@@ -172,7 +165,7 @@ public class UdfIntTest {
             + "CAST(ORDERUNITS AS VARCHAR) "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
         resultStreamName,
-        sourceStreamName
+        testData.sourceStreamName
     );
 
     // When:
@@ -187,7 +180,7 @@ public class UdfIntTest {
 
   @Test
   public void testTimestampColumnSelection() {
-    Assume.assumeThat(format, is(not(DataSourceSerDe.DELIMITED)));
+    Assume.assumeThat(testData.format, is(not(DataSourceSerDe.DELIMITED)));
 
     // Given:
     final String originalStream = "ORIGINALSTREAM" + COUNTER.getAndIncrement();
@@ -200,7 +193,7 @@ public class UdfIntTest {
             + "CREATE STREAM \"%s\" AS SELECT "
             + "ROWKEY AS NEWRKEY, ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
             + "FROM %s;",
-        originalStream, sourceStreamName, resultStreamName, originalStream);
+        originalStream, testData.sourceStreamName, resultStreamName, originalStream);
 
     // When:
     ksqlContext.sql(queryString);
@@ -208,7 +201,7 @@ public class UdfIntTest {
     // Then:
     final Map<String, GenericRow> results = consumeOutputMessages();
 
-    final long ts = recordMetadata.get("8").timestamp();
+    final long ts = testData.recordMetadata.get("8").timestamp();
 
     assertThat(results, equalTo(ImmutableMap.of("8",
         new GenericRow(Arrays.asList("8", ts, "8", ts + 10000, ts + 100, "ORDER_6", "ITEM_8")))));
@@ -216,7 +209,7 @@ public class UdfIntTest {
 
   @Test
   public void testApplyUdfsToColumnsDelimited() {
-    Assume.assumeThat(format, is(DataSourceSerDe.DELIMITED));
+    Assume.assumeThat(testData.format, is(DataSourceSerDe.DELIMITED));
 
     // Given:
     final String queryString = String.format(
@@ -235,11 +228,11 @@ public class UdfIntTest {
   }
 
   private void createSourceStream() {
-    if (format == DataSourceSerDe.DELIMITED) {
+    if (testData.format == DataSourceSerDe.DELIMITED) {
       // Delimited does not support array or map types, so use simplier schema:
       ksqlContext.sql(String.format("CREATE STREAM %s (ID varchar, DESCRIPTION varchar) WITH "
               + "(kafka_topic='%s', value_format='%s');",
-          sourceStreamName, sourceTopicName, format));
+          testData.sourceStreamName, testData.sourceTopicName, testData.format.name()));
     } else {
       ksqlContext.sql(String.format("CREATE STREAM %s ("
               + "ORDERTIME bigint, "
@@ -250,7 +243,7 @@ public class UdfIntTest {
               + "PRICEARRAY array<double>, "
               + "KEYVALUEMAP map<varchar, double>) "
               + "WITH (kafka_topic='%s', value_format='%s');",
-          sourceStreamName, sourceTopicName, format.name()));
+          testData.sourceStreamName, testData.sourceTopicName, testData.format.name()));
     }
   }
 
@@ -264,6 +257,25 @@ public class UdfIntTest {
         1,
         new StringDeserializer(),
         IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
-        format);
+        testData.format);
+  }
+
+  private static class TestData {
+
+    private final DataSourceSerDe format;
+    private final String sourceStreamName;
+    private final String sourceTopicName;
+    private final Map<String, RecordMetadata> recordMetadata;
+
+    private TestData(
+        final DataSourceSerDe format,
+        final String sourceTopicName,
+        final String sourceStreamName,
+        final Map<String, RecordMetadata> recordMetadata) {
+      this.format = format;
+      this.sourceStreamName = sourceStreamName;
+      this.sourceTopicName = sourceTopicName;
+      this.recordMetadata = recordMetadata;
+    }
   }
 }

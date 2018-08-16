@@ -51,9 +51,9 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   private final AdminClient adminClient;
   private final KsqlConfig ksqlConfig;
 
-  public KafkaConsumerGroupClientImpl(KsqlConfig ksqlConfig) {
+  public KafkaConsumerGroupClientImpl(final KsqlConfig ksqlConfig) {
     this.ksqlConfig = ksqlConfig;
-    Properties props = new Properties();
+    final Properties props = new Properties();
     props.putAll(ConfigDef.convertToStringMapWithPasswordValues(
         ksqlConfig.getKsqlAdminClientConfigProps()));
     this.adminClient = AdminClient.create(props);
@@ -62,23 +62,23 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   @Override
   public List<String> listGroups() {
 
-    String[] args = consumerGroupCommandOptions();
+    final String[] args = consumerGroupCommandOptions();
 
-    ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
+    final ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
         new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
-    ConsumerGroupCommand.ConsumerGroupService consumerGroupService =
+    final ConsumerGroupCommand.ConsumerGroupService groupService =
         new ConsumerGroupCommand.ConsumerGroupService(opts);
 
     try {
-      scala.collection.immutable.List<String> consumerGroups = consumerGroupService.listGroups();
-      scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
-      ArrayList<String> results = new ArrayList<>();
+      final scala.collection.immutable.List<String> consumerGroups = groupService.listGroups();
+      final scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
+      final ArrayList<String> results = new ArrayList<>();
       while (consumerGroupsIterator.hasNext()) {
         results.add(consumerGroupsIterator.next());
       }
       return results;
     } finally {
-      consumerGroupService.close();
+      groupService.close();
     }
   }
 
@@ -87,16 +87,16 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     // for the underlying admin client can be passed only through a properties file. So we dump
     // the admin client configs to a temporary file and then use that file to configure the
     // underlying admin client correctly.
-    Map<String, String> clientConfigProps = ConfigDef.convertToStringMapWithPasswordValues(
+    final Map<String, String> clientConfigProps = ConfigDef.convertToStringMapWithPasswordValues(
         ksqlConfig.getKsqlAdminClientConfigProps());
     try {
       // this is dangerous - we could be writing a password out here
-      File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
+      final File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
       return new String[]{
           "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
           "--command-config", tmpConfigFile.getAbsolutePath()
       };
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("Could not configure the list groups command.", e);
       throw new KsqlException("Could not list groups", e);
     }
@@ -113,7 +113,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
     try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
       final Properties clientProps = new Properties();
-      for (Map.Entry<String, String> property
+      for (final Map.Entry<String, String> property
           : configProps.entrySet()) {
         clientProps.put(property.getKey(), property.getValue());
       }
@@ -127,32 +127,32 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     adminClient.close();
   }
 
-  public ConsumerGroupSummary describeConsumerGroup(String group) {
+  public ConsumerGroupSummary describeConsumerGroup(final String group) {
 
-    AdminClient.ConsumerGroupSummary consumerGroupSummary = adminClient.describeConsumerGroup(
+    final AdminClient.ConsumerGroupSummary consumerGroupSummary = adminClient.describeConsumerGroup(
         group,
         ADMIN_CLIENT_TIMEOUT_MS
     );
-    scala.collection.immutable.List<AdminClient.ConsumerSummary> consumerSummaryList =
+    final scala.collection.immutable.List<AdminClient.ConsumerSummary> consumerSummaryList =
         consumerGroupSummary.consumers().get();
-    scala.collection.Iterator<AdminClient.ConsumerSummary> consumerSummaryIterator =
+    final scala.collection.Iterator<AdminClient.ConsumerSummary> consumerSummaryIterator =
         consumerSummaryList.iterator();
 
-    ConsumerGroupSummary results = new ConsumerGroupSummary();
+    final ConsumerGroupSummary results = new ConsumerGroupSummary();
 
     while (consumerSummaryIterator.hasNext()) {
-      AdminClient.ConsumerSummary consumerSummary = consumerSummaryIterator.next();
+      final AdminClient.ConsumerSummary consumerSummary = consumerSummaryIterator.next();
 
-      ConsumerSummary consumerSummary1 = new ConsumerSummary(consumerSummary.consumerId());
+      final ConsumerSummary consumerSummary1 = new ConsumerSummary(consumerSummary.consumerId());
       results.addConsumerSummary(consumerSummary1);
 
-      scala.collection.immutable.List<TopicPartition> topicPartitionList =
+      final scala.collection.immutable.List<TopicPartition> topicPartitionList =
           consumerSummary.assignment();
-      scala.collection.Iterator<TopicPartition> topicPartitionIterator =
+      final scala.collection.Iterator<TopicPartition> topicPartitionIterator =
           topicPartitionList.iterator();
 
       while (topicPartitionIterator.hasNext()) {
-        TopicPartition topicPartition = topicPartitionIterator.next();
+        final TopicPartition topicPartition = topicPartitionIterator.next();
         consumerSummary1.addPartition(new TopicPartition(
             topicPartition.topic(),
             topicPartition.partition()

@@ -38,7 +38,7 @@ public class AnalyzerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   }
 
-  private Analysis analyze(String queryStr) {
+  private Analysis analyze(final String queryStr) {
     final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
@@ -48,8 +48,8 @@ public class AnalyzerTest {
 
   @Test
   public void testSimpleQueryAnalysis() {
-    String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    Analysis analysis = analyze(simpleQuery);
+    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
@@ -59,22 +59,22 @@ public class AnalyzerTest {
                           .equalsIgnoreCase("test1"));
     Assert.assertTrue(
         analysis.getSelectExpressions().size() == analysis.getSelectExpressionAlias().size());
-    String
+    final String
         sqlStr =
         SqlFormatter.formatSql(analysis.getWhereExpression()).replace("\n", " ");
     Assert.assertTrue(sqlStr.equalsIgnoreCase("(TEST1.COL0 > 100)"));
 
-    String
+    final String
         select1 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("TEST1.COL0"));
-    String
+    final String
         select2 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    String
+    final String
         select3 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
@@ -87,11 +87,11 @@ public class AnalyzerTest {
 
   @Test
   public void testSimpleLeftJoinAnalysis() {
-    String
+    final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
         + "t1.col1 = t2.col1;";
-    Analysis analysis = analyze(simpleQuery);
+    final Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("JOIN is null", analysis.getJoin());
 
@@ -108,21 +108,21 @@ public class AnalyzerTest {
     Assert.assertTrue(analysis.getJoin().getLeftKeyFieldName().equalsIgnoreCase("COL1"));
     Assert.assertTrue(analysis.getJoin().getRightKeyFieldName().equalsIgnoreCase("COL1"));
 
-    String
+    final String
         select1 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("T1.COL1"));
-    String
+    final String
         select2 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("T2.COL1"));
-    String
+    final String
         select3 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
-    String
+    final String
         select4 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(3))
             .replace("\n", " ");
@@ -139,8 +139,8 @@ public class AnalyzerTest {
 
   @Test
   public void testBooleanExpressionAnalysis() {
-    String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
-    Analysis analysis = analyze(queryStr);
+    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
+    final Analysis analysis = analyze(queryStr);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
@@ -150,17 +150,17 @@ public class AnalyzerTest {
                       analysis.getFromDataSources().get(0).getLeft().getName()
                           .equalsIgnoreCase("test1"));
 
-    String
+    final String
         select1 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    String
+    final String
         select2 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    String
+    final String
         select3 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
@@ -170,8 +170,8 @@ public class AnalyzerTest {
 
   @Test
   public void testFilterAnalysis() {
-    String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
-    Analysis analysis = analyze(queryStr);
+    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
+    final Analysis analysis = analyze(queryStr);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
@@ -181,17 +181,17 @@ public class AnalyzerTest {
             analysis.getFromDataSources().get(0).getLeft().getName()
                     .equalsIgnoreCase("test1"));
 
-    String
+    final String
             select1 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
                     .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    String
+    final String
             select2 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
                     .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    String
+    final String
             select3 =
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
                     .replace("\n", " ");

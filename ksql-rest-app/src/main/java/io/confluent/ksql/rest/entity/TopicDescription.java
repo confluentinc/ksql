@@ -31,11 +31,11 @@ public class TopicDescription extends KsqlEntity {
 
   @JsonCreator
   public TopicDescription(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("name")          String name,
-      @JsonProperty("topic")         String kafkaTopic,
-      @JsonProperty("format")        String format,
-      @JsonProperty("schemaString")  String schemaString
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("name") final String name,
+      @JsonProperty("topic") final String kafkaTopic,
+      @JsonProperty("format") final String format,
+      @JsonProperty("schemaString") final String schemaString
   ) {
     super(statementText);
     this.name = name;
@@ -61,14 +61,14 @@ public class TopicDescription extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof TopicDescription)) {
       return false;
     }
-    TopicDescription that = (TopicDescription) o;
+    final TopicDescription that = (TopicDescription) o;
     return Objects.equals(getName(), that.getName())
            && Objects.equals(getKafkaTopic(), that.getKafkaTopic())
            && Objects.equals(getFormat(), that.getFormat());

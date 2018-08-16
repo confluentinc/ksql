@@ -38,10 +38,10 @@ public class CliUtilsTest {
   @Test
   public void testGetAvroSchemaThrowsKsqlException() {
     try {
-      CliUtils cliUtils = new CliUtils();
+      final CliUtils cliUtils = new CliUtils();
       cliUtils.getAvroSchema("TZGUM?ploV");
       fail("Expecting exception: KsqlException");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       assertThat(CliUtils.class.getName(), equalTo(e.getStackTrace()[0].getClassName()));
     }
   }

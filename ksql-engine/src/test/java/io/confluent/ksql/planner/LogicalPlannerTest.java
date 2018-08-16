@@ -58,7 +58,7 @@ public class LogicalPlannerTest {
     functionRegistry = new InternalFunctionRegistry();
   }
 
-  private PlanNode buildLogicalPlan(String queryStr) {
+  private PlanNode buildLogicalPlan(final String queryStr) {
     final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
@@ -66,7 +66,7 @@ public class LogicalPlannerTest {
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
                                                                 functionRegistry);
-    for (Expression expression: analysis.getSelectExpressions()) {
+    for (final Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
@@ -75,9 +75,9 @@ public class LogicalPlannerTest {
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {
-    PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
+    final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
     assertThat(planNode.getSources().size(), equalTo(1));
-    StructuredDataSource structuredDataSource = ((StructuredDataSourceNode) planNode
+    final StructuredDataSource structuredDataSource = ((StructuredDataSourceNode) planNode
         .getSources()
         .get(0)
         .getSources()
@@ -91,8 +91,8 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleQueryLogicalPlan() {
-    String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(FilterNode.class));
@@ -105,8 +105,8 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinLogicalPlan() {
-    String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
@@ -121,24 +121,24 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinFilterLogicalPlan() {
-    String
+    final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
         + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
-    ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     assertThat(projectNode.getKeyField().name(), equalTo("t1.col1".toUpperCase()));
     assertThat(projectNode.getSchema().fields().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
-    FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
+    final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
     assertThat(filterNode.getPredicate().toString(), equalTo("((T1.COL1 > 10) AND (T2.COL4 = 10.8))"));
 
     assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
-    JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
+    final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
     assertThat(joinNode.getSources().get(0), instanceOf(StructuredDataSourceNode.class));
     assertThat(joinNode.getSources().get(1), instanceOf(StructuredDataSourceNode.class));
 
@@ -146,14 +146,14 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleAggregateLogicalPlan() {
-    String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
+    final String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
                          + "second) "
                          + "WHERE col0 > 100 GROUP BY col0;";
 
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
-    AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
+    final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
     assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
@@ -168,14 +168,14 @@ public class LogicalPlannerTest {
 
   @Test
   public void testComplexAggregateLogicalPlan() {
-    String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
+    final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
                          + "HOPPING ( size 2 second, advance by 1 second) "
                          + "WHERE col0 > 100 GROUP BY col0;";
 
-    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
-    AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
+    final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
     assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));

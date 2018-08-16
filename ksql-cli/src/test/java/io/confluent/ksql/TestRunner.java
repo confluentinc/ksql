@@ -31,45 +31,45 @@ public abstract class TestRunner {
   private static Cli localCli;
   private static TestTerminal testTerminal;
 
-  public static void setup(Cli localCli, TestTerminal testTerminal) {
+  public static void setup(final Cli localCli, final TestTerminal testTerminal) {
     Objects.requireNonNull(localCli);
     Objects.requireNonNull(testTerminal);
     TestRunner.localCli = localCli;
     TestRunner.testTerminal = testTerminal;
   }
 
-  protected static void testListOrShow(String commandSuffix, TestResult.OrderedResult expectedResult) {
+  protected static void testListOrShow(final String commandSuffix, final TestResult.OrderedResult expectedResult) {
     testListOrShow(commandSuffix, expectedResult, true);
   }
 
-  protected static void testListOrShow(String commandSuffix, TestResult expectedResult, boolean requireOrder) {
+  protected static void testListOrShow(final String commandSuffix, final TestResult expectedResult, final boolean requireOrder) {
     test("list " + commandSuffix, expectedResult, requireOrder);
     test("show " + commandSuffix, expectedResult, requireOrder);
   }
 
-  protected static void test(String command, TestResult.OrderedResult expectedResult) {
+  protected static void test(final String command, final TestResult.OrderedResult expectedResult) {
     test(command, expectedResult, true);
   }
 
-  protected static void test(String command, TestResult expectedResult, boolean requireOrder) {
+  protected static void test(final String command, final TestResult expectedResult, final boolean requireOrder) {
     run(command, requireOrder);
     final Collection<List<String>> finalResults = new ArrayList<>();
     try {
       TestUtils.waitForCondition(() -> {
-        TestResult actualResult = testTerminal.getTestResult();
+        final TestResult actualResult = testTerminal.getTestResult();
         finalResults.clear();
         finalResults.addAll(actualResult.data);
         return actualResult.data.containsAll(expectedResult.data);
       }, 30000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
-    } catch (AssertionError e) {
+    } catch (final AssertionError e) {
       throw new AssertionError(
           "CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults, e);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       fail("Test got interrutped when waiting for result " + expectedResult.toString());
     }
   }
 
-  protected static TestResult run(String command, boolean requireOrder) throws CliTestFailedException {
+  protected static TestResult run(String command, final boolean requireOrder) throws CliTestFailedException {
     try {
       if (!command.endsWith(";")) {
         command += ";";
@@ -78,12 +78,12 @@ public abstract class TestRunner {
       testTerminal.resetTestResult(requireOrder);
       localCli.handleLine(command);
       return testTerminal.getTestResult();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new CliTestFailedException(e);
     }
   }
 
-  protected static TestResult run(String command) throws CliTestFailedException {
+  protected static TestResult run(final String command) throws CliTestFailedException {
     return run(command, false);
   }
 

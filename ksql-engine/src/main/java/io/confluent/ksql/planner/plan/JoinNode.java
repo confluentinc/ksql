@@ -126,7 +126,7 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitJoin(this, context);
   }
 
@@ -172,7 +172,7 @@ public class JoinNode extends PlanNode {
 
     ensureMatchingPartitionCounts(kafkaTopicClient);
 
-    JoinerFactory joinerFactory = new JoinerFactory(builder,
+    final JoinerFactory joinerFactory = new JoinerFactory(builder,
                                                     ksqlConfig,
                                                     kafkaTopicClient,
                                                     functionRegistry,
@@ -184,7 +184,7 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return right.getPartitions(kafkaTopicClient);
   }
 
@@ -202,11 +202,11 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private String getSourceName(PlanNode node) {
+  private String getSourceName(final PlanNode node) {
     if (!(node instanceof StructuredDataSourceNode)) {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
-    StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
+    final StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
     return dataSource.getStructuredDataSource().getName();
   }
 
@@ -235,8 +235,8 @@ public class JoinNode extends PlanNode {
       );
     }
 
-    public Joiner getJoiner(DataSource.DataSourceType leftType,
-                            DataSource.DataSourceType rightType) {
+    public Joiner getJoiner(final DataSource.DataSourceType leftType,
+                            final DataSource.DataSourceType rightType) {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
         throw new KsqlException("Join between invalid operands requested: left type: "

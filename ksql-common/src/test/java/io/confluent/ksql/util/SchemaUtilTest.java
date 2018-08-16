@@ -50,43 +50,43 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectJavaClassForBoolean() {
-    Class booleanClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final Class booleanClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     assertThat(booleanClazz, equalTo(Boolean.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForInt() {
-    Class intClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT32_SCHEMA);
+    final Class intClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(intClazz, equalTo(Integer.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForBigInt() {
-    Class longClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT64_SCHEMA);
+    final Class longClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT64_SCHEMA);
     assertThat(longClazz, equalTo(Long.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForDouble() {
-    Class doubleClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final Class doubleClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_FLOAT64_SCHEMA);
     assertThat(doubleClazz, equalTo(Double.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForString() {
-    Class StringClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_STRING_SCHEMA);
+    final Class StringClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_STRING_SCHEMA);
     assertThat(StringClazz, equalTo(String.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForArray() {
-    Class arrayClazz = SchemaUtil.getJavaType(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
+    final Class arrayClazz = SchemaUtil.getJavaType(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
     assertThat(arrayClazz, equalTo(List.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForMap() {
-    Class mapClazz = SchemaUtil.getJavaType(SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
+    final Class mapClazz = SchemaUtil.getJavaType(SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
     assertThat(mapClazz, equalTo(Map.class));
   }
 
@@ -125,7 +125,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectSqlTypeNameForStruct() {
-    Schema structSchema = SchemaBuilder.struct()
+    final Schema structSchema = SchemaBuilder.struct()
         .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL2", Schema.OPTIONAL_INT32_SCHEMA)
         .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -139,7 +139,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder
         .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid", Schema.OPTIONAL_STRING_SCHEMA)
@@ -147,7 +147,7 @@ public class SchemaUtilTest {
         .field("orderunits", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .field("arraycol", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("mapcol", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)).optional().build();
-    String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
+    final String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
     assertThat(avroSchemaString, equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
             + "[{\"name\":\"ordertime\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":"
@@ -161,50 +161,50 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetTheCorrectJavaTypeForBoolean() {
-    Schema schema = Schema.OPTIONAL_BOOLEAN_SCHEMA;
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = Schema.OPTIONAL_BOOLEAN_SCHEMA;
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Boolean.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForInt() {
-    Schema schema = Schema.OPTIONAL_INT32_SCHEMA;
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = Schema.OPTIONAL_INT32_SCHEMA;
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Integer.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForLong() {
-    Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Long.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForDouble() {
-    Schema schema = Schema.OPTIONAL_FLOAT64_SCHEMA;
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = Schema.OPTIONAL_FLOAT64_SCHEMA;
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Double.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForString() {
-    Schema schema = Schema.OPTIONAL_STRING_SCHEMA;
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = Schema.OPTIONAL_STRING_SCHEMA;
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(String.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForArray() {
-    Schema schema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(List.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForMap() {
-    Schema schema = SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
-    Class javaClass = SchemaUtil.getJavaType(schema);
+    final Schema schema = SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
+    final Class javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Map.class));
   }
 
@@ -212,9 +212,9 @@ public class SchemaUtilTest {
   public void shouldFailForCorrectJavaType() {
 
     try {
-      Class class8 = SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
+      final Class class8 = SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
       Assert.fail();
-    } catch (KsqlException ksqlException) {
+    } catch (final KsqlException ksqlException) {
       assertThat("Invalid type retured.",ksqlException.getMessage(), equalTo("Type is not "
           + "supported: BYTES"));
     }
@@ -222,72 +222,72 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldMatchName() {
-    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
     assertThat(SchemaUtil.matchFieldName(field, "foo"), is(true));
   }
 
   @Test
   public void shouldNotMatchDifferentName() {
-    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
     assertThat(SchemaUtil.matchFieldName(field, "bar"), is(false));
   }
 
   @Test
   public void shouldMatchNameWithAlias() {
-    Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
+    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
     assertThat(SchemaUtil.matchFieldName(field, "bar.foo"), is(true));
   }
 
   @Test
   public void shouldGetTheCorrectFieldName() {
-    Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
+    final Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
     Assert.assertTrue(field.isPresent());
     assertThat(field.get().schema(), sameInstance(Schema.OPTIONAL_INT64_SCHEMA));
     assertThat("", field.get().name().toLowerCase(), equalTo("orderid"));
 
-    Optional<Field> field1 = SchemaUtil.getFieldByName(schema, "orderid");
+    final Optional<Field> field1 = SchemaUtil.getFieldByName(schema, "orderid");
     Assert.assertFalse(field1.isPresent());
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForBoolean() {
-    Schema schema = SchemaUtil.getTypeSchema("BOOLEAN");
+    final Schema schema = SchemaUtil.getTypeSchema("BOOLEAN");
     assertThat(schema,  sameInstance(Schema.OPTIONAL_BOOLEAN_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForInt() {
-    Schema schema = SchemaUtil.getTypeSchema("INT");
+    final Schema schema = SchemaUtil.getTypeSchema("INT");
     assertThat(schema, sameInstance(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForLong() {
-    Schema schema = SchemaUtil.getTypeSchema("BIGINT");
+    final Schema schema = SchemaUtil.getTypeSchema("BIGINT");
     assertThat(schema, sameInstance(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForDouble() {
-    Schema schema = SchemaUtil.getTypeSchema("DOUBLE");
+    final Schema schema = SchemaUtil.getTypeSchema("DOUBLE");
     assertThat(schema, sameInstance(Schema.OPTIONAL_FLOAT64_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForString() {
-    Schema schema = SchemaUtil.getTypeSchema("VARCHAR");
+    final Schema schema = SchemaUtil.getTypeSchema("VARCHAR");
     assertThat(schema, sameInstance(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForArray() {
-    Schema schema = SchemaUtil.getTypeSchema("ARRAY<DOUBLE>");
+    final Schema schema = SchemaUtil.getTypeSchema("ARRAY<DOUBLE>");
     assertThat(schema.type(), sameInstance(Schema.Type.ARRAY));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForMap() {
-    Schema schema = SchemaUtil.getTypeSchema("MAP<VARCHAR, DOUBLE>");
+    final Schema schema = SchemaUtil.getTypeSchema("MAP<VARCHAR, DOUBLE>");
     assertThat(schema.type(), sameInstance(Schema.Type.MAP));
   }
 
@@ -295,18 +295,18 @@ public class SchemaUtilTest {
   public void shouldFailForIncorrectSchema() {
 
     try {
-      Schema schema8 = SchemaUtil.getTypeSchema("BYTES");
+      final Schema schema8 = SchemaUtil.getTypeSchema("BYTES");
       Assert.fail();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       assertThat(e.getMessage(), equalTo("Unsupported type: BYTES"));
     }
   }
 
   @Test
   public void shouldGetTheCorrectFieldIndex() {
-    int index1 = SchemaUtil.getFieldIndexByName(schema, "orderid".toUpperCase());
-    int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());
-    int index3 = SchemaUtil.getFieldIndexByName(schema, "mapcol".toUpperCase());
+    final int index1 = SchemaUtil.getFieldIndexByName(schema, "orderid".toUpperCase());
+    final int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());
+    final int index3 = SchemaUtil.getFieldIndexByName(schema, "mapcol".toUpperCase());
 
 
     assertThat("Incorrect index.", index1, equalTo(1));
@@ -317,26 +317,26 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldHandleInvalidFieldIndexCorrectly() {
-    int index = SchemaUtil.getFieldIndexByName(schema, "mapcol1".toUpperCase());
+    final int index = SchemaUtil.getFieldIndexByName(schema, "mapcol1".toUpperCase());
     assertThat("Incorrect index.", index, equalTo(-1));
   }
 
   @Test
   public void shouldBuildTheCorrectSchemaWithAndWithoutAlias() {
-    String alias = "Hello";
-    Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, alias);
+    final String alias = "Hello";
+    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, alias);
     assertThat("Incorrect schema field count.", schemaWithAlias.fields().size() == schema.fields()
         .size());
     for (int i = 0; i < schemaWithAlias.fields().size(); i++) {
-      Field fieldWithAlias = schemaWithAlias.fields().get(i);
-      Field field = schema.fields().get(i);
+      final Field fieldWithAlias = schemaWithAlias.fields().get(i);
+      final Field field = schema.fields().get(i);
       assertThat(fieldWithAlias.name(), equalTo(alias + "." + field.name()));
     }
-    Schema schemaWithoutAlias = SchemaUtil.getSchemaWithNoAlias(schemaWithAlias);
+    final Schema schemaWithoutAlias = SchemaUtil.getSchemaWithNoAlias(schemaWithAlias);
     assertThat("Incorrect schema field count.", schemaWithAlias.fields().size() == schema.fields().size());
     for (int i = 0; i < schemaWithoutAlias.fields().size(); i++) {
-      Field fieldWithAlias = schemaWithoutAlias.fields().get(i);
-      Field field = schema.fields().get(i);
+      final Field fieldWithAlias = schemaWithoutAlias.fields().get(i);
+      final Field field = schema.fields().get(i);
       assertThat("Incorrect field name.", fieldWithAlias.name().equals(field.name()));
     }
   }
@@ -352,13 +352,13 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldAddAndRemoveImplicitColumns() {
-    Schema withImplicit = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    final Schema withImplicit = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
 
     assertThat("Invalid field count.", withImplicit.fields().size() == 8);
     assertThat("Field name should be ROWTIME.", withImplicit.fields().get(0).name(), equalTo(SchemaUtil.ROWTIME_NAME));
     assertThat("Field name should ne ROWKEY.", withImplicit.fields().get(1).name(), equalTo(SchemaUtil.ROWKEY_NAME));
 
-    Schema withoutImplicit = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(withImplicit);
+    final Schema withoutImplicit = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(withImplicit);
     assertThat("Invalid field count.", withoutImplicit.fields().size() == 6);
     assertThat("Invalid field name.", withoutImplicit.fields().get(0).name(), equalTo("ORDERTIME"));
     assertThat("Invalid field name.", withoutImplicit.fields().get(1).name(), equalTo("ORDERID"));
@@ -366,7 +366,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetTheSchemaDefString() {
-    String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
+    final String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
     assertThat("Invalid schema def.", schemaDef, equalTo("[ORDERTIME : BIGINT, "
         + "ORDERID : BIGINT, "
         + "ITEMID : VARCHAR, "
@@ -377,13 +377,13 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectSqlType() {
-    String sqlType1 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA);
-    String sqlType2 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT32_SCHEMA);
-    String sqlType3 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT64_SCHEMA);
-    String sqlType4 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_FLOAT64_SCHEMA);
-    String sqlType5 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_STRING_SCHEMA);
-    String sqlType6 = SchemaUtil.getSqlTypeName(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
-    String sqlType7 = SchemaUtil.getSqlTypeName(SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
+    final String sqlType1 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final String sqlType2 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT32_SCHEMA);
+    final String sqlType3 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT64_SCHEMA);
+    final String sqlType4 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final String sqlType5 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_STRING_SCHEMA);
+    final String sqlType6 = SchemaUtil.getSqlTypeName(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
+    final String sqlType7 = SchemaUtil.getSqlTypeName(SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
 
     assertThat("Invalid SQL type.", sqlType1, equalTo("BOOLEAN"));
     assertThat("Invalid SQL type.", sqlType2, equalTo("INT"));
@@ -410,7 +410,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldStripAliasFromFieldName() {
-    Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
+    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
     assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
         equalTo(schema.fields().get(0).name()));
   }

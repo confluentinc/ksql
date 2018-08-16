@@ -33,7 +33,7 @@ public enum OutputFormat {
       )
   );
 
-  public static OutputFormat get(String format) throws IllegalArgumentException {
+  public static OutputFormat get(final String format) throws IllegalArgumentException {
     return OutputFormat.valueOf(format);
   }
 }

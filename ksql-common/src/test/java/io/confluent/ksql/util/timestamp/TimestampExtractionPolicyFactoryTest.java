@@ -44,7 +44,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final Schema schema = schemaBuilder
         .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
-    TimestampExtractionPolicy extractionPolicy
+    final TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, timestamp, null);
     assertThat(extractionPolicy, instanceOf(LongColumnTimestampExtractionPolicy.class));
     assertThat(extractionPolicy.timestampField(), equalTo(timestamp.toUpperCase()));
@@ -61,7 +61,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final Schema schema = schemaBuilder
         .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
-    TimestampExtractionPolicy extractionPolicy
+    final TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, field, "yyyy-MM-DD");
     assertThat(extractionPolicy, instanceOf(StringTimestampExtractionPolicy.class));
     assertThat(extractionPolicy.timestampField(), equalTo(field.toUpperCase()));
@@ -83,7 +83,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final Schema schema = schemaBuilder
         .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
-    TimestampExtractionPolicy extractionPolicy
+    final TimestampExtractionPolicy extractionPolicy
         = TimestampExtractionPolicyFactory.create(schema, "'"+ field+ "'", "'yyyy-MM-DD'");
     assertThat(extractionPolicy, instanceOf(StringTimestampExtractionPolicy.class));
     assertThat(extractionPolicy.timestampField(), equalTo(field.toUpperCase()));

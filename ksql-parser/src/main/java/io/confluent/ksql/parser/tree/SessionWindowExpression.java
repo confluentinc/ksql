@@ -32,12 +32,12 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   private final long gap;
   private final TimeUnit sizeUnit;
 
-  public SessionWindowExpression(long gap, TimeUnit sizeUnit) {
+  public SessionWindowExpression(final long gap, final TimeUnit sizeUnit) {
     this(Optional.empty(), gap, sizeUnit);
   }
 
-  private SessionWindowExpression(Optional<NodeLocation> location, long gap,
-                                  TimeUnit sizeUnit) {
+  private SessionWindowExpression(final Optional<NodeLocation> location, final long gap,
+                                  final TimeUnit sizeUnit) {
     super(location);
     this.gap = gap;
     this.sizeUnit = sizeUnit;
@@ -52,7 +52,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSessionWindowExpression(this, context);
   }
 
@@ -68,14 +68,14 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
+    final SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
     return sessionWindowExpression.gap == gap && sessionWindowExpression.sizeUnit == sizeUnit;
   }
 

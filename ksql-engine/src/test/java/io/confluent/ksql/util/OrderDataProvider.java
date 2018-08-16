@@ -50,12 +50,12 @@ public class OrderDataProvider extends TestDataProvider {
 
   private Map<String, GenericRow> buildData() {
 
-    Map<String, Double> mapField = new HashMap<>();
+    final Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
 
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
     dataMap.put("1", new GenericRow(Arrays.asList(
         1L,
         "ORDER_1",

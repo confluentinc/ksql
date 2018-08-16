@@ -43,7 +43,7 @@ public class KudafInitializer implements Initializer<GenericRow> {
     return new GenericRow(values);
   }
 
-  public void addAggregateIntializer(Supplier intialValueSupplier) {
+  public void addAggregateIntializer(final Supplier intialValueSupplier) {
     aggValueSuppliers.add(intialValueSupplier);
   }
 }

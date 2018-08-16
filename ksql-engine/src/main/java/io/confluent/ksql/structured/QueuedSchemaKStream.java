@@ -63,35 +63,35 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   @Override
   public SchemaKStream into(
-      String kafkaTopicName,
-      Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+      final String kafkaTopicName,
+      final Serde<GenericRow> topicValueSerDe,
+      final Set<Integer> rowkeyIndexes
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream filter(Expression filterExpression) {
+  public SchemaKStream filter(final Expression filterExpression) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream select(List<Pair<String, Expression>> expressions) {
+  public SchemaKStream select(final List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKStream leftJoin(
-      SchemaKTable schemaKTable,
-      Schema joinSchema,
-      Field joinKey,
-      Serde<GenericRow> joinSerde
+      final SchemaKTable schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey,
+      final Serde<GenericRow> joinSerde
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream selectKey(Field newKeyField, boolean updateRowKey) {
+  public SchemaKStream selectKey(final Field newKeyField, final boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 
@@ -136,7 +136,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
     }
 
     @Override
-    public void apply(K key, GenericRow row) {
+    public void apply(final K key, final GenericRow row) {
       try {
         if (row == null) {
           return;
@@ -150,14 +150,14 @@ public class QueuedSchemaKStream extends SchemaKStream {
         queue.put(new KeyValue<>(keyString, row));
 
         callback.onQueued();
-      } catch (InterruptedException exception) {
+      } catch (final InterruptedException exception) {
         throw new KsqlException("InterruptedException while enqueueing:" + key);
       }
     }
 
     private String getStringKey(final K key) {
       if (key instanceof Windowed) {
-        Windowed windowedKey = (Windowed) key;
+        final Windowed windowedKey = (Windowed) key;
         return String.format("%s : %s", windowedKey.key(), windowedKey.window());
       }
 

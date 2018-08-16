@@ -54,7 +54,7 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
     this.description = description;
   }
 
-  public boolean hasSameArgTypes(List<Schema> argTypeList) {
+  public boolean hasSameArgTypes(final List<Schema> argTypeList) {
     if (argTypeList == null) {
       throw new KsqlException("Argument type list is null.");
     }

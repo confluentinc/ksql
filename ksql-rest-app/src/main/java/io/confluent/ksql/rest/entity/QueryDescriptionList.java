@@ -28,8 +28,8 @@ public class QueryDescriptionList extends KsqlEntity {
 
   @JsonCreator
   public QueryDescriptionList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("queryDescriptions") List<QueryDescription> queryDescriptions
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("queryDescriptions") final List<QueryDescription> queryDescriptions
   ) {
     super(statementText);
     this.queryDescriptions = queryDescriptions;
@@ -40,14 +40,14 @@ public class QueryDescriptionList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof QueryDescriptionList)) {
       return false;
     }
-    QueryDescriptionList that = (QueryDescriptionList) o;
+    final QueryDescriptionList that = (QueryDescriptionList) o;
     return Objects.equals(queryDescriptions, that.queryDescriptions);
   }
 

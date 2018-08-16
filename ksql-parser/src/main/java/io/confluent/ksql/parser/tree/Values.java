@@ -29,15 +29,15 @@ public final class Values
 
   private final List<Expression> rows;
 
-  public Values(List<Expression> rows) {
+  public Values(final List<Expression> rows) {
     this(Optional.empty(), rows);
   }
 
-  public Values(NodeLocation location, List<Expression> rows) {
+  public Values(final NodeLocation location, final List<Expression> rows) {
     this(Optional.of(location), rows);
   }
 
-  private Values(Optional<NodeLocation> location, List<Expression> rows) {
+  private Values(final Optional<NodeLocation> location, final List<Expression> rows) {
     super(location);
     requireNonNull(rows, "rows is null");
     this.rows = ImmutableList.copyOf(rows);
@@ -48,7 +48,7 @@ public final class Values
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitValues(this, context);
   }
 
@@ -63,14 +63,14 @@ public final class Values
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    Values other = (Values) obj;
+    final Values other = (Values) obj;
     return Objects.equals(this.rows, other.rows);
   }
 }

@@ -27,12 +27,12 @@ public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, 
     return new ValueTransformer<GenericRow, GenericRow>() {
       ProcessorContext processorContext;
       @Override
-      public void init(ProcessorContext processorContext) {
+      public void init(final ProcessorContext processorContext) {
         this.processorContext = processorContext;
       }
 
       @Override
-      public GenericRow transform(GenericRow row) {
+      public GenericRow transform(final GenericRow row) {
         if (row != null) {
           row.getColumns().add(0, processorContext.timestamp());
         }

@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 
 public class KsqlReferentialIntegrityException extends KsqlException {
 
-  public KsqlReferentialIntegrityException(String message) {
+  public KsqlReferentialIntegrityException(final String message) {
     super(message);
   }
 }

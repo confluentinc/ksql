@@ -60,11 +60,11 @@ public class StatusResourceTest {
   }
 
   private StatusResource getTestStatusResource() {
-    StatementExecutor mockStatementExecutor = mock(StatementExecutor.class);
+    final StatementExecutor mockStatementExecutor = mock(StatementExecutor.class);
 
     expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
 
-    for (Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
+    for (final Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
       expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
     }
 
@@ -77,13 +77,13 @@ public class StatusResourceTest {
 
   @Test
   public void testGetAllStatuses() {
-    StatusResource testResource = getTestStatusResource();
+    final StatusResource testResource = getTestStatusResource();
 
-    Object statusesEntity = testResource.getAllStatuses().getEntity();
+    final Object statusesEntity = testResource.getAllStatuses().getEntity();
     assertThat(statusesEntity, instanceOf(CommandStatuses.class));
-    CommandStatuses testCommandStatuses = (CommandStatuses) statusesEntity;
+    final CommandStatuses testCommandStatuses = (CommandStatuses) statusesEntity;
 
-    Map<CommandId, CommandStatus.Status> expectedCommandStatuses =
+    final Map<CommandId, CommandStatus.Status> expectedCommandStatuses =
         CommandStatuses.fromFullStatuses(mockCommandStatuses);
 
     assertEquals(expectedCommandStatuses, testCommandStatuses);
@@ -91,15 +91,15 @@ public class StatusResourceTest {
 
   @Test
   public void testGetStatus() throws Exception {
-    StatusResource testResource = getTestStatusResource();
+    final StatusResource testResource = getTestStatusResource();
 
-    for (Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
-      CommandId commandId = commandEntry.getKey();
-      CommandStatus expectedCommandStatus = commandEntry.getValue();
+    for (final Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
+      final CommandId commandId = commandEntry.getKey();
+      final CommandStatus expectedCommandStatus = commandEntry.getValue();
 
-      Object statusEntity = testResource.getStatus(commandId.getType().name(), commandId.getEntity(), commandId.getAction().name()).getEntity();
+      final Object statusEntity = testResource.getStatus(commandId.getType().name(), commandId.getEntity(), commandId.getAction().name()).getEntity();
       assertThat(statusEntity, instanceOf(CommandStatus.class));
-      CommandStatus testCommandStatus = (CommandStatus) statusEntity;
+      final CommandStatus testCommandStatus = (CommandStatus) statusEntity;
 
       assertEquals(expectedCommandStatus, testCommandStatus);
     }
@@ -107,12 +107,12 @@ public class StatusResourceTest {
 
   @Test
   public void testGetStatusNotFound() throws Exception {
-    StatusResource testResource = getTestStatusResource();
-    Response response = testResource.getStatus(
+    final StatusResource testResource = getTestStatusResource();
+    final Response response = testResource.getStatus(
         CommandId.Type.STREAM.name(), "foo", CommandId.Action.CREATE.name());
     assertThat(response.getStatus(), equalTo(Response.Status.NOT_FOUND.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_NOT_FOUND));
     assertThat(errorMessage.getMessage(), equalTo("Command not found"));
   }

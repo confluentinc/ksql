@@ -43,8 +43,8 @@ public class MockStreamedQueryResource {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    TestStreamWriter testStreamWriter = new TestStreamWriter();
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    final TestStreamWriter testStreamWriter = new TestStreamWriter();
     writers.add(testStreamWriter);
     return Response.ok().entity(testStreamWriter).build();
   }
@@ -55,28 +55,28 @@ public class MockStreamedQueryResource {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
     ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
-    public void enq(String data) throws InterruptedException { dataq.put(data); }
+    public void enq(final String data) throws InterruptedException { dataq.put(data); }
 
     public void finished() throws InterruptedException { dataq.put(""); }
 
-    private void writeRow(String data, OutputStream out) throws IOException {
-      List<Object> rowColumns = new java.util.LinkedList<Object>();
+    private void writeRow(final String data, final OutputStream out) throws IOException {
+      final List<Object> rowColumns = new java.util.LinkedList<Object>();
       rowColumns.add(data);
-      GenericRow row = new GenericRow(rowColumns);
+      final GenericRow row = new GenericRow(rowColumns);
       objectMapper.writeValue(out, StreamedRow.row(row));
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
     }
 
     @Override
-    public void write(OutputStream out) throws IOException, WebApplicationException {
+    public void write(final OutputStream out) throws IOException, WebApplicationException {
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
       while (true) {
-        String data;
+        final String data;
         try {
           data = dataq.take();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
           throw new RuntimeException("take interrupted");
         }
         if (data.equals("")) {

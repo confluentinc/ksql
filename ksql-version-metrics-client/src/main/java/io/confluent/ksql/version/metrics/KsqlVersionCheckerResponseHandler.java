@@ -36,22 +36,22 @@ public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
   }
 
   @VisibleForTesting
-  KsqlVersionCheckerResponseHandler(Logger log) {
+  KsqlVersionCheckerResponseHandler(final Logger log) {
     this.log = log;
   }
 
   @Override
-  public void handle(HttpResponse response) {
-    int statusCode = response.getStatusLine().getStatusCode();
+  public void handle(final HttpResponse response) {
+    final int statusCode = response.getStatusLine().getStatusCode();
     try {
       if (statusCode == HttpStatus.SC_OK && response.getEntity().getContent() != null) {
 
-        String content = EntityUtils.toString(response.getEntity());
+        final String content = EntityUtils.toString(response.getEntity());
         if (content.length() > 0) {
           log.warn(content.toString());
         }
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("Error while parsing the Version check response ", e);
     }
   }

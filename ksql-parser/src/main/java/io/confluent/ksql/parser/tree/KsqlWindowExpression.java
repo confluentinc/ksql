@@ -26,7 +26,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 
 public abstract class KsqlWindowExpression extends Node {
 
-  protected KsqlWindowExpression(Optional<NodeLocation> location) {
+  protected KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);
   }
 

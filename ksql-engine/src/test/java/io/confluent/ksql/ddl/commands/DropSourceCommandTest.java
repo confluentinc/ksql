@@ -21,18 +21,18 @@ public class DropSourceCommandTest {
 
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
-    DropSourceCommand dropSourceCommand = new DropSourceCommand(
+    final DropSourceCommand dropSourceCommand = new DropSourceCommand(
         new DropStream(QualifiedName.of("foo"), true, true), StructuredDataSource.DataSourceType
         .KSTREAM,
         new FakeKafkaTopicClient(),
         EasyMock.niceMock(SchemaRegistryClient.class), true);
-    DdlCommandResult result = dropSourceCommand.run(metaStore, false);
+    final DdlCommandResult result = dropSourceCommand.run(metaStore, false);
     assertThat(result.getMessage(), equalTo("Source foo does not exist."));
   }
 
   @Test
   public void shouldFailOnMissingSourceWithNoIfExists() {
-    DropSourceCommand dropSourceCommand = new DropSourceCommand(
+    final DropSourceCommand dropSourceCommand = new DropSourceCommand(
         new DropStream(QualifiedName.of("foo"), false, false), StructuredDataSource.DataSourceType
         .KSTREAM,
         new FakeKafkaTopicClient(),
@@ -40,6 +40,6 @@ public class DropSourceCommandTest {
     try {
       dropSourceCommand.run(metaStore, false);
       fail("Should raise a Ksql Exception if source not found");
-    } catch (KsqlException e) {}
+    } catch (final KsqlException e) {}
   }
 }

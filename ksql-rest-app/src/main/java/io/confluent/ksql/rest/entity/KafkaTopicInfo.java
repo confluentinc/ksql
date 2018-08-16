@@ -35,11 +35,11 @@ public class KafkaTopicInfo {
 
   @JsonCreator
   public KafkaTopicInfo(
-      @JsonProperty("name") String name,
-      @JsonProperty("registered") boolean registered,
-      @JsonProperty("replicaInfo") List<Integer> replicaInfo,
-      @JsonProperty("consumerCount") int consumerCount,
-      @JsonProperty("consumerGroupCount") int consumerGroupCount
+      @JsonProperty("name") final String name,
+      @JsonProperty("registered") final boolean registered,
+      @JsonProperty("replicaInfo") final List<Integer> replicaInfo,
+      @JsonProperty("consumerCount") final int consumerCount,
+      @JsonProperty("consumerGroupCount") final int consumerGroupCount
   ) {
     this.name = name;
     this.registered = registered;
@@ -69,14 +69,14 @@ public class KafkaTopicInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    KafkaTopicInfo that = (KafkaTopicInfo) o;
+    final KafkaTopicInfo that = (KafkaTopicInfo) o;
     return Objects.equals(name, that.name);
   }
 

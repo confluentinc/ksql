@@ -59,13 +59,13 @@ public class TopologyFileGenerator {
 
 
     private static String getFormattedVersionFromPomFile() throws IOException, ParserConfigurationException, SAXException {
-        File pomFile = new File("pom.xml");
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(pomFile);
+        final File pomFile = new File("pom.xml");
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        final DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        final Document pomDoc = documentBuilder.parse(pomFile);
 
-        NodeList versionNodeList = doc.getElementsByTagName("version");
-        String versionName = versionNodeList.item(0).getTextContent();
+        final NodeList versionNodeList = pomDoc.getElementsByTagName("version");
+        final String versionName = versionNodeList.item(0).getTextContent();
 
         return versionName.replaceAll("-SNAPSHOT?", "").replaceAll("\\.", "_");
 

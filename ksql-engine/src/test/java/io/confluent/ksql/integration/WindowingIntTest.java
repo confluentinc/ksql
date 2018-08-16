@@ -18,11 +18,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.test.TestUtils;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,7 +104,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close();
+    queryMetadata.close(EasyMock.niceMock(Metrics.class));
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -145,7 +147,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close();
+    queryMetadata.close(EasyMock.niceMock(Metrics.class));
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -199,7 +201,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close();
+    queryMetadata.close(EasyMock.niceMock(Metrics.class));
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -247,7 +249,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close();
+    queryMetadata.close(EasyMock.niceMock(Metrics.class));
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size

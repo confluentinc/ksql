@@ -110,6 +110,7 @@ public class QueryStreamWriterTest {
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
 
+
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
 

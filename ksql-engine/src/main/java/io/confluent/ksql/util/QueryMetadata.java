@@ -20,13 +20,21 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.metrics.MeasurableStat;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +51,7 @@ public class QueryMetadata {
   private final Topology topoplogy;
   private final Map<String, Object> overriddenProperties;
   private final Set<String> sourceNames;
+  private final List<Sensor> sensorList;
 
   protected QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,
@@ -65,6 +74,7 @@ public class QueryMetadata {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     this.sourceNames = visitor.getSourceNames();
+    this.sensorList = new ArrayList<>();
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -107,7 +117,11 @@ public class QueryMetadata {
     return sourceNames;
   }
 
-  public void close() {
+  List<Sensor> getSensorList() {
+    return sensorList;
+  }
+
+  public void close(final Metrics metrics) {
 
     kafkaStreams.close();
     if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
@@ -117,6 +131,7 @@ public class QueryMetadata {
       log.error("Could not clean up the query with application id: {}. Query status is: {}",
                 queryApplicationId, kafkaStreams.state());
     }
+    sensorList.forEach(sensor -> metrics.removeSensor(sensor.name()));
   }
 
   private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {
@@ -168,9 +183,48 @@ public class QueryMetadata {
     return Objects.hash(statementString, kafkaStreams, outputNode, queryApplicationId);
   }
 
-  public void start() {
+  public void start(final Metrics metrics) {
     log.info("Starting query with application id: {}", queryApplicationId);
+    final Sensor sensor = configureQueryStatusSensor(metrics, kafkaStreams);
+    final QueryStateListener queryStateListener = new QueryStateListener(sensor);
+    kafkaStreams.setStateListener(queryStateListener);
     kafkaStreams.start();
+  }
+
+  private Sensor configureQueryStatusSensor(final Metrics metrics,
+      final KafkaStreams kafkaStreams) {
+    final String metricGroupName = "ksql-queries";
+    final Sensor sensor = metrics.sensor(metricGroupName + "-" + queryApplicationId);
+    sensorList.add(sensor);
+    sensor.add(
+        metrics.metricName(queryApplicationId + "-query-status", metricGroupName,
+            "The current status of the given query."),
+        new MeasurableStat() {
+          @Override
+          public double measure(final MetricConfig metricConfig, final long l) {
+            return KsqlQueryStateUtil.getQueryStatNumber(kafkaStreams.state());
+          }
+
+          @Override
+          public void record(final MetricConfig metricConfig, final double v, final long l) {
+            // We don't want to record anything.
+          }
+        });
+    return sensor;
+  }
+
+  static class QueryStateListener implements StateListener {
+
+    private final Sensor sensor;
+
+    QueryStateListener(final Sensor sensor) {
+      this.sensor = sensor;
+    }
+
+    @Override
+    public void onChange(final State newState, final State oldState) {
+      sensor.record(KsqlQueryStateUtil.getQueryStatNumber(newState));
+    }
   }
 
   public String getTopologyDescription() {

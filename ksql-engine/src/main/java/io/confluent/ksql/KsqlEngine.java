@@ -82,6 +82,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -567,11 +568,15 @@ public class KsqlEngine implements Closeable {
     allLiveQueries.remove(persistentQueryMetadata);
     metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
-      persistentQueryMetadata.close();
+      persistentQueryMetadata.close(engineMetrics.getMetrics());
       persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
     }
 
     return true;
+  }
+
+  public Metrics getMetrics() {
+    return engineMetrics.getMetrics();
   }
 
   public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
@@ -601,7 +606,7 @@ public class KsqlEngine implements Closeable {
   public void close() {
     final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
     for (final QueryMetadata queryMetadata : queriesToClose) {
-      queryMetadata.close();
+      queryMetadata.close(getMetrics());
     }
     adminClient.close();
     engineMetrics.close();

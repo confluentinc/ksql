@@ -291,7 +291,7 @@ public class StatementExecutor {
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.getKafkaStreams().start();
+          persistentQueryMd.start(ksqlEngine.getMetrics());
         }
       }
     } else {
@@ -399,7 +399,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
         return false;
       } else {
-        persistentQueryMd.getKafkaStreams().start();
+        persistentQueryMd.start(ksqlEngine.getMetrics());
         return true;
       }
 

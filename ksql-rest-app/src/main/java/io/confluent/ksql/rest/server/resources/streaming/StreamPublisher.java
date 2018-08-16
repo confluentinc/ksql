@@ -66,7 +66,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
     final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start(ksqlEngine.getMetrics());
 
     subscriber.onSubscribe(subscription);
   }
@@ -106,7 +106,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
       if (!closed) {
         closed = true;
         log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-        queryMetadata.close();
+        queryMetadata.close(ksqlEngine.getMetrics());
         ksqlEngine.removeTemporaryQuery(queryMetadata);
       }
     }

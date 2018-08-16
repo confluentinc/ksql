@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
@@ -61,6 +62,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -184,6 +186,8 @@ public class StreamedQueryResourceTest {
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
+    final Metrics metrics = MetricsTestUtil.getMetrics();
+    expect(mockKsqlEngine.getMetrics()).andReturn(metrics);
 
     replay(mockOutputNode, mockKafkaStreams);
     final QueuedQueryMetadata queuedQueryMetadata =
@@ -191,6 +195,7 @@ public class StreamedQueryResourceTest {
             rowQueue, DataSource.DataSourceType.KSTREAM, "",
             mockKafkaTopicClient, null, Collections.emptyMap());
     reset(mockOutputNode);
+
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
     expect(mockKsqlEngine.buildMultipleQueries(queryString, mockKsqlConfig, requestStreamsProperties))

@@ -17,22 +17,34 @@
 package io.confluent.ksql;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Test;
 
@@ -49,12 +61,13 @@ public class KsqlContextTest {
   public void shouldRunSimpleStatements() throws Exception {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-
+    final Metrics metrics = MetricsTestUtil.getMetrics();
     expect(ksqlEngine.buildMultipleQueries(statement1, ksqlConfig, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());
     expect(ksqlEngine.buildMultipleQueries(statement2, ksqlConfig, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
+    expect(ksqlEngine.getMetrics()).andReturn(metrics);
     replay(ksqlEngine);
 
     final KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);

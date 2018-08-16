@@ -49,6 +49,7 @@ public class KsqlEngineMetrics implements Closeable {
 
 
   private final KsqlEngine ksqlEngine;
+  private final Metrics metrics;
 
   public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
@@ -56,7 +57,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
-    final Metrics metrics = MetricCollectors.getMetrics();
+    metrics = MetricCollectors.getMetrics();
 
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
@@ -81,6 +82,10 @@ public class KsqlEngineMetrics implements Closeable {
     recordMessagesProduced(MetricCollectors.currentProductionRate());
     recordMessageConsumptionByQueryStats(MetricCollectors.currentConsumptionRateByQuery());
     recordErrorRate(MetricCollectors.currentErrorRate());
+  }
+
+  public Metrics getMetrics() {
+    return metrics;
   }
 
   // Visible for testing

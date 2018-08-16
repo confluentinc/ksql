@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.KsqlEngine;
@@ -38,6 +39,7 @@ import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.easymock.EasyMockSupport;
 import org.hamcrest.CoreMatchers;
@@ -149,7 +152,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     final MetaStore mockMetaStore = mock(MetaStore.class);
     final PersistentQueryMetadata mockQueryMetadata = mock(PersistentQueryMetadata.class);
-    final KafkaStreams mockStream = mock(KafkaStreams.class);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
@@ -181,9 +183,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
+    final Metrics metrics = MetricsTestUtil.getMetrics();
+    expect(mockEngine.getMetrics()).andReturn(metrics);
     expect(mockQueryMetadata.getQueryId()).andReturn(new QueryId("foo"));
-    expect(mockQueryMetadata.getKafkaStreams()).andReturn(mockStream);
-    mockStream.start();
+
+    mockQueryMetadata.start(metrics);
     expectLastCall();
 
     replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);

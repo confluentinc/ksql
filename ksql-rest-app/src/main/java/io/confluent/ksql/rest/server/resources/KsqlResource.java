@@ -633,7 +633,7 @@ public class KsqlResource {
             ksqlEngine.getSchemaRegistryClient()
         );
       }
-      queryMetadata.close();
+      queryMetadata.close(ksqlEngine.getMetrics());
       return queryMetadata;
     });
 
@@ -652,7 +652,7 @@ public class KsqlResource {
             ksqlEngine.getSchemaRegistryClient()
         );
       }
-      queryMetadata.close();
+      queryMetadata.close(ksqlEngine.getMetrics());
       return queryMetadata;
     });
 
@@ -663,7 +663,7 @@ public class KsqlResource {
         AvroUtil.validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());
       }
-      queryMetadata.close();
+      queryMetadata.close(ksqlEngine.getMetrics());
       return queryMetadata;
     });
 

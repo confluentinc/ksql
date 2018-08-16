@@ -255,7 +255,7 @@ public class StandaloneExecutor implements Executable {
         || !(queryMetadataList.get(0) instanceof PersistentQueryMetadata)) {
       throw new KsqlException("Could not build the query: " + statementString);
     }
-    queryMetadataList.get(0).start();
+    queryMetadataList.get(0).start(ksqlEngine.getMetrics());
   }
 
   private Query getQueryFromStatement(final String statementString, final Statement statement) {

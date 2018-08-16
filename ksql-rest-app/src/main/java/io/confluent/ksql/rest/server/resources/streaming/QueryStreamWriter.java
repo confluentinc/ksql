@@ -74,7 +74,7 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
     this.ksqlEngine = ksqlEngine;
 
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start(ksqlEngine.getMetrics());
   }
 
   @Override
@@ -115,7 +115,7 @@ class QueryStreamWriter implements StreamingOutput {
       outputException(out, exception);
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
-      queryMetadata.close();
+      queryMetadata.close(ksqlEngine.getMetrics());
       queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }

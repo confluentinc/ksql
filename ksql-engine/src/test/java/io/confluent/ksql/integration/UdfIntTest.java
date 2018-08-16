@@ -180,7 +180,7 @@ public class UdfIntTest {
       throws Exception {
     final String selectColumns =
         " CAST (ORDERUNITS AS INTEGER), CAST( PRICEARRAY[1]>1000 AS STRING), CAST (SUBSTRING"
-        + "(ITEMID, 5) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
+        + "(ITEMID, 6) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
 
     final String queryString = String.format(
         "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",

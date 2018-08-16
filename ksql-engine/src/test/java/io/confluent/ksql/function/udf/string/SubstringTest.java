@@ -171,12 +171,12 @@ public class SubstringTest {
   }
 
   @Test
-  public void shouldNotExitLegacyModeIfConfigMissing() {
+  public void shouldNotEnterLegacyModeIfConfigMissing() {
     // When:
     udf.configure(ImmutableMap.of());
 
     // Then:
-    assertThat(udfIsInLegacyMode(), is(true));
+    assertThat(udfIsInLegacyMode(), is(false));
   }
 
   @Test

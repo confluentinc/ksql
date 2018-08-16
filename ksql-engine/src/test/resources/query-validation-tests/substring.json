@@ -3,8 +3,7 @@
     "Tests covering the use of the SUBSTRING function.",
     "NOTE: At present the SUBSTRING function has two modes: current and legacy.",
     " v5.0 and earlier only have legacy mode.",
-    " v5.1 and later have both current and legacy, but default to legacy.",
-    " an upcoming release will see the default switched and a later release should see the legacy mode removed"
+    " v5.1 and later have both current and legacy. New queries default to the current mode"
   ],
   "tests": [
     {
@@ -91,17 +90,17 @@
       ]
     },
     {
-      "name": "should default to legacy mode for now",
+      "name": "should default to current mode for new queries",
       "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 5) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_START FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"string", "NULL_STR":null, "NULL_START":null}, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"string"}, "timestamp": 0}
       ]
     }
   ]

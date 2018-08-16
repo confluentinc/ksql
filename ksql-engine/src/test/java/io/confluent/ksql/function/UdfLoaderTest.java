@@ -79,11 +79,11 @@ public class UdfLoaderTest {
 
     final Kudf substring1 = function.getFunction(
         Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)).newInstance(ksqlConfig);
-    assertThat(substring1.evaluate("foo", 1), equalTo("oo"));
+    assertThat(substring1.evaluate("foo", 2), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
         Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)).newInstance(ksqlConfig);
-    assertThat(substring2.evaluate("foo", 1, 2), equalTo("o"));
+    assertThat(substring2.evaluate("foo", 2, 1), equalTo("o"));
   }
 
   @SuppressWarnings("unchecked")

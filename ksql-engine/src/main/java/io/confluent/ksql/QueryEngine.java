@@ -215,15 +215,15 @@ class QueryEngine {
       final AbstractStreamCreateStatement streamCreateStatement =
           (AbstractStreamCreateStatement) statement;
 
-      if (streamCreateStatement.getElements().isEmpty()) {
-        throw new KsqlException("The statement or topic schema does not define any columns.");
-      }
-
       final StatementWithSchema statementWithSchema
           = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
       resultingStatement = (DdlStatement) statementWithSchema.getStatement();
       resultingSqlExpression = statementWithSchema.getStatementText();
+
+      if (((AbstractStreamCreateStatement)resultingStatement).getElements().isEmpty()) {
+        throw new KsqlException("The statement or topic schema does not define any columns.");
+      }
     } else {
       resultingSqlExpression = sqlExpression;
       resultingStatement = statement;

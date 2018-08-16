@@ -17,7 +17,6 @@
 package io.confluent.ksql.function.udf.string;
 
 import io.confluent.common.Configurable;
-import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -40,8 +39,9 @@ public class Substring implements Configurable {
 
   @Override
   public void configure(final Map<String, ?> props) {
+    final KsqlConfig config = new KsqlConfig(props);
     final boolean legacyArgs =
-        getProps(props, KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, false);
+        config.getBoolean(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG);
 
     impl = legacyArgs ? new LegacyImpl() : new CurrentImpl();
   }
@@ -120,27 +120,5 @@ public class Substring implements Configurable {
     private static int getEndIndex(final String value, final int start, final int length) {
       return Math.max(Math.min(start + length, value.length()), start);
     }
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private static boolean getProps(
-      final Map<String,?> props,
-      final String name,
-      final boolean defaultValue) {
-
-    final Object value = props.get(name);
-    if (value == null) {
-      return defaultValue;
-    }
-
-    if (value instanceof String) {
-      return Boolean.valueOf((String)value);
-    }
-
-    if (!(value instanceof Boolean)) {
-      throw new ConfigException(name, value, "Value is not boolean");
-    }
-
-    return (Boolean)value;
   }
 }

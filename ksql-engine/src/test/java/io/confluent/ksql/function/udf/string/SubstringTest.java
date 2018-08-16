@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -210,15 +210,6 @@ public class SubstringTest {
   public void shouldNotEnterLegacyModeWithFalseBooleanConfig() {
     // When:
     configure(false);
-
-    // Then:
-    assertThat(udfIsInLegacyMode(), is(false));
-  }
-
-  @Test
-  public void shouldNotEnterLegacyModeWithOtherStringConfig() {
-    // When:
-    configure("what ever");
 
     // Then:
     assertThat(udfIsInLegacyMode(), is(false));

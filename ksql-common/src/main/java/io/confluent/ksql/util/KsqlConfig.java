@@ -262,12 +262,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-    for (final CompatibilityBreakingConfigDef compatiblityConfigDef
+
+    for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
-        compatiblityConfigDef.defineCurrent(configDef);
+        compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
-        compatiblityConfigDef.defineOld(configDef);
+        compatibilityBreakingConfigDef.defineOld(configDef);
       }
     }
     return configDef;

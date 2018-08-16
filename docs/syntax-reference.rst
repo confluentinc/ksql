@@ -1099,7 +1099,7 @@ Scalar functions
 |                        |                                                            | It is possible to switch back to this legacy mode |
 |                        |                                                            | by setting                                        |
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                            | ``true``                                          |
+|                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

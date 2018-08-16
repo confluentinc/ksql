@@ -38,8 +38,8 @@ public class TopologyFileGenerator {
 
     public static void main(final String[] args) throws IOException, ParserConfigurationException, SAXException {
 
-        String formattedVersion = getFormattedVersionFromPomFile();
-        String generatedTopologyPath = BASE_DIRECTORY + formattedVersion + DIRECTORY_NAME_SUFFIX;
+        final String formattedVersion = getFormattedVersionFromPomFile();
+        final String generatedTopologyPath = BASE_DIRECTORY + formattedVersion + DIRECTORY_NAME_SUFFIX;
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));
         final Path dirPath = Paths.get(generatedTopologyPath);

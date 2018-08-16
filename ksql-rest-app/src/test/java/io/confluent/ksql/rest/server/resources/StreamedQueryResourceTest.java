@@ -186,8 +186,6 @@ public class StreamedQueryResourceTest {
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
-    final Metrics metrics = MetricsTestUtil.getMetrics();
-    expect(mockKsqlEngine.getMetrics()).andReturn(metrics);
 
     replay(mockOutputNode, mockKafkaStreams);
     final QueuedQueryMetadata queuedQueryMetadata =
@@ -195,13 +193,14 @@ public class StreamedQueryResourceTest {
             rowQueue, DataSource.DataSourceType.KSTREAM, "",
             mockKafkaTopicClient, null, Collections.emptyMap());
     reset(mockOutputNode);
-
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
     expect(mockKsqlEngine.buildMultipleQueries(queryString, mockKsqlConfig, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
+    final Metrics metrics = MetricsTestUtil.getMetrics();
+    expect(mockKsqlEngine.getMetrics()).andReturn(metrics).times(2);
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));

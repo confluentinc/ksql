@@ -127,7 +127,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
       final String functionName,
       final Schema argumentType
   ) {
-    AggregateFunctionFactory aggregateFunctionFactory
+    final AggregateFunctionFactory aggregateFunctionFactory
         = aggregateFunctionMap.get(functionName.toUpperCase());
     if (aggregateFunctionFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
@@ -177,12 +177,12 @@ public class InternalFunctionRegistry implements FunctionRegistry {
      * String functions                     *
      ****************************************/
 
-    KsqlFunction lcase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+    final KsqlFunction lcase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
         "LCASE", LCaseKudf.class);
     addFunction(lcase);
 
-    KsqlFunction ucase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+    final KsqlFunction ucase = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
         "UCASE", UCaseKudf.class);
     addFunction(ucase);
@@ -192,18 +192,18 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         ConcatKudf.NAME, ConcatKudf.class));
 
-    KsqlFunction trim = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+    final KsqlFunction trim = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
         "TRIM", TrimKudf.class);
     addFunction(trim);
 
-    KsqlFunction ifNull = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
+    final KsqlFunction ifNull = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA,
             Schema.OPTIONAL_STRING_SCHEMA),
         "IFNULL", IfNullKudf.class);
     addFunction(ifNull);
 
-    KsqlFunction len = new KsqlFunction(
+    final KsqlFunction len = new KsqlFunction(
         Schema.OPTIONAL_INT32_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA),
         "LEN",
@@ -223,24 +223,24 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         AbsKudf.NAME, AbsKudf.class));
 
-    KsqlFunction ceil = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+    final KsqlFunction ceil = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
         "CEIL", CeilKudf.class);
     addFunction(ceil);
 
-    KsqlFunction floor = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+    final KsqlFunction floor = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
         "FLOOR", FloorKudf.class);
     addFunction(floor);
 
-    KsqlFunction
+    final KsqlFunction
         round =
         new KsqlFunction(Schema.OPTIONAL_INT64_SCHEMA,
             Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
             "ROUND", RoundKudf.class);
     addFunction(round);
 
-    KsqlFunction random = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA, new ArrayList<>(),
+    final KsqlFunction random = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA, new ArrayList<>(),
         "RANDOM", RandomKudf.class);
     addFunction(random);
 
@@ -250,14 +250,14 @@ public class InternalFunctionRegistry implements FunctionRegistry {
 
   private void addDateTimeFunctions() {
 
-    KsqlFunction timestampToString = new KsqlFunction(
+    final KsqlFunction timestampToString = new KsqlFunction(
         Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         "TIMESTAMPTOSTRING",
         TimestampToString.class);
     addFunction(timestampToString);
 
-    KsqlFunction stringToTimestamp = new KsqlFunction(
+    final KsqlFunction stringToTimestamp = new KsqlFunction(
         Schema.OPTIONAL_INT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         "STRINGTOTIMESTAMP",
@@ -267,7 +267,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   }
 
   private void addGeoFunctions() {
-    KsqlFunction geoDistance = new KsqlFunction(
+    final KsqlFunction geoDistance = new KsqlFunction(
         Schema.OPTIONAL_FLOAT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA,
             Schema.OPTIONAL_FLOAT64_SCHEMA,
@@ -286,7 +286,7 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         JsonExtractStringKudf.NAME, JsonExtractStringKudf.class));
 
-    KsqlFunction jsonArrayContainsString = new KsqlFunction(
+    final KsqlFunction jsonArrayContainsString = new KsqlFunction(
         Schema.OPTIONAL_BOOLEAN_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         "ARRAYCONTAINS", ArrayContainsKudf.class);

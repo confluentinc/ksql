@@ -39,7 +39,7 @@ public final class Ksql {
   private Ksql() {
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(final String[] args) throws IOException {
     final Options options = args.length == 0 ? Options.parse("http://localhost:8088")
                                              : Options.parse(args);
     if (options == null) {

@@ -102,14 +102,14 @@ public class CodeGenRunner {
       index++;
     }
 
-    String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
+    final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
 
-    IExpressionEvaluator ee =
+    final IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
     ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
     ee.setParameters(parameterNames, parameterTypes);
 
-    Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
+    final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
@@ -146,16 +146,16 @@ public class CodeGenRunner {
           schemaField.name().replace(".", "_"), ksqlConfig));
     }
 
-    protected Object visitLikePredicate(LikePredicate node, Object context) {
+    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(FunctionCall node, Object context) {
+    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
       final int functionNumber = functionCounter++;
       final List<Schema> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
-      for (Expression argExpr : node.getArguments()) {
+      for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
         argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
@@ -167,42 +167,49 @@ public class CodeGenRunner {
       return null;
     }
 
-
-    protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
+    protected Object visitArithmeticBinary(
+        final ArithmeticBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(IsNotNullPredicate node, Object context) {
+    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(IsNullPredicate node, Object context) {
+    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context) {
+    protected Object visitLogicalBinaryExpression(
+        final LogicalBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitComparisonExpression(ComparisonExpression node, Object context) {
+    protected Object visitComparisonExpression(
+        final ComparisonExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitNotExpression(NotExpression node, Object context) {
+    protected Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitDereferenceExpression(DereferenceExpression node, Object context) {
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+    protected Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context) {
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
@@ -212,7 +219,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitCast(Cast node, Object context) {
+    protected Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
     }
@@ -240,8 +247,12 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+    protected Object visitQualifiedNameReference(
+        final QualifiedNameReference node,
+        final Object context) {
+      final Optional<Field> schemaField =
+          SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());

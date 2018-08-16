@@ -52,27 +52,23 @@ public abstract class DataGenProducer {
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
   public void populateTopic(
-      Properties props,
-      Generator generator,
-      String kafkaTopicName,
-      String key,
-      int messageCount,
-      long maxInterval
+      final Properties props,
+      final Generator generator,
+      final String kafkaTopicName,
+      final String key,
+      final int messageCount,
+      final long maxInterval
   ) {
     final Schema avroSchema = generator.schema();
     if (avroSchema.getField(key) == null) {
       throw new IllegalArgumentException("Key field does not exist:" + key);
     }
 
-    if (maxInterval < 0) {
-      maxInterval = INTER_MESSAGE_MAX_INTERVAL;
-    }
-    
     final AvroData avroData = new AvroData(1);
     org.apache.kafka.connect.data.Schema ksqlSchema = avroData.toConnectSchema(avroSchema);
     ksqlSchema = getOptionalSchema(ksqlSchema);
 
-    Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
+    final Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
 
     final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
         props,
@@ -80,7 +76,7 @@ public abstract class DataGenProducer {
         serializer
     );
 
-    SessionManager sessionManager = new SessionManager();
+    final SessionManager sessionManager = new SessionManager();
 
     for (int i = 0; i < messageCount; i++) {
 
@@ -98,8 +94,10 @@ public abstract class DataGenProducer {
               genericRowPair.getRight()));
 
       try {
-        Thread.sleep((long) (maxInterval * Math.random()));
-      } catch (InterruptedException e) {
+        final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
+
+        Thread.sleep((long) (interval * Math.random()));
+      } catch (final InterruptedException e) {
         // Ignore the exception.
       }
     }
@@ -135,7 +133,7 @@ public abstract class DataGenProducer {
      * Populate the record entries
      */
     String sessionisationValue = null;
-    for (Schema.Field field : avroSchema.getFields()) {
+    for (final Schema.Field field : avroSchema.getFields()) {
 
       final boolean isSession = field.schema().getProp("session") != null;
       final boolean isSessionSiblingIntHash =
@@ -217,19 +215,19 @@ public abstract class DataGenProducer {
   }
 
   private void handleSessionSiblingField(
-      GenericRecord randomAvroMessage,
-      List<Object> genericRowValues,
-      String sessionisationValue,
-      Schema.Field field
+      final GenericRecord randomAvroMessage,
+      final List<Object> genericRowValues,
+      final String sessionisationValue,
+      final Schema.Field field
   ) {
     try {
-      Schema.Type type = field.schema().getType();
+      final Schema.Type type = field.schema().getType();
       if (type == Schema.Type.INT) {
         genericRowValues.add(mapSessionValueToSibling(sessionisationValue, field));
       } else {
         genericRowValues.add(randomAvroMessage.get(field.name()));
       }
-    } catch (Exception err) {
+    } catch (final Exception err) {
       genericRowValues.add(randomAvroMessage.get(field.name()));
     }
   }
@@ -237,13 +235,13 @@ public abstract class DataGenProducer {
   Map<String, Integer> sessionMap = new HashMap<>();
   Set<Integer> allocatedIds = new HashSet<>();
 
-  private int mapSessionValueToSibling(String sessionisationValue, Schema.Field field) {
+  private int mapSessionValueToSibling(final String sessionisationValue, final Schema.Field field) {
 
     if (!sessionMap.containsKey(sessionisationValue)) {
 
-      LinkedHashMap properties =
+      final LinkedHashMap properties =
           (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
-      Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
+      final Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
 
       int vvalue = Math.abs(sessionisationValue.hashCode() % max);
 
@@ -284,7 +282,9 @@ public abstract class DataGenProducer {
    * @param currentValue current token
    * @return session token
    */
-  private String handleSessionisationOfValue(SessionManager sessionManager, String currentValue) {
+  private String handleSessionisationOfValue(
+      final SessionManager sessionManager,
+      final String currentValue) {
 
     // superset of all values
     allTokens.add(currentValue);
@@ -310,7 +310,7 @@ public abstract class DataGenProducer {
     /**
      * Force expiring tokens to expire
      */
-    String expired = sessionManager.getActiveSessionThatHasExpired();
+    final String expired = sessionManager.getActiveSessionThatHasExpired();
     if (expired != null) {
       return expired;
     }
@@ -319,7 +319,7 @@ public abstract class DataGenProducer {
      * Use accummulated SessionTokens-tokens, or recycle old tokens or blow-up
      */
     String value = null;
-    for (String token : allTokens) {
+    for (final String token : allTokens) {
       if (value == null) {
         if (!sessionManager.isActive(token) && !sessionManager.isExpired(token)) {
           value = token;
@@ -342,13 +342,13 @@ public abstract class DataGenProducer {
     return currentValue;
   }
 
-  private String getRandomToken(Set<String> collected) {
+  private String getRandomToken(final Set<String> collected) {
     if (collected.size() == 0) {
       return null;
     }
-    List<String> values = new ArrayList<>(collected);
-    int index = (int) (Math.random() * values.size());
-    String value = values.remove(index);
+    final List<String> values = new ArrayList<>(collected);
+    final int index = (int) (Math.random() * values.size());
+    final String value = values.remove(index);
     collected.remove(value);
     return value;
   }
@@ -381,7 +381,7 @@ public abstract class DataGenProducer {
             .optional().build();
       case STRUCT:
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-        for (Field field : schema.fields()) {
+        for (final Field field : schema.fields()) {
           schemaBuilder.field(field.name(), getOptionalSchema(field.schema()));
         }
         return schemaBuilder.optional().build();
@@ -414,7 +414,7 @@ public abstract class DataGenProducer {
       case STRUCT:
         final Struct struct = (Struct) value;
         final Struct optionalStruct = new Struct(getOptionalSchema(schema));
-        for (Field field : schema.fields()) {
+        for (final Field field : schema.fields()) {
           optionalStruct
               .put(field.name(), getOptionalValue(field.schema(), struct.get(field.name())));
         }

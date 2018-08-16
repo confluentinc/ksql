@@ -86,7 +86,7 @@ class EndToEndEngineTestUtil {
       this.spec = spec;
     }
 
-    private static void compare(Object o1, Object o2, String path) {
+    private static void compare(final Object o1, final Object o2, final String path) {
       if (o1 == null && o2 == null) {
         return;
       }
@@ -96,7 +96,7 @@ class EndToEndEngineTestUtil {
       if (o1 instanceof Map) {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
         assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
-        for (Object k : ((Map) o1).keySet()) {
+        for (final Object k : ((Map) o1).keySet()) {
           compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + String.valueOf(k));
         }
       } else if (o1 instanceof List) {
@@ -112,7 +112,7 @@ class EndToEndEngineTestUtil {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       compare(spec, o, "VALUE-SPEC");
       return Objects.equals(spec, o);
     }

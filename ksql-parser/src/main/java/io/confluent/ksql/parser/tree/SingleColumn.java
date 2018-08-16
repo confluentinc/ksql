@@ -29,24 +29,25 @@ public class SingleColumn
   private final Optional<String> alias;
   private final Expression expression;
 
-  public SingleColumn(Expression expression) {
+  public SingleColumn(final Expression expression) {
     this(Optional.empty(), expression, Optional.empty());
   }
 
-  public SingleColumn(Expression expression, Optional<String> alias) {
+  public SingleColumn(final Expression expression, final Optional<String> alias) {
     this(Optional.empty(), expression, alias);
   }
 
-  public SingleColumn(Expression expression, String alias) {
+  public SingleColumn(final Expression expression, final String alias) {
     this(Optional.empty(), expression, Optional.of(alias));
   }
 
-  public SingleColumn(NodeLocation location, Expression expression, Optional<String> alias) {
+  public SingleColumn(
+      final NodeLocation location, final Expression expression, final Optional<String> alias) {
     this(Optional.of(location), expression, alias);
   }
 
-  private SingleColumn(Optional<NodeLocation> location, Expression expression,
-                       Optional<String> alias) {
+  private SingleColumn(final Optional<NodeLocation> location, final Expression expression,
+                       final Optional<String> alias) {
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
@@ -60,9 +61,10 @@ public class SingleColumn
     this.alias = alias;
   }
 
-  private void checkForReservedToken(Expression expression, String alias, String reservedToken) {
+  private void checkForReservedToken(
+      final Expression expression, final String alias, final String reservedToken) {
     if (alias.equalsIgnoreCase(reservedToken)) {
-      String text = expression.toString();
+      final String text = expression.toString();
       if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken)) {
         throw new ParseFailedException(reservedToken + " is a reserved token for implicit column. "
                         + "You cannot use it as an alias for a column.");
@@ -79,14 +81,14 @@ public class SingleColumn
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    SingleColumn other = (SingleColumn) obj;
+    final SingleColumn other = (SingleColumn) obj;
     return Objects.equals(this.alias, other.alias) && Objects
         .equals(this.expression, other.expression);
   }
@@ -106,7 +108,7 @@ public class SingleColumn
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSingleColumn(this, context);
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -129,7 +129,7 @@ class QueryEngine {
       if (analysis.isDoCreateInto()) {
         try {
           tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-        } catch (KsqlException e) {
+        } catch (final KsqlException e) {
           final String sourceName = tempMetaStore.getSourceForTopic(
               ksqlStructuredDataOutputNode.getKsqlTopic().getName()).get().getName();
           throw new KsqlException(
@@ -206,22 +206,30 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(String sqlExpression, DdlStatement statement) {
+  DdlCommandResult handleDdlStatement(final String sqlExpression, final DdlStatement statement) {
+
+    final String resultingSqlExpression;
+    final DdlStatement resultingStatement;
 
     if (statement instanceof AbstractStreamCreateStatement) {
-      final AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
-          statement;
+      final AbstractStreamCreateStatement streamCreateStatement =
+          (AbstractStreamCreateStatement) statement;
+
+      if (streamCreateStatement.getElements().isEmpty()) {
+        throw new KsqlException("The statement or topic schema does not define any columns.");
+      }
+
       final StatementWithSchema statementWithSchema
           = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
-      statement = (DdlStatement) statementWithSchema.getStatement();
-      sqlExpression = statementWithSchema.getStatementText();
-
-      if (((AbstractStreamCreateStatement) statement).getElements().isEmpty()) {
-        throw new KsqlException("The statement or topic schema does not define any columns.");
-      }
+      resultingStatement = (DdlStatement) statementWithSchema.getStatement();
+      resultingSqlExpression = statementWithSchema.getStatementText();
+    } else {
+      resultingSqlExpression = sqlExpression;
+      resultingStatement = statement;
     }
-    final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
+
+    final DdlCommand command = ddlCommandFactory.create(resultingSqlExpression, resultingStatement);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 

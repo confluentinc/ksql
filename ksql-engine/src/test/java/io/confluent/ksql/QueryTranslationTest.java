@@ -239,7 +239,7 @@ public class QueryTranslationTest {
         final String schemaString = objectMapper.writeValueAsString(node.get("schema"));
         final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
         schema = parser.parse(schemaString);
-      } catch (JsonProcessingException e) {
+      } catch (final JsonProcessingException e) {
         throw new RuntimeException(e);
       }
     } else {

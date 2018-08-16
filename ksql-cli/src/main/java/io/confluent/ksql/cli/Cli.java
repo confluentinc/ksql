@@ -357,15 +357,13 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private StringBuilder printOrDisplayQueryResults(
-      StringBuilder consecutiveStatements,
+      final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext,
       final String statementText
   ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
-      consecutiveStatements = new StringBuilder();
+      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      consecutiveStatements.setLength(0);
     }
     if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
       handleStreamedQuery(statementText);
@@ -588,14 +586,14 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private StringBuilder unsetProperty(
-      StringBuilder consecutiveStatements,
+      final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext
   ) throws IOException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
       );
-      consecutiveStatements = new StringBuilder();
+      consecutiveStatements.setLength(0);
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
         (SqlBaseParser.UnsetPropertyContext) statementContext.statement();

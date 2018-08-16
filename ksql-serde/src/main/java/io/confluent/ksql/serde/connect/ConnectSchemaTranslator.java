@@ -69,7 +69,7 @@ public class ConnectSchemaTranslator {
     }
   }
 
-  private void checkMapKeyType(Schema.Type type) {
+  private void checkMapKeyType(final Schema.Type type) {
     switch (type) {
       case INT8:
       case INT16:

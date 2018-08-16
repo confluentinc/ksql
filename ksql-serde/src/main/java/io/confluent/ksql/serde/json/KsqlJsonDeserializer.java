@@ -65,7 +65,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(final Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
   }
 
   @Override
@@ -76,7 +76,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
       }
       return row;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException(
           "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }
@@ -99,7 +99,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final Object columnVal = valueMap
           .get(keyMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));

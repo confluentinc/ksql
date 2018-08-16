@@ -79,7 +79,7 @@ public class KafkaTopicsList extends KsqlEntity {
   public static KafkaTopicsList build(
       final String statementText,
       final Collection<KsqlTopic> ksqlTopics,
-      Map<String, TopicDescription> kafkaTopicDescriptions,
+      final Map<String, TopicDescription> kafkaTopicDescriptions,
       final KsqlConfig ksqlConfig,
       final KafkaConsumerGroupClient consumerGroupClient
   ) {
@@ -87,15 +87,13 @@ public class KafkaTopicsList extends KsqlEntity {
     final Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
 
     final List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
-    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(
-        kafkaTopicDescriptions,
-        ksqlConfig
-    ));
+    final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
+        filterKsqlInternalTopics(kafkaTopicDescriptions, ksqlConfig));
 
     final Map<String, List<Integer>> topicConsumersAndGroupCount = getTopicConsumerAndGroupCounts(
         consumerGroupClient);
 
-    for (final TopicDescription desp : kafkaTopicDescriptions.values()) {
+    for (final TopicDescription desp : filteredDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
           registeredNames.contains(desp.name()),

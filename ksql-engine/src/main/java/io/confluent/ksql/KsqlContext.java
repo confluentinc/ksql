@@ -91,18 +91,18 @@ public class KsqlContext {
   /**
    * Execute the ksql statement in this context.
    */
-  public void sql(String sql) {
+  public void sql(final String sql) {
     sql(sql, Collections.emptyMap());
   }
 
-  public void sql(String sql, Map<String, Object> overriddenProperties) {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+  public void sql(final String sql, final Map<String, Object> overriddenProperties) {
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         sql, ksqlConfig, overriddenProperties);
 
-    for (QueryMetadata queryMetadata : queryMetadataList) {
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.getKafkaStreams().start();
+        final PersistentQueryMetadata persistent = (PersistentQueryMetadata) queryMetadata;
+        persistent.getKafkaStreams().start();
       } else {
         System.err.println("Ignoring statemenst: " + sql);
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");

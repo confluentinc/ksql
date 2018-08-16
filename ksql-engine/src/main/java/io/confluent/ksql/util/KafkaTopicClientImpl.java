@@ -203,12 +203,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
-    List<String> failList = Lists.newArrayList();
+    final List<String> failList = Lists.newArrayList();
 
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         failList.add(entry.getKey());
       }
     }
@@ -225,9 +225,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     try {
-      Set<String> topicNames = listTopicNames();
-      List<String> internalTopics = Lists.newArrayList();
-      for (String topicName : topicNames) {
+      final Set<String> topicNames = listTopicNames();
+      final List<String> internalTopics = Lists.newArrayList();
+      for (final String topicName : topicNames) {
         if (isInternalTopic(topicName, applicationId)) {
           internalTopics.add(topicName);
         }
@@ -235,7 +235,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       if (!internalTopics.isEmpty()) {
         deleteTopics(internalTopics);
       }
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Exception while trying to clean up internal topics for application id: {}.",
                 applicationId, e
       );
@@ -244,19 +244,19 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static boolean isTopicDeleteEnabled(final AdminClient adminClient) {
     try {
-      DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-      Collection<Node> nodes = describeClusterResult.nodes().get();
+      final DescribeClusterResult describeClusterResult = adminClient.describeCluster();
+      final Collection<Node> nodes = describeClusterResult.nodes().get();
       if (nodes.isEmpty()) {
         log.warn("No available broker found to fetch config info.");
         throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
       }
 
-      ConfigResource resource = new ConfigResource(
+      final ConfigResource resource = new ConfigResource(
           ConfigResource.Type.BROKER,
           String.valueOf(nodes.iterator().next().id())
       );
 
-      Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
+      final Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
@@ -285,9 +285,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private void validateTopicProperties(final String topic,
                                        final int numPartitions,
                                        final short replicationFactor) {
-    Map<String, TopicDescription> topicDescriptions =
+    final Map<String, TopicDescription> topicDescriptions =
         describeTopics(Collections.singletonList(topic));
-    TopicDescription topicDescription = topicDescriptions.get(topic);
+    final TopicDescription topicDescription = topicDescriptions.get(topic);
     if (topicDescription.partitions().size() != numPartitions
         || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
@@ -330,7 +330,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private static Map<String, String> toStringConfigs(Map<String, ?> configs) {
+  private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
     return configs.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
   }

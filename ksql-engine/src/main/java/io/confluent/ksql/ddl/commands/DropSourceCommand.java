@@ -52,8 +52,8 @@ public class DropSourceCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
-    StructuredDataSource dataSource = metaStore.getSource(sourceName);
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+    final StructuredDataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (ifExists) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
@@ -67,7 +67,7 @@ public class DropSourceCommand implements DdlCommand {
           dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
-    DropTopicCommand dropTopicCommand =
+    final DropTopicCommand dropTopicCommand =
         new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore, isValidatePhase);
@@ -82,7 +82,9 @@ public class DropSourceCommand implements DdlCommand {
                                                     + "to complete." : ""));
   }
 
-  private void deleteTopicIfNeeded(StructuredDataSource dataSource, boolean isValidatePhase) {
+  private void deleteTopicIfNeeded(
+      final StructuredDataSource dataSource,
+      final boolean isValidatePhase) {
     if (!isValidatePhase && deleteTopic) {
       try {
         ExecutorUtil.executeWithRetries(
@@ -90,7 +92,7 @@ public class DropSourceCommand implements DdlCommand {
                     Collections.singletonList(
                         dataSource.getKsqlTopic().getKafkaTopicName())),
             ExecutorUtil.RetryBehaviour.ALWAYS);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new KsqlException("Could not delete the corresponding kafka topic: "
             + dataSource.getKsqlTopic().getKafkaTopicName(), e);
       }
@@ -101,7 +103,7 @@ public class DropSourceCommand implements DdlCommand {
               () -> schemaRegistryClient.deleteSubject(
                   sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX),
               ExecutorUtil.RetryBehaviour.ALWAYS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
           throw new KsqlException("Could not clean up the schema registry for topic: "
               + sourceName, e);
         }

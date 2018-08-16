@@ -49,6 +49,14 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
+/**
+ * By default unit tests compare the most recent expected topologies against the most recent
+ * generated directory of topology files.  To run the test against an older version of generated
+ * topology files you'll need set the system property "topology.dir" via the following
+ *
+ * Run -> Edit Configurations.. -> QueryTranslationTest -> VM options then add "-Dtopology.dir="some directory"
+ */
+
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();

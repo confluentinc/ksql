@@ -111,7 +111,8 @@ public class KsqlContext {
 
     for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+        final PersistentQueryMetadata persistentQueryMetadata
+            = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.start(ksqlEngine.getMetrics());
       } else {
         System.err.println("Ignoring statemenst: " + sql);

@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.eq;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -48,7 +49,9 @@ import java.util.Optional;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -65,11 +68,16 @@ public class StandaloneExecutorTest {
   private final Map<String, Object> props = ImmutableMap.of();
   private final QualifiedName qualifiedName = QualifiedName.of("Test");
 
-  final Query query = EasyMock.niceMock(Query.class);
-  final QueryMetadata persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
+  private Query query;
+  private QueryMetadata persistentQueryMetadata;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void before() throws IOException {
+    query = EasyMock.niceMock(Query.class);
+    persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     queriesFile = TestUtils.tempFile().getPath();
     standaloneExecutor =
         new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader);
@@ -80,6 +88,9 @@ public class StandaloneExecutorTest {
 
   @Test
   public void shouldFailDropStatement() throws IOException {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Ignoring statements: DROP\n"
+        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
 
     EasyMock.expect(engine.parseStatements(anyString(), anyObject()))
         .andReturn(ImmutableList.of(new Pair<>("CS",
@@ -92,12 +103,7 @@ public class StandaloneExecutorTest {
 
 
     EasyMock.replay(engine);
-    try {
-      standaloneExecutor.start();
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Ignoring statements: DROP\n"
-          + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode."));
-    }
+    standaloneExecutor.start();
   }
 
   @Test

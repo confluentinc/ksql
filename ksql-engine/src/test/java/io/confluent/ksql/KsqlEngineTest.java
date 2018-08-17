@@ -66,13 +66,14 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-
+import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -397,6 +398,7 @@ public class KsqlEngineTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldParseMultipleStatements() throws IOException {
     final String statementsString = new String(Files.readAllBytes(
         Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
@@ -404,12 +406,16 @@ public class KsqlEngineTest {
     final List<PreparedStatement> parsedStatements =
         ksqlEngine.parseStatements(statementsString, new MetaStoreImpl(new TestFunctionRegistry()), false);
     assertThat(parsedStatements.size(), equalTo(7));
-    assertThat(parsedStatements.get(0).getStatement(), instanceOf(CreateStream.class));
-    assertThat(parsedStatements.get(1).getStatement(), instanceOf(SetProperty.class));
-    assertThat(parsedStatements.get(2).getStatement(), instanceOf(CreateTable.class));
-    assertThat(parsedStatements.get(3).getStatement(), instanceOf(CreateStreamAsSelect.class));
-    assertThat(parsedStatements.get(5).getStatement(), instanceOf(UnsetProperty.class));
-
+    final List<Statement> statements = parsedStatements.stream().map(PreparedStatement::getStatement).collect(Collectors.toList());
+    assertThat(statements, Matchers.contains(
+        instanceOf(CreateStream.class),
+        instanceOf(SetProperty.class),
+        instanceOf(CreateTable.class),
+        instanceOf(CreateStreamAsSelect.class),
+        instanceOf(CreateStreamAsSelect.class),
+        instanceOf(UnsetProperty.class),
+        instanceOf(CreateStreamAsSelect.class)
+    ));
   }
 
 }

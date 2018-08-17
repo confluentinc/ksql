@@ -76,14 +76,10 @@ public class StandaloneExecutor implements Executable {
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
   }
 
-
-
-  // Define a suitable 'handler' interface:
   private interface Handler<T extends Statement> {
     void handle(StandaloneExecutor executor, String queryString, T statement);
   }
 
-  // Build your static & immutable map of handler functions:
   private static final Map<Class<? extends Statement>, Handler<Statement>> HANDLERS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
           .put(SetProperty.class,

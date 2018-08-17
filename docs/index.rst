@@ -59,6 +59,11 @@ Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed
 
 ---------------------
 
+.. figure:: img/ksql-architecture-and-components.png
+  :width:  960pt
+  :height: 540pt
+  :align: center
+
 KSQL Server
     The KSQL server runs the engine that executes KSQL queries. This includes processing, reading, and writing data to
     and from the target Kafka cluster.
@@ -72,6 +77,8 @@ KSQL CLI
     client to the KSQL server. For production scenarios you may also configure KSQL servers to run in non-interactive
     "headless" configuration, thereby preventing KSQL CLI access.
 
+KSQL servers, clients, queries, and applications run outside of Kafka brokers,
+in separate JVM instances, or in separate clusters entirely. 
 
 .. raw:: html
 

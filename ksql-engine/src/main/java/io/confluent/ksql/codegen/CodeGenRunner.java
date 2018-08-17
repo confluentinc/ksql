@@ -57,7 +57,8 @@ public class CodeGenRunner {
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
-      "java.util.ArrayList");
+      "java.util.ArrayList",
+      "io.confluent.ksql.codegen.helpers.*");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;

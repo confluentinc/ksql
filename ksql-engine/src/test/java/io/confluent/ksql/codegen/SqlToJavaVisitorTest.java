@@ -69,7 +69,7 @@ public class SqlToJavaVisitorTest {
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
-        equalTo("((Double) ((java.util.List)TEST1_COL4).get(((int)(Integer.parseInt(\"0\"))) - 1))"));
+        equalTo("((Double) (ArrayGet.getItem(((java.util.List) TEST1_COL4), (int)(Integer.parseInt(\"0\")), false)))"));
   }
 
   @Test

@@ -544,19 +544,13 @@ public class SqlToJavaVisitor {
           SchemaUtil.getJavaType(internalSchema).getCanonicalName();
       switch (internalSchema.type()) {
         case ARRAY:
-          final String indexString =
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG)
-                  ? String.format("((int)(%s))",
-                  process(node.getIndex(), unmangleNames).getLeft())
-                  : String.format("((int)(%s)) - 1",
-                      process(node.getIndex(), unmangleNames).getLeft());
-
           return new Pair<>(
-              String.format("((%s) ((%s)%s).get(%s))",
+              String.format("((%s) (ArrayGet.getItem(((%s) %s), (int)(%s), %s)))",
                   SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
                   internalSchemaJavaType,
                   process(node.getBase(), unmangleNames).getLeft(),
-                  indexString
+                  process(node.getIndex(), unmangleNames).getLeft(),
+                  ksqlConfig.getBoolean(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG)
               ),
               internalSchema.valueSchema()
           );

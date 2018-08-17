@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 
@@ -49,7 +48,6 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.rowQueue = rowQueue;
-//    kafkaStreams.setStateListener(new QueryStateListener());
   }
 
   public boolean isRunning() {

@@ -8,6 +8,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -23,6 +24,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,6 +38,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.Session;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -163,6 +166,8 @@ public class WSQueryEndpointTest {
     expect(ksqlEngine.buildMultipleQueries(statement, ksqlConfig, properties))
         .andReturn(Collections.singletonList(queryMetadata))
         .anyTimes();
+    final Metrics metrics = MetricsTestUtil.getMetrics();
+    expect(ksqlEngine.getMetrics()).andReturn(metrics);
 
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
     queryMetadata.setLimitHandler(anyObject());
@@ -170,6 +175,8 @@ public class WSQueryEndpointTest {
     expect(queryMetadata.getKafkaStreams()).andReturn(kafkaStreams).anyTimes();
     expect(queryMetadata.getQueryApplicationId()).andReturn("foo").anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQ).anyTimes();
+    queryMetadata.start(anyObject());
+    expectLastCall();
 
     kafkaStreams.setUncaughtExceptionHandler(anyObject());
     expectLastCall().once();

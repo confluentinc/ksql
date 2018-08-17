@@ -64,7 +64,12 @@ public class TimestampToStringTest {
 
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowIfTooManyParameters() {
-    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "extra");
+    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "UTC", "extra");
+  }
+
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowIfInvalidTimeZone() {
+    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "invalid");
   }
 
   @Test(expected = KsqlFunctionException.class)

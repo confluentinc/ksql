@@ -1101,8 +1101,8 @@ Scalar functions
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
 |                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
-|                        |                                                            | the string representation of the timestamp in     |
+| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS'    | Converts a BIGINT millisecond timestamp value into|
+|                        |    [, TIMEZONE])``                                         | the string representation of the timestamp in     |
 |                        |                                                            | the given format. Single quotes in the            |
 |                        |                                                            | timestamp format can be escaped with '', for      |
 |                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |

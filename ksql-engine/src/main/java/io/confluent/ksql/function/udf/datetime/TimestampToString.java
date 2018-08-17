@@ -28,18 +28,25 @@ public class TimestampToString implements Kudf {
 
   @Override
   public Object evaluate(final Object... args) {
-    if (args.length != 2) {
-      throw new KsqlFunctionException("TimestampToString udf should have two input argument:"
-                                      + " date value and format.");
+    if (args.length < 2) {
+      throw new KsqlFunctionException("TimestampToString udf should have at least "
+                                    + "two input arguments: date value and format.");
+    }
+
+    if (args.length > 3) {
+      throw new KsqlFunctionException("TimestampToString udf should have at most "
+                                    + "three input arguments: date value, format and zone.");
     }
 
     try {
       ensureInitialized(args);
 
       final Timestamp timestamp = new Timestamp((Long) args[0]);
+
       return timestamp.toLocalDateTime()
-          .atZone(ZoneId.systemDefault())
+          .atZone(args.length == 3 ? ZoneId.of(args[2].toString()) : ZoneId.systemDefault())
           .format(threadSafeFormatter);
+
     } catch (final Exception e) {
       throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] + " , "
                                       + args[1] + ") : " + e.getMessage(), e);

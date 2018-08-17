@@ -23,20 +23,25 @@ import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-public class ThreadLocalDeserializer
-    extends ThreadLocalCloseable<Deserializer<GenericRow>>
-    implements Deserializer<GenericRow> {
+public class ThreadLocalDeserializer implements Deserializer<GenericRow> {
+  private final ThreadLocalCloseable<Deserializer<GenericRow>> deserializer;
+
   public ThreadLocalDeserializer(final Supplier<Deserializer<GenericRow>> initialValueSupplier) {
-    super(initialValueSupplier);
+    deserializer = new ThreadLocalCloseable<>(initialValueSupplier);
   }
 
   @Override
   public void configure(Map<String, ?> properties, boolean isKey) {
-    local.get().configure(properties, isKey);
+    deserializer.get().configure(properties, isKey);
   }
 
   @Override
   public GenericRow deserialize(String topicName, byte[] record) {
-    return local.get().deserialize(topicName, record);
+    return deserializer.get().deserialize(topicName, record);
+  }
+
+  @Override
+  public void close() {
+    deserializer.close();
   }
 }

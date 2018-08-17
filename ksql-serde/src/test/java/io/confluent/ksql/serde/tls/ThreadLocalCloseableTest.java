@@ -32,22 +32,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class ThreadLocalCloseableTest {
-  private static class TestCloseable<T extends Closeable> extends ThreadLocalCloseable<T> {
-    TestCloseable(final Supplier<T> initialValueSupplier) {
-      super(initialValueSupplier);
-    }
-
-    void ping() {
-      local.get();
-    }
-  };
-
   @Test
   public void shouldCloseAllInstances() {
     final Object lock = new Object();
 
     final List<Closeable> closeables = new LinkedList<>();
-    final TestCloseable<Closeable> testCloseable = new TestCloseable<>(
+    final ThreadLocalCloseable<Closeable> testCloseable = new ThreadLocalCloseable<>(
         () -> {
           synchronized (lock) {
             final Closeable closeable = mock(Closeable.class);
@@ -67,7 +57,7 @@ public class ThreadLocalCloseableTest {
     final int iterations = 3;
     final List<Thread> threads = new LinkedList<>();
     for (int i = 0; i < iterations; i++) {
-      threads.add(new Thread(testCloseable::ping));
+      threads.add(new Thread(testCloseable::get));
       threads.get(threads.size() - 1).start();
     }
 

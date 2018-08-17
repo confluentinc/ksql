@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public abstract class ThreadLocalCloseable<T extends Closeable> implements Closeable {
+public class ThreadLocalCloseable<T extends Closeable> implements Closeable {
   private final List<T> created;
   final ThreadLocal<T> local;
 
@@ -35,6 +35,10 @@ public abstract class ThreadLocalCloseable<T extends Closeable> implements Close
         return created.get(created.size() - 1);
       }
     };
+  }
+
+  public T get() {
+    return local.get();
   }
 
   @Override

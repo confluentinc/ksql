@@ -23,21 +23,25 @@ import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Serializer;
 
-public class ThreadLocalSerializer
-    extends ThreadLocalCloseable<Serializer<GenericRow>>
-    implements Serializer<GenericRow> {
+public class ThreadLocalSerializer implements Serializer<GenericRow> {
+  private final ThreadLocalCloseable<Serializer<GenericRow>> serializer;
 
   public ThreadLocalSerializer(final Supplier<Serializer<GenericRow>> initialValueSupplier) {
-    super(initialValueSupplier);
+    serializer = new ThreadLocalCloseable<>(initialValueSupplier);
   }
 
   @Override
   public void configure(Map<String, ?> properties, boolean isKey) {
-    local.get().configure(properties, isKey);
+    serializer.get().configure(properties, isKey);
   }
 
   @Override
   public byte[] serialize(String topicName, GenericRow record) {
-    return local.get().serialize(topicName, record);
+    return serializer.get().serialize(topicName, record);
+  }
+
+  @Override
+  public void close() {
+    serializer.close();
   }
 }

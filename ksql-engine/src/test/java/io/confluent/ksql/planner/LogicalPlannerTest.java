@@ -195,7 +195,6 @@ public class LogicalPlannerTest {
 
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
-    System.out.println();
   }
 
   @Test

@@ -152,10 +152,10 @@ public class KsqlEngineTest {
     } catch (final Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statements :Cannot drop FOO. \n"
-          + "The following queries read from this source: []. \n"
-          + "The following queries write into this source: [CTAS_FOO_1]. \n"
-          + "You need to terminate them before dropping FOO."));
+          "Exception while processing statement: drop table foo;. Error: Cannot drop FOO. \n"
+              + "The following queries read from this source: []. \n"
+              + "The following queries write into this source: [CTAS_FOO_1]. \n"
+              + "You need to terminate them before dropping FOO."));
     }
   }
 
@@ -208,7 +208,6 @@ public class KsqlEngineTest {
 
     final List<PreparedStatement> parsedStatements = ksqlEngine.parseStatements(
         runScriptContent.toString(), metaStore.clone(), true);
-
     assertThat(parsedStatements.size(), equalTo(3));
 
   }

@@ -56,6 +56,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
@@ -486,6 +487,8 @@ public class KsqlEngine implements Closeable {
       );
       return new PreparedStatement(statementString, statement);
     } else if (statement instanceof SetProperty) {
+      return new PreparedStatement(statementString, statement);
+    } else if (statement instanceof UnsetProperty) {
       return new PreparedStatement(statementString, statement);
     }
     return null;

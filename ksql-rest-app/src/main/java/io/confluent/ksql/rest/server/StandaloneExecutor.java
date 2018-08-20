@@ -29,8 +29,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -159,7 +157,6 @@ public class StandaloneExecutor implements Executable {
     throw new KsqlException(message);
   }
 
-  // A little casting magic in a single place:
   private static <T extends Statement> Handler<Statement> castHandler(
       final Handler<? super T> handler,
       final Class<T> type) {
@@ -221,10 +218,9 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
-  // Then executeStatements can simply be:
   private void executeStatements(final String queries) {
     final List<Pair<String, Statement>> statementPairs =
-        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
+        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone(), false);
     for (final Pair<String, Statement> statementPair: statementPairs) {
       final Statement statement = statementPair.getRight();
       HANDLERS
@@ -238,9 +234,7 @@ public class StandaloneExecutor implements Executable {
       final String statementString,
       final Map<String, Object> configProperties) {
     final Query query = getQueryFromStatement(statementString, statement);
-    final QueryMetadata queryMetadata =
-        ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-    validateCsasCtas(queryMetadata, statement);
+    ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
     if (queryMetadataList.size() != 1
@@ -258,19 +252,6 @@ public class StandaloneExecutor implements Executable {
     } else {
       throw new KsqlException("Only CSAS/CTAS and INSERT INTO are persistent queries: "
           + statementString);
-    }
-  }
-
-  private void validateCsasCtas(final QueryMetadata queryMetadata,
-      final Statement createAsSelect) {
-    if (createAsSelect instanceof CreateStreamAsSelect
-        && queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
-      throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. "
-          + "Please use CREATE TABLE AS SELECT statement instead.");
-    } else if (createAsSelect instanceof CreateTableAsSelect
-        && queryMetadata.getDataSourceType() == DataSourceType.KSTREAM) {
-      throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. "
-          + "Please use CREATE STREAM AS SELECT statement instead.");
     }
   }
 

@@ -43,10 +43,16 @@ public class ArrayGetTest {
     assertThat((String) item, equalTo("one"));
   }
 
-  @Test
-  public void shouldReturnNullForOutOfBound() {
+  @Test(expected = ArrayIndexOutOfBoundsException.class)
+  public void shouldFailForOutOfBound() {
     final Object item = ArrayGet.getItem(sampleList, 5, false);
-    Assert.assertNull(item);
+    Assert.fail();
+  }
+
+  @Test(expected = ArrayIndexOutOfBoundsException.class)
+  public void shouldFailForNegativeIndex() {
+    final Object item = ArrayGet.getItem(sampleList, -1, false);
+    Assert.fail();
   }
 
 }

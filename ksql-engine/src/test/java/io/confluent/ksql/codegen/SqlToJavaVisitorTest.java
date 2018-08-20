@@ -14,6 +14,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -72,6 +73,13 @@ public class SqlToJavaVisitorTest {
         equalTo("((Double) (ArrayGet.getItem(((java.util.List) TEST1_COL4), (int)(Integer.parseInt(\"0\")), false)))"));
   }
 
+  private String getJavaCode(final String query,
+      final Schema schema, final KsqlConfig ksqlConfig) {
+    final Analysis analysis = analyzeQuery(query, metaStore);
+    return new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
+        .process(analysis.getSelectExpressions().get(0));
+  }
+
   @Test
   public void shouldProcessMapExpressionCorrectly() {
     final String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
@@ -79,7 +87,6 @@ public class SqlToJavaVisitorTest {
 
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, ksqlConfig)
         .process(analysis.getSelectExpressions().get(0));
-
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
   }
 

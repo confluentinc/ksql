@@ -153,7 +153,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG,
               ConfigDef.Type.BOOLEAN,
           true,
-          true,
+          false,
               ConfigDef.Importance.LOW,
               KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_DOCS)
   );

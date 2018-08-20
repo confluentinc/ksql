@@ -53,6 +53,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.easymock.EasyMock;
+import org.easymock.Mock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -159,6 +161,7 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testIsNull() throws Exception {
+        // Given:
         final String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
@@ -194,19 +197,32 @@ public class CodeGenRunnerTest {
 
     @Test
     public void shouldHandleMultiDimensionalArrayWithBaseStartingFrom1() throws Exception {
-        final KsqlConfig localKsqlConfig =
-            new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG, false));
+        // Given:
+        final KsqlConfig localKsqlConfig = EasyMock.mock(KsqlConfig.class);
+        EasyMock.expect(localKsqlConfig.getBoolean(EasyMock.eq(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG))).andReturn(false).times(2);
+        EasyMock.replay(localKsqlConfig);
         final CodeGenRunner localCodeGenRunner = new CodeGenRunner(schema, localKsqlConfig, functionRegistry);
         final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-        final ExpressionMetadata expressionEvaluatorMetadata = localCodeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0));
-        final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
-        final List<String> innerArray2 = Arrays.asList("item_21", "item_22");
-        final Object[] args = new Object[]{Arrays.asList(innerArray1, innerArray2)};
-        final Object result = expressionEvaluatorMetadata.getExpressionEvaluator().evaluate(args);
+
+        final Object[] arguments = {Arrays.asList(
+            Arrays.asList("item_11", "item_12"),
+            Arrays.asList("item_21", "item_22"))};
+
+        // When:
+        final Object result = executeExpression(simpleQuery, arguments, localCodeGenRunner);
+
+        // Then:
+        EasyMock.verify(localKsqlConfig);
         assertThat(result, instanceOf(String.class));
         assertThat(result, equalTo("item_11"));
+    }
+
+    private Object executeExpression(final String simpleQuery, final Object[] arguments, final CodeGenRunner localCodeGenRunner) throws Exception {
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionMetadata expressionEvaluatorMetadata = localCodeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        return expressionEvaluatorMetadata.getExpressionEvaluator().evaluate(arguments);
     }
 
     @Test

@@ -23,8 +23,8 @@ public final class ArrayGet {
   private ArrayGet() {}
 
   public static Object getItem(final List<?> array, final int index, final boolean isLegacy) {
-    final int currectIndex = isLegacy ? index : index - 1;
-    return array.get(currectIndex);
+    final int correctIndex = isLegacy ? index : index - 1;
+    return array.get(correctIndex);
   }
 
 

@@ -248,7 +248,7 @@ the query with CTRL-C.
 How do I check the health of a KSQL server?
 ===========================================
 
-Using the ``ps`` command to check whether the KSQL server process is running, 
+Use the ``ps`` command to check whether the KSQL server process is running, 
 for example:
 
 .. code:: bash

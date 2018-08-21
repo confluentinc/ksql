@@ -80,7 +80,7 @@ import org.junit.rules.RuleChain;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
-public class CliTest extends TestRunner {
+public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
@@ -107,6 +107,7 @@ public class CliTest extends TestRunner {
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
+  private static TestRunner testRunner;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -131,7 +132,7 @@ public class CliTest extends TestRunner {
         terminal
     );
 
-    TestRunner.setup(localCli, terminal);
+    testRunner = new TestRunner(localCli, terminal);
 
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
@@ -147,7 +148,7 @@ public class CliTest extends TestRunner {
   }
 
   private static void createKStream(final TestDataProvider dataProvider) {
-    test(
+    testRunner.test(
         String.format("CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
             dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
         build("Stream created")
@@ -158,11 +159,11 @@ public class CliTest extends TestRunner {
     final TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
     testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
         "1", "0", "0")));
-    testListOrShow("topics", testResult);
-    testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
-    testListOrShow("streams", EMPTY_RESULT);
-    testListOrShow("tables", EMPTY_RESULT);
-    testListOrShow("queries", EMPTY_RESULT);
+    testRunner.testListOrShow("topics", testResult);
+    testRunner.testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
+    testRunner.testListOrShow("streams", EMPTY_RESULT);
+    testRunner.testListOrShow("tables", EMPTY_RESULT);
+    testRunner.testListOrShow("queries", EMPTY_RESULT);
   }
 
   @AfterClass
@@ -208,7 +209,7 @@ public class CliTest extends TestRunner {
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */
-    test(queryString, build("Stream created and running"));
+    testRunner.test(queryString, build("Stream created and running"));
 
     /* Assert Results */
     final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
@@ -220,14 +221,14 @@ public class CliTest extends TestRunner {
   }
 
   private static void terminateQuery(final String queryId) {
-    test(
+    testRunner.test(
         String.format("terminate %s", queryId),
         build("Query terminated.")
     );
   }
 
   private static void dropStream(final String name) {
-    test(
+    testRunner.test(
         String.format("drop stream %s", name),
         build("Source " + name + " was dropped. ")
     );
@@ -235,13 +236,13 @@ public class CliTest extends TestRunner {
 
   private static void selectWithLimit(String selectQuery, final int limit, final TestResult.OrderedResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
-    test(selectQuery, expectedResults);
+    testRunner.test(selectQuery, expectedResults);
   }
 
   @Test
   public void testPrint() {
     final Thread thread =
-        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+        new Thread(() -> testRunner.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
     thread.start();
 
     try {
@@ -253,36 +254,36 @@ public class CliTest extends TestRunner {
 
   @Test
   public void testPropertySetUnset() {
-    test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
-    test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
-    test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
-    test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
-    test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
-    test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
-    test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
+    testRunner.test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
+    testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
+    testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
+    testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    testRunner.test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
 
-    test("unset 'application.id'", EMPTY_RESULT);
-    test("unset 'producer.batch.size'", EMPTY_RESULT);
-    test("unset 'max.request.size'", EMPTY_RESULT);
-    test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
-    test("unset 'enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
-    test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
-    test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
-    test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
-    test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'ksql.service.id'", EMPTY_RESULT);
+    testRunner.test("unset 'application.id'", EMPTY_RESULT);
+    testRunner.test("unset 'producer.batch.size'", EMPTY_RESULT);
+    testRunner.test("unset 'max.request.size'", EMPTY_RESULT);
+    testRunner.test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
+    testRunner.test("unset 'enable.auto.commit'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.service.id'", EMPTY_RESULT);
 
-    testListOrShow("properties", build(validStartUpConfigs()), false);
+    testRunner.testListOrShow("properties", build(validStartUpConfigs()), false);
   }
 
   @Test
   public void testDescribe() {
-    test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
+    testRunner.test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
         build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
@@ -296,7 +297,7 @@ public class CliTest extends TestRunner {
     rows.add(Arrays.asList("TIMESTAMP", "VARCHAR(STRING)"));
     rows.add(Arrays.asList("PRICEARRAY", "ARRAY<DOUBLE>"));
     rows.add(Arrays.asList("KEYVALUEMAP", "MAP<STRING, DOUBLE>"));
-    test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
+    testRunner.test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
   }
 
   @Test
@@ -519,7 +520,7 @@ public class CliTest extends TestRunner {
     rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
     rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
     rows.add(Arrays.asList("TOPK", "AGGREGATE"));
-    testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
+    testRunner.testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 
   @Test

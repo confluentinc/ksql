@@ -48,13 +48,12 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TestKsqlRestApp;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
-import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +61,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -76,6 +74,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -83,11 +82,16 @@ import org.junit.experimental.categories.Category;
 @Category({IntegrationTest.class})
 public class CliTest extends TestRunner {
 
+  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+
+  private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
+      .builder(CLUSTER::bootstrapServers)
+      .build();
+
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+
   private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_KSQL_TOPIC_NAME;
-  private static final int PORT = 9098;
-  private static final String LOCAL_REST_SERVER_ADDR = "http://localhost:" + PORT;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
@@ -103,11 +107,10 @@ public class CliTest extends TestRunner {
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
-  private static KsqlRestApplication restServer;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    final KsqlRestClient restClient = new KsqlRestClient(LOCAL_REST_SERVER_ADDR);
+    final KsqlRestClient restClient = createRestClient();
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();
@@ -116,16 +119,10 @@ public class CliTest extends TestRunner {
     // TODO: add remote cli test cases
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
-    final KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
-    commandTopicName = restServerConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-    restServer = KsqlRestApplication.buildApplication(restServerConfig,
-                                                      EasyMock.mock(VersionCheckerAgent.class)
-    );
-
-    restServer.start();
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
@@ -178,30 +175,11 @@ public class CliTest extends TestRunner {
 
     localCli.close();
     terminal.close();
-    restServer.stop();
-  }
-
-  private static Map<String, Object> genDefaultConfigMap() {
-    final Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-    configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
-    configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
-    return configMap;
-  }
-
-  private static Properties defaultServerProperties() {
-    final Properties serverProperties = new Properties();
-    serverProperties.putAll(genDefaultConfigMap());
-    return serverProperties;
   }
 
   private static Map<String, Object> validStartUpConfigs() {
     // TODO: these configs should be set with other configs on start-up, rather than setup later.
-    final Map<String, Object> startConfigs = genDefaultConfigMap();
+    final Map<String, Object> startConfigs = new HashMap<>(REST_APP.getBaseConfig());
     startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
     startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
     startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
@@ -261,7 +239,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testPrint() throws InterruptedException {
+  public void testPrint() {
     final Thread thread =
         new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
     thread.start();
@@ -322,7 +300,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectStar() throws Exception {
+  public void testSelectStar() {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),
@@ -505,7 +483,7 @@ public class CliTest extends TestRunner {
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, new KsqlRestClient(LOCAL_REST_SERVER_ADDR, Collections.emptyMap()), terminal);
+    new Cli(1L, 1L, createRestClient(), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
@@ -522,7 +500,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, createRestClient());
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -618,5 +596,9 @@ public class CliTest extends TestRunner {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  private static KsqlRestClient createRestClient() {
+    return new KsqlRestClient(REST_APP.getListeners().get(0).toString());
   }
 }

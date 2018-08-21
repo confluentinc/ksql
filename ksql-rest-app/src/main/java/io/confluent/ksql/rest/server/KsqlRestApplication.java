@@ -61,17 +61,21 @@ import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
-import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
@@ -84,6 +88,7 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
@@ -166,15 +171,46 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   @Override
-  public void stop() throws Exception {
-    ksqlEngine.close();
-    commandRunner.close();
+  public void stop() {
     try {
-      commandRunnerThread.join();
-    } catch (final InterruptedException exception) {
-      log.error("Interrupted while waiting for CommandRunner thread to complete", exception);
+      ksqlEngine.close();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for Ksql Engine to close", e);
     }
-    super.stop();
+
+    try {
+      commandRunner.close();
+      commandRunnerThread.join();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for CommandRunner thread to complete", e);
+    }
+
+    try {
+      super.stop();
+    } catch (final Exception e) {
+      log.error("Exception while stopping rest server", e);
+    }
+  }
+
+  public List<URL> getListeners() {
+    return Arrays.stream(server.getConnectors())
+        .filter(connector -> connector instanceof ServerConnector)
+        .map(ServerConnector.class::cast)
+        .map(connector -> {
+          try {
+            final String protocol = new HashSet<>(connector.getProtocols())
+                .stream()
+                .map(String::toLowerCase)
+                .anyMatch(s -> s.equals("ssl")) ? "https" : "http";
+
+            final int localPort = connector.getLocalPort();
+
+            return new URL(protocol, "localhost", localPort, "");
+          } catch (final Exception e) {
+            throw new RuntimeException("Malformed listener", e);
+          }
+        })
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -250,8 +286,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String commandTopic =
-        restConfig.getCommandTopic(ksqlServiceId);
+    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
     ensureCommandTopic(restConfig, topicClient, commandTopic);
 
     final Map<String, Expression> commandTopicProperties = new HashMap<>();
@@ -447,14 +482,15 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
     final String version = Version.getVersion();
-    final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
-        .get(0)
-        .replace("0.0.0.0", "localhost");
+    final List<URL> listeners = getListeners();
+    final String allListeners = listeners.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", "));
 
-    writer.printf("Server %s listening on %s%n", version, listener);
+    writer.printf("Server %s listening on %s%n", version, allListeners);
     writer.println();
     writer.println("To access the KSQL CLI, run:");
-    writer.println("ksql " + listener);
+    writer.println("ksql " + listeners.get(0));
     writer.println();
 
     writer.flush();

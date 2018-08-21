@@ -557,7 +557,6 @@ class EndToEndEngineTestUtil {
 
     final Map<String, Object> config = new HashMap<String, Object>() {{
       put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
-      put("application.id", "KSQL-TEST");
       put("commit.interval.ms", 0);
       put("cache.max.bytes.buffering", 0);
       put("auto.offset.reset", "earliest");

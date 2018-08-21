@@ -289,7 +289,6 @@ public class SecureIntegrationTest {
   private Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
-    configs.put("application.id", "KSQL");
     configs.put("commit.interval.ms", 0);
     configs.put("cache.max.bytes.buffering", 0);
     configs.put("auto.offset.reset", "earliest");

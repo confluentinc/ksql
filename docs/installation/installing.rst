@@ -11,8 +11,11 @@ as a part of the |cp| bundle.
 KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
-    You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
-    production. These images are coming soon.
+    You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
+    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+    To start KSQL containers in configurations like "KSQL Headless Server" and
+    "Interactive Server with Interceptors", see
+    :ref:`Docker Configuration Parameters <config_reference#ksql-server>`.
 
 .. contents::
     :local:

@@ -35,9 +35,7 @@ public final class TimeWindowsMatcher {
         }
 
         final TimeWindows actual = (TimeWindows)argument;
-        return actual.size() == expected.size()
-            && actual.advanceMs == expected.advanceMs
-            && actual.gracePeriodMs() == expected.gracePeriodMs();
+        return actual.equals(expected);
       }
 
       @Override

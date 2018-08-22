@@ -93,7 +93,7 @@ public class StructuredDataSourceNode
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
       @JsonProperty("schema") final Schema schema
   ) {
-    super(id);
+    super(id, structuredDataSource.getDataSourceType());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
     this.schema = schema;

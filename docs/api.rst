@@ -33,7 +33,7 @@ command:
 .. code:: bash
 
    curl -X "POST" "http://localhost:8088/ksql" \
-        -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+        -H "Content-Type: application/json; charset=utf-8" \
         -d $'{
      "ksql": "LIST STREAMS;",
      "streamsProperties": {}
@@ -44,7 +44,7 @@ Here's an example request that retrieves streaming data from ``TEST_STREAM``:
 .. code:: bash
 
    curl -X "POST" "http://localhost:8088/query" \
-        -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+        -H "Content-Type: application/json; charset=utf-8" \
         -d $'{
      "ksql": "SELECT * FROM TEST_STREAM;",
      "streamsProperties": {}
@@ -179,7 +179,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 
       POST /ksql HTTP/1.1
       Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
 
       {
         "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice'",
@@ -193,7 +193,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    .. code:: http
 
       HTTP/1.1 200 OK
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
 
       [
         {
@@ -242,7 +242,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
 
       POST /query HTTP/1.1
       Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
 
       {
         "ksql": "SELECT * FROM pageviews;",
@@ -256,7 +256,7 @@ The query resource lets you stream the output records of a ``SELECT`` statement 
    .. code:: http
 
       HTTP/1.1 200 OK
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
       Transfer-Encoding: chunked
 
       ...
@@ -290,14 +290,14 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 
       GET /status/stream/PAGEVIEWS/create HTTP/1.1
       Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+      Content-Type: application/json
 
    **Example response**
 
    .. code:: http
 
       HTTP/1.1 200 OK
-      Content-Type application/vnd.ksql.v1+json
+      Content-Type application/json
 
       {
         "status": "SUCCESS",

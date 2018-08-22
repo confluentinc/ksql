@@ -68,16 +68,9 @@ public class StreamedQueryResource {
   }
 
   @POST
-<<<<<<< Updated upstream
-  @Consumes(MediaType.APPLICATION_JSON)
   public Response streamQuery(final KsqlRequest request) throws Exception {
     final String ksql = request.getKsql();
     final Statement statement;
-=======
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    String ksql = request.getKsql();
-    Statement statement;
->>>>>>> Stashed changes
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }

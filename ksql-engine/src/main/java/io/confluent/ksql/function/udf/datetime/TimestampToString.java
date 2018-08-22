@@ -41,12 +41,12 @@ public class TimestampToString implements Kudf {
     try {
       ensureInitialized(args);
 
+      final ZoneId zoneId = (args.length == 3) ?
+          ZoneId.of(args[2].toString()) : ZoneId.systemDefault();
       final Timestamp timestamp = new Timestamp((Long) args[0]);
-
-      return timestamp.toLocalDateTime()
-          .atZone(args.length == 3 ? ZoneId.of(args[2].toString()) : ZoneId.systemDefault())
+      return timestamp.toInstant()
+          .atZone(zoneId)
           .format(threadSafeFormatter);
-
     } catch (final Exception e) {
       throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] + " , "
                                       + args[1] + ") : " + e.getMessage(), e);

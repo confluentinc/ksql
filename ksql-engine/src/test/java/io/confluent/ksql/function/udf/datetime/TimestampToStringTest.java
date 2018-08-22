@@ -47,6 +47,30 @@ public class TimestampToStringTest {
   }
 
   @Test
+  public void testUTCTimeZone() {
+    // When:
+    final Object result = udf.evaluate(1534353043000L, "yyyy-MM-dd HH:mm:ss", "UTC");
+
+    // Then:
+    assertThat(result, is("2018-08-15 17:10:43"));
+  }
+
+  @Test
+  public void testPSTTimeZone() {
+    // When:
+    final Object result = udf.evaluate(1534353043000L,
+        "yyyy-MM-dd HH:mm:ss", "America/Los_Angeles");
+
+    // Then:
+    assertThat(result, is("2018-08-15 10:10:43"));
+  }
+
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowIfInvalidTimeZone() {
+    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST");
+  }
+
+  @Test
   public void shouldSupportEmbeddedChars() {
     // When:
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
@@ -65,11 +89,6 @@ public class TimestampToStringTest {
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowIfTooManyParameters() {
     udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "UTC", "extra");
-  }
-
-  @Test(expected = KsqlFunctionException.class)
-  public void shouldThrowIfInvalidTimeZone() {
-    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "invalid");
   }
 
   @Test(expected = KsqlFunctionException.class)

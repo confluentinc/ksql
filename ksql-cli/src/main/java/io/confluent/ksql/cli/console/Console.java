@@ -932,7 +932,7 @@ public abstract class Console implements Closeable {
     @Override
     public void execute(final String commandStrippedLine) {
       for (final org.jline.reader.History.Entry historyEntry : lineReader.getHistory()) {
-        writer().printf("%4d: %s%n", historyEntry.index(), historyEntry.line());
+        writer().printf("%4d: %s%n", historyEntry.index() + 1, historyEntry.line());
       }
       flush();
     }

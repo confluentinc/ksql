@@ -290,9 +290,9 @@ public class Cli implements Closeable, AutoCloseable {
         new KsqlParser().getStatements(line);
 
     StringBuilder consecutiveStatements = new StringBuilder();
-    for (final ParsedStatement pair : statements) {
-      final SingleStatementContext statementContext = pair.getStatement();
-      final String statementText = pair.getStatementText();
+    for (final ParsedStatement statement : statements) {
+      final SingleStatementContext statementContext = statement.getStatement();
+      final String statementText = statement.getStatementText();
 
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {

@@ -15,7 +15,7 @@ Docker support
     Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
     To start KSQL containers in configurations like "KSQL Headless Server" and
     "Interactive Server with Interceptors", see
-    :ref:`Docker Configuration Parameters <config_reference#ksql-server>`.
+    :ref:`Docker Configuration Parameters <config_reference>`.
 
 .. contents::
     :local:

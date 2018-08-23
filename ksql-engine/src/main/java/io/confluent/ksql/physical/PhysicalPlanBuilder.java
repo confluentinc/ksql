@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,10 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
@@ -37,7 +37,6 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -96,9 +95,9 @@ public class PhysicalPlanBuilder {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
   }
 
-  public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) {
-    final SchemaKStream resultStream = statementPlanPair
-        .getRight()
+  public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+    final SchemaKStream resultStream = logicalPlanNode
+        .getNode()
         .buildStream(
             builder,
             ksqlConfig,
@@ -133,7 +132,7 @@ public class PhysicalPlanBuilder {
           (KsqlBareOutputNode) outputNode,
           serviceId,
           transientQueryPrefix,
-          statementPlanPair.getLeft()
+          logicalPlanNode.getStatementText()
       );
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
@@ -141,15 +140,15 @@ public class PhysicalPlanBuilder {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
       ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
-          ((KsqlStructuredDataOutputNode) statementPlanPair.getRight()).isDoCreateInto()
+          ((KsqlStructuredDataOutputNode) logicalPlanNode.getNode()).isDoCreateInto()
       );
       return buildPlanForStructuredOutputNode(
-          statementPlanPair.getLeft(),
+          logicalPlanNode.getStatementText(),
           resultStream,
           ksqlStructuredDataOutputNode,
           serviceId,
           persistanceQueryPrefix,
-          statementPlanPair.getLeft());
+          logicalPlanNode.getStatementText());
 
 
     } else {

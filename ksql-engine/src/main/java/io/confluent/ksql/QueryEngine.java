@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -40,13 +41,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
+import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.StringUtil;
@@ -73,29 +74,28 @@ class QueryEngine {
     this.ksqlEngine = ksqlEngine;
   }
 
-
-  List<Pair<String, PlanNode>> buildLogicalPlans(
+  List<LogicalPlanNode> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<Pair<String, Statement>> statementList,
+      final List<PreparedStatement> statementList,
       final KsqlConfig config) {
 
-    final List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
+    final List<LogicalPlanNode> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
     final MetaStore tempMetaStore = metaStore.clone();
 
-    for (final Pair<String, Statement> statementQueryPair : statementList) {
-      if (statementQueryPair.getRight() instanceof Query) {
+    for (final PreparedStatement statement : statementList) {
+      if (statement.getStatement() instanceof Query) {
         final PlanNode logicalPlan = buildQueryLogicalPlan(
-            statementQueryPair.getLeft(),
-            (Query) statementQueryPair.getRight(),
+            statement.getStatementText(),
+            (Query) statement.getStatement(),
             tempMetaStore, config
         );
-        logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
+        logicalPlansList.add(new LogicalPlanNode(statement.getStatementText(), logicalPlan));
       } else {
-        logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), null));
+        logicalPlansList.add(new LogicalPlanNode(statement.getStatementText(), null));
       }
 
-      log.info("Build logical plan for {}.", statementQueryPair.getLeft());
+      log.info("Build logical plan for {}.", statement.getStatementText());
     }
     return logicalPlansList;
   }
@@ -158,8 +158,8 @@ class QueryEngine {
   }
 
   List<QueryMetadata> buildPhysicalPlans(
-      final List<Pair<String, PlanNode>> logicalPlans,
-      final List<Pair<String, Statement>> statementList,
+      final List<LogicalPlanNode> logicalPlans,
+      final List<PreparedStatement> statementList,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
@@ -170,17 +170,14 @@ class QueryEngine {
 
     for (int i = 0; i < logicalPlans.size(); i++) {
 
-      final Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
-      if (statementPlanPair.getRight() == null) {
-        final Statement statement = statementList.get(i).getRight();
+      final LogicalPlanNode statementPlanPair = logicalPlans.get(i);
+      if (statementPlanPair.getNode() == null) {
+        final Statement statement = statementList.get(i).getStatement();
         if (!(statement instanceof DdlStatement)) {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: "
                                   + statement.getClass());
         }
-        handleDdlStatement(
-            statementPlanPair.getLeft(),
-            (DdlStatement) statement
-        );
+        handleDdlStatement(statementPlanPair.getStatementText(), (DdlStatement) statement);
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, statementPlanPair, ksqlConfig,
@@ -194,7 +191,7 @@ class QueryEngine {
 
   private void buildQueryPhysicalPlan(
       final List<QueryMetadata> physicalPlans,
-      final Pair<String, PlanNode> statementPlanPair,
+      final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
@@ -216,7 +213,7 @@ class QueryEngine {
         ksqlEngine.getQueryIdGenerator(),
         new KafkaStreamsBuilderImpl(clientSupplier)
     );
-    physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
+    physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode));
   }
 
 

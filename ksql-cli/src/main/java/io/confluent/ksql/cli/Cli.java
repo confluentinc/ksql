@@ -24,7 +24,9 @@ import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -283,10 +285,15 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void handleStatements(final String line)
       throws InterruptedException, IOException, ExecutionException {
+
+    final List<ParsedStatement> statements =
+        new KsqlParser().getStatements(line);
+
     StringBuilder consecutiveStatements = new StringBuilder();
-    for (final SqlBaseParser.SingleStatementContext statementContext :
-        new KsqlParser().getStatements(line)) {
-      final String statementText = KsqlEngine.getStatementString(statementContext);
+    for (final ParsedStatement pair : statements) {
+      final SingleStatementContext statementContext = pair.getStatement();
+      final String statementText = pair.getStatementText();
+
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         consecutiveStatements = printOrDisplayQueryResults(

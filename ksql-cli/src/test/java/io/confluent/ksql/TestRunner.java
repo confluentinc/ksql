@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,33 +25,31 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.test.TestUtils;
 
-public abstract class TestRunner {
+public final class TestRunner {
+  private final Cli localCli;
+  private final TestTerminal testTerminal;
 
-
-  private static Cli localCli;
-  private static TestTerminal testTerminal;
-
-  public static void setup(final Cli localCli, final TestTerminal testTerminal) {
-    Objects.requireNonNull(localCli);
-    Objects.requireNonNull(testTerminal);
-    TestRunner.localCli = localCli;
-    TestRunner.testTerminal = testTerminal;
+  TestRunner(final Cli localCli, final TestTerminal testTerminal) {
+    this.localCli = Objects.requireNonNull(localCli, "localCli");
+    this.testTerminal = Objects.requireNonNull(testTerminal, "testTerminal");
   }
 
-  protected static void testListOrShow(final String commandSuffix, final TestResult.OrderedResult expectedResult) {
+  void testListOrShow(final String commandSuffix, final TestResult.OrderedResult expectedResult) {
     testListOrShow(commandSuffix, expectedResult, true);
   }
 
-  protected static void testListOrShow(final String commandSuffix, final TestResult expectedResult, final boolean requireOrder) {
+  void testListOrShow(final String commandSuffix, final TestResult expectedResult,
+      final boolean requireOrder) {
     test("list " + commandSuffix, expectedResult, requireOrder);
     test("show " + commandSuffix, expectedResult, requireOrder);
   }
 
-  protected static void test(final String command, final TestResult.OrderedResult expectedResult) {
+  void test(final String command, final TestResult.OrderedResult expectedResult) {
     test(command, expectedResult, true);
   }
 
-  protected static void test(final String command, final TestResult expectedResult, final boolean requireOrder) {
+  private void test(final String command, final TestResult expectedResult,
+      final boolean requireOrder) {
     run(command, requireOrder);
     final Collection<List<String>> finalResults = new ArrayList<>();
     try {
@@ -69,7 +67,7 @@ public abstract class TestRunner {
     }
   }
 
-  protected static TestResult run(String command, final boolean requireOrder) throws CliTestFailedException {
+  TestResult run(String command, final boolean requireOrder) {
     try {
       if (!command.endsWith(";")) {
         command += ";";
@@ -79,12 +77,11 @@ public abstract class TestRunner {
       localCli.handleLine(command);
       return testTerminal.getTestResult();
     } catch (final Exception e) {
-      throw new CliTestFailedException(e);
+      throw new AssertionError("Failed to run command: " + command, e);
     }
   }
 
-  protected static TestResult run(final String command) throws CliTestFailedException {
+  public TestResult run(final String command) {
     return run(command, false);
   }
-
 }

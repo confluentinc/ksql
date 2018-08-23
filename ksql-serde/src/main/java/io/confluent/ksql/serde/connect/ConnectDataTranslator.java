@@ -74,8 +74,8 @@ public class ConnectDataTranslator implements DataTranslator {
                             final Schema connectSchema,
                             final Schema.Type[] validTypes) {
     // don't use stream here
-    for (int i = 0; i < validTypes.length; i++) {
-      if (connectSchema.type().equals(validTypes[i])) {
+    for (final Schema.Type type : validTypes) {
+      if (connectSchema.type().equals(type)) {
         return;
       }
     }

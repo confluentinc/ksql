@@ -170,17 +170,17 @@ class QueryEngine {
 
     for (int i = 0; i < logicalPlans.size(); i++) {
 
-      final LogicalPlanNode statementPlanPair = logicalPlans.get(i);
-      if (statementPlanPair.getNode() == null) {
+      final LogicalPlanNode node = logicalPlans.get(i);
+      if (node.getNode() == null) {
         final Statement statement = statementList.get(i).getStatement();
         if (!(statement instanceof DdlStatement)) {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: "
                                   + statement.getClass());
         }
-        handleDdlStatement(statementPlanPair.getStatementText(), (DdlStatement) statement);
+        handleDdlStatement(node.getStatementText(), (DdlStatement) statement);
       } else {
         buildQueryPhysicalPlan(
-            physicalPlans, statementPlanPair, ksqlConfig,
+            physicalPlans, node, ksqlConfig,
             overriddenProperties, clientSupplier, updateMetastore
         );
       }

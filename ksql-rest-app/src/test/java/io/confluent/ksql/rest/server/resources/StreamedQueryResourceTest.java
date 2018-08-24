@@ -65,6 +65,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Test;
 
@@ -167,7 +168,8 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING);
+    expect(mockKafkaStreams.state()).andReturn(State.RUNNING).once();
+    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
     mockKafkaStreams.close();
     expectLastCall();
     mockKafkaStreams.cleanUp();

@@ -35,6 +35,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -45,9 +46,11 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
@@ -102,6 +105,9 @@ public class QueryStreamWriterTest {
 
     kStreams.setUncaughtExceptionHandler(capture(ehCapture));
     expectLastCall();
+    kStreams.setStateListener(anyObject());
+    expectLastCall();
+    expect(kStreams.state()).andReturn(State.RUNNING);
 
     expect(queryMetadata.getKafkaStreams()).andReturn(kStreams).anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
@@ -109,7 +115,8 @@ public class QueryStreamWriterTest {
 
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
-
+    final Metrics metrics = MetricsTestUtil.getMetrics();
+    expect(ksqlEngine.getMetrics()).andReturn(metrics);
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();

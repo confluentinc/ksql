@@ -8,7 +8,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -42,6 +41,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
 import org.junit.Before;
@@ -172,6 +172,9 @@ public class WSQueryEndpointTest {
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
     queryMetadata.setLimitHandler(anyObject());
     expectLastCall().once();
+    queryMetadata.registerQueryStateListener(anyObject());
+    expectLastCall();
+    expect(kafkaStreams.state()).andReturn(State.RUNNING).anyTimes();
     expect(queryMetadata.getKafkaStreams()).andReturn(kafkaStreams).anyTimes();
     expect(queryMetadata.getQueryApplicationId()).andReturn("foo").anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQ).anyTimes();

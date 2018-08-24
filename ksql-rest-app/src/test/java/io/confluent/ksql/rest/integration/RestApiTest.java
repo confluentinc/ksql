@@ -59,7 +59,7 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@Category(IntegrationTest.class)
+@Category({IntegrationTest.class})
 public class RestApiTest {
   private static final IntegrationTestHarness testHarness = new IntegrationTestHarness();
   private static KsqlRestApplication restApplication;
@@ -103,28 +103,27 @@ public class RestApiTest {
   public void shouldExecuteStreamingQueryWithV1ContentType() {
     final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;", pageviewsStream),
                                                 Collections.emptyMap());
-    final Response response = restClient.target(serverAddress)
+    try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(Versions.KSQL_V1_JSON)
         .header("Content-Type", Versions.KSQL_V1_JSON)
-        .post(Entity.json(request));
-
-    assertEquals(200, response.getStatus());
-    response.close();
+        .post(Entity.json(request))) {
+      assertEquals(200, response.getStatus());
+    }
   }
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
     final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;", pageviewsStream),
                                                 Collections.emptyMap());
-    final Response response = restClient.target(serverAddress)
+    try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(MediaType.APPLICATION_JSON_TYPE)
         .header("Content-Type", MediaType.APPLICATION_JSON_TYPE)
-        .post(Entity.json(request));
+        .post(Entity.json(request))) {
 
-    assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-    response.close();
+      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+    }
   }
 
   @After

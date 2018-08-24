@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlConfig;
@@ -74,7 +75,14 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
     this.ksqlEngine = ksqlEngine;
 
-    queryMetadata.start(ksqlEngine.getMetrics());
+    queryMetadata.registerQueryStateListener(
+        new QueryStateListener(
+            ksqlEngine.getMetrics(),
+            queryMetadata.getKafkaStreams(),
+            queryMetadata.getQueryApplicationId()
+        )
+    );
+    queryMetadata.start();
   }
 
   @Override
@@ -115,7 +123,7 @@ class QueryStreamWriter implements StreamingOutput {
       outputException(out, exception);
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
-      queryMetadata.close(ksqlEngine.getMetrics());
+      queryMetadata.close();
       queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }

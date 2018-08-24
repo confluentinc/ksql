@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.util.KsqlConfig;
@@ -66,7 +67,14 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
     final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
-    queryMetadata.start(ksqlEngine.getMetrics());
+    queryMetadata.registerQueryStateListener(
+        new QueryStateListener(
+            ksqlEngine.getMetrics(),
+            queryMetadata.getKafkaStreams(),
+            queryMetadata.getQueryApplicationId()
+        )
+    );
+    queryMetadata.start();
 
     subscriber.onSubscribe(subscription);
   }
@@ -106,7 +114,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
       if (!closed) {
         closed = true;
         log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-        queryMetadata.close(ksqlEngine.getMetrics());
+        queryMetadata.close();
         ksqlEngine.removeTemporaryQuery(queryMetadata);
       }
     }

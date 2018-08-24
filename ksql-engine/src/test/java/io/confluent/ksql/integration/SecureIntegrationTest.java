@@ -346,7 +346,7 @@ public class SecureIntegrationTest {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(query, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.start(ksqlEngine.getMetrics());
+    queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
   }
 }

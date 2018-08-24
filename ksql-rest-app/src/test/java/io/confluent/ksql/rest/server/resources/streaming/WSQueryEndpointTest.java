@@ -175,7 +175,7 @@ public class WSQueryEndpointTest {
     expect(queryMetadata.getKafkaStreams()).andReturn(kafkaStreams).anyTimes();
     expect(queryMetadata.getQueryApplicationId()).andReturn("foo").anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQ).anyTimes();
-    queryMetadata.start(anyObject());
+    queryMetadata.start();
     expectLastCall();
 
     kafkaStreams.setUncaughtExceptionHandler(anyObject());

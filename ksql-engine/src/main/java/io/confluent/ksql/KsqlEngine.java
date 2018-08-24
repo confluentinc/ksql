@@ -568,7 +568,7 @@ public class KsqlEngine implements Closeable {
     allLiveQueries.remove(persistentQueryMetadata);
     metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
-      persistentQueryMetadata.close(engineMetrics.getMetrics());
+      persistentQueryMetadata.close();
       persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
     }
 
@@ -604,9 +604,8 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
-    for (final QueryMetadata queryMetadata : queriesToClose) {
-      queryMetadata.close(getMetrics());
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
+      queryMetadata.close();
     }
     adminClient.close();
     engineMetrics.close();

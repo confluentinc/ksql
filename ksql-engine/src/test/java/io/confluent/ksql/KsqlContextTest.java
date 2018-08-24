@@ -46,6 +46,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Test;
 
 public class KsqlContextTest {
@@ -82,13 +83,14 @@ public class KsqlContextTest {
     final KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
+    queryStreams.setStateListener(anyObject());
+    expect(queryStreams.state()).andReturn(State.RUNNING);
 
     final OutputNode outputNode = mock(OutputNode.class);
     expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
-    replay(outputNode);
     final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
     expect(structuredDataSource.getName()).andReturn("");
-    replay(structuredDataSource);
+    replay(structuredDataSource, outputNode, queryStreams);
 
     final PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
                                                                                    queryStreams,

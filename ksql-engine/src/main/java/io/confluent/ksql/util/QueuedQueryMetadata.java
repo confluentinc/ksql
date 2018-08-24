@@ -23,9 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 
@@ -78,18 +76,10 @@ public class QueuedQueryMetadata extends QueryMetadata {
     getOutputNode().setLimitHandler(limitHandler);
   }
 
-  private class QueryStateListener implements KafkaStreams.StateListener {
-
-    private final Sensor sensor;
-
-    QueryStateListener(final Sensor sensor) {
-      this.sensor = sensor;
-    }
-
-    @Override
-    public void onChange(final State newState, final State oldState) {
-      sensor.record(KsqlQueryStateUtil.getQueryStatNumber(newState));
-      isRunning.set(newState != KafkaStreams.State.NOT_RUNNING);
-    }
+  @Override
+  public void close() {
+    super.close();
+    isRunning.set(false);
   }
+
 }

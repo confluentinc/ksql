@@ -187,7 +187,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockEngine.getMetrics()).andReturn(metrics);
     expect(mockQueryMetadata.getQueryId()).andReturn(new QueryId("foo"));
 
-    mockQueryMetadata.start(metrics);
+    mockQueryMetadata.start();
     expectLastCall();
 
     replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);

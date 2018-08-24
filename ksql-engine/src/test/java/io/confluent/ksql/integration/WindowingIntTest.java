@@ -104,7 +104,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close(EasyMock.niceMock(Metrics.class));
+    queryMetadata.close();
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -147,7 +147,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close(EasyMock.niceMock(Metrics.class));
+    queryMetadata.close();
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -201,7 +201,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close(EasyMock.niceMock(Metrics.class));
+    queryMetadata.close();
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
@@ -249,7 +249,7 @@ public class WindowingIntTest {
                topicBeforeCleanup.size(), equalTo(5));
     final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
-    queryMetadata.close(EasyMock.niceMock(Metrics.class));
+    queryMetadata.close();
     final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size

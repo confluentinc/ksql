@@ -18,26 +18,26 @@ package io.confluent.ksql.util;
 
 import org.apache.kafka.streams.KafkaStreams;
 
-final class KsqlQueryStateUtil {
+public final class KsqlQueryStateUtil {
 
   private KsqlQueryStateUtil() {
     //Do nothing!
   }
 
-  static double getQueryStatNumber(final KafkaStreams.State state) {
+  public static String getQueryStatString(final KafkaStreams.State state) {
     switch (state) {
       case CREATED:
-        return 0.0;
+        return "CREATED";
       case REBALANCING:
-        return 1.0;
+        return "REBALANCING";
       case RUNNING:
-        return 2.0;
+        return "RUNNING";
       case PENDING_SHUTDOWN:
-        return 3.0;
+        return "PENDING_SHUTDOWN";
       case NOT_RUNNING:
-        return 4.0;
+        return "NOT_RUNNING";
       case ERROR:
-        return 5.0;
+        return "ERROR";
       default:
         throw new KsqlException("Invalid query state: " + state);
     }

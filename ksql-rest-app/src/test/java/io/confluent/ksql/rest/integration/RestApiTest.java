@@ -108,7 +108,7 @@ public class RestApiTest {
         .request(Versions.KSQL_V1_JSON)
         .header("Content-Type", Versions.KSQL_V1_JSON)
         .post(Entity.json(request))) {
-      assertEquals(200, response.getStatus());
+      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     }
   }
 

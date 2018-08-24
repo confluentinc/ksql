@@ -40,10 +40,9 @@ public class TimestampToString implements Kudf {
 
     try {
       ensureInitialized(args);
-
+      final Timestamp timestamp = new Timestamp((Long) args[0]);
       final ZoneId zoneId =
           (args.length == 3) ? ZoneId.of(args[2].toString()) : ZoneId.systemDefault();
-      final Timestamp timestamp = new Timestamp((Long) args[0]);
       return timestamp.toInstant()
           .atZone(zoneId)
           .format(threadSafeFormatter);

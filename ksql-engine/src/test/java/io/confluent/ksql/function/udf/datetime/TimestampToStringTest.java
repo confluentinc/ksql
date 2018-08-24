@@ -118,6 +118,12 @@ public class TimestampToStringTest {
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS X");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS XX");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS zz");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS ZZ");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS XXX");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS zzz");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS ZZZ");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss X");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm");

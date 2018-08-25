@@ -22,7 +22,6 @@ import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -49,13 +48,10 @@ import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.ExistsPredicate;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ExplainFormat;
-import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.ExportCatalog;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Extract;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupBy;
@@ -83,7 +79,6 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -122,7 +117,6 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -130,6 +124,7 @@ import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -142,6 +137,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+
 
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
@@ -828,18 +824,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  @Override
-  public Node visitExplainType(final SqlBaseParser.ExplainTypeContext context) {
-    switch (context.value.getType()) {
-      case SqlBaseLexer.LOGICAL:
-        return new ExplainType(getLocation(context), ExplainType.Type.LOGICAL);
-      case SqlBaseLexer.DISTRIBUTED:
-        return new ExplainType(getLocation(context), ExplainType.Type.DISTRIBUTED);
-      default:
-        throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
-    }
-  }
-
   // ***************** boolean expressions ******************
 
   @Override
@@ -961,22 +945,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitDistinctFrom(final SqlBaseParser.DistinctFromContext context) {
-    Expression expression = new ComparisonExpression(
-        getLocation(context),
-        ComparisonExpression.Type.IS_DISTINCT_FROM,
-        (Expression) visit(context.value),
-        (Expression) visit(context.right)
-    );
-
-    if (context.NOT() != null) {
-      expression = new NotExpression(getLocation(context), expression);
-    }
-
-    return expression;
-  }
-
-  @Override
   public Node visitBetween(final SqlBaseParser.BetweenContext context) {
     Expression expression = new BetweenPredicate(
         getLocation(context),
@@ -1006,9 +974,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitLike(final SqlBaseParser.LikeContext context) {
     Expression escape = null;
-    if (context.escape != null) {
-      escape = (Expression) visit(context.escape);
-    }
 
     Expression
         result =
@@ -1054,11 +1019,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     return result;
-  }
-
-  @Override
-  public Node visitExists(final SqlBaseParser.ExistsContext context) {
-    return new ExistsPredicate(getLocation(context), (Query) visit(context.query()));
   }
 
   // ************** value expressions **************
@@ -1118,59 +1078,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitCast(final SqlBaseParser.CastContext context) {
-    final boolean isTryCast = context.TRY_CAST() != null;
+    boolean isTryCast = false;
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
         getType(context.type()).toString(),
         isTryCast
-    );
-  }
-
-  @Override
-  public Node visitExtract(final SqlBaseParser.ExtractContext context) {
-    final String fieldString = getIdentifierText(context.identifier());
-    final Extract.Field field;
-    try {
-      field = Extract.Field.valueOf(fieldString);
-    } catch (final IllegalArgumentException e) {
-      throw new ParsingException(
-          format("Invalid EXTRACT field: %s", fieldString),
-          null,
-          context.getStart().getLine(),
-          context.getStart().getCharPositionInLine()
-      );
-    }
-    return new Extract(getLocation(context), (Expression) visit(context.valueExpression()), field);
-  }
-
-  @Override
-  public Node visitSubstring(final SqlBaseParser.SubstringContext context) {
-    return new FunctionCall(
-        getLocation(context),
-        QualifiedName.of("SUBSTR"),
-        visit(context.valueExpression(), Expression.class)
-    );
-  }
-
-  @Override
-  public Node visitPosition(final SqlBaseParser.PositionContext context) {
-    final List<Expression> arguments =
-        Lists.reverse(visit(context.valueExpression(), Expression.class));
-    return new FunctionCall(getLocation(context), QualifiedName.of("STRPOS"), arguments);
-  }
-
-  @Override
-  public Node visitNormalize(final SqlBaseParser.NormalizeContext context) {
-    final Expression str = (Expression) visit(context.valueExpression());
-    final String normalForm =
-        Optional.ofNullable(context.normalForm())
-            .map(ParserRuleContext::getText)
-            .orElse("NFC");
-    return new FunctionCall(
-        getLocation(context),
-        QualifiedName.of("NORMALIZE"),
-        ImmutableList.of(str, new StringLiteral(getLocation(context), normalForm))
     );
   }
 
@@ -1290,40 +1203,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         (Expression) visit(context.result)
     );
   }
-
-  @Override
-  public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
-    final Optional<Window> window = visitIfPresent(context.over(), Window.class);
-
-    final QualifiedName name = getQualifiedName(context.qualifiedName());
-
-    final boolean distinct = false;
-
-    if (name.toString().equals("NULLIF")) {
-      check(
-          context.expression().size() == 2,
-          "Invalid number of arguments for 'nullif' function",
-          context
-      );
-      check(!window.isPresent(), "OVER clause not valid for 'nullif' function", context);
-      check(!distinct, "DISTINCT not valid for 'nullif' function", context);
-
-      return new NullIfExpression(
-          getLocation(context),
-          (Expression) visit(context.expression(0)),
-          (Expression) visit(context.expression(1))
-      );
-    }
-
-    return new FunctionCall(
-        getLocation(context),
-        getQualifiedName(context.qualifiedName()),
-        window,
-        distinct,
-        visit(context.expression(), Expression.class)
-    );
-  }
-
 
   @Override
   public Node visitTableElement(final SqlBaseParser.TableElementContext context) {

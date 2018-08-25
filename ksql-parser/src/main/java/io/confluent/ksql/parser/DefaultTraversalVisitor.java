@@ -46,7 +46,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -346,18 +345,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   @Override
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
     return process(node.getRelation(), context);
-  }
-
-  @Override
-  protected R visitSampledRelation(final SampledRelation node, final C context) {
-    process(node.getRelation(), context);
-    process(node.getSamplePercentage(), context);
-    if (node.getColumnsToStratifyOn().isPresent()) {
-      for (final Expression expression : node.getColumnsToStratifyOn().get()) {
-        process(expression, context);
-      }
-    }
-    return null;
   }
 
   @Override

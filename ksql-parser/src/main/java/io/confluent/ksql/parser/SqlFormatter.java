@@ -50,11 +50,9 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RenameColumn;
 import io.confluent.ksql.parser.tree.RenameTable;
-import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetSession;
-import io.confluent.ksql.parser.tree.ShowCatalogs;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowCreate;
 import io.confluent.ksql.parser.tree.ShowFunctions;
@@ -255,26 +253,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitSampledRelation(final SampledRelation node, final Integer indent) {
-      process(node.getRelation(), indent);
-
-      builder.append(" TABLESAMPLE ")
-              .append(node.getType())
-              .append(" (")
-              .append(node.getSamplePercentage())
-              .append(')');
-
-      if (node.getColumnsToStratifyOn().isPresent()) {
-        builder.append(" STRATIFY ON ")
-                .append(" (")
-                .append(Joiner.on(",").join(node.getColumnsToStratifyOn().get()));
-        builder.append(')');
-      }
-
-      return null;
-    }
-
-    @Override
     protected Void visitValues(final Values node, final Integer indent) {
       builder.append(" VALUES ");
 
@@ -436,18 +414,6 @@ public final class SqlFormatter {
       builder.append("\n");
 
       process(node.getStatement(), indent);
-
-      return null;
-    }
-
-    @Override
-    protected Void visitShowCatalogs(final ShowCatalogs node, final Integer context) {
-      builder.append("SHOW CATALOGS");
-
-      node.getLikePattern().ifPresent((value) ->
-              builder.append(" LIKE ")
-                      .append(
-                              ExpressionFormatter.formatStringLiteral(value)));
 
       return null;
     }

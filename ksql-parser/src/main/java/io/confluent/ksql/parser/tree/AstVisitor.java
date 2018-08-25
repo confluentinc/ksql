@@ -78,10 +78,6 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitShowCatalogs(final ShowCatalogs node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitShowColumns(final ShowColumns node, final C context) {
     return visitStatement(node, context);
   }
@@ -279,10 +275,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
-    return visitRelation(node, context);
-  }
-
-  protected R visitSampledRelation(final SampledRelation node, final C context) {
     return visitRelation(node, context);
   }
 

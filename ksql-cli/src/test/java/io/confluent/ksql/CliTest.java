@@ -467,6 +467,11 @@ public class CliTest extends TestRunner {
   }
 
   @Test
+  public void testContinuation() throws Exception{
+    localCli.runNonInteractively("SHOW" + "\\\t \t\n"  + "TABLES;");
+  }
+
+  @Test
   public void testExitCommand() throws Exception {
     localCli.runNonInteractively("exit");
     localCli.runNonInteractively("\nexit\n\n\n");

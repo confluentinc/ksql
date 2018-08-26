@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -211,16 +211,17 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private List<String> getLogicalLines(final String input) {
-    // TODO: Convert the input string into an InputStream, then feed it to the terminal via
-    // TerminalBuilder.streams(InputStream, OutputStream)
+    // TODO: Convert the input string into an InputStream, then feed it to
+    // the terminal via TerminalBuilder.streams(InputStream, OutputStream)
     final List<String> result = new ArrayList<>();
     StringBuilder logicalLine = new StringBuilder();
     for (final String physicalLine : input.split("\n")) {
-      if (!physicalLine.trim().isEmpty()) {
-        if (physicalLine.endsWith("\\")) {
-          logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
+      final String trimmedPhysicalLine = physicalLine.trim();
+      if (!trimmedPhysicalLine.isEmpty()) {
+        if (trimmedPhysicalLine.endsWith("\\")) {
+          logicalLine.append(trimmedPhysicalLine, 0, trimmedPhysicalLine.length() - 1);
         } else {
-          result.add(logicalLine.append(physicalLine).toString().trim());
+          result.add(logicalLine.append(trimmedPhysicalLine).toString());
           logicalLine = new StringBuilder();
         }
       }

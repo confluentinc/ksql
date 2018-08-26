@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,23 +16,21 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class AggregateAnalyzerTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
   private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
@@ -41,17 +39,9 @@ public class AggregateAnalyzerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   }
 
-  private Analysis analyze(final String queryStr) {
-    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
-
   private AggregateAnalysis analyzeAggregates(final String queryStr) {
     System.out.println("Test query:" + queryStr);
-    final Analysis analysis = analyze(queryStr);
+    final Analysis analysis = analyzeQuery(queryStr, metaStore);
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
                                                                 functionRegistry);

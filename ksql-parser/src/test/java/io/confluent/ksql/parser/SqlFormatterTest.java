@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -58,17 +59,15 @@ import org.junit.Test;
 
 public class SqlFormatterTest {
 
-  Table left;
-  Table right;
-  AliasedRelation leftAlias;
-  AliasedRelation rightAlias;
-  JoinCriteria criteria;
-  NodeLocation location;
+  private AliasedRelation leftAlias;
+  private AliasedRelation rightAlias;
+  private JoinCriteria criteria;
+  private NodeLocation location;
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
 
-  static final Schema addressSchema = SchemaBuilder.struct()
+  private static final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
       .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
       .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
@@ -76,19 +75,19 @@ public class SqlFormatterTest {
       .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
       .optional().build();
 
-  static final Schema categorySchema = SchemaBuilder.struct()
+  private static final Schema categorySchema = SchemaBuilder.struct()
       .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
       .optional().build();
 
-  static final Schema itemInfoSchema = SchemaBuilder.struct()
+  private static final Schema itemInfoSchema = SchemaBuilder.struct()
       .field("ITEMID", Schema.INT64_SCHEMA)
       .field("NAME", Schema.STRING_SCHEMA)
       .field("CATEGORY", categorySchema)
       .optional().build();
 
-  static final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-  static final Schema schemaBuilderOrders = schemaBuilder
+  private static final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+  private static final Schema schemaBuilderOrders = schemaBuilder
       .field("ORDERTIME", Schema.INT64_SCHEMA)
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
@@ -102,8 +101,8 @@ public class SqlFormatterTest {
 
   @Before
   public void setUp() {
-    left = new Table(QualifiedName.of(Collections.singletonList("left")));
-    right = new Table(QualifiedName.of(Collections.singletonList("right")));
+    final Table left = new Table(QualifiedName.of(Collections.singletonList("left")));
+    final Table right = new Table(QualifiedName.of(Collections.singletonList("right")));
     leftAlias = new AliasedRelation(left, "l", Collections.emptyList());
     rightAlias = new AliasedRelation(right, "r", Collections.emptyList());
 
@@ -167,7 +166,7 @@ public class SqlFormatterTest {
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    final List<Statement> statements = new KsqlParser().buildAst(sql,
+    final List<PreparedStatement> statements = new KsqlParser().buildAst(sql,
         MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }
@@ -256,8 +255,8 @@ public class SqlFormatterTest {
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0);
-    final String s = SqlFormatter.formatSql(statement);
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+        .getStatement();
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A\n"
         + "  \n"));

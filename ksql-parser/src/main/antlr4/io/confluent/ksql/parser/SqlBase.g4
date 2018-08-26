@@ -68,7 +68,7 @@ statement
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
     | EXPLAIN ANALYZE?
-            ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
+            (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
     | RUN SCRIPT STRING                                                     #runScript
     ;
@@ -256,7 +256,6 @@ valueExpression
 
 primaryExpression
     : NULL                                                                           #nullLiteral
-    | interval                                                                       #intervalLiteral
     | identifier STRING                                                              #typeConstructor
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
@@ -275,8 +274,7 @@ primaryExpression
     ;
 
 timeZoneSpecifier
-    : TIME ZONE interval  #timeZoneInterval
-    | TIME ZONE STRING    #timeZoneString
+    : TIME ZONE STRING    #timeZoneString
     ;
 
 comparisonOperator
@@ -285,14 +283,6 @@ comparisonOperator
 
 booleanValue
     : TRUE | FALSE
-    ;
-
-interval
-    : INTERVAL sign=(PLUS | MINUS)? STRING from=intervalField (TO to=intervalField)?
-    ;
-
-intervalField
-    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     ;
 
 type
@@ -313,10 +303,6 @@ baseType
 
 whenClause
     : WHEN condition=expression THEN result=expression
-    ;
-
-explainOption
-    : FORMAT value=(TEXT | GRAPHVIZ)         #explainFormat
     ;
 
 callArgument
@@ -352,17 +338,13 @@ number
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SCHEMAS | SESSION
     | STRUCT | MAP | ARRAY | PARTITION
-    | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
+    | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
-    | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT | GRAPHVIZ 
-    | TO
-    | AT 
+    | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT
     | SET | RESET
-    | VIEW | REPLACE
+    | REPLACE
     | IF | NULLIF 
     | NO | DATA
-    | READ | WRITE | ONLY
-    | GRANT | REVOKE | PRIVILEGES | PUBLIC | OPTION
     ;
 
 SELECT: 'SELECT';
@@ -394,8 +376,6 @@ FIRST: 'FIRST';
 LAST: 'LAST';
 ASC: 'ASC';
 DESC: 'DESC';
-TINYINT: 'TINYINT';
-SMALLINT: 'SMALLINT';
 INTEGER: 'INTEGER';
 DATE: 'DATE';
 TIME: 'TIME';
@@ -416,11 +396,7 @@ MINUTES: 'MINUTES';
 SECONDS: 'SECONDS';
 MILLISECONDS: 'MILLISECONDS';
 ZONE: 'ZONE';
-CURRENT_DATE: 'CURRENT_DATE';
-CURRENT_TIME: 'CURRENT_TIME';
-CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
-LOCALTIME: 'LOCALTIME';
-LOCALTIMESTAMP: 'LOCALTIMESTAMP';
+EXTRACT: 'EXTRACT';
 TUMBLING: 'TUMBLING';
 HOPPING: 'HOPPING';
 SIZE: 'SIZE';
@@ -436,9 +412,10 @@ OUTER: 'OUTER';
 INNER: 'INNER';
 LEFT: 'LEFT';
 RIGHT: 'RIGHT';
+USING: 'USING';
 ON: 'ON';
-STRUCT: 'STRUCT';
 PARTITION: 'PARTITION';
+STRUCT: 'STRUCT';
 WITH: 'WITH';
 VALUES: 'VALUES';
 CREATE: 'CREATE';
@@ -447,7 +424,6 @@ TABLE: 'TABLE';
 TOPIC: 'TOPIC';
 STREAM: 'STREAM';
 STREAMS: 'STREAMS';
-VIEW: 'VIEW';
 REPLACE: 'REPLACE';
 INSERT: 'INSERT';
 DELETE: 'DELETE';
@@ -455,17 +431,11 @@ INTO: 'INTO';
 DESCRIBE: 'DESCRIBE';
 EXTENDED: 'EXTENDED';
 PRINT: 'PRINT';
-GRANT: 'GRANT';
-REVOKE: 'REVOKE';
-PRIVILEGES: 'PRIVILEGES';
-PUBLIC: 'PUBLIC';
-OPTION: 'OPTION';
 EXPLAIN: 'EXPLAIN';
 ANALYZE: 'ANALYZE';
 FORMAT: 'FORMAT';
 TYPE: 'TYPE';
 TEXT: 'TEXT';
-GRAPHVIZ: 'GRAPHVIZ';
 CAST: 'CAST';
 SHOW: 'SHOW';
 LIST: 'LIST';
@@ -493,9 +463,6 @@ SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
 DATA: 'DATA';
-READ: 'READ';
-WRITE: 'WRITE';
-ONLY: 'ONLY';
 SAMPLE: 'SAMPLE';
 EXPORT: 'EXPORT';
 CATALOG: 'CATALOG';

@@ -49,7 +49,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExportCatalog;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -811,19 +810,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new Values(getLocation(context), visit(context.expression(), Expression.class));
   }
 
-  @Override
-  public Node visitExplainFormat(final SqlBaseParser.ExplainFormatContext context) {
-    switch (context.value.getType()) {
-      case SqlBaseLexer.GRAPHVIZ:
-        return new ExplainFormat(getLocation(context), ExplainFormat.Type.GRAPHVIZ);
-      case SqlBaseLexer.TEXT:
-        return new ExplainFormat(getLocation(context), ExplainFormat.Type.TEXT);
-      default:
-        throw new IllegalArgumentException("Unsupported EXPLAIN format: "
-                                           + context.value.getText());
-    }
-  }
-
   // ***************** boolean expressions ******************
 
   @Override
@@ -1059,11 +1045,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitTimeZoneInterval(final SqlBaseParser.TimeZoneIntervalContext context) {
-    return visit(context.interval());
-  }
-
-  @Override
   public Node visitTimeZoneString(final SqlBaseParser.TimeZoneStringContext context) {
     return new StringLiteral(getLocation(context), unquote(context.STRING().getText(), "'"));
   }
@@ -1276,23 +1257,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitBooleanValue(final SqlBaseParser.BooleanValueContext context) {
     return new BooleanLiteral(getLocation(context), context.getText());
   }
-
-  @Override
-  public Node visitInterval(final SqlBaseParser.IntervalContext context) {
-    return new IntervalLiteral(
-        getLocation(context),
-        unquote(context.STRING().getText(), "'"),
-        Optional.ofNullable(context.sign)
-            .map(AstBuilder::getIntervalSign)
-            .orElse(IntervalLiteral.Sign.POSITIVE),
-        getIntervalFieldType((Token) context.from.getChild(0).getPayload()),
-        Optional.ofNullable(context.to)
-            .map((x) -> x.getChild(0).getPayload())
-            .map(Token.class::cast)
-            .map(AstBuilder::getIntervalFieldType)
-    );
-  }
-
 
   @Override
   public Node visitExplain(final SqlBaseParser.ExplainContext ctx) {

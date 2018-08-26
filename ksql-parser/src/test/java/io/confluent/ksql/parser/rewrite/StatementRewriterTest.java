@@ -22,6 +22,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -40,9 +44,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.MetaStoreFixture;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 public class StatementRewriterTest {
 

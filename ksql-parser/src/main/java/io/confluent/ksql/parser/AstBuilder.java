@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser;
 
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -959,7 +958,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitLike(final SqlBaseParser.LikeContext context) {
-    Expression escape = null;
+    final Expression escape = null;
 
     Expression
         result =
@@ -1059,7 +1058,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitCast(final SqlBaseParser.CastContext context) {
-    boolean isTryCast = false;
+    final boolean isTryCast = false;
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),

@@ -16,20 +16,21 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -74,10 +75,7 @@ public class SqlPredicateTest {
 
 
   private PlanNode buildLogicalPlan(final String queryStr) {
-    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
-    analyzer.process(statements.get(0), new AnalysisContext(null));
+    final Analysis analysis = analyzeQuery(queryStr, metaStore);
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
                                                                 analysis, functionRegistry);
@@ -85,8 +83,7 @@ public class SqlPredicateTest {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    final PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-    return logicalPlan;
+    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
   }
 
   @Test
@@ -136,11 +133,11 @@ public class SqlPredicateTest {
   @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
     final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
-    final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)).getQueryBody();
+    final List<PreparedStatement> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
+    final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)
+        .getStatement()).getQueryBody();
     final Expression filterExpr = querySpecification.getWhere().get();
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
-    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
         kStream,

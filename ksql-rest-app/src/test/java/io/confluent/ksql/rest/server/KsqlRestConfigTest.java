@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.rest.RestConfig;
 import java.util.HashMap;
@@ -31,17 +32,15 @@ import org.junit.Test;
 
 public class KsqlRestConfigTest {
 
-  private Map<String, Object> getBaseProperties() {
-    final Map<String, Object> result = new HashMap<>();
-    result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-    return result;
-  }
+  private static final Map<String, ?> MIN_VALID_CONFIGS = ImmutableMap.<String, Object>builder()
+      .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+      .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
+      .put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .build();
 
   @Test
   public void testGetKsqlConfigProperties() {
-    final Map<String, Object> inputProperties = getBaseProperties();
+    final Map<String, Object> inputProperties = new HashMap<>(MIN_VALID_CONFIGS);
     inputProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     inputProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
 
@@ -63,7 +62,7 @@ public class KsqlRestConfigTest {
   public void testOriginalsReplicability() {
     final String COMMIT_INTERVAL_MS = "10";
 
-    final Map<String, Object> inputProperties = getBaseProperties();
+    final Map<String, Object> inputProperties = new HashMap<>(MIN_VALID_CONFIGS);
     inputProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, COMMIT_INTERVAL_MS);
     final KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
@@ -78,10 +77,8 @@ public class KsqlRestConfigTest {
 
   @Test
   public void ensureCorrectCommandTopicName() {
-    final KsqlRestConfig config = new KsqlRestConfig(getBaseProperties());
-    final String commandTopicName = config.getCommandTopic("TestKSql");
+    final String commandTopicName = KsqlRestConfig.getCommandTopic("TestKSql");
     assertThat(commandTopicName,
                equalTo("_confluent-ksql-TestKSql_" + KsqlRestConfig.COMMAND_TOPIC_SUFFIX));
   }
-
 }

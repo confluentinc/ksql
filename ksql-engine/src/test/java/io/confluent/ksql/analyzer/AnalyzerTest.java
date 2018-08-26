@@ -16,20 +16,17 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class AnalyzerTest {
-
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
 
@@ -38,18 +35,10 @@ public class AnalyzerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   }
 
-  private Analysis analyze(final String queryStr) {
-    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
-
   @Test
   public void testSimpleQueryAnalysis() {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final Analysis analysis = analyze(simpleQuery);
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
@@ -91,7 +80,7 @@ public class AnalyzerTest {
         simpleQuery =
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
         + "t1.col1 = t2.col1;";
-    final Analysis analysis = analyze(simpleQuery);
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("JOIN is null", analysis.getJoin());
 
@@ -140,7 +129,7 @@ public class AnalyzerTest {
   @Test
   public void testBooleanExpressionAnalysis() {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
-    final Analysis analysis = analyze(queryStr);
+    final Analysis analysis = analyzeQuery(queryStr, metaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
@@ -171,7 +160,7 @@ public class AnalyzerTest {
   @Test
   public void testFilterAnalysis() {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
-    final Analysis analysis = analyze(queryStr);
+    final Analysis analysis = analyzeQuery(queryStr, metaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("FROM is null", analysis.getFromDataSources());

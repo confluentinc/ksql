@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -76,7 +77,9 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
 
     // TODO: Type should be derived.
-    super(id);
+    super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
+        ? DataSourceType.KTABLE
+        : DataSourceType.KSTREAM);
     this.joinType = joinType;
     this.left = left;
     this.right = right;

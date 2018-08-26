@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -39,7 +40,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
@@ -138,7 +138,7 @@ public class PhysicalPlanBuilderTest {
 
   private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
     final PlanNode logical = planBuilder.buildLogicalPlan(query);
-    return physicalPlanBuilder.buildPhysicalPlan(new Pair<>(query, logical));
+    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
   @Test

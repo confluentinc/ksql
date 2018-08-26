@@ -33,11 +33,11 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
@@ -195,10 +195,10 @@ public class AvroUtilTest {
   }
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(final String statementString) {
-    final List<Statement> statementList = new KsqlParser().buildAst
+    final List<PreparedStatement> statementList = new KsqlParser().buildAst
         (statementString, new MetaStoreImpl(new InternalFunctionRegistry()));
-    if (statementList.get(0) instanceof AbstractStreamCreateStatement) {
-      return (AbstractStreamCreateStatement) statementList.get(0);
+    if (statementList.get(0).getStatement() instanceof AbstractStreamCreateStatement) {
+      return (AbstractStreamCreateStatement) statementList.get(0).getStatement();
     }
     throw new KsqlException("Invalid statement." + statementString);
   }

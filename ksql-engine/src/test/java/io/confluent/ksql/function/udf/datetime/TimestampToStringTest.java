@@ -65,6 +65,23 @@ public class TimestampToStringTest {
     assertThat(result, is("2018-08-15 10:10:43"));
   }
 
+  @Test
+  public void testTimeZoneInFormat() {
+    // When:
+    final Object result1 = udf.evaluate(1534353043000L,
+        "yyyy-MM-dd HH:mm:ss zz");
+    final Object result2 = udf.evaluate(1534353043000L,
+        "yyyy-MM-dd HH:mm:ss zz", "America/Los_Angeles");
+
+    // Then:
+    final String expectedResult1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zz")
+        .format(new Date(1534353043000L));
+    final String expectedResult2 = "2018-08-15 10:10:43 PDT";
+
+    assertThat(result1, is(expectedResult1));
+    assertThat(result2, is(expectedResult2));
+  }
+
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowIfInvalidTimeZone() {
     udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST");

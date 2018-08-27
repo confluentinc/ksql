@@ -278,3 +278,24 @@ Check runtime stats for the KSQL server that you're connected to.
 
 The KSQL REST API supports a "server info" request (for example, ``http://<ksql-server-url>/info``), 
 which returns info such as the KSQL version. For more info, see :ref:`ksql-rest-api`.
+
+=======================================================================
+How do I set the retention period for streams created for KSQL queries?
+=======================================================================
+
+When you create a stream, you can set ``retention.ms`` for the output topic.
+In the KSQL CLI, use the SET statement to assign a value to ``ksql.streams.retention.ms``:
+
+.. code:: bash
+
+    ksql> SET 'ksql.streams.retention.ms' = '86400000';
+
+Make the setting global by assigning ``ksql.streams.retention.ms`` in the KSQL
+server configuration file.
+
+.. note:: If you set ``windowstore.changelog.additional.retention.ms``, the
+          ``ksql.streams.retention.ms`` value is added to the retention period
+          for changelog topics. For example, if you set ``ksql.streams.retention.ms``
+          to 7 days, the sink topic retention is 7 days. If you set``windowstore.changelog.additional.retention.ms``
+          to 2 days, the retention for the internal changelog topic for
+          statestore is the sum of these values: 7 + 2 = 9 days.

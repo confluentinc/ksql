@@ -25,6 +25,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.easymock.EasyMock;
+import org.easymock.Mock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,6 +91,66 @@ public class KsqlEngineMetricsTest {
     EasyMock.replay(ksqlEngine);
     final Metrics metrics = MetricCollectors.getMetrics();
     final double value = getMetricValue(metrics, metricNamePrefix + "num-active-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInCREATEDState() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.CREATED));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-CREATED-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInRUNNINGState() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.RUNNING));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-RUNNING-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInREBALANCINGState() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.REBALANCING));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-REBALANCING-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInPENDING_SHUTDOWNGState() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.PENDING_SHUTDOWN));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-PENDING_SHUTDOWN-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInERRORState() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.ERROR));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-ERROR-queries");
+    assertEquals(3.0, value, 0.0);
+  }
+
+  @Test
+  public void shouldRecordNumberOfQueriesInNOT_RUNNINGtate() {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getPersistentQueries()).andReturn(getMockQueryMetadataList(3, State.NOT_RUNNING));
+    EasyMock.replay(ksqlEngine);
+    final Metrics metrics = MetricCollectors.getMetrics();
+    final double value = getMetricValue(metrics, metricNamePrefix + "testGroup-query-stats-NOT_RUNNING-queries");
     assertEquals(3.0, value, 0.0);
   }
 
@@ -163,5 +227,20 @@ public class KsqlEngineMetricsTest {
     for (int i = 0; i < numMessages; i++) {
       collector1.onSend(new ProducerRecord<>("foo", "key", Integer.toString(i)));
     }
+  }
+
+  private List<PersistentQueryMetadata> getMockQueryMetadataList(
+      final int numberOfQueries,
+      final KafkaStreams.State state) {
+    final List<PersistentQueryMetadata> queryMetadataList = new ArrayList<>();
+    for (int i = 0; i < numberOfQueries; i++) {
+      final PersistentQueryMetadata persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
+      final KafkaStreams kafkaStreams = EasyMock.niceMock(KafkaStreams.class);
+      EasyMock.expect(kafkaStreams.state()).andReturn(state);
+      EasyMock.expect(persistentQueryMetadata.getKafkaStreams()).andReturn(kafkaStreams);
+      EasyMock.replay(kafkaStreams, persistentQueryMetadata);
+      queryMetadataList.add(persistentQueryMetadata);
+    }
+    return queryMetadataList;
   }
 }

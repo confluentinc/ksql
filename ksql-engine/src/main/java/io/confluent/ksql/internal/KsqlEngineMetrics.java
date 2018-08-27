@@ -31,6 +31,8 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 
 public class KsqlEngineMetrics implements Closeable {
 
@@ -44,6 +46,12 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor numIdleQueries;
   private final Sensor messageConsumptionByQuery;
   private final Sensor errorRate;
+  private final Sensor createdQueriesCount;
+  private final Sensor runningQueriesCount;
+  private final Sensor rebalancingQueriesCount;
+  private final Sensor pendigShutDownQueriesCount;
+  private final Sensor errorQueriesCount;
+  private final Sensor notRunningQueriesCount;
 
   private final String ksqlServiceId;
 
@@ -57,7 +65,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
-    metrics = MetricCollectors.getMetrics();
+    this.metrics = MetricCollectors.getMetrics();
 
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
@@ -67,6 +75,15 @@ public class KsqlEngineMetrics implements Closeable {
     this.numIdleQueries = configureIdleQueriesSensor(metrics);
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
     this.errorRate = configureErrorRate(metrics);
+    this.createdQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.CREATED);
+    this.runningQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.RUNNING);
+    this.rebalancingQueriesCount = configureNumActiveQueriesForGivenState(metrics,
+        State.REBALANCING);
+    this.pendigShutDownQueriesCount = configureNumActiveQueriesForGivenState(metrics,
+        State.PENDING_SHUTDOWN);
+    this.errorQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.ERROR);
+    this.notRunningQueriesCount =
+        configureNumActiveQueriesForGivenState(metrics, State.NOT_RUNNING);
   }
 
   @Override
@@ -236,4 +253,30 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
+
+  private Sensor configureNumActiveQueriesForGivenState(final Metrics metrics,
+      final KafkaStreams.State state) {
+    final String sensorName = metricGroupName + "-" + state + "-queries";
+    final Sensor sensor = createSensor(metrics, sensorName);
+    sensor.add(
+        metrics.metricName(ksqlServiceId + sensorName, this.metricGroupName,
+            "The current number of active queries running in this engine"),
+        new MeasurableStat() {
+          @Override
+          public double measure(final MetricConfig metricConfig, final long l) {
+            final long countValue = ksqlEngine.getPersistentQueries()
+                .stream()
+                .filter(queryMetadata -> queryMetadata.getKafkaStreams().state() == state)
+                .count();
+            return (double) countValue;
+          }
+
+          @Override
+          public void record(final MetricConfig metricConfig, final double v, final long l) {
+            // We don't want to record anything, since the live queries anyway.
+          }
+        });
+    return sensor;
+
+  }
 }

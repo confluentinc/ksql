@@ -68,18 +68,21 @@ public class TimestampToStringTest {
   @Test
   public void testTimeZoneInFormat() {
     // When:
-    final Object result1 = udf.evaluate(1534353043000L,
+    final long timestamp = 1534353043000L;
+    final Object localTime = udf.evaluate(timestamp,
         "yyyy-MM-dd HH:mm:ss zz");
-    final Object result2 = udf.evaluate(1534353043000L,
+    final Object pacificTime = udf.evaluate(timestamp,
         "yyyy-MM-dd HH:mm:ss zz", "America/Los_Angeles");
+    final Object universalTime = udf.evaluate(timestamp,
+        "yyyy-MM-dd HH:mm:ss zz", "UTC");
 
     // Then:
-    final String expectedResult1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zz")
-        .format(new Date(1534353043000L));
-    final String expectedResult2 = "2018-08-15 10:10:43 PDT";
+    final String expected = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zz")
+        .format(new Date(timestamp));
 
-    assertThat(result1, is(expectedResult1));
-    assertThat(result2, is(expectedResult2));
+    assertThat(localTime, is(expected));
+    assertThat(pacificTime, is("2018-08-15 10:10:43 PDT"));
+    assertThat(universalTime, is("2018-08-15 17:10:43 UTC"));
   }
 
   @Test(expected = KsqlFunctionException.class)

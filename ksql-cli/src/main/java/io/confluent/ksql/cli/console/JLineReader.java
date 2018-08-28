@@ -52,8 +52,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     @Override
     public String expandHistory(final History history, final String line) {
       if (line.startsWith("!") || line.startsWith("^")) {
-        final String test = super.expandHistory(history, line);
-        return test;
+        return super.expandHistory(history, line);
       } else {
         return line;
       }

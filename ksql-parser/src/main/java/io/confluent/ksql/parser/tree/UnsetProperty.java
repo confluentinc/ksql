@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public class UnsetProperty extends Statement {
+public class UnsetProperty extends Statement implements DdlStatement {
 
   private final String propertyName;
 

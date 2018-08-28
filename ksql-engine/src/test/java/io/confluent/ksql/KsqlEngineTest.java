@@ -40,13 +40,17 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -63,6 +67,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -152,7 +157,7 @@ public class KsqlEngineTest {
     } catch (final Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statement: drop table foo;. Error: Cannot drop FOO. \n"
+          "Exception while processing statement: Cannot drop FOO. \n"
               + "The following queries read from this source: []. \n"
               + "The following queries write into this source: [CTAS_FOO_1]. \n"
               + "You need to terminate them before dropping FOO."));
@@ -402,19 +407,36 @@ public class KsqlEngineTest {
     final String statementsString = new String(Files.readAllBytes(
         Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
 
+    final MetaStore emptyMetaStore = new MetaStoreImpl(new TestFunctionRegistry());
     final List<PreparedStatement> parsedStatements =
-        ksqlEngine.parseStatements(statementsString, new MetaStoreImpl(new TestFunctionRegistry()), false);
+        ksqlEngine.parseStatements(statementsString, emptyMetaStore, false);
     assertThat(parsedStatements.size(), equalTo(7));
-    final List<Statement> statements = parsedStatements.stream().map(PreparedStatement::getStatement).collect(Collectors.toList());
+    final List<Statement> statements = parsedStatements.stream().map(
+        PreparedStatement::getStatement).collect(Collectors.toList());
     assertThat(statements, Matchers.contains(
         instanceOf(CreateStream.class),
         instanceOf(SetProperty.class),
         instanceOf(CreateTable.class),
-        instanceOf(CreateStreamAsSelect.class),
-        instanceOf(CreateStreamAsSelect.class),
+        instanceOf(Query.class),
+        instanceOf(Query.class),
         instanceOf(UnsetProperty.class),
-        instanceOf(CreateStreamAsSelect.class)
+        instanceOf(Query.class)
     ));
+    final Query csas1 = (Query) statements.get(3);
+    final QuerySpecification specification1 = (QuerySpecification) csas1.getQueryBody();
+    final Table table1 = (Table) specification1.getInto();
+    assertThat(table1.getName().getSuffix(), equalTo("PAGEVIEWS_ENRICHED"));
+
+    final Query csas2 = (Query) statements.get(4);
+    final QuerySpecification specification2 = (QuerySpecification) csas2.getQueryBody();
+    final Table table2 = (Table) specification2.getInto();
+    assertThat(table2.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE"));
+
+    final Query csas3 = (Query) statements.get(6);
+    final QuerySpecification specification3 = (QuerySpecification) csas3.getQueryBody();
+    final Table table3 = (Table) specification3.getInto();
+    assertThat(table3.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE_LIKE_89"));
+
   }
 
 }

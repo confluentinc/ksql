@@ -36,9 +36,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -55,17 +53,15 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -317,7 +313,7 @@ public class KsqlEngine implements Closeable {
         return statements;
       }
     } catch (Exception e) {
-      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
+      throw new ParseFailedException("Exception while processing statement: " + e.getMessage(), e);
     }
   }
 
@@ -353,8 +349,9 @@ public class KsqlEngine implements Closeable {
     } else if (statement instanceof InsertInto) {
       final InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
-        throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
-                                              + "statement.", insertInto.getTarget().getSuffix()));
+        throw new KsqlException(String.format("%s. Error: Sink, "
+                + "%s, does not exist for the INSERT INTO statement.",
+            statementString, insertInto.getTarget().getSuffix()));
       }
 
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()

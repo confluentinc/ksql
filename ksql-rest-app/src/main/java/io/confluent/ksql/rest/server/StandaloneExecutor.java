@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -31,7 +32,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
@@ -219,13 +219,13 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<Pair<String, Statement>> statementPairs =
+    final List<PreparedStatement> preparedStatements =
         ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone(), false);
-    for (final Pair<String, Statement> statementPair: statementPairs) {
-      final Statement statement = statementPair.getRight();
+    for (final PreparedStatement preparedStatement: preparedStatements) {
+      final Statement statement = preparedStatement.getStatement();
       HANDLERS
           .getOrDefault(statement.getClass(), StandaloneExecutor::defaultHandler)
-          .handle(this, statementPair.getLeft(), statement);
+          .handle(this, preparedStatement.getStatementText(), statement);
     }
   }
 

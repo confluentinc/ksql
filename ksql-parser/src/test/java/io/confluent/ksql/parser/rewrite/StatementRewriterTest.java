@@ -97,7 +97,7 @@ public class StatementRewriterTest {
 
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
-    assertThat("testProjectionWithArrayMap fails", column3.getExpression().toString(), equalTo("TEST1.COL4[0]"));
+    assertThat("testProjectionWithArrayMap fails", column3.getExpression().toString(), equalTo("TEST1.COL4[1]"));
     assertThat("testProjectionWithArrayMap fails", column4.getExpression().toString(), equalTo("TEST1.COL5['key1']"));
   }
 

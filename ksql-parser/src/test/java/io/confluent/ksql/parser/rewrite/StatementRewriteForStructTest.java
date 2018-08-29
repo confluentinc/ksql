@@ -102,7 +102,7 @@ public class StatementRewriteForStructTest {
     assertThat(col1, instanceOf(FunctionCall.class));
 
     assertThat(col0.toString(),
-        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[0], 'NAME')"));
+        equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.ARRAYCOL[1], 'NAME')"));
     assertThat(col1.toString(),
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }

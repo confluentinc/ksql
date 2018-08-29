@@ -15,15 +15,22 @@ import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.EasyMock;
+import org.easymock.EasyMockRunner;
+import org.easymock.Mock;
+import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(EasyMockRunner.class)
 public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  @Mock(type = MockType.NICE)
+  private KsqlConfig localKsqlConfig;
 
   @Before
   public void init() {
@@ -70,7 +77,20 @@ public class SqlToJavaVisitorTest {
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
-        equalTo("((Double) (ArrayGet.getItem(((java.util.List) TEST1_COL4), (int)(Integer.parseInt(\"0\")), false)))"));
+        equalTo("((Double) (ArrayGet.getItem(((java.util.List) TEST1_COL4), (int)(Integer.parseInt(\"1\")), false)))"));
+  }
+
+  @Test
+  public void shouldProcessArrayExpressionCorrectlyForLegacy() {
+    final String simpleQuery = "SELECT col4[1] FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    EasyMock.expect(localKsqlConfig.getBoolean(EasyMock.eq(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG))).andReturn(true);
+    EasyMock.replay(localKsqlConfig);
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry, localKsqlConfig)
+        .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression,
+        equalTo("((Double) (ArrayGet.getItem(((java.util.List) TEST1_COL4), (int)(Integer.parseInt(\"1\")), true)))"));
   }
 
   private String getJavaCode(final String query,

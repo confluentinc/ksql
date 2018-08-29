@@ -54,13 +54,17 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.EasyMock;
+import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
+import org.easymock.MockType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 
 @SuppressWarnings("SameParameterValue")
+@RunWith(EasyMockRunner.class)
 public class CodeGenRunnerTest {
 
     private static final int INT64_INDEX1 = 0;
@@ -83,6 +87,9 @@ public class CodeGenRunnerTest {
     private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     private Schema schema;
+
+    @Mock(type = MockType.NICE)
+    KsqlConfig localKsqlConfig;
 
     @Before
     public void init() {
@@ -198,7 +205,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleMultiDimensionalArrayWithBaseStartingFrom1() throws Exception {
         // Given:
-        final KsqlConfig localKsqlConfig = EasyMock.mock(KsqlConfig.class);
+
         EasyMock.expect(localKsqlConfig.getBoolean(EasyMock.eq(KsqlConfig.KSQL_FUNCTIONS_ARRAY_LEGACY_BASE_CONFIG))).andReturn(false).times(2);
         EasyMock.replay(localKsqlConfig);
         final CodeGenRunner localCodeGenRunner = new CodeGenRunner(schema, localKsqlConfig, functionRegistry);

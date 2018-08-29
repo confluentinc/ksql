@@ -134,7 +134,7 @@ public class UdfIntTest {
         "CREATE STREAM \"%s\" AS SELECT "
             + "ITEMID, "
             + "ORDERUNITS*10, "
-            + "PRICEARRAY[0]+10, "
+            + "PRICEARRAY[1]+10, "
             + "KEYVALUEMAP['key1'] * KEYVALUEMAP['key2']+10, "
             + "PRICEARRAY[1] > 1000 "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",

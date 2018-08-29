@@ -45,7 +45,7 @@ public class FilterNode
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
                     @JsonProperty("source") final PlanNode source,
                     @JsonProperty("predicate") final Expression predicate) {
-    super(id);
+    super(id, source.getNodeOutputType());
 
     this.source = source;
     this.schema = source.getSchema();

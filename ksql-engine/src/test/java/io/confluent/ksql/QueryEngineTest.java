@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -57,7 +58,7 @@ public class QueryEngineTest {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
         new CommandFactories(topicClient, schemaRegistryClient, true));
     try {
-      final List<Pair<String, Statement>> statementList = ksqlEngine.parseQueries(
+      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
           "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
@@ -72,7 +73,7 @@ public class QueryEngineTest {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
         new CommandFactories(topicClient, schemaRegistryClient, true));
     try {
-      final List<Pair<String, Statement>> statementList = ksqlEngine.parseQueries(
+      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
           "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone());
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();

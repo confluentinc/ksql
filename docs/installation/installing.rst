@@ -83,7 +83,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
         bootstrap.servers=localhost:9092
         listeners=http://localhost:8088
-        ui.enabled=true
 
     For more information, see :ref:`ksql-server-config`.
 
@@ -97,7 +96,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
     .. code:: bash
 
-        $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 

@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -37,7 +38,6 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -58,8 +58,9 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
-    final List<Statement> statements = ksqlParser.buildAst("select orderid from orders;", metaStore);
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query)statements.get(0));
+    final List<PreparedStatement> statements = ksqlParser.buildAst("select orderid from orders;", metaStore);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query) statements.get(0)
+        .getStatement());
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(
         Collections.singletonList(new DereferenceExpression(
@@ -71,12 +72,11 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldCreateAnalysisForInserInto() {
-    final List<Statement> statements = ksqlParser.buildAst("insert into test2 select col1 "
+    final List<PreparedStatement> statements = ksqlParser.buildAst("insert into test2 select col1 "
                                                            + "from test1;",
                                                            metaStore);
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query)((InsertInto)
-                                                                                 statements.get
-                                                                                     (0)).getQuery());
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression",
+        ((InsertInto) statements.get(0).getStatement()).getQuery());
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(
         Collections.singletonList(new DereferenceExpression(
@@ -88,11 +88,11 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldAnalyseWindowedAggregate() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
             "where orderunits > 5 group by itemid;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression",query);
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final DereferenceExpression itemId = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ITEMID");
@@ -108,11 +108,11 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldThrowExceptionIfAggregateAnalysisDoesntHaveGroupBy() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
             "where orderunits > 5;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
@@ -125,11 +125,11 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldThrowExceptionIfNonAggregateSelectsDontMatchGroupBySize() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select itemid, orderid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
             "where orderunits > 5 group by itemid;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
@@ -141,11 +141,11 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldProcessHavingExpression() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
             "where orderunits > 5 group by itemid having count(itemid) > 10;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final Expression havingExpression = aggregateAnalysis.getHavingExpression();
@@ -157,10 +157,10 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldFailWithIncorrectJoinCriteria() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select * from test1 join test2 on test1.col1 = test2.coll;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     try {
       queryAnalyzer.analyze("sqlExpression", query);
     } catch (final KsqlException ex) {
@@ -174,10 +174,10 @@ public class QueryAnalyzerTest {
 
   @Test
   public void shouldPassJoinWithAnyCriteriaOrder() {
-    final List<Statement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement> statements = ksqlParser.buildAst(
         "select * from test1 left join test2 on test2.col2 = test1.col1;",
         metaStore);
-    final Query query = (Query) statements.get(0);
+    final Query query = (Query) statements.get(0).getStatement();
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     assertTrue(analysis.getJoin().isLeftJoin());
     assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));

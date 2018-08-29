@@ -33,6 +33,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -70,9 +71,9 @@ import static org.easymock.EasyMock.mock;
 public class KsqlEngineTest {
 
   private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-      = new MockSchemaRegistryClientFactory();
-  private final SchemaRegistryClient schemaRegistryClient = schemaRegistryClientFactory.get();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+      () -> schemaRegistryClient;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
@@ -342,7 +343,6 @@ public class KsqlEngineTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         topicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         metaStore);
 
     // When:

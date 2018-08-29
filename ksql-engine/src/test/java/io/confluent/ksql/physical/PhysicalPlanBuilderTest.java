@@ -73,7 +73,6 @@ public class PhysicalPlanBuilderTest {
   private LogicalPlanBuilder planBuilder;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
       = new MockSchemaRegistryClientFactory();
-  private final SchemaRegistryClient schemaRegistryClient = schemaRegistryClientFactory.get();
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
@@ -192,7 +191,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -225,7 +223,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
     try {
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -254,7 +251,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     try {
@@ -284,7 +280,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -323,7 +318,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     try {
@@ -350,7 +344,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -380,7 +373,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     try {
@@ -593,7 +585,6 @@ public class PhysicalPlanBuilderTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new MetaStoreImpl(new InternalFunctionRegistry()));
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +

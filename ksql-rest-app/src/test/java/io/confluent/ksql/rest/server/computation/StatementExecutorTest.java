@@ -71,8 +71,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
-        new MockSchemaRegistryClientFactory(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory());
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 

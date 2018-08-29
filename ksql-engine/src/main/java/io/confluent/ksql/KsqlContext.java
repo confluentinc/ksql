@@ -45,19 +45,16 @@ public class KsqlContext {
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
-        new KsqlSchemaRegistryClientFactory(ksqlConfig),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).get());
+        new KsqlSchemaRegistryClientFactory(ksqlConfig));
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return create(
         ksqlConfig,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new DefaultKafkaClientSupplier()
     );
   }
@@ -65,7 +62,6 @@ public class KsqlContext {
   public static KsqlContext create(
       KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final SchemaRegistryClient schemaRegistryClient,
       final KafkaClientSupplier clientSupplier
   ) {
     if (ksqlConfig == null) {
@@ -81,8 +77,6 @@ public class KsqlContext {
     final KsqlEngine engine = new KsqlEngine(
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
         schemaRegistryClientFactory,
-        schemaRegistryClient == null
-            ? new KsqlSchemaRegistryClientFactory(ksqlConfig).get() : schemaRegistryClient,
         clientSupplier
     );
 

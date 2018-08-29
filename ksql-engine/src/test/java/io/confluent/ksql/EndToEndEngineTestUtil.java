@@ -472,7 +472,6 @@ class EndToEndEngineTestUtil {
     try (final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         metaStore
     )) {
       query.initializeTopics(ksqlEngine);

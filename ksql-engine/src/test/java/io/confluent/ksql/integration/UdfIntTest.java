@@ -51,8 +51,7 @@ public class UdfIntTest {
     testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(
         testHarness.ksqlConfig,
-        testHarness.schemaRegistryClientFactory,
-        testHarness.schemaRegistryClient);
+        testHarness.schemaRegistryClientFactory);
     testHarness.createTopic(jsonTopicName);
 
     testHarness.createTopic(avroTopicName);

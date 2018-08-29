@@ -127,13 +127,12 @@ public class KsqlEngine implements Closeable {
 
   public KsqlEngine(final KafkaTopicClient kafkaTopicClient,
                     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                    final SchemaRegistryClient schemaRegistryClient,
                     final KafkaClientSupplier clientSupplier
   ) {
     this(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
+        schemaRegistryClientFactory.get(),
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry())
     );
@@ -142,13 +141,12 @@ public class KsqlEngine implements Closeable {
   // called externally by tests only
   public KsqlEngine(final KafkaTopicClient topicClient,
                     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                    final SchemaRegistryClient schemaRegistryClient,
                     final MetaStore metaStore
   ) {
     this(
         topicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
+        schemaRegistryClientFactory.get(),
         new DefaultKafkaClientSupplier(),
         metaStore
     );

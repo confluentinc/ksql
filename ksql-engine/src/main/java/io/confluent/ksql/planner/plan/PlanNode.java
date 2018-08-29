@@ -72,5 +72,5 @@ public abstract class PlanNode {
                                             KafkaTopicClient kafkaTopicClient,
                                             FunctionRegistry functionRegistry,
                                             Map<String, Object> props,
-                                            Supplier<SchemaRegistryClient> schemaRegistryClient);
+                                            Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
 }

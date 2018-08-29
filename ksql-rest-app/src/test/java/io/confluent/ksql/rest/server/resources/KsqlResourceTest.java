@@ -130,8 +130,7 @@ public class KsqlResourceTest {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         kafkaTopicClient,
-        schemaRegistryClientFactory,
-        schemaRegistryClient);
+        schemaRegistryClientFactory);
   }
 
   @After

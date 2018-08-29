@@ -69,6 +69,7 @@ public class KsqlSchemaRegistryClientFactory implements Supplier<SchemaRegistryC
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
   }
 
+  @Override
   public SchemaRegistryClient get() {
     final RestService restService = serviceSupplier.get();
     final SSLContext sslContext = sslFactory.sslContext();

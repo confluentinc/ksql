@@ -92,12 +92,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-    or with overriding properties:
-
-    .. code:: bash
-
-        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
-
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 
          .. code:: bash

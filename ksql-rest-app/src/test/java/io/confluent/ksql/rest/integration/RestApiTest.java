@@ -155,14 +155,14 @@ public class RestApiTest {
   }
 
   private static void createStreams() {
-    final KsqlRestClient ksqlRestClient = new KsqlRestClient(serverAddress);
-    final RestResponse createStreamResponse =
-        ksqlRestClient
-            .makeKsqlRequest(String.format("CREATE STREAM %s (viewtime bigint, pageid varchar, "
-                                           + "userid varchar) WITH (kafka_topic='pageviews',"
-                                           + " value_format='json');", pageviewsStream));
-    ksqlRestClient.close();
-    assertTrue(createStreamResponse.isSuccessful());
-
+    try (final KsqlRestClient ksqlRestClient = new KsqlRestClient(serverAddress)) {
+      final RestResponse createStreamResponse =
+          ksqlRestClient
+              .makeKsqlRequest(String.format("CREATE STREAM %s (viewtime bigint, pageid varchar, "
+                                             + "userid varchar) WITH (kafka_topic='pageviews',"
+                                             + " value_format='json');", pageviewsStream));
+      ksqlRestClient.close();
+      assertTrue(createStreamResponse.isSuccessful());
+    }
   }
 }

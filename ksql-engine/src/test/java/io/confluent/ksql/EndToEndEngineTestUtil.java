@@ -543,10 +543,7 @@ final class EndToEndEngineTestUtil {
   }
 
 
-  static void writeExpectedTopologyFiles(final String topologyDir) throws IOException {
-    final List<Query> queryList = QueryTranslationTest.buildQueryList().stream()
-                                                                       .filter(q -> q.expectedException.matchers.isEmpty())
-                                                                       .collect(Collectors.toList());
+  static void writeExpectedTopologyFiles(final String topologyDir, List<Query> queryList) {
 
     final Random randomPort = new Random();
     queryList.forEach(query -> {

@@ -1,5 +1,7 @@
 package io.confluent.ksql;
 
+import io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import java.util.List;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -52,9 +54,13 @@ public class TopologyFileGenerator {
             System.exit(1);
         }
 
-        EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath);
+        EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getQueryList());
         System.out.println(String.format("Done writing topology files to %s", dirPath));
         System.exit(0);
+    }
+
+    private  static List<Query>  getQueryList() throws IOException {
+        return QueryTranslationTest.buildQueryList();
     }
 
 

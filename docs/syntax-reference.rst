@@ -1122,6 +1122,9 @@ Aggregate functions
 +========================+===========================+=====================================================================+
 | COUNT                  | ``COUNT(col1)``           |  Count the number of rows                                           |
 +------------------------+---------------------------+---------------------------------------------------------------------+
+| HISTOGRAM              | ``HISTOGRAM(col1)``       | Returns a map containing the distinct values of ``col1`` mapped to  |
+|                        |							 | the number of times each one occurs for the given window.           |
++------------------------+---------------------------+---------------------------------------------------------------------+
 | MAX                    | ``MAX(col1)``             |  Return the maximum value for a given column and window             |
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | MIN                    | ``MIN(col1)``             |  Return the minimum value for a given column and window             |

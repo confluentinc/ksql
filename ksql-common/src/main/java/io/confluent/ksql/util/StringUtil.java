@@ -25,10 +25,14 @@ public final class StringUtil {
 
   public static String cleanQuotes(final String stringWithQuotes) {
     // TODO: move check to grammar
+    if (stringWithQuotes.startsWith("'") && stringWithQuotes.endsWith("'")) {
+      return stringWithQuotes.substring(1, stringWithQuotes.length() - 1)
+                .replaceAll("'(.*)'", "$1");
+    }
     return stringWithQuotes.replaceAll("'(.*)'", "$1");
   }
 
-  public static String join(final String delimiter, final List<? extends Object> objs) {
+  public static String join(final String delimiter, final List<?> objs) {
     final StringBuilder sb = new StringBuilder();
     int cnt = 0;
     for (final Object obj : objs) {

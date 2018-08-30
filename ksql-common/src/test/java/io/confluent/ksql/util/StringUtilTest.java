@@ -31,16 +31,16 @@ public class StringUtilTest {
 
   @Test
   public void testCleanDateFormat() {
-    assertDateFormat("yyyy-MM-dd''T''HH:mm:ssX",
-        "yyyy-MM-dd'T'HH:mm:ssX");
-    assertDateFormat("yyyy.MM.dd G ''at'' HH:mm:ss z",
-        "yyyy.MM.dd G 'at' HH:mm:ss z");
-    assertDateFormat("EEE, MMM d, ''''yy",
-        "EEE, MMM d, ''yy");
-    assertDateFormat("hh ''o''clock'' a, zzzz",
-        "hh 'o''clock' a, zzzz");
-    assertDateFormat("YYYY-''W''ww-u",
-        "YYYY-'W'ww-u");
+    assertDateFormat("yyyy-MM-dd''T''HH:mm:ssX", "yyyy-MM-dd'T'HH:mm:ssX");
+    assertDateFormat("'yyyy-MM-dd''T''HH:mm:ssX'", "yyyy-MM-dd'T'HH:mm:ssX");
+    assertDateFormat("yyyy.MM.dd G ''at'' HH:mm:ss z", "yyyy.MM.dd G 'at' HH:mm:ss z");
+    assertDateFormat("'yyyy.MM.dd G ''at'' HH:mm:ss z'", "yyyy.MM.dd G 'at' HH:mm:ss z");
+    assertDateFormat("EEE, MMM d, ''''yy","EEE, MMM d, ''yy");
+    assertDateFormat("'EEE, MMM d, ''''yy'", "EEE, MMM d, ''yy");
+    assertDateFormat("hh ''o''clock'' a, zzzz", "hh 'o''clock' a, zzzz");
+    assertDateFormat("'hh ''o''clock'' a, zzzz'", "hh 'o''clock' a, zzzz");
+    assertDateFormat("YYYY-''W''ww-u", "YYYY-'W'ww-u");
+    assertDateFormat("'YYYY-''W''ww-u'", "YYYY-'W'ww-u");
   }
 
   private void assertDateFormat(final String input, final String expected){

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,8 @@ package io.confluent.ksql.planner;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -33,16 +31,11 @@ import org.junit.Test;
 
 public class PlanSourceExtractorVisitorTest {
 
-  private final KsqlParser KSQL_PARSER = new KsqlParser();
-
-  private MetaStore metaStore;
-  private FunctionRegistry functionRegistry;
   private LogicalPlanBuilder logicalPlanBuilder;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    functionRegistry = new InternalFunctionRegistry();
+    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     logicalPlanBuilder = new LogicalPlanBuilder(metaStore);
   }
 

@@ -1,19 +1,18 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ **/
 
 package io.confluent.ksql.rest.integration;
 
@@ -27,7 +26,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.BindException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,16 +60,20 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static io.confluent.ksql.rest.server.utils.TestUtils.randomFreeLocalPort;
 
 @Category({IntegrationTest.class})
 public class RestApiTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestApiTest.class);
   private static final IntegrationTestHarness testHarness = new IntegrationTestHarness();
+  private static final String PAGE_VIEW_TOPIC = "pageviews";
+  private static final String PAGE_VIEW_STREAM = "pageviews_original";
+
+  private static final int NUM_RETRIES = 5;
   private static KsqlRestApplication restApplication;
 
   private static String serverAddress;
 
-  private static final String pageViewTopic = "pageviews";
-  private static final String pageviewsStream = "pageviews_original";
 
   private Client restClient;
 
@@ -76,19 +82,14 @@ public class RestApiTest {
     final Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
-    final int port = io.confluent.ksql.rest.server.utils.TestUtils.randomFreeLocalPort();
-    serverAddress = "http://localhost:" + port;
 
-    config.put(RestConfig.LISTENERS_CONFIG, serverAddress);
     testHarness.start(config);
-    restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(
-                                                               testHarness.allConfigs()),
-                                                           new DummyVersionCheckerAgent());
-    restApplication.start();
 
-    testHarness.createTopic(pageViewTopic);
+    startRestServer(testHarness.allConfigs());
 
-    testHarness.publishTestData(pageViewTopic, new PageViewDataProvider(),
+    testHarness.createTopic(PAGE_VIEW_TOPIC);
+
+    testHarness.publishTestData(PAGE_VIEW_TOPIC, new PageViewDataProvider(),
                                 System.currentTimeMillis());
 
     createStreams();
@@ -101,7 +102,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithV1ContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;", pageviewsStream),
+    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
+                                                              PAGE_VIEW_STREAM),
                                                 Collections.emptyMap());
     try (final Response response = restClient.target(serverAddress)
         .path("query")
@@ -114,7 +116,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;", pageviewsStream),
+    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
+                                                              PAGE_VIEW_STREAM),
                                                 Collections.emptyMap());
     try (final Response response = restClient.target(serverAddress)
         .path("query")
@@ -160,9 +163,30 @@ public class RestApiTest {
           ksqlRestClient
               .makeKsqlRequest(String.format("CREATE STREAM %s (viewtime bigint, pageid varchar, "
                                              + "userid varchar) WITH (kafka_topic='pageviews',"
-                                             + " value_format='json');", pageviewsStream));
+                                             + " value_format='json');", PAGE_VIEW_STREAM));
       ksqlRestClient.close();
       assertTrue(createStreamResponse.isSuccessful());
+    }
+  }
+
+  private static void startRestServer(Map<String, Object> configs) throws Exception {
+    int retries = NUM_RETRIES;
+    while (0 < retries) {
+      try {
+        final int port = randomFreeLocalPort();
+        serverAddress = "http://localhost:" + port;
+        configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
+        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
+                                                               new DummyVersionCheckerAgent());
+        restApplication.start();
+        return;
+      } catch (BindException e) {
+        LOGGER.info("Failed to start rest server due to bind exception.", e);
+        retries--;
+        if (retries == 0) {
+          LOGGER.error("Could not start server after {} retries", NUM_RETRIES);
+        }
+      }
     }
   }
 }

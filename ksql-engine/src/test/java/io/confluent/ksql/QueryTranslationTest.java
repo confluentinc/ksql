@@ -1,41 +1,5 @@
 package io.confluent.ksql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.TypeUtil;
-
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
@@ -49,13 +13,40 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
-/**
- * By default unit tests compare the most recent expected topologies against the most recent
- * generated directory of topology files.  To run the test against an older version of generated
- * topology files you'll need set the system property "topology.dir" via the following
- *
- * Run -> Edit Configurations.. -> QueryTranslationTest -> VM options then add "-Dtopology.dir="some directory"
- */
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.TypeUtil;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {

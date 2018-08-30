@@ -1235,6 +1235,11 @@ Aggregate functions
 | COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
 |                        |                           | Table      |                                                                     |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Returns a map containing the distinct values of ``col1`` mapped to  |
+|                        |                           | Table      | the number of times each one occurs for the given window.           |
+|                        |                           |            | This version limits the number of distinct values which can be      |
+|                        |                           |            | counted to 1000, beyond which any additional entries are ignored.   |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window              |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window              |
@@ -1246,7 +1251,6 @@ Aggregate functions
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     |  Return the distinct Top *K* values for the given column and window |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-
 
 .. _ksql_key_requirements:
 

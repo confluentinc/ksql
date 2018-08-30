@@ -353,8 +353,8 @@ public class Cli implements Closeable, AutoCloseable {
       );
     } catch (final IOException e) {
       throw new KsqlException(
-          " Could not read statements from file: " + schemaFilePath + ". " + "Details: "
-          + e.getMessage(),
+          " Could not read statements from the provided script file " + schemaFilePath + ": "
+          + e + " Make sure the file exists and can be read by KSQL CLI.",
           e
       );
     }

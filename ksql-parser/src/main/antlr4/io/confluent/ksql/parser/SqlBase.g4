@@ -261,6 +261,8 @@ primaryExpression
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
     | BINARY_LITERAL                                                                 #binaryLiteral
+    | qualifiedName '(' ASTERISK ')'                              		             #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' 						 #functionCall
     | '(' query ')'                                                                  #subqueryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
@@ -343,7 +345,7 @@ nonReserved
     | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT
     | SET | RESET
     | REPLACE
-    | IF | NULLIF 
+    | IF  
     | NO | DATA
     ;
 
@@ -473,7 +475,6 @@ RUN: 'RUN';
 SCRIPT: 'SCRIPT';
 
 IF: 'IF';
-NULLIF: 'NULLIF';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

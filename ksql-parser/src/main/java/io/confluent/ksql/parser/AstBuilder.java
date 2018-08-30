@@ -1183,6 +1183,16 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         (Expression) visit(context.result)
     );
   }
+  
+  @Override
+  public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
+    return new FunctionCall(
+        getLocation(context),
+        getQualifiedName(context.qualifiedName()),
+        visit(context.expression(), Expression.class)
+    );
+  }
+
 
   @Override
   public Node visitTableElement(final SqlBaseParser.TableElementContext context) {

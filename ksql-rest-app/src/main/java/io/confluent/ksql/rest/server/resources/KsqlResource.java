@@ -340,16 +340,15 @@ public class KsqlResource {
 
   private KafkaTopicsList listTopics(final String statementText) {
     final KafkaTopicClient client = ksqlEngine.getTopicClient();
-    try (KafkaConsumerGroupClient kafkaConsumerGroupClient
-             = new KafkaConsumerGroupClientImpl(ksqlConfig)) {
-      return KafkaTopicsList.build(
-          statementText,
-          getKsqlTopics(),
-          client.describeTopics(client.listNonInternalTopicNames()),
-          ksqlConfig,
-          kafkaConsumerGroupClient
-      );
-    }
+    final KafkaConsumerGroupClient kafkaConsumerGroupClient
+        = new KafkaConsumerGroupClientImpl(ksqlEngine.getAdminClient());
+    return KafkaTopicsList.build(
+        statementText,
+        getKsqlTopics(),
+        client.describeTopics(client.listNonInternalTopicNames()),
+        ksqlConfig,
+        kafkaConsumerGroupClient
+    );
   }
 
   private Collection<KsqlTopic> getKsqlTopics() {

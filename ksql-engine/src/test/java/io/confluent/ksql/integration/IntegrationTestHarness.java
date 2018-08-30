@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -71,6 +72,7 @@ public class IntegrationTestHarness {
   private final AtomicInteger producedCount;
 
   private static IntegrationTestHarness THIS;
+  private AdminClient adminClient;
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
@@ -324,11 +326,13 @@ public class IntegrationTestHarness {
     configMap.putAll(callerConfigMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicClient = new KafkaTopicClientImpl(
+        adminClient);
   }
 
   public void stop() {
-    this.topicClient.close();
+    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 

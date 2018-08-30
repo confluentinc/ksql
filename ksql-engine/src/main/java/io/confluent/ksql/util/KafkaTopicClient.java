@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 
-public interface KafkaTopicClient extends Closeable {
+public interface KafkaTopicClient  {
 
   enum TopicCleanupPolicy {
     COMPACT,
@@ -128,9 +127,4 @@ public interface KafkaTopicClient extends Closeable {
    * Delete the internal topics of a given application.
    */
   void deleteInternalTopics(String applicationId);
-
-  /**
-   * Close the underlying Kafka admin client.
-   */
-  void close();
 }

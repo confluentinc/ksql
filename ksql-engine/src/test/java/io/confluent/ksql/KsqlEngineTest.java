@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -322,19 +323,25 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+  public void shouldCloseAdminClientOnClose() {
     // Given:
-    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
-    topicClient.close();
+    final AdminClient adminClient = niceMock(AdminClient.class);
+    adminClient.close();
     expectLastCall();
-    replay(topicClient);
+    replay(adminClient);
     final KsqlEngine ksqlEngine
-        = new KsqlEngine(topicClient, schemaRegistryClient, metaStore, ksqlConfig);
+        = new KsqlEngine(
+            new FakeKafkaTopicClient(),
+            schemaRegistryClient,
+            new DefaultKafkaClientSupplier(),
+            metaStore,
+            ksqlConfig,
+          adminClient);
 
     // When:
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient);
+    verify(adminClient);
   }
 }

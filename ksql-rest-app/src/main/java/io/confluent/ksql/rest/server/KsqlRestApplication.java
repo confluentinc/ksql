@@ -281,7 +281,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
 

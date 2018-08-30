@@ -928,6 +928,20 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         (Expression) visit(context.right)
     );
   }
+  
+  @Override
+  public Node visitDistinctFrom(final SqlBaseParser.DistinctFromContext context) {
+    Expression expression = new ComparisonExpression(
+        getLocation(context),
+        ComparisonExpression.Type.IS_DISTINCT_FROM,
+        (Expression) visit(context.value),
+        (Expression) visit(context.right)
+    );
+    if (context.NOT() != null) {
+      expression = new NotExpression(getLocation(context), expression);
+    }
+    return expression;
+  }
 
   @Override
   public Node visitBetween(final SqlBaseParser.BetweenContext context) {

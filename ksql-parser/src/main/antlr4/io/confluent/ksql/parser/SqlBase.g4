@@ -243,6 +243,7 @@ predicate[ParserRuleContext value]
     | NOT? IN '(' query ')'                                               #inSubquery
     | NOT? LIKE pattern=valueExpression									  #like
     | IS NOT? NULL                                                        #nullPredicate
+    | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
     ;
 
 valueExpression
@@ -353,6 +354,7 @@ SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
 ALL: 'ALL';
+DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 WITHIN: 'WITHIN';
 WINDOW: 'WINDOW';

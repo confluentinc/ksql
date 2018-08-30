@@ -57,6 +57,8 @@ public class IntegrationTestHarness {
 
   public SchemaRegistryClient schemaRegistryClient;
 
+  private final Map<String, Object> unifiedConfigs = new HashMap<>();
+
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
   }
@@ -227,6 +229,10 @@ public class IntegrationTestHarness {
 
   }
 
+  public Map<String, Object> allConfigs() {
+    return unifiedConfigs;
+  }
+
   private Properties consumerConfig() {
     final Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -274,6 +280,8 @@ public class IntegrationTestHarness {
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     configMap.put("producer.interceptor.classes", DummyProducerInterceptor.class.getName());
     configMap.putAll(callerConfigMap);
+
+    unifiedConfigs.putAll(configMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());

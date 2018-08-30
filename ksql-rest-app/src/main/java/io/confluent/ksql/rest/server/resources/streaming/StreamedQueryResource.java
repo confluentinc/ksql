@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 @Path("/query")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
+@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
@@ -67,7 +68,6 @@ public class StreamedQueryResource {
   }
 
   @POST
-  @Consumes(MediaType.APPLICATION_JSON)
   public Response streamQuery(final KsqlRequest request) throws Exception {
     final String ksql = request.getKsql();
     final Statement statement;

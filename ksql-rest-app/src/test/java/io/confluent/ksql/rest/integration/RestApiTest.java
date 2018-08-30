@@ -164,7 +164,6 @@ public class RestApiTest {
               .makeKsqlRequest(String.format("CREATE STREAM %s (viewtime bigint, pageid varchar, "
                                              + "userid varchar) WITH (kafka_topic='pageviews',"
                                              + " value_format='json');", PAGE_VIEW_STREAM));
-      ksqlRestClient.close();
       assertTrue(createStreamResponse.isSuccessful());
     }
   }

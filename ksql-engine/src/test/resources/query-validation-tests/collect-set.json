@@ -22,10 +22,10 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [0]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [0,100]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500,100]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0,100]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}, "timestamp": 0}
       ]
     },
     {
@@ -42,10 +42,10 @@
         {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [2147483648]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500,100]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [2147483648,100]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648,100]}, "timestamp": 0}
       ]
     },
     {
@@ -62,10 +62,10 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 300.8}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [5.4]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": [5.4,100.1]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500.9]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": [500,300.8]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4,100.1]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9,300.8]}, "timestamp": 0}
       ]
     },
     {
@@ -83,16 +83,16 @@
         {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": ["foo"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": ["baz"]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "collected": ["foo","bar"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": ["baz"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "collected": ["baz","foo"]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo"]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo","bar"]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}, "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz","foo"]}, "timestamp": 0}
       ]
     },
     {
       "name": "collect_set bool map",
-      "format": ["AVRO", "JSON"],
+      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_set(value['key1']) AS collected FROM test group by id;"
@@ -103,9 +103,9 @@
         {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":true}}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"collected":[true]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"collected":[true,false]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"collected":[true,false]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}, "timestamp": 0}
       ]
     }
   ]

@@ -222,6 +222,20 @@ Example:
 
 .. _create-table:
 
+If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
+The same applies to the field names in a STRUCT type.
+For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+use the following statement to declare your stream:
+
+.. code:: sql
+
+    CREATE STREAM pageviews (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR, `Properties` VARCHAR)
+      WITH (VALUE_FORMAT = 'JSON',
+            KAFKA_TOPIC = 'my-pageviews-topic');
+
+.. _create-stream-reserved:
+
+
 CREATE TABLE
 ------------
 
@@ -307,6 +321,19 @@ Example:
         KEY = 'user_id');
 
 .. _create-stream-as-select:
+
+If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
+The same applies to the field names in a STRUCT type.
+For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+use the following statement to declare your table:
+
+.. code:: sql
+
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR)
+            KAFKA_TOPIC = 'my-users-topic',
+            KEY = 'user_id');
+
+.. _create-table-reserved:
 
 CREATE STREAM AS SELECT
 -----------------------
@@ -477,6 +504,20 @@ stream_name and from_item must both refer to a Stream. Tables are not supported.
 Records written into the stream are not timestamp-ordered with respect to other queries.
 Therefore, the topic partitions of the output stream may contain out-of-order records even
 if the source stream for the query is ordered by timestamp.
+
+
+In any of CREATE STREAM AS SELECT, CREATE TABLE AS SELECT or INSERT INTO statements, if you have a column name
+that is a reserved word in KSQL you can access it by using back quotes. Note that when you use back quotes the
+identifier name is case sensitive. The same applies to the field names in STRUCT type.
+In the following example, we select a column with name ``Properties`` and a field from address colunm named ``select``:
+
+.. code:: sql
+
+    CREATE STREAM foo AS SELECT `Properties`, address -> `select` FROM bar;
+
+.. _create-stream-as-select-reserved:
+
+
 
 DESCRIBE
 --------

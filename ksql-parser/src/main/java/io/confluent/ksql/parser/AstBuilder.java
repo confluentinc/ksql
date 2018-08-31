@@ -1072,12 +1072,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitCast(final SqlBaseParser.CastContext context) {
-    final boolean isTryCast = false;
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
-        getType(context.type()).toString(),
-        isTryCast
+        getType(context.type()).toString()
     );
   }
 

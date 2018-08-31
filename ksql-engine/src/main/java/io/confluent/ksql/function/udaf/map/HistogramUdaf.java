@@ -15,18 +15,20 @@
 package io.confluent.ksql.function.udaf.map;
 
 import com.google.common.collect.Maps;
-
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
-
 import java.util.Map;
 
 @UdafDescription(name = "histogram", description = "Returns a map of each input value and how many"
     + " times each occurs. Not applicable for complex types (map, array, or struct).")
-public class HistogramUdaf {
+public final class HistogramUdaf {
 
-  @UdafFactory(description = "See above.")
+  private HistogramUdaf() {
+    // checkstyle, be hushed
+  }
+  
+  @UdafFactory(description = "Build a value-to-count histogram of input Strings")
   public static TableUdaf<String, Map<String, Long>> histogramString() {
     return new TableUdaf<String, Map<String, Long>>() {
 
@@ -43,7 +45,7 @@ public class HistogramUdaf {
 
       @Override
       public Map<String, Long> merge(final Map<String, Long> agg1, final Map<String, Long> agg2) {
-        agg1.putAll(agg2); // TODO safe to modify input aggregate value ? or should take a copy?
+        agg2.forEach((k, v) -> agg1.merge(k, v, Long::sum));
         return agg1;
       }
 
@@ -55,7 +57,7 @@ public class HistogramUdaf {
     };
   }
 
-  @UdafFactory(description = "See above.")
+  @UdafFactory(description = "Build a value-to-count histogram of input Booleans")
   public static TableUdaf<Boolean, Map<Boolean, Long>> histogramBool() {
     return new TableUdaf<Boolean, Map<Boolean, Long>>() {
 
@@ -65,21 +67,21 @@ public class HistogramUdaf {
       }
 
       @Override
-      public Map<Boolean, Long> aggregate(final Boolean current, 
+      public Map<Boolean, Long> aggregate(final Boolean current,
           final Map<Boolean, Long> aggregate) {
         aggregate.merge(current, 1L, Long::sum);
         return aggregate;
       }
 
       @Override
-      public Map<Boolean, Long> merge(final Map<Boolean, Long> agg1, 
+      public Map<Boolean, Long> merge(final Map<Boolean, Long> agg1,
           final Map<Boolean, Long> agg2) {
-        agg1.putAll(agg2);
+        agg2.forEach((k, v) -> agg1.merge(k, v, Long::sum));
         return agg1;
       }
 
       @Override
-      public Map<Boolean, Long> undo(final Boolean valueToUndo, 
+      public Map<Boolean, Long> undo(final Boolean valueToUndo,
           final Map<Boolean, Long> aggregate) {
         aggregate.compute(valueToUndo, (k, v) -> (--v < 1) ? null : v);
         return aggregate;
@@ -87,7 +89,7 @@ public class HistogramUdaf {
     };
   }
 
-  @UdafFactory(description = "See above.")
+  @UdafFactory(description = "Build a value-to-count histogram of input Integers")
   public static TableUdaf<Integer, Map<Integer, Long>> histogramInt() {
     return new TableUdaf<Integer, Map<Integer, Long>>() {
 
@@ -97,21 +99,21 @@ public class HistogramUdaf {
       }
 
       @Override
-      public Map<Integer, Long> aggregate(final Integer current, 
+      public Map<Integer, Long> aggregate(final Integer current,
           final Map<Integer, Long> aggregate) {
         aggregate.merge(current, 1L, Long::sum);
         return aggregate;
       }
 
       @Override
-      public Map<Integer, Long> merge(final Map<Integer, Long> agg1, 
+      public Map<Integer, Long> merge(final Map<Integer, Long> agg1,
           final Map<Integer, Long> agg2) {
-        agg1.putAll(agg2);
+        agg2.forEach((k, v) -> agg1.merge(k, v, Long::sum));
         return agg1;
       }
 
       @Override
-      public Map<Integer, Long> undo(final Integer valueToUndo, 
+      public Map<Integer, Long> undo(final Integer valueToUndo,
           final Map<Integer, Long> aggregate) {
         aggregate.compute(valueToUndo, (k, v) -> (--v < 1) ? null : v);
         return aggregate;
@@ -119,7 +121,7 @@ public class HistogramUdaf {
     };
   }
 
-  @UdafFactory(description = "See above.")
+  @UdafFactory(description = "Build a value-to-count histogram of input Bigints")
   public static TableUdaf<Long, Map<Long, Long>> histogramLong() {
     return new TableUdaf<Long, Map<Long, Long>>() {
 
@@ -136,7 +138,7 @@ public class HistogramUdaf {
 
       @Override
       public Map<Long, Long> merge(final Map<Long, Long> agg1, final Map<Long, Long> agg2) {
-        agg1.putAll(agg2);
+        agg2.forEach((k, v) -> agg1.merge(k, v, Long::sum));
         return agg1;
       }
 
@@ -148,7 +150,7 @@ public class HistogramUdaf {
     };
   }
 
-  @UdafFactory(description = "See above.")
+  @UdafFactory(description = "Build a value-to-count histogram of input Doubles")
   public static TableUdaf<Double, Map<Double, Long>> histogramDouble() {
     return new TableUdaf<Double, Map<Double, Long>>() {
 
@@ -165,7 +167,7 @@ public class HistogramUdaf {
 
       @Override
       public Map<Double, Long> merge(final Map<Double, Long> agg1, final Map<Double, Long> agg2) {
-        agg1.putAll(agg2);
+        agg2.forEach((k, v) -> agg1.merge(k, v, Long::sum));
         return agg1;
       }
 
@@ -176,6 +178,5 @@ public class HistogramUdaf {
       }
     };
   }
-
 
 }

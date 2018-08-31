@@ -224,7 +224,7 @@ Example:
 
 If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
 The same applies to the field names in a STRUCT type.
-For indtance, if in the above example we had another field called ``Properties`` which is a reserved word in KSQL you can
+For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
 use the following statement to declare your stream:
 
 .. code:: sql
@@ -324,7 +324,7 @@ Example:
 
 If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
 The same applies to the field names in a STRUCT type.
-For indtance, if in the above example we had another field called ``Properties`` which is a reserved word in KSQL you can
+For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
 use the following statement to declare your table:
 
 .. code:: sql
@@ -506,10 +506,10 @@ Therefore, the topic partitions of the output stream may contain out-of-order re
 if the source stream for the query is ordered by timestamp.
 
 
-In either of CREATE STREAM AS SELECT, CREATE TABLE AS SELECT or INSERT INTO statements, if you have a column name
+In any of CREATE STREAM AS SELECT, CREATE TABLE AS SELECT or INSERT INTO statements, if you have a column name
 that is a reserved word in KSQL you can access it by using back quotes. Note that when you use back quotes the
 identifier name is case sensitive. The same applies to the field names in STRUCT type.
-In the following example we select a column with name ``Properties`` and a field from address colunm named ``select``:
+In the following example, we select a column with name ``Properties`` and a field from address colunm named ``select``:
 
 .. code:: sql
 

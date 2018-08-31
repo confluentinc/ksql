@@ -16,19 +16,23 @@
 
 package io.confluent.ksql.function.udaf.array;
 
-import java.util.List;
 import avro.shaded.com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import java.util.List;
 
-@UdafDescription(name = "collect_array", 
+@UdafDescription(name = "collect_list", 
     description = "Gather all of the grouped values into a single Array field")
-public class CollectArrayUdaf {
+public final class CollectListUdaf {
 
+  private CollectListUdaf() {
+    // just to make the checkstyle happy
+  }
+  
   @UdafFactory(description = "collect values of a Bigint field into a single Array")
-  public static TableUdaf<Long, List<Long>> createCollectArrayLong() {
+  public static Udaf<Long, List<Long>> createCollectListLong() {
     return new TableUdaf<Long, List<Long>>() {
       @Override
       public List<Long> undo(final Long valueToUndo, final List<Long> aggregateValue) {
@@ -48,7 +52,7 @@ public class CollectArrayUdaf {
       }
 
       @Override
-      public List<Long> merge(final List<Long> aggOne, List<Long> aggTwo) {
+      public List<Long> merge(final List<Long> aggOne, final List<Long> aggTwo) {
         aggOne.addAll(aggTwo);
         return aggOne;
       }
@@ -56,7 +60,7 @@ public class CollectArrayUdaf {
   }
 
   @UdafFactory(description = "collect values of an Integer field into a single Array")
-  public static TableUdaf<Integer, List<Integer>> createCollectArrayInt() {
+  public static Udaf<Integer, List<Integer>> createCollectListInt() {
     return new TableUdaf<Integer, List<Integer>>() {
       @Override
       public List<Integer> undo(final Integer valueToUndo, final List<Integer> aggregateValue) {
@@ -84,7 +88,7 @@ public class CollectArrayUdaf {
   }
 
   @UdafFactory(description = "collect values of a Double field into a single Array")
-  public static Udaf<Double, List<Double>> createCollectArrayDouble() {
+  public static Udaf<Double, List<Double>> createCollectListDouble() {
     return new TableUdaf<Double, List<Double>>() {
       @Override
       public List<Double> undo(final Double valueToUndo, final List<Double> aggregateValue) {
@@ -112,7 +116,7 @@ public class CollectArrayUdaf {
   }
 
   @UdafFactory(description = "collect values of a String/Varchar field into a single Array")
-  public static Udaf<String, List<String>> createCollectArrayString() {
+  public static Udaf<String, List<String>> createCollectListString() {
     return new TableUdaf<String, List<String>>() {
       @Override
       public List<String> undo(final String valueToUndo, final List<String> aggregateValue) {
@@ -140,7 +144,7 @@ public class CollectArrayUdaf {
   }
 
   @UdafFactory(description = "collect values of a Boolean field into a single Array")
-  public static Udaf<Boolean, List<Boolean>> createCollectArrayBool() {
+  public static Udaf<Boolean, List<Boolean>> createCollectListBool() {
     return new TableUdaf<Boolean, List<Boolean>>() {
       @Override
       public List<Boolean> undo(final Boolean valueToUndo, final List<Boolean> aggregateValue) {

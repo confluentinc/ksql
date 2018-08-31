@@ -572,7 +572,8 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    for (final QueryMetadata queryMetadata : allLiveQueries) {
+    final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
+    for (final QueryMetadata queryMetadata : queriesToClose) {
       queryMetadata.close();
     }
     adminClient.close();

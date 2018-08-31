@@ -74,6 +74,8 @@ public class IntegrationTestHarness {
   private static IntegrationTestHarness THIS;
   private AdminClient adminClient;
 
+  private final Map<String, Object> unifiedConfigs = new HashMap<>();
+
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
     THIS = this;
@@ -262,6 +264,7 @@ public class IntegrationTestHarness {
 
   }
 
+
   // Just so we can test consumer group stuff
 
   KafkaConsumer<String, byte[]> createSubscribedConsumer(final String topic, final String groupId) {
@@ -273,7 +276,13 @@ public class IntegrationTestHarness {
   }
 
 
-  private Properties consumerConfig(String groupId) {
+
+
+  public Map<String, Object> allConfigs() {
+    return unifiedConfigs;
+  }
+
+  private Properties consumerConfig(final String groupId) {
     final Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlConfig.getKsqlStreamConfigProps().get(
@@ -340,6 +349,8 @@ public class IntegrationTestHarness {
     configMap.put("producer.interceptor.classes", DummyProducerInterceptor.class.getName());
     configMap.put("consumer.interceptor.classes", DummyConsumerInterceptor.class.getName());
     configMap.putAll(callerConfigMap);
+
+    unifiedConfigs.putAll(configMap);
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,7 @@ public class SetParentVisitorTest {
   }
 
   private Statement getAstWithParent(final String sql) {
-    final Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0).getStatement();
 
     final SetParentVisitor setParentVisitor = new SetParentVisitor();
     setParentVisitor.process(statement, null);

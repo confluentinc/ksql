@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.codegen;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
@@ -29,17 +30,13 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -64,7 +61,6 @@ import org.junit.Test;
 @SuppressWarnings("SameParameterValue")
 public class CodeGenRunnerTest {
 
-    private static final KsqlParser KSQL_PARSER = new KsqlParser();
     private static final int INT64_INDEX1 = 0;
     private static final int STRING_INDEX1 = 1;
     private static final int STRING_INDEX2 = 2;
@@ -163,7 +159,7 @@ public class CodeGenRunnerTest {
     @Test
     public void testIsNull() throws Exception {
         final String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST;";
-        final Analysis analysis = analyzeQuery(simpleQuery);
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
@@ -184,7 +180,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleMultiDimensionalArray() throws Exception {
         final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST;";
-        final Analysis analysis = analyzeQuery(simpleQuery);
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
         final ExpressionMetadata expressionEvaluatorMetadata = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
         final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
@@ -198,7 +194,7 @@ public class CodeGenRunnerTest {
     @Test
     public void testIsNotNull() throws Exception {
         final String simpleQuery = "SELECT col0 IS NOT NULL FROM CODEGEN_TEST;";
-        final Analysis analysis = analyzeQuery(simpleQuery);
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
@@ -455,7 +451,7 @@ public class CodeGenRunnerTest {
         final Map<String, String> inputs = new HashMap<>();
         inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
 
-        final Analysis analysis = analyzeQuery(query);
+        final Analysis analysis = analyzeQuery(query, metaStore);
         final ExpressionMetadata expressionMetadata
             = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
 
@@ -471,7 +467,7 @@ public class CodeGenRunnerTest {
         final Map<String, String> inputs = new HashMap<>();
         inputs.put("address", "{\"city\":\"adelaide\",\"country\":\"oz\"}");
 
-        final Analysis analysis = analyzeQuery(query);
+        final Analysis analysis = analyzeQuery(query, metaStore);
         final ExpressionMetadata metadata
             = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
 
@@ -512,7 +508,7 @@ public class CodeGenRunnerTest {
 
     private List<Object> executeExpression(final String query,
                                            final Map<Integer, Object> inputValues) {
-        final Analysis analysis = analyzeQuery(query);
+        final Analysis analysis = analyzeQuery(query, metaStore);
 
         final Function<Expression, ExpressionMetadata> buildCodeGenFromParseTree =
             exp -> {
@@ -527,14 +523,6 @@ public class CodeGenRunnerTest {
             .map(buildCodeGenFromParseTree)
             .map(md -> evaluate(md, inputValues))
             .collect(Collectors.toList());
-    }
-
-    private Analysis analyzeQuery(final String queryStr) {
-        final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        final Analysis analysis = new Analysis();
-        final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
-        analyzer.process(statements.get(0), new AnalysisContext(null));
-        return analysis;
     }
 
     private boolean evalBooleanExprEq(final int cola, final int colb, final Object[] values) throws Exception {
@@ -569,7 +557,7 @@ public class CodeGenRunnerTest {
         final String queryFormat, final int cola, final int colb, final Object[] values)
         throws Exception {
         final String simpleQuery = String.format(queryFormat, cola, colb);
-        final Analysis analysis = analyzeQuery(simpleQuery);
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));

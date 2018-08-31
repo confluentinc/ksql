@@ -34,6 +34,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
@@ -181,7 +182,7 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    final List<Pair<String, Statement>> parsedStatements = ksqlEngine.parseQueries(
+    final List<PreparedStatement> parsedStatements = ksqlEngine.parseQueries(
         runScriptContent.toString(), metaStore.clone());
 
     assertThat(parsedStatements.size(), equalTo(3));

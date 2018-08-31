@@ -34,9 +34,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -108,7 +106,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -126,8 +123,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
 
 @Path("/ksql")
@@ -160,32 +155,23 @@ public class KsqlResource {
 
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
-    final List<Statement> parsedStatements;
-    final List<String> statementStrings;
-    final Map<String, Object> streamsProperties;
+    final List<PreparedStatement> parsedStatements;
 
     try {
       parsedStatements = ksqlEngine.getStatements(request.getKsql());
-      statementStrings = getStatementStrings(request.getKsql());
     } catch (final KsqlException e) {
       return Errors.badRequest(e);
     }
 
-    streamsProperties = request.getStreamsProperties();
-    if (parsedStatements.size() != statementStrings.size()) {
-      return Errors.badRequest(String.format(
-          "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
-          parsedStatements.size(),
-          statementStrings.size()
-      ));
-    }
+    final Map<String, Object> streamsProperties = request.getStreamsProperties();
 
     final KsqlEntityList result = new KsqlEntityList();
-    for (int i = 0; i < parsedStatements.size(); i++) {
-      final String statementText = statementStrings.get(i);
+    for (final PreparedStatement parsedStatement : parsedStatements) {
+      final String statementText = parsedStatement.getStatementText();
+      final Statement statement = parsedStatement.getStatement();
+
       try {
-        validateStatement(
-            result, statementStrings.get(i), parsedStatements.get(i), streamsProperties);
+        validateStatement(result, statementText, statement, streamsProperties);
       } catch (final KsqlRestException e) {
         throw e;
       } catch (final KsqlException e) {
@@ -194,25 +180,12 @@ public class KsqlResource {
         return Errors.serverErrorForStatement(e, statementText, result);
       }
       try {
-        result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
+        result.add(executeStatement(statementText, statement, streamsProperties));
       } catch (final Exception e) {
         return Errors.serverErrorForStatement(e, statementText, result);
       }
     }
     return Response.ok(result).build();
-  }
-
-  private Statement maybeAddFieldsFromSchemaRegistry(
-      final Statement statement,
-      final Map<String, Object> streamsProperties
-  ) {
-    if (statement instanceof AbstractStreamCreateStatement) {
-      return AvroUtil.checkAndSetAvroSchema(
-          (AbstractStreamCreateStatement)statement,
-          streamsProperties,
-          ksqlEngine.getSchemaRegistryClient());
-    }
-    return statement;
   }
 
   private void validateStatement(
@@ -263,26 +236,6 @@ public class KsqlResource {
               String.format("Unable to execute statement '%s'", statementText),
               statementText, entities));
     }
-  }
-
-  public List<String> getStatementStrings(final String ksqlString) {
-    final List<SqlBaseParser.SingleStatementContext> statementContexts =
-        new KsqlParser().getStatements(ksqlString);
-    final List<String> result = new ArrayList<>(statementContexts.size());
-    for (final SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
-      // Taken from http://stackoverflow
-      // .com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
-      final CharStream charStream = statementContext.start.getInputStream();
-      result.add(
-          charStream.getText(
-              new Interval(
-                  statementContext.start.getStartIndex(),
-                  statementContext.stop.getStopIndex()
-              )
-          )
-      );
-    }
-    return result;
   }
 
   public KsqlEngine getKsqlEngine() {

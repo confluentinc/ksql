@@ -221,9 +221,9 @@ public class Cli implements Closeable, AutoCloseable {
       final String trimmedPhysicalLine = physicalLine.trim();
       if (!trimmedPhysicalLine.isEmpty()) {
         if (trimmedPhysicalLine.endsWith("\\")) {
-          logicalLine.append(trimmedPhysicalLine, 0, trimmedPhysicalLine.length() - 1).append(" ");
+          logicalLine.append(trimmedPhysicalLine.replaceAll("\\\\", " "));
         } else {
-          result.add(logicalLine.append(trimmedPhysicalLine).toString());
+          result.add(logicalLine.append(trimmedPhysicalLine.replaceAll("\\\\", " ")).toString());
           logicalLine = new StringBuilder();
         }
       }

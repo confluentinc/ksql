@@ -447,7 +447,8 @@ public class CliTest {
 
   @Test
   public void testContinuation() throws Exception{
-    localCli.runNonInteractively("SHOW" + "\\\t \t\n"  + "TABLES;");
+    localCli.runNonInteractively("SHOW\\\nTABLES;");
+    localCli.runNonInteractively("SHOW\\TABLES;");
   }
 
   @Test

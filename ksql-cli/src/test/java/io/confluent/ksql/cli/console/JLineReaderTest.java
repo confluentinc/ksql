@@ -40,6 +40,22 @@ public class JLineReaderTest {
   }
 
   @Test
+  public void shouldExpandInlineMacro() throws Exception {
+    final JLineReader reader = createReaderForInput("csas\t\n");
+    final List<String> commands = new ArrayList<>();
+    try {
+      while (true) {
+         String line = reader.readLine();
+         commands.add(line.trim());
+      }
+    } catch (EndOfFileException e) {
+      // this indicates end of input in JLine
+    }
+    assertThat(commands, hasSize(1));
+    assertThat(commands, contains("CREATE STREAM s AS SELECT"));
+  }
+
+  @Test
   public void shouldExpandHistoricalLine() throws Exception {
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!2\n");
     final List<String> commands = new ArrayList<>();

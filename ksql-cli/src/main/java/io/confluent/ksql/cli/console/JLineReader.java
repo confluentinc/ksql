@@ -16,13 +16,16 @@
 
 package io.confluent.ksql.cli.console;
 
+import com.google.common.collect.Maps;
 import io.confluent.ksql.util.CliUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
@@ -49,6 +52,18 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
    */
   private static class KsqlExpander extends DefaultExpander {
 
+    private static final Map<String, String> shortcuts = Maps.newHashMap();
+    
+    {
+      shortcuts.put("cs", "CREATE STREAM s ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
+          + " VALUE_FORMAT='avro');");
+      shortcuts.put("ct", "CREATE TABLE t ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
+          + " VALUE_FORMAT='avro', KEY='field1');");
+      shortcuts.put("csas", "CREATE STREAM s AS SELECT ");
+      shortcuts.put("ctas", "CREATE TABLE t AS SELECT ");
+      shortcuts.put("ii", "INSERT INTO x SELECT ");
+    }
+
     @Override
     public String expandHistory(final History history, final String line) {
       if (line.startsWith("!") || line.startsWith("^")) {
@@ -56,6 +71,12 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
       } else {
         return line;
       }
+    }
+
+    @Override
+    public String expandVar(final String word) {
+      final String snippet = shortcuts.getOrDefault(word.toLowerCase(), word);
+      return snippet;
     }
 
   }
@@ -76,8 +97,9 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
         .terminal(terminal)
         .build();
 
-    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
+    this.lineReader.setOpt(Option.HISTORY_IGNORE_DUPS);
+    this.lineReader.unsetOpt(Option.HISTORY_IGNORE_SPACE);
+    this.lineReader.unsetOpt(Option.DISABLE_EVENT_EXPANSION);
 
     if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
@@ -89,7 +111,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
       ));
     }
 
-    this.lineReader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+    this.lineReader.unsetOpt(Option.HISTORY_INCREMENTAL);
     this.history = new DefaultHistory(this.lineReader);
 
     this.prompt = DEFAULT_PROMPT;

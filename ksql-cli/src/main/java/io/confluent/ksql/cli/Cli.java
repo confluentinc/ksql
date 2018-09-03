@@ -439,7 +439,7 @@ public class Cli implements Closeable, AutoCloseable {
           StandardCharsets.UTF_8.name()
       )) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
-          while (topicStreamScanner.hasNextLine()) {
+          while (topicStreamScanner.hasNextLine() && !Thread.isInterrupted()) {
             final String line = topicStreamScanner.nextLine();
             if (!line.isEmpty()) {
               terminal.writer().println(line);

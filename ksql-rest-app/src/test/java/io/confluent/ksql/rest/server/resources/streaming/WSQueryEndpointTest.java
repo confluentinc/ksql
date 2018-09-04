@@ -1,43 +1,5 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.google.common.util.concurrent.ListenableScheduledFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
-import org.easymock.Capture;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import javax.websocket.CloseReason;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueuedQueryMetadata;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.eq;
@@ -48,6 +10,39 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.util.concurrent.ListenableScheduledFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import javax.websocket.CloseReason;
+import javax.websocket.RemoteEndpoint;
+import javax.websocket.Session;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
+import org.easymock.Capture;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked")
 public class WSQueryEndpointTest {
@@ -73,8 +68,8 @@ public class WSQueryEndpointTest {
     session = addMock(Session.class);
   }
 
-  private <T> T addMock(Class<T> clazz) {
-    T mockObject = mock(clazz);
+  private <T> T addMock(final Class<T> clazz) {
+    final T mockObject = mock(clazz);
     mocks.add(mockObject);
     return mockObject;
   }
@@ -86,7 +81,7 @@ public class WSQueryEndpointTest {
   private void verifyVersionCheckFailure(
       final CloseReason expectedCloseReason, final Capture<CloseReason> captured) {
     verify(session);
-    CloseReason closeReason = captured.getValue();
+    final CloseReason closeReason = captured.getValue();
     assertThat(closeReason.getReasonPhrase(), equalTo(expectedCloseReason.getReasonPhrase()));
     assertThat(closeReason.getCloseCode(), equalTo(expectedCloseReason.getCloseCode()));
   }
@@ -187,7 +182,7 @@ public class WSQueryEndpointTest {
     // result expectations
     basic.sendText(objectMapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
     expectLastCall().once();
-    for (KeyValue<String, GenericRow> row : rows) {
+    for (final KeyValue<String, GenericRow> row : rows) {
       async.sendText(
           eq(objectMapper.writeValueAsString(StreamedRow.row(row.value))),
           anyObject());

@@ -16,24 +16,22 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class TypeUtil {
   private TypeUtil() {
   }
 
-  public static Type getKsqlType(Schema schema) {
+  public static Type getKsqlType(final Schema schema) {
     switch (schema.type()) {
       case INT32:
         return new PrimitiveType(Type.KsqlType.INTEGER);
@@ -58,12 +56,12 @@ public final class TypeUtil {
     }
   }
 
-  private static List<Pair<String, Type>> getStructItems(Schema struct) {
+  private static List<Pair<String, Type>> getStructItems(final Schema struct) {
     if (struct.type() != Schema.Type.STRUCT) {
       return null;
     }
-    List<Pair<String, Type>> itemList = new ArrayList<>();
-    for (Field field: struct.schema().fields()) {
+    final List<Pair<String, Type>> itemList = new ArrayList<>();
+    for (final Field field: struct.schema().fields()) {
       itemList.add(new Pair<>(field.name(), getKsqlType(field.schema())));
     }
     return itemList;
@@ -98,7 +96,7 @@ public final class TypeUtil {
 
   private static Schema buildStructSchema(final Struct struct) {
     final SchemaBuilder structSchemaBuilder = SchemaBuilder.struct();
-    for (Pair<String, Type> field: struct.getItems()) {
+    for (final Pair<String, Type> field: struct.getItems()) {
       structSchemaBuilder.field(field.getLeft(), getTypeSchema(field.getRight()));
     }
     return structSchemaBuilder.optional().build();

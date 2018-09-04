@@ -16,12 +16,10 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.udf.Kudf;
+import java.util.Objects;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.utils.Time;
-
-import java.util.Objects;
-
-import io.confluent.ksql.function.udf.Kudf;
 
 /**
  * Capture metrics for a given Kudf

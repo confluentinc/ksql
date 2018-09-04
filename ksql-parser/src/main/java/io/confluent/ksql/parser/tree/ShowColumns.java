@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class ShowColumns
     extends Statement {
@@ -29,24 +29,24 @@ public class ShowColumns
   private final boolean isTopic;
   private final boolean isExtended;
 
-  public ShowColumns(QualifiedName table, boolean isTopic, boolean isExtended) {
+  public ShowColumns(final QualifiedName table, final boolean isTopic, final boolean isExtended) {
     this(Optional.empty(), table, isTopic, isExtended);
   }
 
   public ShowColumns(
-      NodeLocation location,
-      QualifiedName table,
-      boolean isTopic,
-      boolean isExtended
+      final NodeLocation location,
+      final QualifiedName table,
+      final boolean isTopic,
+      final boolean isExtended
   ) {
     this(Optional.of(location), table, isTopic, isExtended);
   }
 
   private ShowColumns(
-      Optional<NodeLocation> location,
-      QualifiedName table,
-      boolean isTopic,
-      boolean isExtended
+      final Optional<NodeLocation> location,
+      final QualifiedName table,
+      final boolean isTopic,
+      final boolean isExtended
   ) {
     super(location);
     this.table = requireNonNull(table, "table is null");
@@ -67,7 +67,7 @@ public class ShowColumns
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitShowColumns(this, context);
   }
 
@@ -77,14 +77,14 @@ public class ShowColumns
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    ShowColumns o = (ShowColumns) obj;
+    final ShowColumns o = (ShowColumns) obj;
     return Objects.equals(table, o.table);
   }
 

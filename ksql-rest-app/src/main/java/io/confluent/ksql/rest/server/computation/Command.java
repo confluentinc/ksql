@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.server.computation;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -56,7 +55,7 @@ public class Command {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     return
         o instanceof Command
         && Objects.equals(statement, ((Command)o).statement)

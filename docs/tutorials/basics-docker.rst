@@ -3,6 +3,14 @@
 Writing Streaming Queries Against Kafka Using KSQL (Docker)
 ===========================================================
 
+Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
+
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+    <iframe src="https://www.youtube.com/embed/EzVZOUt9JsU" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
+    </div>
+
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka in a Docker
 environment.
 
@@ -70,7 +78,7 @@ Download the Tutorial and Start KSQL
    .. code:: bash
 
        $ docker run --network tutorials_default --interactive --tty \
-            confluentinc/cp-ksql-cli:5.0.0-beta180702222458 \
+            confluentinc/cp-ksql-cli:latest \
             http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst

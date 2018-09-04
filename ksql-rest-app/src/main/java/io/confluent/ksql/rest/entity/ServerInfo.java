@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -36,9 +35,9 @@ public class ServerInfo {
 
   @JsonCreator
   public ServerInfo(
-      @JsonProperty("version") String version,
-      @JsonProperty("kafkaClusterId") String kafkaClusterId,
-      @JsonProperty("ksqlServiceId") String ksqlServiceId) {
+      @JsonProperty("version") final String version,
+      @JsonProperty("kafkaClusterId") final String kafkaClusterId,
+      @JsonProperty("ksqlServiceId") final String ksqlServiceId) {
     this.version = version;
     this.kafkaClusterId = kafkaClusterId;
     this.ksqlServiceId = ksqlServiceId;
@@ -57,14 +56,14 @@ public class ServerInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ServerInfo that = (ServerInfo) o;
+    final ServerInfo that = (ServerInfo) o;
     return Objects.equals(version, that.version)
            && Objects.equals(kafkaClusterId, that.kafkaClusterId)
            && Objects.equals(ksqlServiceId, that.ksqlServiceId);

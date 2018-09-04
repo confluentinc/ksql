@@ -19,16 +19,14 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
@@ -44,14 +42,14 @@ public class QueryDescription {
 
   @JsonCreator
   public QueryDescription(
-      @JsonProperty("id") EntityQueryId id,
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("fields") List<FieldInfo> fields,
-      @JsonProperty("sources") Set<String> sources,
-      @JsonProperty("sinks") Set<String> sinks,
-      @JsonProperty("topology") String topology,
-      @JsonProperty("executionPlan") String executionPlan,
-      @JsonProperty("overriddenProperties") Map<String, Object> overriddenProperties
+      @JsonProperty("id") final EntityQueryId id,
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("sources") final Set<String> sources,
+      @JsonProperty("sinks") final Set<String> sinks,
+      @JsonProperty("topology") final String topology,
+      @JsonProperty("executionPlan") final String executionPlan,
+      @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties
   ) {
     this.id = id;
     this.statementText = statementText;
@@ -63,7 +61,10 @@ public class QueryDescription {
     this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
   }
 
-  private QueryDescription(String id, QueryMetadata queryMetadata, Set<String> sinks) {
+  private QueryDescription(
+      final String id,
+      final QueryMetadata queryMetadata,
+      final Set<String> sinks) {
     this(
         new EntityQueryId(id),
         queryMetadata.getStatementString(),
@@ -75,7 +76,7 @@ public class QueryDescription {
         queryMetadata.getOverriddenProperties());
   }
 
-  public static QueryDescription forQueryMetadata(QueryMetadata queryMetadata) {
+  public static QueryDescription forQueryMetadata(final QueryMetadata queryMetadata) {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       return new QueryDescription(
           ((PersistentQueryMetadata) queryMetadata).getQueryId().getId(), queryMetadata,
@@ -117,14 +118,14 @@ public class QueryDescription {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof QueryDescription)) {
       return false;
     }
-    QueryDescription that = (QueryDescription) o;
+    final QueryDescription that = (QueryDescription) o;
     return Objects.equals(id, that.id)
         && Objects.equals(statementText, that.statementText)
         && Objects.equals(fields, that.fields)

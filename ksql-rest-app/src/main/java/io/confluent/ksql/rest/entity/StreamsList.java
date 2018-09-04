@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -32,8 +31,8 @@ public class StreamsList extends KsqlEntity {
 
   @JsonCreator
   public StreamsList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("streams") Collection<SourceInfo.Stream> streams
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("streams") final Collection<SourceInfo.Stream> streams
   ) {
     super(statementText);
     this.streams = streams;
@@ -44,14 +43,14 @@ public class StreamsList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof StreamsList)) {
       return false;
     }
-    StreamsList that = (StreamsList) o;
+    final StreamsList that = (StreamsList) o;
     return Objects.equals(getStreams(), that.getStreams());
   }
 

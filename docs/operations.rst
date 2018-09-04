@@ -3,6 +3,14 @@
 KSQL Operations
 ===============
 
+Watch the `screencast of Taking KSQL to Production <https://www.youtube.com/embed/f3wV8W_zjwE>`_ on YouTube.
+
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+    <iframe src="https://www.youtube.com/embed/f3wV8W_zjwE" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
+    </div>
+
 ================================================
 Local Development and Testing with Confluent CLI
 ================================================
@@ -193,6 +201,36 @@ Your output should resemble:
 If the ``KsqlServerMain`` process isn't shown, a different process has taken the
 port that ``KsqlServerMain`` would normally use. Check the assigned listeners in 
 the KSQL server configuration, and restart the KSQL CLI with the correct port.
+
+------------------------------------------------
+Replicated topic with Avro schema causes errors? 
+------------------------------------------------
+
+Confluent Replicator renames topics during replication, and if there are
+associated Avro schemas, they aren't automatically matched with the renamed
+topics.
+
+In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which shows
+that the Avro schema ID exists in the Schema Registry, and KSQL can deserialize
+the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
+
+.. code:: bash
+
+    CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews.replica', value_format='AVRO');
+
+    [2018-06-21 19:12:08,135] WARN task [1_6] Skipping record due to deserialization error. topic=[pageviews.replica] partition=[6] offset=[1663] (org.apache.kafka.streams.processor.internals.RecordDeserializer:86)
+    org.apache.kafka.connect.errors.DataException: pageviews.replica
+            at io.confluent.connect.avro.AvroConverter.toConnectData(AvroConverter.java:97)
+            at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:48)
+            at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:27)
+
+The solution is to register schemas manually against the replicated subject name for the topic:
+
+.. code:: bash
+
+    # Original topic name = pageviews
+    # Replicated topic name = pageviews.replica
+    curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
 
 ----------------------
 Check KSQL server logs 

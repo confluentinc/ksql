@@ -16,17 +16,15 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.TopicDescription;
-
-import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.admin.TopicDescription;
 
-public interface KafkaTopicClient extends Closeable {
+public interface KafkaTopicClient  {
 
   enum TopicCleanupPolicy {
     COMPACT,
@@ -40,7 +38,10 @@ public interface KafkaTopicClient extends Closeable {
    *
    * @param topic name of the topic to create
    */
-  default void createTopic(String topic, int numPartitions, short replicationFactor) {
+  default void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor) {
     createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
@@ -126,9 +127,4 @@ public interface KafkaTopicClient extends Closeable {
    * Delete the internal topics of a given application.
    */
   void deleteInternalTopics(String applicationId);
-
-  /**
-   * Close the underlying Kafka admin client.
-   */
-  void close();
 }

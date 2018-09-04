@@ -16,10 +16,7 @@
 
 package io.confluent.ksql.function;
 
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.util.KsqlException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -28,8 +25,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
 import java.util.function.Predicate;
-
-import io.confluent.ksql.util.KsqlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class UdfClassLoader extends URLClassLoader {
   private static final Logger logger = LoggerFactory.getLogger(URLClassLoader.class);
@@ -58,7 +55,7 @@ public final class UdfClassLoader extends URLClassLoader {
         if (shouldLoadFromChild(name)) {
           clazz = findClass(name);
         }
-      } catch (ClassNotFoundException e) {
+      } catch (final ClassNotFoundException e) {
         logger.trace("Class {} not found in {} using parent classloader",
             name,
             path);
@@ -91,7 +88,7 @@ public final class UdfClassLoader extends URLClassLoader {
   private static URL[] toUrl(final Path path) {
     try {
       return new URL[]{path.toUri().toURL()};
-    } catch (MalformedURLException e) {
+    } catch (final MalformedURLException e) {
       throw new KsqlException("Unable to create classloader for path:" + path, e);
     }
   }

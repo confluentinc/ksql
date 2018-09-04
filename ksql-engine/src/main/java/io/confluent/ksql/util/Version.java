@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.InputStream;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Version {
 
@@ -29,13 +28,13 @@ public final class Version {
 
   static {
     try {
-      Properties props = new Properties();
+      final Properties props = new Properties();
       try (InputStream resourceAsStream = Version.class.getResourceAsStream(
           "/version.properties")) {
         props.load(resourceAsStream);
       }
       version = props.getProperty("version", version).trim();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("Error while loading version:", e);
     }
   }
@@ -47,7 +46,7 @@ public final class Version {
     return version;
   }
 
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     System.err.println(getVersion());
   }
 }

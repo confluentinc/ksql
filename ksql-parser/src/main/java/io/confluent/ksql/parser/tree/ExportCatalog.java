@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 import java.util.Optional;
 
@@ -25,7 +24,7 @@ public class ExportCatalog extends Statement {
 
   final String catalogFilePath;
 
-  public ExportCatalog(Optional<NodeLocation> location, String catalogFilePath) {
+  public ExportCatalog(final Optional<NodeLocation> location, final String catalogFilePath) {
     super(location);
     if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
       this.catalogFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);
@@ -45,7 +44,7 @@ public class ExportCatalog extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

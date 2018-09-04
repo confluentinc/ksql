@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.serde.util;
 
-import java.util.Objects;
-
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public final class SerdeUtils {
   private SerdeUtils() {
@@ -43,7 +42,7 @@ public final class SerdeUtils {
     if (object instanceof String) {
       try {
         return Integer.parseInt((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to INT.", e);
       }
 
@@ -62,7 +61,7 @@ public final class SerdeUtils {
     if (object instanceof String) {
       try {
         return Long.parseLong((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to BIGINT.", e);
       }
 
@@ -81,7 +80,7 @@ public final class SerdeUtils {
     if (object instanceof String) {
       try {
         return Double.parseDouble((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to DOUBLE.", e);
       }
     }

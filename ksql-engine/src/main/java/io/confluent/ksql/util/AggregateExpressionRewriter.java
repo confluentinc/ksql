@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,16 +37,16 @@ public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
   }
 
   @Override
-  public Expression rewriteFunctionCall(FunctionCall node, Void context,
-                                        ExpressionTreeRewriter<Void> treeRewriter) {
-    String functionName = node.getName().getSuffix();
+  public Expression rewriteFunctionCall(final FunctionCall node, final Void context,
+                                        final ExpressionTreeRewriter<Void> treeRewriter) {
+    final String functionName = node.getName().getSuffix();
     if (functionRegistry.isAggregate(functionName)) {
-      String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
+      final String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;
       return new QualifiedNameReference(QualifiedName.of(aggVarName));
     } else {
-      List<Expression> arguments = new ArrayList<>();
-      for (Expression argExpression: node.getArguments()) {
+      final List<Expression> arguments = new ArrayList<>();
+      for (final Expression argExpression: node.getArguments()) {
         arguments.add(treeRewriter.rewrite(argExpression, context));
       }
       return new FunctionCall(node.getName(), arguments);

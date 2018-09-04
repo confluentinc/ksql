@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropTable extends AbstractStreamDropStatement implements DdlStatement {
 
@@ -27,14 +27,17 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
   private final boolean ifExists;
   private final boolean deleteTopic;
 
-  public DropTable(QualifiedName tableName, boolean ifExists, boolean deleteTopic) {
+  public DropTable(
+      final QualifiedName tableName,
+      final boolean ifExists,
+      final boolean deleteTopic) {
     this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropTable(Optional<NodeLocation> location,
-                    QualifiedName tableName,
-                    boolean ifExists,
-                    boolean deleteTopic) {
+  public DropTable(final Optional<NodeLocation> location,
+                    final QualifiedName tableName,
+                    final boolean ifExists,
+                    final boolean deleteTopic) {
     super(location);
     this.tableName = tableName;
     this.ifExists = ifExists;
@@ -58,7 +61,7 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropTable(this, context);
   }
 
@@ -68,14 +71,14 @@ public class DropTable extends AbstractStreamDropStatement implements DdlStateme
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    DropTable o = (DropTable) obj;
+    final DropTable o = (DropTable) obj;
     return Objects.equals(tableName, o.tableName)
            && (ifExists == o.ifExists)
            && (deleteTopic == o.deleteTopic);

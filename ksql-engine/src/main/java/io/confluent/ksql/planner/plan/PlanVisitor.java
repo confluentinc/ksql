@@ -18,31 +18,31 @@ package io.confluent.ksql.planner.plan;
 
 public class PlanVisitor<C, R> {
 
-  protected R visitPlan(PlanNode node, C context) {
+  protected R visitPlan(final PlanNode node, final C context) {
     return null;
   }
 
-  protected R visitFilter(FilterNode node, C context) {
+  protected R visitFilter(final FilterNode node, final C context) {
     return visitPlan(node, context);
   }
 
-  protected R visitProject(ProjectNode node, C context) {
+  protected R visitProject(final ProjectNode node, final C context) {
     return visitPlan(node, context);
   }
 
-  protected R visitStructuredDataSourceNode(StructuredDataSourceNode node, C context) {
+  protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
     return visitPlan(node, context);
   }
 
-  protected R visitAggregate(AggregateNode node, C context) {
+  protected R visitAggregate(final AggregateNode node, final C context) {
     return visitPlan(node, context);
   }
 
-  protected R visitJoin(JoinNode node, C context) {
+  protected R visitJoin(final JoinNode node, final C context) {
     return visitPlan(node, context);
   }
 
-  protected R visitOutput(OutputNode node, C context) {
+  protected R visitOutput(final OutputNode node, final C context) {
     return visitPlan(node, context);
   }
 

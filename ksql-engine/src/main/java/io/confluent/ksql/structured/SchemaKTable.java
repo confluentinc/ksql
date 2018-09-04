@@ -17,7 +17,16 @@
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
-
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -30,18 +39,6 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 
 public class SchemaKTable extends SchemaKStream {
   private final KTable<?, GenericRow> ktable;
@@ -77,7 +74,7 @@ public class SchemaKTable extends SchemaKStream {
   public SchemaKTable into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+      final Set<Integer> rowkeyIndexes
   ) {
     if (isWindowed) {
       final Serde<Windowed<String>> windowedSerde
@@ -88,7 +85,7 @@ public class SchemaKTable extends SchemaKStream {
                 if (row == null) {
                   return null;
                 }
-                List columns = new ArrayList();
+                final List<Object> columns = new ArrayList<>();
                 for (int i = 0; i < row.getColumns().size(); i++) {
                   if (!rowkeyIndexes.contains(i)) {
                     columns.add(row.getColumns().get(i));
@@ -103,7 +100,7 @@ public class SchemaKTable extends SchemaKStream {
             if (row == null) {
               return null;
             }
-            List columns = new ArrayList();
+            final List<Object> columns = new ArrayList<>();
             for (int i = 0; i < row.getColumns().size(); i++) {
               if (!rowkeyIndexes.contains(i)) {
                 columns.add(row.getColumns().get(i));
@@ -148,7 +145,7 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-    Selection selection = new Selection(expressionPairList, functionRegistry, this);
+    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
     return new SchemaKTable(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

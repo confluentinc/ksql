@@ -16,28 +16,27 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.base.Preconditions;
-
-import java.util.Objects;
-import java.util.Optional;
-
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
+
+import com.google.common.base.Preconditions;
+import java.util.Objects;
+import java.util.Optional;
 
 public class BooleanLiteral
     extends Literal {
 
   private final boolean value;
 
-  public BooleanLiteral(String value) {
+  public BooleanLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public BooleanLiteral(NodeLocation location, String value) {
+  public BooleanLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  private BooleanLiteral(Optional<NodeLocation> location, String value) {
+  private BooleanLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
     Preconditions.checkArgument(
@@ -51,7 +50,7 @@ public class BooleanLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitBooleanLiteral(this, context);
   }
 
@@ -61,14 +60,14 @@ public class BooleanLiteral
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    BooleanLiteral other = (BooleanLiteral) obj;
+    final BooleanLiteral other = (BooleanLiteral) obj;
     return Objects.equals(this.value, other.value);
   }
 }

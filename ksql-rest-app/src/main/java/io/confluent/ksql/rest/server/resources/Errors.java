@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import javax.ws.rs.core.Response;
 
 public final class Errors {
   public static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
@@ -44,29 +43,30 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());
 
-  public static int toStatusCode(int errorCode) {
+  public static int toStatusCode(final int errorCode) {
     return errorCode / HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
-  public static int toErrorCode(int statusCode) {
+  public static int toErrorCode(final int statusCode) {
     return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
-  public static Response badRequest(String msg) {
+  public static Response badRequest(final String msg) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, msg))
         .build();
   }
 
-  public static Response badRequest(Throwable t) {
+  public static Response badRequest(final Throwable t) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, t))
         .build();
   }
 
-  public static Response badStatement(String msg, String statementText, KsqlEntityList entities) {
+  public static Response badStatement(
+      final String msg, final String statementText, final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(
@@ -74,14 +74,15 @@ public final class Errors {
         .build();
   }
 
-  public static Response badStatement(Throwable t, String statementText, KsqlEntityList entities) {
+  public static Response badStatement(
+      final Throwable t, final String statementText, final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
         .build();
   }
 
-  public static Response queryEndpoint(String statementText, KsqlEntityList entities) {
+  public static Response queryEndpoint(final String statementText, final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(
@@ -91,7 +92,7 @@ public final class Errors {
         .build();
   }
 
-  public static Response notFound(String msg) {
+  public static Response notFound(final String msg) {
     return Response
         .status(NOT_FOUND)
         .entity(new KsqlErrorMessage(ERROR_CODE_NOT_FOUND, msg))
@@ -99,7 +100,7 @@ public final class Errors {
   }
 
   public static Response serverErrorForStatement(
-      Throwable t, String statementText, KsqlEntityList entities) {
+      final Throwable t, final String statementText, final KsqlEntityList entities) {
     return Response
         .status(INTERNAL_SERVER_ERROR)
         .entity(new KsqlStatementErrorMessage(ERROR_CODE_SERVER_ERROR, t, statementText, entities))

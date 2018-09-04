@@ -18,11 +18,9 @@ package io.confluent.ksql.function;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.util.KsqlException;
 
 public class AggregateFunctionArguments {
 

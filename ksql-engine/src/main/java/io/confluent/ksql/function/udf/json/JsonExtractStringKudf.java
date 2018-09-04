@@ -16,21 +16,18 @@
 
 package io.confluent.ksql.function.udf.json;
 
-import com.google.common.collect.ImmutableList;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import java.io.IOException;
-import java.util.List;
-
-import io.confluent.ksql.function.UdfUtil;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
+import java.io.IOException;
+import java.util.List;
 
 public class JsonExtractStringKudf implements Kudf {
   private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();

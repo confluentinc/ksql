@@ -16,25 +16,29 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropTopic extends Statement implements DdlStatement {
 
   private final QualifiedName topicName;
   private final boolean exists;
 
-  public DropTopic(QualifiedName tableName, boolean exists) {
+  public DropTopic(final QualifiedName tableName, final boolean exists) {
     this(Optional.empty(), tableName, exists);
   }
 
-  public DropTopic(NodeLocation location, QualifiedName tableName, boolean exists) {
+  public DropTopic(
+      final NodeLocation location,
+      final QualifiedName tableName,
+      final boolean exists) {
     this(Optional.of(location), tableName, exists);
   }
 
-  private DropTopic(Optional<NodeLocation> location, QualifiedName topicName, boolean exists) {
+  private DropTopic(
+      final Optional<NodeLocation> location, final QualifiedName topicName, final boolean exists) {
     super(location);
     this.topicName = topicName;
     this.exists = exists;
@@ -49,7 +53,7 @@ public class DropTopic extends Statement implements DdlStatement {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropTopic(this, context);
   }
 
@@ -59,14 +63,14 @@ public class DropTopic extends Statement implements DdlStatement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    DropTopic o = (DropTopic) obj;
+    final DropTopic o = (DropTopic) obj;
     return Objects.equals(topicName, o.topicName)
            && (exists == o.exists);
   }

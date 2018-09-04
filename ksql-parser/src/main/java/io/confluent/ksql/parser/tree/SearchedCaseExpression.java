@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class SearchedCaseExpression
     extends Expression {
@@ -30,17 +29,23 @@ public class SearchedCaseExpression
   private final List<WhenClause> whenClauses;
   private final Optional<Expression> defaultValue;
 
-  public SearchedCaseExpression(List<WhenClause> whenClauses, Optional<Expression> defaultValue) {
+  public SearchedCaseExpression(
+      final List<WhenClause> whenClauses,
+      final Optional<Expression> defaultValue) {
     this(Optional.empty(), whenClauses, defaultValue);
   }
 
-  public SearchedCaseExpression(NodeLocation location, List<WhenClause> whenClauses,
-                                Optional<Expression> defaultValue) {
+  public SearchedCaseExpression(
+      final NodeLocation location,
+      final List<WhenClause> whenClauses,
+      final Optional<Expression> defaultValue) {
     this(Optional.of(location), whenClauses, defaultValue);
   }
 
-  private SearchedCaseExpression(Optional<NodeLocation> location, List<WhenClause> whenClauses,
-                                 Optional<Expression> defaultValue) {
+  private SearchedCaseExpression(
+      final Optional<NodeLocation> location,
+      final List<WhenClause> whenClauses,
+      final Optional<Expression> defaultValue) {
     super(location);
     requireNonNull(whenClauses, "whenClauses is null");
     requireNonNull(defaultValue, "defaultValue is null");
@@ -57,12 +62,12 @@ public class SearchedCaseExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSearchedCaseExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -70,7 +75,7 @@ public class SearchedCaseExpression
       return false;
     }
 
-    SearchedCaseExpression that = (SearchedCaseExpression) o;
+    final SearchedCaseExpression that = (SearchedCaseExpression) o;
     return Objects.equals(whenClauses, that.whenClauses)
            && Objects.equals(defaultValue, that.defaultValue);
   }

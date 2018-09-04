@@ -16,17 +16,16 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import javax.ws.rs.core.Configurable;
-
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.rest.Application;
+import javax.ws.rs.core.Configurable;
 import org.glassfish.jersey.server.ServerProperties;
 
 
 public class MockApplication extends Application<KsqlRestConfig> {
   private MockStreamedQueryResource streamedQueryResource;
 
-  public MockApplication(KsqlRestConfig config) {
+  public MockApplication(final KsqlRestConfig config) {
     super(config);
     streamedQueryResource = new MockStreamedQueryResource();
   }
@@ -36,7 +35,7 @@ public class MockApplication extends Application<KsqlRestConfig> {
   }
 
   @Override
-  public void setupResources(Configurable<?> configurable, KsqlRestConfig ksqlRestConfig) {
+  public void setupResources(final Configurable<?> configurable, final KsqlRestConfig ksqlRestConfig) {
     configurable.register(new MockKsqlResources());
     configurable.register(streamedQueryResource);
     configurable.register(new MockStatusResource());

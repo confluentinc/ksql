@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class Query
     extends Statement {
@@ -29,22 +29,22 @@ public class Query
   private final Optional<String> limit;
 
   public Query(
-      QueryBody queryBody,
-      Optional<String> limit) {
+      final QueryBody queryBody,
+      final Optional<String> limit) {
     this(Optional.empty(), queryBody, limit);
   }
 
   public Query(
-      NodeLocation location,
-      QueryBody queryBody,
-      Optional<String> limit) {
+      final NodeLocation location,
+      final QueryBody queryBody,
+      final Optional<String> limit) {
     this(Optional.of(location), queryBody, limit);
   }
 
   private Query(
-      Optional<NodeLocation> location,
-      QueryBody queryBody,
-      Optional<String> limit) {
+      final Optional<NodeLocation> location,
+      final QueryBody queryBody,
+      final Optional<String> limit) {
     super(location);
     requireNonNull(queryBody, "queryBody is null");
     requireNonNull(limit, "limit is null");
@@ -62,7 +62,7 @@ public class Query
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitQuery(this, context);
   }
 
@@ -76,14 +76,14 @@ public class Query
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    Query o = (Query) obj;
+    final Query o = (Query) obj;
     return Objects.equals(queryBody, o.queryBody)
            && Objects.equals(limit, o.limit);
   }

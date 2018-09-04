@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.datagen.util;
 
+import io.confluent.ksql.datagen.GeneratorTest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,8 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.datagen.GeneratorTest;
 
 public final class ResourceUtil {
 
@@ -48,7 +47,7 @@ public final class ResourceUtil {
   public static Path getResourceRoot() throws IOException, URISyntaxException {
     final URI uri = GeneratorTest.class.getClassLoader().getResource("product.avro").toURI();
     if ("jar".equals(uri.getScheme())) {
-      FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap(), null);
+      final FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap(), null);
       return fileSystem.getPath("path/to/folder/inside/jar").getParent();
     } else {
       return Paths.get(uri).getParent();

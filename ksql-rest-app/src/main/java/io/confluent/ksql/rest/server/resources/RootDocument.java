@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.Versions;
 import java.net.URI;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;

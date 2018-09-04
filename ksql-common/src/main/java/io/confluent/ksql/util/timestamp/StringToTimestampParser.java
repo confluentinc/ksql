@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import io.confluent.ksql.util.KsqlException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,8 +25,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
-
-import io.confluent.ksql.util.KsqlException;
 
 public class StringToTimestampParser {
   private final DateTimeFormatter formatter;

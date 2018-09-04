@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import java.util.Objects;
-
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
@@ -27,6 +25,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
@@ -49,10 +48,10 @@ public class QueryAnalyzer {
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new
         AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    AggregateExpressionRewriter aggregateExpressionRewriter =
+    final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
 
     processSelectExpressions(
@@ -108,7 +107,7 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    for (Expression expression : analysis.getSelectExpressions()) {
+    for (final Expression expression : analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
@@ -125,8 +124,8 @@ public class QueryAnalyzer {
     if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
-    int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
-    int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
+    final int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
+    final int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
         .getGroupingElements().size();
     if (numberOfNonAggProjections != groupBySize) {
       throw new KsqlException("Group by elements should match the SELECT expressions.");

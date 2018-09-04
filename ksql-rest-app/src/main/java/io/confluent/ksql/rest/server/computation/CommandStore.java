@@ -16,7 +16,17 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.io.Closeable;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -26,18 +36,6 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KsqlException;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -56,10 +54,10 @@ public class CommandStore implements Closeable {
   private final AtomicBoolean closed;
 
   public CommandStore(
-      String commandTopic,
-      Consumer<CommandId, Command> commandConsumer,
-      Producer<CommandId, Command> commandProducer,
-      CommandIdAssigner commandIdAssigner
+      final String commandTopic,
+      final Consumer<CommandId, Command> commandConsumer,
+      final Producer<CommandId, Command> commandProducer,
+      final CommandIdAssigner commandIdAssigner
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
@@ -92,10 +90,10 @@ public class CommandStore implements Closeable {
    * @return The ID assigned to the statement
    */
   public CommandId distributeStatement(
-      String statementString,
-      Statement statement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> overwriteProperties
+      final String statementString,
+      final Statement statement,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overwriteProperties
   ) throws KsqlException {
     final CommandId commandId = commandIdAssigner.getCommandId(statement);
     final Command command = new Command(
@@ -104,7 +102,7 @@ public class CommandStore implements Closeable {
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException(
           String.format(
               "Could not write the statement '%s' into the "
@@ -129,9 +127,9 @@ public class CommandStore implements Closeable {
   RestoreCommands getRestoreCommands() {
     final RestoreCommands restoreCommands = new RestoreCommands();
 
-    Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
+    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
-    commandConsumer.seekToBeginning(commandTopicPartitions);
+    commandConsumer.seekToBeginning(cmdTopicPartitions);
 
     log.debug("Reading prior command records");
 
@@ -140,7 +138,7 @@ public class CommandStore implements Closeable {
         commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
-      for (ConsumerRecord<CommandId, Command> record : records) {
+      for (final ConsumerRecord<CommandId, Command> record : records) {
         restoreCommands.addCommand(record.key(), record.value());
       }
       records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
@@ -149,11 +147,11 @@ public class CommandStore implements Closeable {
     return restoreCommands;
   }
 
-  private Collection<TopicPartition> getTopicPartitionsForTopic(String topic) {
-    List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
+  private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
+    final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
 
-    Collection<TopicPartition> result = new HashSet<>();
-    for (PartitionInfo partitionInfo : partitionInfoList) {
+    final Collection<TopicPartition> result = new HashSet<>();
+    for (final PartitionInfo partitionInfo : partitionInfoList) {
       result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
     }
     return result;

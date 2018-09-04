@@ -14,8 +14,39 @@
 
 package io.confluent.ksql.physical;
 
-import com.google.common.collect.ImmutableMap;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -30,40 +61,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metrics.ConsumerCollector;
-import io.confluent.ksql.metrics.ProducerCollector;
-import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryMetadata;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 @SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
@@ -92,7 +89,7 @@ public class PhysicalPlanBuilderTest {
       public StreamsConfig config;
       KafkaStreams kafkaStreams;
 
-      private Call(StreamsBuilder builder, StreamsConfig config, KafkaStreams kafkaStreams) {
+      private Call(final StreamsBuilder builder, final StreamsConfig config, final KafkaStreams kafkaStreams) {
         this.builder = builder;
         this.config = config;
         this.kafkaStreams = kafkaStreams;
@@ -102,8 +99,8 @@ public class PhysicalPlanBuilderTest {
     private List<Call> calls = new LinkedList<>();
 
     @Override
-    public KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf) {
-      KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), conf);
+    public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final StreamsConfig conf) {
+      final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), conf);
       calls.add(new Call(builder, conf, kafkaStreams));
       return kafkaStreams;
     }
@@ -122,7 +119,7 @@ public class PhysicalPlanBuilderTest {
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 
-  private PhysicalPlanBuilder buildPhysicalPlanBuilder(Map<String, Object> overrideProperties) {
+  private PhysicalPlanBuilder buildPhysicalPlanBuilder(final Map<String, Object> overrideProperties) {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     return new PhysicalPlanBuilder(streamsBuilder,
@@ -141,7 +138,7 @@ public class PhysicalPlanBuilderTest {
 
   private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
     final PlanNode logical = planBuilder.buildLogicalPlan(query);
-    return physicalPlanBuilder.buildPhysicalPlan(new Pair<>(query, logical));
+    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
   @Test
@@ -158,11 +155,11 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCreateExecutionPlan() throws Exception {
-    String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
+    final String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
         + "WHERE col0 > 100 GROUP BY col0;";
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
-    String[] lines = planText.split("\n");
+    final String[] lines = planText.split("\n");
     Assert.assertEquals(" > [ SINK ] Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE"
         + ", KSQL_COL_2 : BIGINT].", lines[0]);
     Assert.assertEquals(
@@ -181,26 +178,27 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCreateExecutionPlanForInsert() throws Exception {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
+    final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
         + "col2 FROM "
         + "test1;";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
-    String[] lines = planText.split("\n");
+    final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
         " > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
@@ -210,7 +208,7 @@ public class PhysicalPlanBuilderTest {
         "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE].");
     assertThat(queryMetadataList.get(1).getOutputNode(),
         instanceOf(KsqlStructuredDataOutputNode.class));
-    KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
+    final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
         queryMetadataList.get(1).getOutputNode();
     assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
@@ -218,19 +216,20 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailIfInsertSinkDoesNotExist() throws Exception {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
     try {
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (KsqlException ksqlException) {
+    } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Exception while processing statements "
           + ":Sink, S1, does not exist for the INSERT INTO statement."));
       return;
@@ -241,25 +240,26 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailInsertIfTheResultSchemaDoesNotMatch() throws Exception {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (KsqlException ksqlException) {
+    } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(),
           equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
               + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
@@ -270,26 +270,27 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCreatePlanForInsertIntoTableFromTable() throws Exception {
-    String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+    final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
-    String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
-    String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
+    final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
-    String[] lines = planText.split("\n");
+    final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(2));
     assertThat(lines[0],
         equalTo(" > [ PROJECT ] Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
@@ -302,31 +303,32 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailInsertIfTheResultTypesDontMatch() throws Exception {
-    String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+    final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 't1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
-    String createStream = "CREATE STREAM S1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+    final String createStream = "CREATE STREAM S1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 's1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM S2 AS SELECT * FROM S1;";
-    String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String csasQuery = "CREATE STREAM S2 AS SELECT * FROM S1;";
+    final String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     // No need for setting the correct clean up policy in test.
     kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (KsqlException ksqlException) {
+    } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible data sink and query result. "
           + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
       return;
@@ -336,24 +338,25 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCheckSinkAndResultKeysDoNotMatch() throws Exception {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
-    String[] lines = planText.split("\n");
+    final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
     assertThat(lines[0],
         equalTo(" > [ REKEY ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
@@ -365,23 +368,24 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailIfSinkAndResultKeysDoNotMatch() throws Exception {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
     try {
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (Exception ksqlException) {
+    } catch (final Exception ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible key fields for sink and "
           + "results. Sink key field is COL0 (type: "
           + "Schema{INT64}) while result key field is null (type: null)"));
@@ -394,7 +398,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldReturnCreatedKafkaStream() throws Exception {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     assertThat(1, equalTo(calls.size()));
     Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
   }
@@ -403,61 +407,61 @@ public class PhysicalPlanBuilderTest {
   public void shouldAddMetricsInterceptors() throws Exception {
     buildPhysicalPlan(simpleSelectFilter);
 
-    List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    StreamsConfig config = calls.get(0).config;
+    final StreamsConfig config = calls.get(0).config;
 
     Object val = config.originals().get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
-    List<String> consumerInterceptors = (List<String>) val;
+    final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(1));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(0))));
 
     val = config.originals().get(
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
-    List<String> producerInterceptors = (List<String>) val;
+    final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(1));
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
 
-    public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+    public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
       return consumerRecords;
     }
 
     public void close() {
     }
 
-    public void onCommit(Map map) {
+    public void onCommit(final Map map) {
     }
 
-    public void configure(Map<String, ?> map) {
+    public void configure(final Map<String, ?> map) {
     }
   }
 
   public static class DummyProducerInterceptor implements ProducerInterceptor {
 
-    public void onAcknowledgement(RecordMetadata rm, Exception e) {
+    public void onAcknowledgement(final RecordMetadata rm, final Exception e) {
     }
 
-    public ProducerRecord onSend(ProducerRecord producerRecords) {
+    public ProducerRecord onSend(final ProducerRecord producerRecords) {
       return producerRecords;
     }
 
     public void close() {
     }
 
-    public void configure(Map<String, ?> map) {
+    public void configure(final Map<String, ?> map) {
     }
   }
 
   @Test
   public void shouldAddMetricsInterceptorsToExistingList() throws Exception {
     // Initialize override properties with lists for producer/consumer interceptors
-    Map<String, Object> overrideProperties = new HashMap<>();
+    final Map<String, Object> overrideProperties = new HashMap<>();
     List<String> consumerInterceptors = new LinkedList<>();
     consumerInterceptors.add(DummyConsumerInterceptor.class.getName());
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -470,9 +474,9 @@ public class PhysicalPlanBuilderTest {
 
     buildPhysicalPlan(simpleSelectFilter);
 
-    List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    StreamsConfig config = calls.get(0).config;
+    final StreamsConfig config = calls.get(0).config;
 
     Object val = config.originals().get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
@@ -494,7 +498,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldAddMetricsInterceptorsToExistingString() throws Exception {
     // Initialize override properties with class name strings for producer/consumer interceptors
-    Map<String, Object> overrideProperties = new HashMap<>();
+    final Map<String, Object> overrideProperties = new HashMap<>();
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName());
     overrideProperties.put(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -503,14 +507,14 @@ public class PhysicalPlanBuilderTest {
 
     buildPhysicalPlan(simpleSelectFilter);
 
-    List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     assertThat(calls.size(), equalTo(1));
-    StreamsConfig config = calls.get(0).config;
+    final StreamsConfig config = calls.get(0).config;
 
     Object val = config.originals().get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
-    List<String> consumerInterceptors = (List<String>) val;
+    final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
@@ -518,7 +522,7 @@ public class PhysicalPlanBuilderTest {
     val = config.originals().get(
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
-    List<String> producerInterceptors = (List<String>) val;
+    final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
     assertThat(DummyProducerInterceptor.class.getName(), equalTo(producerInterceptors.get(0)));
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(1))));
@@ -526,25 +530,25 @@ public class PhysicalPlanBuilderTest {
 
   public static class DummyConsumerInterceptor2 implements ConsumerInterceptor {
 
-    public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+    public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
       return consumerRecords;
     }
 
     public void close() {
     }
 
-    public void onCommit(Map map) {
+    public void onCommit(final Map map) {
     }
 
-    public void configure(Map<String, ?> map) {
+    public void configure(final Map<String, ?> map) {
     }
   }
 
   @Test
   public void shouldAddMetricsInterceptorsToExistingStringList() throws Exception {
     // Initialize override properties with class name strings for producer/consumer interceptors
-    Map<String, Object> overrideProperties = new HashMap<>();
-    String consumerInterceptorStr = DummyConsumerInterceptor.class.getName()
+    final Map<String, Object> overrideProperties = new HashMap<>();
+    final String consumerInterceptorStr = DummyConsumerInterceptor.class.getName()
         + " , " + DummyConsumerInterceptor2.class.getName();
     overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         consumerInterceptorStr);
@@ -552,14 +556,14 @@ public class PhysicalPlanBuilderTest {
 
     buildPhysicalPlan(simpleSelectFilter);
 
-    List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    StreamsConfig config = calls.get(0).config;
+    final StreamsConfig config = calls.get(0).config;
 
-    Object val = config.originals().get(
+    final Object val = config.originals().get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
-    List<String> consumerInterceptors = (List<String>) val;
+    final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(3));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(DummyConsumerInterceptor2.class.getName(), equalTo(consumerInterceptors.get(1)));
@@ -568,32 +572,33 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCreateExpectedServiceId() {
-    String serviceId = physicalPlanBuilder.getServiceId();
+    final String serviceId = physicalPlanBuilder.getServiceId();
     assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
   }
 
   @Test
   public void shouldHaveOptionalFieldsInResultSchema() {
-    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
+    final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
         + "col2 FROM "
         + "test1;";
-    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClient,
-        new MetaStoreImpl(new InternalFunctionRegistry()));
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
 
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
-    Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
+    final Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
     resultSchema.fields().stream().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );

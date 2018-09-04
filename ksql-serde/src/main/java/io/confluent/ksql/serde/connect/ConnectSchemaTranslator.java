@@ -39,7 +39,7 @@ public class ConnectSchemaTranslator {
         throw new KsqlException("KSQL stream/table schema must be structured");
       }
       return rowSchema;
-    } catch (UnsupportedTypeException e) {
+    } catch (final UnsupportedTypeException e) {
       throw new KsqlException("Unsupported type at root of schema: " + e.getMessage(), e);
     }
   }
@@ -69,7 +69,7 @@ public class ConnectSchemaTranslator {
     }
   }
 
-  private void checkMapKeyType(Schema.Type type) {
+  private void checkMapKeyType(final Schema.Type type) {
     switch (type) {
       case INT8:
       case INT16:
@@ -100,12 +100,12 @@ public class ConnectSchemaTranslator {
 
   private Schema toKsqlStructSchema(final Schema schema) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       try {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
         schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
-      } catch (UnsupportedTypeException e) {
-        log.error("Error inferring schema at field %s: %s", field.name(), e.getMessage());
+      } catch (final UnsupportedTypeException e) {
+        log.error("Error inferring schema at field {}: {}", field.name(), e.getMessage());
       }
     }
     return schemaBuilder.optional().build();

@@ -16,32 +16,24 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.metastore.MetaStore;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
-
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.Statement;
 import org.junit.rules.ExpectedException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ExpressionTypeManagerTest {
 
-    private static final KsqlParser KSQL_PARSER = new KsqlParser();
     private MetaStore metaStore;
     private Schema schema;
     private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -61,24 +53,16 @@ public class ExpressionTypeManagerTest {
                 .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
     }
 
-    private Analysis analyzeQuery(String queryStr) {
-        final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-        final Analysis analysis = new Analysis();
-        final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
-        analyzer.process(statements.get(0), new AnalysisContext(null));
-        return analysis;
-    }
-
     @Test
     public void testArithmaticExpr() {
-        String simpleQuery = "SELECT col0+col3, col2, col3+10, col0+10, col0*25 FROM test1 WHERE col0 > 100;";
-        Analysis analysis = analyzeQuery(simpleQuery);
-        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
+        final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0+10, col0*25 FROM test1 WHERE col0 > 100;";
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
+        final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
         Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType3.type() == Schema.Type.INT64);
@@ -87,13 +71,13 @@ public class ExpressionTypeManagerTest {
 
     @Test
     public void testComparisonExpr() {
-        String simpleQuery = "SELECT col0>col3, col0*25<200, col2 = 'test' FROM test1;";
-        Analysis analysis = analyzeQuery(simpleQuery);
-        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
+        final String simpleQuery = "SELECT col0>col3, col0*25<200, col2 = 'test' FROM test1;";
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
         Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
@@ -101,15 +85,15 @@ public class ExpressionTypeManagerTest {
 
     @Test
     public void testUDFExpr() {
-        String simpleQuery = "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), RANDOM()+10, ROUND(col3*2)+12 FROM test1;";
-        Analysis analysis = analyzeQuery(simpleQuery);
-        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
+        final String simpleQuery = "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), RANDOM()+10, ROUND(col3*2)+12 FROM test1;";
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
+        final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
 
         Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
         Assert.assertTrue(exprType1.type() == Schema.Type.FLOAT64);
@@ -120,15 +104,15 @@ public class ExpressionTypeManagerTest {
 
     @Test
     public void testStringUDFExpr() {
-        String simpleQuery = "SELECT LCASE(col1), UCASE(col2), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 1, 3) FROM test1;";
-        Analysis analysis = analyzeQuery(simpleQuery);
-        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
+        final String simpleQuery = "SELECT LCASE(col1), UCASE(col2), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 1, 3) FROM test1;";
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
                                                                                 functionRegistry);
-        Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-        Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-        Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-        Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-        Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
+        final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+        final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+        final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
+        final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
+        final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
 
         Assert.assertTrue(exprType0.type() == Schema.Type.STRING);
         Assert.assertTrue(exprType1.type() == Schema.Type.STRING);
@@ -140,7 +124,7 @@ public class ExpressionTypeManagerTest {
     @Test
     public void shouldHandleNestedUdfs() {
         final Analysis analysis = analyzeQuery("SELECT SUBSTRING(EXTRACTJSONFIELD(col1,'$.name'),"
-            + "LEN(col1) - 2) FROM test1;");
+            + "LEN(col1) - 2) FROM test1;", metaStore);
 
         final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
             functionRegistry);
@@ -152,7 +136,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldHandleStruct() {
-    final Analysis analysis = analyzeQuery("SELECT itemid, address->zipcode, address->state from orders;");
+    final Analysis analysis = analyzeQuery("SELECT itemid, address->zipcode, address->state from orders;", metaStore);
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
@@ -173,7 +157,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field ZIP in ORDERS.ADDRESS.");
     final Analysis analysis = analyzeQuery(
-        "SELECT itemid, address->zip, address->state from orders;");
+        "SELECT itemid, address->zip, address->state from orders;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         functionRegistry);
@@ -182,7 +166,7 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldFindTheNestedArrayTypeCorrectly() {
-    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[0] from NESTED_STREAM;");
+    final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[0] from NESTED_STREAM;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
         functionRegistry);
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),

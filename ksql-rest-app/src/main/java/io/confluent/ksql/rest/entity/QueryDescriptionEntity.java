@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,8 +27,8 @@ public class QueryDescriptionEntity extends KsqlEntity {
 
   @JsonCreator
   public QueryDescriptionEntity(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("queryDescription") QueryDescription queryDescription) {
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("queryDescription") final QueryDescription queryDescription) {
     super(statementText);
     this.queryDescription = queryDescription;
   }
@@ -39,14 +38,14 @@ public class QueryDescriptionEntity extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof QueryDescriptionEntity)) {
       return false;
     }
-    QueryDescriptionEntity other = (QueryDescriptionEntity) o;
+    final QueryDescriptionEntity other = (QueryDescriptionEntity) o;
     return Objects.equals(queryDescription, other.queryDescription);
   }
 

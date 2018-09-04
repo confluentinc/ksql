@@ -16,33 +16,30 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableList;
+import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.util.JsonMapper;
-import org.junit.Test;
-
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 
 public class KsqlTopicsListTest {
   @Test
   public void testSerde() throws Exception {
-    ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KsqlTopicsList expected = new KsqlTopicsList(
         "SHOW TOPICS;",
         ImmutableList.of(new KsqlTopicInfo("ksqltopic", "kafkatopic", DataSourceSerDe.JSON))
     );
-    String json = mapper.writeValueAsString(expected);
+    final String json = mapper.writeValueAsString(expected);
     assertEquals(
         "{\"@type\":\"ksql_topics\",\"statementText\":\"SHOW TOPICS;\"," +
         "\"topics\":[{\"name\":\"ksqltopic\",\"kafkaTopic\":\"kafkatopic\",\"format\":\"JSON\"}]}",
         json);
 
-    KsqlTopicsList actual = mapper.readValue(json, KsqlTopicsList.class);
+    final KsqlTopicsList actual = mapper.readValue(json, KsqlTopicsList.class);
     assertEquals(expected, actual);
   }
 }

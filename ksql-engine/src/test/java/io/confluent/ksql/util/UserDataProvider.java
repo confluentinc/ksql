@@ -16,12 +16,11 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class UserDataProvider extends TestDataProvider {
   private static final String namePrefix = "USER";
@@ -43,7 +42,7 @@ public class UserDataProvider extends TestDataProvider {
   }
 
   private Map<String, GenericRow> buildData() {
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
     // create a records with:
     // key == user_id
     // value = (creation_time, gender, region, user_id)

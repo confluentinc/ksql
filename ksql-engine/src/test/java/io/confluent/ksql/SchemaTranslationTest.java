@@ -1,16 +1,18 @@
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableList;
+import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
+import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.avro.Schema;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
+import com.google.common.collect.ImmutableList;
+import io.confluent.avro.random.generator.Generator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,16 +24,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.avro.random.generator.Generator;
-
-import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import org.apache.avro.Schema;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 
 @RunWith(Parameterized.class)
@@ -58,13 +54,13 @@ public class SchemaTranslationTest {
   public static Collection<Object[]> data() throws IOException {
     final List<String> testFiles = findTests(SCHEMA_VALIDATION_TEST_DIR);
     final List<Object[]> testParams = new LinkedList<>();
-    for (String filename : testFiles) {
+    for (final String filename : testFiles) {
       final JsonNode tests;
       try {
         tests = objectMapper.readTree(
             EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(
                 SCHEMA_VALIDATION_TEST_DIR + "/" + filename));
-      } catch (IOException e) {
+      } catch (final IOException e) {
         throw new RuntimeException("Unable to load test at path " + filename);
       }
       final List<Query> query = loadTests(tests);
@@ -122,7 +118,7 @@ public class SchemaTranslationTest {
     try {
       return objectMapper.readValue(
           objectMapper.writeValueAsString(node), Map.class);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -149,7 +145,7 @@ public class SchemaTranslationTest {
     final String schemaString;
     try {
       schemaString = new ObjectMapper().writeValueAsString(schemaNode);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }
 

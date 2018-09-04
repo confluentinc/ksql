@@ -23,7 +23,7 @@ public class Pair<T1, T2> {
   public final T1 left;
   public final T2 right;
 
-  public Pair(T1 left, T2 right) {
+  public Pair(final T1 left, final T2 right) {
     this.left = left;
     this.right = right;
   }
@@ -37,14 +37,14 @@ public class Pair<T1, T2> {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    Pair<?, ?> pair = (Pair<?, ?>) o;
+    final Pair<?, ?> pair = (Pair<?, ?>) o;
     return Objects.equals(left, pair.left)
         && Objects.equals(right, pair.right);
   }

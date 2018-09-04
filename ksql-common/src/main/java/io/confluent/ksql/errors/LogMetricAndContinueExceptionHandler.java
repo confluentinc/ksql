@@ -17,14 +17,13 @@
 package io.confluent.ksql.errors;
 
 import io.confluent.ksql.metrics.MetricCollectors;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.internals.StreamThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 public class LogMetricAndContinueExceptionHandler implements DeserializationExceptionHandler {
   private static final Logger log = LoggerFactory.getLogger(StreamThread.class);

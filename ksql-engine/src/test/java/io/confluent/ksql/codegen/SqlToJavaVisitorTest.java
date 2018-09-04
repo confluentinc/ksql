@@ -1,29 +1,21 @@
 package io.confluent.ksql.codegen;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.MetaStoreFixture;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 public class SqlToJavaVisitorTest {
-
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
   private Schema schema;
@@ -54,20 +46,12 @@ public class SqlToJavaVisitorTest {
         .build();
   }
 
-  private Analysis analyzeQuery(String queryStr) {
-    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore, "");
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
-
   @Test
   public void shouldProcessBasicJavaMath() {
-    String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
-    Analysis analysis = analyzeQuery(simpleQuery);
+    final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
@@ -75,10 +59,10 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessArrayExpressionCorrectly() {
-    String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
-    Analysis analysis = analyzeQuery(simpleQuery);
+    final String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
@@ -87,10 +71,10 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessMapExpressionCorrectly() {
-    String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
-    Analysis analysis = analyzeQuery(simpleQuery);
+    final String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
@@ -99,17 +83,17 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldCreateCorrectCastJavaExpression() {
 
-    String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
+    final String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
         + "varchar) FROM "
         + "test1 WHERE "
         + "col0 > 100;";
-    Analysis analysis = analyzeQuery(simpleQuery);
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    String javaExpression0 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression0 = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
-    String javaExpression1 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression1 = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(1));
-    String javaExpression2 = new SqlToJavaVisitor(schema, functionRegistry)
+    final String javaExpression2 = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(2));
 
     assertThat(javaExpression0, equalTo("(new Long(TEST1_COL0).intValue())"));
@@ -120,7 +104,8 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldPostfixFunctionInstancesWithUniqueId() {
     final Analysis analysis = analyzeQuery(
-        "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) FROM test1;");
+        "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) FROM test1;",
+        metaStore);
 
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
@@ -135,7 +120,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForComparisonWithNegativeNumbers() {
     final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col3 > -10.0;");
+        "SELECT * FROM test1 WHERE col3 > -10.0;", metaStore);
 
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getWhereExpression());

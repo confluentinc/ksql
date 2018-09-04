@@ -16,32 +16,31 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
+import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.util.KsqlException;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
+import java.util.Optional;
 
 public class PrimitiveType extends Type {
 
   final KsqlType ksqlType;
 
-  public PrimitiveType(KsqlType ksqlType) {
+  public PrimitiveType(final KsqlType ksqlType) {
     this(Optional.empty(), ksqlType);
   }
 
-  public PrimitiveType(NodeLocation location, KsqlType ksqlType) {
+  public PrimitiveType(final NodeLocation location, final KsqlType ksqlType) {
     this(Optional.of(location), ksqlType);
   }
 
-  private PrimitiveType(Optional<NodeLocation> location, KsqlType ksqlType) {
+  private PrimitiveType(final Optional<NodeLocation> location, final KsqlType ksqlType) {
     super(location, ksqlType);
     requireNonNull(ksqlType, "ksqlType is null");
     this.ksqlType = ksqlType;
   }
 
-  public static PrimitiveType getPrimitiveType(String typeName) {
+  public static PrimitiveType getPrimitiveType(final String typeName) {
     switch (typeName) {
       case "BOOLEAN":
         return new PrimitiveType(Type.KsqlType.BOOLEAN);
@@ -61,7 +60,7 @@ public class PrimitiveType extends Type {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitPrimitiveType(this, context);
   }
 
@@ -76,7 +75,7 @@ public class PrimitiveType extends Type {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (obj instanceof PrimitiveType) {
       return ((PrimitiveType) obj).getKsqlType() == ksqlType;
     }

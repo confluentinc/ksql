@@ -16,18 +16,14 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import com.google.common.collect.ImmutableList;
-
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Test;
 
 public class DoubleTopkDistinctKudafTest {
 
@@ -39,7 +35,7 @@ public class DoubleTopkDistinctKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Double> currentVal = new ArrayList<>();
-    for (Double d: valuesArray) {
+    for (final Double d: valuesArray) {
       currentVal = doubleTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
@@ -56,8 +52,8 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    List<Double> array1 = ImmutableList.of(50.0, 45.0, 25.0);
-    List<Double> array2 = ImmutableList.of(60.0, 50.0, 48.0);
+    final List<Double> array1 = ImmutableList.of(50.0, 45.0, 25.0);
+    final List<Double> array2 = ImmutableList.of(60.0, 50.0, 48.0);
 
     assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 48.0)));
@@ -65,8 +61,8 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Double> array1 = ImmutableList.of(50.0, 45.0);
-    List<Double> array2 = ImmutableList.of(60.0);
+    final List<Double> array1 = ImmutableList.of(50.0, 45.0);
+    final List<Double> array2 = ImmutableList.of(60.0);
 
     assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 45.0)));
@@ -74,8 +70,8 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    List<Double> array1 = ImmutableList.of(50.0, 45.0);
-    List<Double> array2 = ImmutableList.of(60.0, 50.0);
+    final List<Double> array1 = ImmutableList.of(50.0, 45.0);
+    final List<Double> array2 = ImmutableList.of(60.0, 50.0);
 
     assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 45.0)));
@@ -83,8 +79,8 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    List<Double> array1 = ImmutableList.of(60.0);
-    List<Double> array2 = ImmutableList.of(60.0);
+    final List<Double> array1 = ImmutableList.of(60.0);
+    final List<Double> array2 = ImmutableList.of(60.0);
 
     assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60.0)));

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.parser.rewrite;
 
-import io.confluent.ksql.function.TestFunctionRegistry;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.core.IsNot.not;
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -40,12 +40,9 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.MetaStoreFixture;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsNot.not;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StatementRewriterTest {
 
@@ -62,7 +59,7 @@ public class StatementRewriterTest {
   @Test
   public void testProjection() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -82,7 +79,7 @@ public class StatementRewriterTest {
   @Test
   public void testProjectionWithArrayMap() {
     final String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -108,7 +105,7 @@ public class StatementRewriterTest {
   @Test
   public void testProjectFilter() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -128,7 +125,7 @@ public class StatementRewriterTest {
   @Test
   public void testBinaryExpression() {
     final String queryStr = "SELECT col0+10, col2, col3-col1 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -145,7 +142,7 @@ public class StatementRewriterTest {
   @Test
   public void testBooleanExpression() {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -163,7 +160,7 @@ public class StatementRewriterTest {
   @Test
   public void testLiterals() {
     final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -201,7 +198,7 @@ public class StatementRewriterTest {
   public void testBooleanLogicalExpression() {
     final String queryStr =
         "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1 WHERE col1 = 10 AND col2 LIKE 'val' OR col4 > 2.6 ;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -229,7 +226,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
             + "t1.col1 = t2.col1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -252,7 +249,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = "
             + "t2.col1 WHERE t2.col2 = 'test';";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -274,7 +271,7 @@ public class StatementRewriterTest {
   @Test
   public void testSelectAll() {
     final String queryStr = "SELECT * FROM test1 t1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -290,7 +287,7 @@ public class StatementRewriterTest {
   public void testSelectAllJoin() {
     final String queryStr =
         "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -310,7 +307,7 @@ public class StatementRewriterTest {
   @Test
   public void testUDF() {
     final String queryStr = "SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -338,7 +335,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
             + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -358,7 +355,7 @@ public class StatementRewriterTest {
             + "double, arraycol array<double>, mapcol map<varchar, double>, "
             + "order_address STRUCT < number VARCHAR, street VARCHAR, zip INTEGER, city "
             + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -381,7 +378,7 @@ public class StatementRewriterTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
             + "double) WITH (value_format = 'avro', "
             + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
 
@@ -401,7 +398,7 @@ public class StatementRewriterTest {
   public void testCreateTableWithTopic() {
     final String queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
     assertThat("testRegisterTopic failed.", rewrittenStatement instanceof CreateTable);
@@ -417,7 +414,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
             + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
     assertThat("testRegisterTopic failed.", rewrittenStatement instanceof CreateTable);
@@ -437,7 +434,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "CREATE STREAM bigorders_json WITH (value_format = 'json', "
             + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -458,7 +455,7 @@ public class StatementRewriterTest {
 
     final String queryStr =
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) where orderunits > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -484,7 +481,7 @@ public class StatementRewriterTest {
             + "where "
             + "orderunits"
             + " > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -509,7 +506,7 @@ public class StatementRewriterTest {
    final String queryStr =
         "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
             + "orderunits > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -534,7 +531,7 @@ public class StatementRewriterTest {
         + "col1, col2"
         + " from orders where col2 is null and col3 is not null or (col3*col2 = "
         + "12);";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -552,7 +549,8 @@ public class StatementRewriterTest {
   public void testInsertInto() {
     final String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
         + "100;";
-    final Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0)
+        .getStatement();
 
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);

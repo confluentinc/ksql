@@ -16,8 +16,16 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -27,16 +35,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
-
 public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
@@ -44,7 +42,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQ_FUNCTIONS_PROPERTY_PREFIX =
       KSQL_CONFIG_PROPERTY_PREFIX + "functions.";
 
-  public static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
+  static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
@@ -93,6 +91,19 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG =
+      KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
+  private static final String
+      KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS = "Switch the SUBSTRING function into legacy mode,"
+      + " i.e. back to how it was in version 5.0 and earlier of KSQL."
+      + " Up to version 5.0.x substring took different args:"
+      + " VARCHAR SUBSTRING(str VARCHAR, startIndex INT, endIndex INT), where startIndex and"
+      + " endIndex were both base-zero indexed, e.g. a startIndex of '0' selected the start of the"
+      + " string, and the last argument is a character index, rather than the length of the"
+      + " substring to extract. Later versions of KSQL use:"
+      + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
+      + " and the last argument is the length of the substring to extract.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -103,9 +114,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibiltyBreakingConfigDef> COMPATIBILTY_BREAKING_CONFIG_DEFS
+  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
       = ImmutableList.of(
-          new CompatibiltyBreakingConfigDef(
+          new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
               ConfigDef.Type.STRING,
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -113,7 +124,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibiltyBreakingConfigDef(
+          new CompatibilityBreakingConfigDef(
               KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
               ConfigDef.Type.STRING,
               KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
@@ -121,9 +132,17 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Suffix for state store names in Tables. For instance if the suffix is "
                   + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "));
+                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
+          new CompatibilityBreakingConfigDef(
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+  );
 
-  private static class CompatibiltyBreakingConfigDef {
+  private static class CompatibilityBreakingConfigDef {
     private final String name;
     private final ConfigDef.Type type;
     private final Object defaultValueOld;
@@ -131,12 +150,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     private final ConfigDef.Importance importance;
     private final String documentation;
 
-    CompatibiltyBreakingConfigDef(final String name,
-                                  final ConfigDef.Type type,
-                                  final Object defaultValueOld,
-                                  final Object defaultValueCurrent,
-                                  final ConfigDef.Importance importance,
-                                  final String documentation) {
+    CompatibilityBreakingConfigDef(final String name,
+                                   final ConfigDef.Type type,
+                                   final Object defaultValueOld,
+                                   final Object defaultValueCurrent,
+                                   final ConfigDef.Importance importance,
+                                   final String documentation) {
       this.name = name;
       this.type = type;
       this.defaultValueOld = defaultValueOld;
@@ -243,12 +262,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-    for (final CompatibiltyBreakingConfigDef compatiblityConfigDef
-        : COMPATIBILTY_BREAKING_CONFIG_DEFS) {
+
+    for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
+        : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
-        compatiblityConfigDef.defineCurrent(configDef);
+        compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
-        compatiblityConfigDef.defineOld(configDef);
+        compatibilityBreakingConfigDef.defineOld(configDef);
       }
     }
     return configDef;
@@ -324,7 +344,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         new Pair<>("", PRODUCER_ABSTRACT_CONFIG),
         new Pair<>("", STREAMS_ABSTRACT_CONFIG)
     );
-    for (Pair<String, AbstractConfig> spec : configSpecsToTry) {
+    for (final Pair<String, AbstractConfig> spec : configSpecsToTry) {
       final ConfigValue configValue
           = resolveConfig(spec.getLeft(), spec.getRight(), key, value);
       if (configValue.type.isPresent()) {
@@ -352,7 +372,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     this(true, props);
   }
 
-  public KsqlConfig(boolean current, final Map<?, ?> props) {
+  public KsqlConfig(final boolean current, final Map<?, ?> props) {
     super(configDef(current), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
@@ -387,7 +407,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, Object> getKsqlStreamConfigProps() {
     final Map<String, Object> props = new HashMap<>();
-    for (ConfigValue config : ksqlStreamConfigProps.values()) {
+    for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       props.put(config.key, config.value);
     }
     return Collections.unmodifiableMap(props);
@@ -469,8 +489,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
     final Map<String, Object> mergedProperties = new HashMap<>(values());
-    COMPATIBILTY_BREAKING_CONFIG_DEFS.stream()
-        .map(CompatibiltyBreakingConfigDef::getName)
+    COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
+        .map(CompatibilityBreakingConfigDef::getName)
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));
     return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
@@ -483,7 +503,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   private int timestampColumnIndex = -1;
 
-  public void setKsqlTimestampColumnIndex(int index) {
+  public void setKsqlTimestampColumnIndex(final int index) {
     this.timestampColumnIndex = index;
   }
 

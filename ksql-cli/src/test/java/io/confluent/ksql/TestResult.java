@@ -17,7 +17,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.util.StringUtil;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,7 +35,7 @@ public abstract class TestResult {
 
   protected TestResult() {}
 
-  protected TestResult(TestResult model) {
+  protected TestResult(final TestResult model) {
     sealed = model.sealed;
   }
 
@@ -45,13 +44,13 @@ public abstract class TestResult {
       data = new ArrayList<>();
     }
 
-    private OrderedResult(OrderedResult model) {
+    private OrderedResult(final OrderedResult model) {
       super(model);
       data = new ArrayList<>();
       data.addAll(model.data);
     }
 
-    private OrderedResult(String singleRow) {
+    private OrderedResult(final String singleRow) {
       this();
       if (singleRow.length() > 0) {
         data.add(Arrays.asList(singleRow.split(LINE_SEPARATOR)));
@@ -59,7 +58,7 @@ public abstract class TestResult {
       seal();
     }
 
-    private OrderedResult(List<List<String>> rows) {
+    private OrderedResult(final List<List<String>> rows) {
       this();
       data.addAll(rows);
     }
@@ -80,15 +79,15 @@ public abstract class TestResult {
       data = new HashSet<>();
     }
 
-    private UnorderedResult(UnorderedResult model) {
+    private UnorderedResult(final UnorderedResult model) {
       super(model);
       data = new HashSet<>();
       data.addAll(model.data);
     }
 
-    private UnorderedResult(Map<String, Object> map) {
+    private UnorderedResult(final Map<String, Object> map) {
       this();
-      for (Map.Entry<String, Object> kv : map.entrySet()) {
+      for (final Map.Entry<String, Object> kv : map.entrySet()) {
         data.add(Arrays.asList(kv.getKey(), String.valueOf(kv.getValue())));
       }
       seal();
@@ -97,8 +96,8 @@ public abstract class TestResult {
     @Override
     public String toString() {
       // for convenience, we show content ordered by first column (key) alphabetically
-      TreeMap<String, Object> map = new TreeMap<>();
-      for (List<String> entry: data) {
+      final TreeMap<String, Object> map = new TreeMap<>();
+      for (final List<String> entry: data) {
         map.put(entry.get(0), entry);
       }
       return map.values().toString();
@@ -110,44 +109,44 @@ public abstract class TestResult {
     }
   }
 
-  static UnorderedResult build(Map<String, Object> map) {
+  static UnorderedResult build(final Map<String, Object> map) {
     return new UnorderedResult(map);
   }
 
-  static OrderedResult build(String singleRow) {
+  static OrderedResult build(final String singleRow) {
     return new OrderedResult(singleRow);
   }
 
-  static OrderedResult build(Object... cols) {
+  static OrderedResult build(final Object... cols) {
     return new OrderedResult(StringUtil.join(", ", Arrays.asList(cols)));
   }
 
-  static OrderedResult build(List<List<String>> rows) {
+  static OrderedResult build(final List<List<String>> rows) {
     return new OrderedResult(rows);
   }
 
   static OrderedResult build() { return new OrderedResult(); }
 
-  static TestResult init(boolean requireOrder) {
+  static TestResult init(final boolean requireOrder) {
     return requireOrder ? new OrderedResult() : new UnorderedResult();
   }
 
   public abstract TestResult copy();
 
-  void addRow(GenericRow row) {
+  void addRow(final GenericRow row) {
     if (sealed) {
       throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
     }
 
-    List<String> newRow = new ArrayList<>();
-    for (Object column : row.getColumns()) {
+    final List<String> newRow = new ArrayList<>();
+    for (final Object column : row.getColumns()) {
       newRow.add(String.valueOf(column));
     }
 
     data.add(newRow);
   }
 
-  void addRows(List<List<String>> rows) {
+  void addRows(final List<List<String>> rows) {
     if (sealed) {
       throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
     }
@@ -160,10 +159,10 @@ public abstract class TestResult {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    TestResult that = (TestResult) o;
+    final TestResult that = (TestResult) o;
     return Objects.equals(data, that.data);
   }
 

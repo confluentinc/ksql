@@ -23,13 +23,14 @@ import org.apache.log4j.FileAppender;
 public class TimestampLogFileAppender extends FileAppender {
 
   @Override
-  public void setFile(String fileName) {
+  public void setFile(final String fileName) {
     if (fileName.contains("%timestamp")) {
-      Date d = new Date();
-      SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
-      fileName = fileName.replaceAll("%timestamp", format.format(d));
+      final Date d = new Date();
+      final SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
+      super.setFile(fileName.replaceAll("%timestamp", format.format(d)));
+    } else {
+      super.setFile(fileName);
     }
-    super.setFile(fileName);
   }
 
 }

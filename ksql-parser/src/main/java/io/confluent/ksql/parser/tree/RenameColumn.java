@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class RenameColumn
     extends Statement {
@@ -29,16 +29,21 @@ public class RenameColumn
   private final String source;
   private final String target;
 
-  public RenameColumn(QualifiedName table, String source, String target) {
+  public RenameColumn(final QualifiedName table, final String source, final String target) {
     this(Optional.empty(), table, source, target);
   }
 
-  public RenameColumn(NodeLocation location, QualifiedName table, String source, String target) {
+  public RenameColumn(
+      final NodeLocation location,
+      final QualifiedName table,
+      final String source,
+      final String target) {
     this(Optional.of(location), table, source, target);
   }
 
-  private RenameColumn(Optional<NodeLocation> location, QualifiedName table, String source,
-                       String target) {
+  private RenameColumn(
+      final Optional<NodeLocation> location, final QualifiedName table, final String source,
+                       final String target) {
     super(location);
     this.table = requireNonNull(table, "table is null");
     this.source = requireNonNull(source, "source is null");
@@ -58,19 +63,19 @@ public class RenameColumn
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitRenameColumn(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    RenameColumn that = (RenameColumn) o;
+    final RenameColumn that = (RenameColumn) o;
     return Objects.equals(table, that.table)
            && Objects.equals(source, that.source)
            && Objects.equals(target, that.target);

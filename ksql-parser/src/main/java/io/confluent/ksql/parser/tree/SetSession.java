@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class SetSession
     extends Statement {
@@ -27,15 +27,16 @@ public class SetSession
   private final QualifiedName name;
   private final Expression value;
 
-  public SetSession(QualifiedName name, Expression value) {
+  public SetSession(final QualifiedName name, final Expression value) {
     this(Optional.empty(), name, value);
   }
 
-  public SetSession(NodeLocation location, QualifiedName name, Expression value) {
+  public SetSession(final NodeLocation location, final QualifiedName name, final Expression value) {
     this(Optional.of(location), name, value);
   }
 
-  private SetSession(Optional<NodeLocation> location, QualifiedName name, Expression value) {
+  private SetSession(
+      final Optional<NodeLocation> location, final QualifiedName name, final Expression value) {
     super(location);
     this.name = name;
     this.value = value;
@@ -50,7 +51,7 @@ public class SetSession
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSetSession(this, context);
   }
 
@@ -60,14 +61,14 @@ public class SetSession
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    SetSession o = (SetSession) obj;
+    final SetSession o = (SetSession) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(value, o.value);
   }

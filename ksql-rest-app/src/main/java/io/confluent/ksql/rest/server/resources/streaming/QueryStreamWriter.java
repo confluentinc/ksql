@@ -16,15 +16,16 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.google.common.collect.Lists;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.common.collect.Lists;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.streams.KeyValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,16 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import org.apache.kafka.streams.KeyValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class QueryStreamWriter implements StreamingOutput {
 
@@ -62,7 +57,7 @@ class QueryStreamWriter implements StreamingOutput {
       final Map<String, Object> overriddenProperties,
       final ObjectMapper objectMapper
   ) throws Exception {
-    QueryMetadata queryMetadata =
+    final QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(
             queryString, ksqlConfig, overriddenProperties).get(0);
     this.objectMapper = objectMapper;
@@ -83,10 +78,10 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   @Override
-  public void write(OutputStream out) {
+  public void write(final OutputStream out) {
     try {
       while (queryMetadata.isRunning() && !limitReached) {
-        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
+        final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
@@ -125,7 +120,7 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private void write(OutputStream output, GenericRow row) throws IOException {
+  private void write(final OutputStream output, final GenericRow row) throws IOException {
     objectMapper.writeValue(output, StreamedRow.row(row));
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
@@ -164,7 +159,7 @@ class QueryStreamWriter implements StreamingOutput {
 
   private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
     @Override
-    public void uncaughtException(Thread thread, Throwable exception) {
+    public void uncaughtException(final Thread thread, final Throwable exception) {
       streamsException = exception instanceof Exception
           ? (Exception) exception
           : new RuntimeException(exception);

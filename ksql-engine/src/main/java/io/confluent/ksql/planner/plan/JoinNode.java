@@ -16,28 +16,14 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -45,6 +31,17 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
 
 
 public class JoinNode extends PlanNode {
@@ -80,7 +77,9 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
 
     // TODO: Type should be derived.
-    super(id);
+    super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
+        ? DataSourceType.KTABLE
+        : DataSourceType.KSTREAM);
     this.joinType = joinType;
     this.left = left;
     this.right = right;
@@ -97,18 +96,18 @@ public class JoinNode extends PlanNode {
 
   private Schema buildSchema(final PlanNode left, final PlanNode right) {
 
-    Schema leftSchema = left.getSchema();
-    Schema rightSchema = right.getSchema();
+    final Schema leftSchema = left.getSchema();
+    final Schema rightSchema = right.getSchema();
 
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (Field field : leftSchema.fields()) {
-      String fieldName = leftAlias + "." + field.name();
+    for (final Field field : leftSchema.fields()) {
+      final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (Field field : rightSchema.fields()) {
-      String fieldName = rightAlias + "." + field.name();
+    for (final Field field : rightSchema.fields()) {
+      final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
@@ -130,7 +129,7 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitJoin(this, context);
   }
 
@@ -176,7 +175,7 @@ public class JoinNode extends PlanNode {
 
     ensureMatchingPartitionCounts(kafkaTopicClient);
 
-    JoinerFactory joinerFactory = new JoinerFactory(builder,
+    final JoinerFactory joinerFactory = new JoinerFactory(builder,
                                                     ksqlConfig,
                                                     kafkaTopicClient,
                                                     functionRegistry,
@@ -188,7 +187,7 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return right.getPartitions(kafkaTopicClient);
   }
 
@@ -206,11 +205,11 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private String getSourceName(PlanNode node) {
+  private String getSourceName(final PlanNode node) {
     if (!(node instanceof StructuredDataSourceNode)) {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
-    StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
+    final StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
     return dataSource.getStructuredDataSource().getName();
   }
 
@@ -239,8 +238,8 @@ public class JoinNode extends PlanNode {
       );
     }
 
-    public Joiner getJoiner(DataSource.DataSourceType leftType,
-                            DataSource.DataSourceType rightType) {
+    public Joiner getJoiner(final DataSource.DataSourceType leftType,
+                            final DataSource.DataSourceType rightType) {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
         throw new KsqlException("Join between invalid operands requested: left type: "
@@ -286,7 +285,9 @@ public class JoinNode extends PlanNode {
     }
 
 
-    protected SchemaKTable buildTable(final PlanNode node) {
+    protected SchemaKTable buildTable(final PlanNode node,
+                                      final String keyFieldName,
+                                      final String tableName) {
 
       final Map<String, Object> joinTableProps = new HashMap<>(props);
       joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -300,6 +301,20 @@ public class JoinNode extends PlanNode {
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
+      }
+
+      if (schemaKStream.getKeyField() != null
+          && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
+          && !SchemaUtil.matchFieldName(schemaKStream.getKeyField(), keyFieldName)) {
+        throw new KsqlException(
+            String.format(
+                "Source table (%s) key column (%s) "
+                    + "is not the column used in the join criteria (%s).",
+                tableName,
+                schemaKStream.getKeyField().name(),
+                keyFieldName
+            )
+        );
       }
 
       return (SchemaKTable) schemaKStream;
@@ -418,7 +433,9 @@ public class JoinNode extends PlanNode {
                                 + " the WITHIN clause) and try to execute your join again.");
       }
 
-      final SchemaKTable rightTable = buildTable(joinNode.getRight());
+      final SchemaKTable rightTable = buildTable(joinNode.getRight(),
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
                                                    joinNode.getLeftKeyFieldName());
 
@@ -468,8 +485,12 @@ public class JoinNode extends PlanNode {
                                 + "join again.");
       }
 
-      final SchemaKTable leftTable = buildTable(joinNode.getLeft());
-      final SchemaKTable rightTable = buildTable(joinNode.getRight());
+      final SchemaKTable leftTable = buildTable(joinNode.getLeft(),
+                                                joinNode.getLeftKeyFieldName(),
+                                                joinNode.getLeftAlias());
+      final SchemaKTable rightTable = buildTable(joinNode.getRight(),
+                                                 joinNode.getRightKeyFieldName(),
+                                                 joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

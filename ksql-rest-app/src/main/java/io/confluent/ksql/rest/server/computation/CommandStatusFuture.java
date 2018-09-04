@@ -16,14 +16,12 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import org.apache.kafka.common.utils.Utils;
-
 import io.confluent.ksql.rest.entity.CommandStatus;
-
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.common.utils.Utils;
 
 
 public class CommandStatusFuture implements Future<CommandStatus> {
@@ -35,14 +33,14 @@ public class CommandStatusFuture implements Future<CommandStatus> {
   private Cleanup cleanup;
   private final AtomicReference<CommandStatus> result;
 
-  public CommandStatusFuture(CommandId commandId, Cleanup cleanup) {
+  public CommandStatusFuture(final CommandId commandId, final Cleanup cleanup) {
     this.commandId = commandId;
     this.cleanup = cleanup;
     this.result = new AtomicReference<>(null);
   }
 
   @Override
-  public boolean cancel(boolean mayInterruptIfRunning) {
+  public boolean cancel(final boolean mayInterruptIfRunning) {
     return false;
   }
 
@@ -66,9 +64,9 @@ public class CommandStatusFuture implements Future<CommandStatus> {
   }
 
   @Override
-  public CommandStatus get(long timeout, TimeUnit unit)
+  public CommandStatus get(final long timeout, final TimeUnit unit)
           throws InterruptedException, TimeoutException {
-    long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
+    final long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
     while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
       Utils.sleep(1);
     }
@@ -79,7 +77,7 @@ public class CommandStatusFuture implements Future<CommandStatus> {
     return result.get();
   }
 
-  public void complete(CommandStatus result) {
+  public void complete(final CommandStatus result) {
     this.result.set(result);
   }
 }

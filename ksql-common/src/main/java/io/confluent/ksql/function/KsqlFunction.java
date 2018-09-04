@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Schema;
 
 public class KsqlFunction {
 
@@ -98,14 +96,14 @@ public class KsqlFunction {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    KsqlFunction that = (KsqlFunction) o;
+    final KsqlFunction that = (KsqlFunction) o;
     return Objects.equals(returnType, that.returnType)
         && Objects.equals(arguments, that.arguments)
         && Objects.equals(functionName, that.functionName)

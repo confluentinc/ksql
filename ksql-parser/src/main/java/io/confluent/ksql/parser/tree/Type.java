@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public abstract class Type extends Expression {
 
@@ -29,15 +29,15 @@ public abstract class Type extends Expression {
 
   final KsqlType ksqlType;
 
-  public Type(KsqlType ksqlType) {
+  public Type(final KsqlType ksqlType) {
     this(Optional.empty(), ksqlType);
   }
 
-  public Type(NodeLocation location, KsqlType ksqlType) {
+  public Type(final NodeLocation location, final KsqlType ksqlType) {
     this(Optional.of(location), ksqlType);
   }
 
-  protected Type(Optional<NodeLocation> location, KsqlType ksqlType) {
+  protected Type(final Optional<NodeLocation> location, final KsqlType ksqlType) {
     super(location);
     requireNonNull(ksqlType, "ksqlType is null");
     this.ksqlType = ksqlType;

@@ -21,16 +21,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
+import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.rest.entities.ErrorMessage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.rest.entities.ErrorMessage;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(
@@ -45,22 +43,22 @@ public class KsqlErrorMessage extends ErrorMessage {
 
   @JsonCreator
   public KsqlErrorMessage(
-      @JsonProperty("error_code") int errorCode,
-      @JsonProperty("message") String message,
-      @JsonProperty("stackTrace") List<String> stackTrace) {
+      @JsonProperty("error_code") final int errorCode,
+      @JsonProperty("message") final String message,
+      @JsonProperty("stackTrace") final List<String> stackTrace) {
     super(errorCode, message);
     this.stackTrace = stackTrace;
   }
 
-  public KsqlErrorMessage(int errorCode, Throwable exception) {
+  public KsqlErrorMessage(final int errorCode, final Throwable exception) {
     this(errorCode, ErrorMessageUtil.buildErrorMessage(exception), getStackTraceStrings(exception));
   }
 
-  public KsqlErrorMessage(int errorCode, String message) {
+  public KsqlErrorMessage(final int errorCode, final String message) {
     this(errorCode, message, Collections.emptyList());
   }
 
-  protected static List<String> getStackTraceStrings(Throwable exception) {
+  protected static List<String> getStackTraceStrings(final Throwable exception) {
     return Arrays.stream(exception.getStackTrace())
         .map(StackTraceElement::toString)
         .collect(Collectors.toList());
@@ -72,10 +70,10 @@ public class KsqlErrorMessage extends ErrorMessage {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append(getMessage());
     sb.append("\n");
-    for (String line : stackTrace) {
+    for (final String line : stackTrace) {
       sb.append(line);
       sb.append("\n");
     }
@@ -83,14 +81,14 @@ public class KsqlErrorMessage extends ErrorMessage {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KsqlErrorMessage)) {
       return false;
     }
-    KsqlErrorMessage that = (KsqlErrorMessage) o;
+    final KsqlErrorMessage that = (KsqlErrorMessage) o;
     return Objects.equals(getMessage(), that.getMessage())
            && Objects.equals(getStackTrace(), that.getStackTrace());
   }

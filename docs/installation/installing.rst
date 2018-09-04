@@ -8,11 +8,22 @@ Installing KSQL
 KSQL is a component of |cp| and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
 as a part of the |cp| bundle.
 
+Watch the `screencast of Installing and Running KSQL <https://www.youtube.com/embed/icwHpPm-TCA>`_ on YouTube.
+
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+    <iframe src="https://www.youtube.com/embed/icwHpPm-TCA" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
+    </div>
+
 KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
-    You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
-    production. These images are coming soon.
+    You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
+    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+    To start KSQL containers in configurations like "KSQL Headless Server" and
+    "Interactive Server with Interceptors", see
+    :ref:`Docker Configuration Parameters <config_reference>`.
 
 .. contents::
     :local:
@@ -72,7 +83,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
         bootstrap.servers=localhost:9092
         listeners=http://localhost:8088
-        ui.enabled=true
 
     For more information, see :ref:`ksql-server-config`.
 
@@ -81,12 +91,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
     .. code:: bash
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
-
-    or with overriding properties:
-
-    .. code:: bash
-
-        $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 

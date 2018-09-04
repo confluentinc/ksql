@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,9 +30,9 @@ public class PropertiesList extends KsqlEntity {
 
   @JsonCreator
   public PropertiesList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("properties") Map<String, ?> properties,
-      @JsonProperty("overwrittenProperties") List<String> overwrittenProperties
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("properties") final Map<String, ?> properties,
+      @JsonProperty("overwrittenProperties") final List<String> overwrittenProperties
   ) {
     super(statementText);
     this.properties = properties;
@@ -49,7 +48,7 @@ public class PropertiesList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     return o instanceof PropertiesList
         && Objects.equals(properties, ((PropertiesList)o).properties)
         && Objects.equals(overwrittenProperties, ((PropertiesList)o).overwrittenProperties);

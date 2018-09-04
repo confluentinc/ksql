@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -32,7 +31,7 @@ public class KsqlEntityList extends ArrayList<KsqlEntity> {
   public KsqlEntityList() {
   }
 
-  public KsqlEntityList(Collection<? extends KsqlEntity> c) {
+  public KsqlEntityList(final Collection<? extends KsqlEntity> c) {
     super(c);
   }
 }

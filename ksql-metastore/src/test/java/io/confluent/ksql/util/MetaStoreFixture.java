@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -27,6 +24,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class MetaStoreFixture {
 
@@ -36,7 +35,7 @@ public class MetaStoreFixture {
         = new MetadataTimestampExtractionPolicy();
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+    final SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -46,11 +45,11 @@ public class MetaStoreFixture {
         .field("COL4", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("COL5", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build());
 
-    KsqlTopic
+    final KsqlTopic
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStream = new KsqlStream("sqlexpression",
+    final KsqlStream ksqlStream = new KsqlStream("sqlexpression",
         "TEST1",
         schemaBuilder1,
         schemaBuilder1.field("COL0"),
@@ -60,7 +59,7 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
 
-    SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+    final SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -69,10 +68,10 @@ public class MetaStoreFixture {
         .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
 
-    KsqlTopic
+    final KsqlTopic
         ksqlTopic2 =
         new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable(
+    final KsqlTable ksqlTable = new KsqlTable(
         "sqlexpression",
         "TEST2",
         schemaBuilder2,
@@ -116,11 +115,11 @@ public class MetaStoreFixture {
         .field("ADDRESS", addressSchema)
         .optional().build();
 
-    KsqlTopic
+    final KsqlTopic
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream(
+    final KsqlStream ksqlStreamOrders = new KsqlStream(
         "sqlexpression",
         "ORDERS",
         schemaBuilderOrders,
@@ -131,7 +130,7 @@ public class MetaStoreFixture {
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
-    SchemaBuilder schemaBuilderTestTable3 = SchemaBuilder.struct()
+    final SchemaBuilder schemaBuilderTestTable3 = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -140,10 +139,10 @@ public class MetaStoreFixture {
         .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
 
-    KsqlTopic
+    final KsqlTopic
         ksqlTopic3 =
         new KsqlTopic("TEST3", "test3", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable3 = new KsqlTable(
+    final KsqlTable ksqlTable3 = new KsqlTable(
         "sqlexpression",
         "TEST3",
         schemaBuilderTestTable3,

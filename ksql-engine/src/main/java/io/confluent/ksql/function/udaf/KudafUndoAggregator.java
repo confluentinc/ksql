@@ -18,20 +18,19 @@ package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.TableAggregationFunction;
-import org.apache.kafka.streams.kstream.Aggregator;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<String, GenericRow, GenericRow> {
   private Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
 
   public KudafUndoAggregator(
-      Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
-      Map<Integer, Integer> aggValToValColumnMap) {
+      final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap) {
     Objects.requireNonNull(aggValToAggFunctionMap);
     Objects.requireNonNull(aggValToValColumnMap);
     this.aggValToAggFunctionMap = Collections.unmodifiableMap(
@@ -41,7 +40,7 @@ public class KudafUndoAggregator implements Aggregator<String, GenericRow, Gener
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
+  public GenericRow apply(final String s, final GenericRow rowValue, final GenericRow aggRowValue) {
     aggValToValColumnMap.forEach(
         (aggRowIndex, rowIndex) ->
             aggRowValue.getColumns().set(aggRowIndex, rowValue.getColumns().get(rowIndex)));

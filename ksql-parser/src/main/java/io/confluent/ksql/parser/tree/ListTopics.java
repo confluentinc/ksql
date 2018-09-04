@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 public class ListTopics extends Statement {
 
-  public ListTopics(Optional<NodeLocation> location) {
+  public ListTopics(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -33,7 +33,7 @@ public class ListTopics extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

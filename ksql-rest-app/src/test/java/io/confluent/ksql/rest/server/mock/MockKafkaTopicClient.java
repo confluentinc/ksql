@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import org.apache.kafka.clients.admin.TopicDescription;
-
+import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import io.confluent.ksql.util.KafkaTopicClient;
+import org.apache.kafka.clients.admin.TopicDescription;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -33,15 +31,15 @@ import io.confluent.ksql.util.KafkaTopicClient;
 public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
-  public void createTopic(String topic,
-                          int numPartitions,
-                          short replicationFactor,
-                          Map<String, ?> configs) {
+  public void createTopic(final String topic,
+                          final int numPartitions,
+                          final short replicationFactor,
+                          final Map<String, ?> configs) {
 
   }
 
   @Override
-  public boolean isTopicExists(String topic) {
+  public boolean isTopicExists(final String topic) {
     return true;
   }
 
@@ -56,34 +54,30 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     return Collections.emptyMap();
   }
 
   @Override
-  public Map<String, String> getTopicConfig(String topicName) {
+  public Map<String, String> getTopicConfig(final String topicName) {
     return Collections.emptyMap();
   }
 
   @Override
-  public boolean addTopicConfig(String topicName, Map<String, ?> overrides) {
+  public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     return false;
   }
 
   @Override
-  public TopicCleanupPolicy getTopicCleanupPolicy(String topicName) {
+  public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     return null;
   }
 
   @Override
-  public void deleteTopics(List<String> topicsToDelete) {
+  public void deleteTopics(final List<String> topicsToDelete) {
   }
 
   @Override
-  public void deleteInternalTopics(String applicationId) {
-  }
-
-  @Override
-  public void close() {
+  public void deleteInternalTopics(final String applicationId) {
   }
 }

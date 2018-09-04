@@ -16,9 +16,33 @@
 
 package io.confluent.ksql.util;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.niceMock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KafkaTopicException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
@@ -48,33 +72,6 @@ import org.easymock.Mock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
-
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
@@ -113,7 +110,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic("test", 1, (short) 1);
     verify(adminClient);
   }
@@ -124,7 +121,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -135,7 +132,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
     verify(adminClient);
   }
@@ -147,7 +144,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -162,7 +159,7 @@ public class KafkaTopicClientImplTest {
     // The second time, return the right response.
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult()).once();
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -177,7 +174,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeTopicReturningUnknownPartitionException())
         .andReturn(describeTopicReturningUnknownPartitionException());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
     verify(adminClient);
   }
@@ -187,8 +184,8 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.listTopics()).andReturn(listTopicResultWithNotControllerException()).once();
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    Set<String> names = kafkaTopicClient.listTopicNames();
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final Set<String> names = kafkaTopicClient.listTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
   }
@@ -197,8 +194,8 @@ public class KafkaTopicClientImplTest {
   public void shouldFilterInternalTopics() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
   }
@@ -207,8 +204,8 @@ public class KafkaTopicClientImplTest {
   public void shouldListTopicNames() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    Set<String> names = kafkaTopicClient.listTopicNames();
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final Set<String> names = kafkaTopicClient.listTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
   }
@@ -217,8 +214,8 @@ public class KafkaTopicClientImplTest {
   public void shouldDeleteTopics() {
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    List<String> topics = Collections.singletonList(topicName2);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final List<String> topics = Collections.singletonList(topicName2);
     kafkaTopicClient.deleteTopics(topics);
     verify(adminClient);
   }
@@ -229,8 +226,8 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
         .andReturn(getDeleteInternalTopicsResult());
     replay(adminClient);
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    String applicationId = String.format("%s%s",
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final String applicationId = String.format("%s%s",
                                          KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
                                          "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
@@ -247,7 +244,7 @@ public class KafkaTopicClientImplTest {
         ));
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -260,7 +257,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(topicConfigResponse(new RuntimeException()));
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -278,7 +275,7 @@ public class KafkaTopicClientImplTest {
         ));
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -292,12 +289,12 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
 
     // Verify that the new topic configuration being passed to the admin client is what we expect.
-    NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
+    final NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
     newTopic.configs(Collections.singletonMap("cleanup.policy", "compact"));
     expect(adminClient.createTopics(singleNewTopic(newTopic))).andReturn(getCreateTopicsResult());
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1,
                                  1,
                                  (short) 1,
@@ -327,7 +324,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
@@ -348,7 +345,7 @@ public class KafkaTopicClientImplTest {
 
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
@@ -372,32 +369,15 @@ public class KafkaTopicClientImplTest {
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
-    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
   }
 
-  @Test
-  public void shouldCloseAdminClient() {
-    // Given:
-    adminClient.close();
-    expectLastCall();
-
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-
-    // When:
-    kafkaTopicClient.close();
-
-    // Then:
-    verify(adminClient);
-  }
-
   @SuppressWarnings("unchecked")
   private static DescribeTopicsResult describeTopicReturningUnknownPartitionException() {
-    DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
+    final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
     expect(describeTopicsResult.all())
         .andReturn(failedFuture(new UnknownTopicOrPartitionException("Topic doesn't exist")));
     replay(describeTopicsResult);
@@ -405,11 +385,11 @@ public class KafkaTopicClientImplTest {
   }
 
   private DescribeTopicsResult getDescribeTopicsResult() {
-    TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(0, node, Collections
+    final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(0, node, Collections
         .singletonList(node), Collections.singletonList(node));
-    TopicDescription topicDescription = new TopicDescription(
+    final TopicDescription topicDescription = new TopicDescription(
         topicName1, false, Collections.singletonList(topicPartitionInfo));
-    DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+    final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
     expect(describeTopicsResult.all()).andReturn(
         KafkaFuture.completedFuture(Collections.singletonMap(topicName1, topicDescription)));
     replay(describeTopicsResult);
@@ -418,7 +398,7 @@ public class KafkaTopicClientImplTest {
 
   @SuppressWarnings("unchecked")
   private CreateTopicsResult createTopicReturningTopicExistsException() {
-    CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
+    final CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
     expect(createTopicsResult.all())
         .andReturn(failedFuture(new TopicExistsException("Topic already exists")));
     replay(createTopicsResult);
@@ -426,15 +406,15 @@ public class KafkaTopicClientImplTest {
   }
 
   private CreateTopicsResult getCreateTopicsResult() {
-    CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
+    final CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
     expect(createTopicsResult.all()).andReturn(KafkaFuture.allOf());
     replay(createTopicsResult);
     return createTopicsResult;
   }
 
   private DeleteTopicsResult getDeleteInternalTopicsResult() {
-    DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-    Map<String, KafkaFuture<Void>> deletedTopics = new HashMap<>();
+    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+    final Map<String, KafkaFuture<Void>> deletedTopics = new HashMap<>();
     deletedTopics.put(internalTopic1, KafkaFuture.allOf());
     deletedTopics.put(internalTopic2, KafkaFuture.allOf());
     expect(deleteTopicsResult.values()).andReturn(deletedTopics);
@@ -443,7 +423,7 @@ public class KafkaTopicClientImplTest {
   }
 
   private DeleteTopicsResult getDeleteTopicsResult() {
-    DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     expect(deleteTopicsResult.values()).andReturn(Collections.singletonMap(topicName1, KafkaFuture
         .allOf()));
     replay(deleteTopicsResult);
@@ -451,8 +431,8 @@ public class KafkaTopicClientImplTest {
   }
 
   private ListTopicsResult getEmptyListTopicResult() {
-    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    List<String> topicNamesList = Collections.emptyList();
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final List<String> topicNamesList = Collections.emptyList();
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);
@@ -461,7 +441,7 @@ public class KafkaTopicClientImplTest {
 
   @SuppressWarnings("unchecked")
   private ListTopicsResult listTopicResultWithNotControllerException() {
-    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     expect(listTopicsResult.names())
         .andReturn(failedFuture(new NotControllerException("Not Controller")));
     replay(listTopicsResult);
@@ -469,8 +449,8 @@ public class KafkaTopicClientImplTest {
   }
 
   private ListTopicsResult getListTopicsResultWithInternalTopics() {
-    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
                                                 internalTopic1, internalTopic2,
                                                 confluentInternalTopic);
     expect(listTopicsResult.names())
@@ -480,8 +460,8 @@ public class KafkaTopicClientImplTest {
   }
 
   private ListTopicsResult getListTopicsResult() {
-    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-    List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3);
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3);
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);
@@ -489,8 +469,8 @@ public class KafkaTopicClientImplTest {
   }
 
   private DescribeClusterResult describeClusterResult() {
-    Collection<Node> nodes = Collections.singletonList(node);
-    DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    final Collection<Node> nodes = Collections.singletonList(node);
+    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
     expect(describeClusterResult.nodes()).andReturn(KafkaFuture.completedFuture(nodes));
     replay(describeClusterResult);
     return describeClusterResult;
@@ -501,11 +481,11 @@ public class KafkaTopicClientImplTest {
   }
 
   private DescribeConfigsResult describeBrokerResult() {
-    DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
-    ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
-    List<ConfigEntry> configEntries = new ArrayList<>();
+    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+    final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
+    final List<ConfigEntry> configEntries = new ArrayList<>();
     configEntries.add(configEntryDeleteEnable);
-    Map<ConfigResource, Config> config = ImmutableMap.of(
+    final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(configEntries));
     expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));
     replay(describeConfigsResult);

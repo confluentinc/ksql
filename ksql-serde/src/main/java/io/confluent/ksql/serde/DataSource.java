@@ -25,7 +25,7 @@ public interface DataSource {
 
     private final String kqlType;
 
-    DataSourceType(String ksqlType) {
+    DataSourceType(final String ksqlType) {
       this.kqlType = ksqlType;
     }
 

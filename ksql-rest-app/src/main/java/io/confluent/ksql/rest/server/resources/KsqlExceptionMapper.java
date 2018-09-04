@@ -17,7 +17,6 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -26,14 +25,14 @@ import javax.ws.rs.ext.ExceptionMapper;
 public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
 
   @Override
-  public Response toResponse(Throwable exception) {
+  public Response toResponse(final Throwable exception) {
     // TODO: Distinguish between exceptions that warrant a stack trace and ones that don't
     if (exception instanceof KsqlRestException) {
-      KsqlRestException restException = (KsqlRestException)exception;
+      final KsqlRestException restException = (KsqlRestException)exception;
       return restException.getResponse();
     }
     if (exception instanceof WebApplicationException) {
-      WebApplicationException webApplicationException = (WebApplicationException)exception;
+      final WebApplicationException webApplicationException = (WebApplicationException)exception;
       return Response
           .status(
               Response.Status.fromStatusCode(

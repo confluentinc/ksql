@@ -1,0 +1,5 @@
+# assign ksql team as reviewers for all PRs:
+*       @confluentinc/ksql
+
+# Doc's also need a review by Jim:
+docs/*  @JimGalasyn

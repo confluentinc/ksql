@@ -1,5 +1,6 @@
 {
   "name": "ksql_catalog",
+  "__comment": "testj g",
   "topics" :[
     {
       "namespace": "ksql-topics",

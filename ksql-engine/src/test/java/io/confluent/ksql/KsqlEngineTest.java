@@ -80,7 +80,6 @@ public class KsqlEngineTest {
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
       schemaRegistryClientFactory,
-      schemaRegistryClient,
       new DefaultKafkaClientSupplier(),
       metaStore);
 
@@ -360,7 +359,6 @@ public class KsqlEngineTest {
     final KsqlEngine ksqlEngine = new KsqlEngine(
         topicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClient,
         new DefaultKafkaClientSupplier(),
         metaStore
     );

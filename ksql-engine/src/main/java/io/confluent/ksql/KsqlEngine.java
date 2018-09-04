@@ -119,7 +119,6 @@ public class KsqlEngine implements Closeable {
     this(
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
         new KsqlSchemaRegistryClientFactory(ksqlConfig),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).get(),
         new DefaultKafkaClientSupplier(),
         new MetaStoreImpl(new InternalFunctionRegistry())
     );
@@ -132,7 +131,6 @@ public class KsqlEngine implements Closeable {
     this(
         kafkaTopicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClientFactory.get(),
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry())
     );
@@ -146,7 +144,6 @@ public class KsqlEngine implements Closeable {
     this(
         topicClient,
         schemaRegistryClientFactory,
-        schemaRegistryClientFactory.get(),
         new DefaultKafkaClientSupplier(),
         metaStore
     );
@@ -155,7 +152,6 @@ public class KsqlEngine implements Closeable {
   // called externally by tests only
   KsqlEngine(final KafkaTopicClient topicClient,
              final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-             final SchemaRegistryClient schemaRegistryClient,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore
   ) {
@@ -164,8 +160,7 @@ public class KsqlEngine implements Closeable {
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(
             schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null");
-    this.schemaRegistryClient =
-        Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
+    this.schemaRegistryClient = this.schemaRegistryClientFactory.get();
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(

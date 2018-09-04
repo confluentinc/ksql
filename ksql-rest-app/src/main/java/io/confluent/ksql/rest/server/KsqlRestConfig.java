@@ -48,7 +48,7 @@ public class KsqlRestConfig extends RestConfig {
             "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
-  static final String INSTALL_DIR_CONFIG = KSQL_CONFIG_PREFIX + "server.install.dir";
+  public static final String INSTALL_DIR_CONFIG = KSQL_CONFIG_PREFIX + "server.install.dir";
   private static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 

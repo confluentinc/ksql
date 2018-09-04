@@ -10,55 +10,54 @@
   "tests": [
     {
       "name": "stream stream left join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000}
 
       ],
       "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,,", "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": "10,100,5,,", "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,bar,99,,", "timestamp": 30000}
       ]
     },
-   {
+    {
       "name": "stream stream inner join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000}
+
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000}
       ]
     },
     {
@@ -111,206 +110,206 @@
     },
     {
       "name": "stream stream inner join with different before and after windows",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN (11 seconds, 10 seconds) on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 12000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 11000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 12000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000}
+
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000}
       ]
     },
     {
       "name": "stream stream inner join with out of order messages",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 10 seconds on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "late-message", "VALUE": 10000}, "timestamp": 6000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000},
+        {"topic": "left_topic", "key": 0, "value": "0,late-message,10000", "timestamp": 6000}
+
+
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "blah", "F2": 50}, "timestamp": 6000}
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,late-message,10000,blah,50", "timestamp": 6000}
       ]
     },
     {
       "name": "stream stream outer join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 30000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000},
+        {"topic": "right_topic", "key": 100, "value": "100,newblah,150", "timestamp": 20000}
 
       ],
       "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,,", "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": "10,100,5,,", "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,bar,99,,", "timestamp": 30000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": ",,,newblah,150", "timestamp": 20000}
       ]
     },
     {
       "name": "table table left join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000}
+
       ],
       "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,,", "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": "10,100,5,,", "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 16000}
       ]
     },
     {
       "name": "table table inner join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": "0,c,20", "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "90,ninety,90", "timestamp": 17000}
+
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 16000}
       ]
     },
     {
       "name": "table table outer join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
+        {"topic": "left_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "10,100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "0,foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": "0,c,20", "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": "0,bar,99", "timestamp": 16000}
+
       ],
       "outputs": [
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "OUTER_JOIN", "key": 15, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "OUTER_JOIN", "key": 0, "value": "0,zero,0,,", "timestamp": 0},
+        {"topic": "OUTER_JOIN", "key": 0, "value": "0,zero,0,blah,50", "timestamp": 10000},
+        {"topic": "OUTER_JOIN", "key": 10, "value": "10,100,5,,", "timestamp": 11000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": "0,foo,100,blah,50", "timestamp": 13000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": "0,foo,100,a,10", "timestamp": 15000},
+        {"topic": "OUTER_JOIN", "key": 15, "value": ",,,c,20", "timestamp": 15500},
+        {"topic": "OUTER_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 16000}
       ]
     },
     {
       "name": "stream table left join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='DELIMITED', key='ID');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
-        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
-        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
-        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+        {"topic": "test_table", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": "10,100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,foo,100", "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": "0,bar,99", "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": "90,ninety,90", "timestamp": 15000}
+
       ],
       "outputs": [
-        {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
-        {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
-        {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,blah,50,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,foo,100,zero,0", "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 15000},
+        {"topic": "LEFT_JOIN", "key": 90, "value": "90,ninety,90,,", "timestamp": 15000}
       ]
     },
     {
       "name": "stream table inner join",
-      "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='DELIMITED', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
-        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
-        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
-        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
-        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+        {"topic": "test_table", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": "10,100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,blah,50", "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": "0,foo,100", "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": "0,a,10", "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": "0,bar,99", "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": "90,ninety,90", "timestamp": 15000}
+
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,blah,50,zero,0", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,foo,100,zero,0", "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": "0,bar,99,a,10", "timestamp": 15000}
       ]
     },
     {

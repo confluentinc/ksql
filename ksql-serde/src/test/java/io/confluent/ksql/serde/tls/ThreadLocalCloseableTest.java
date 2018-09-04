@@ -30,6 +30,7 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ThreadLocalCloseableTest {
   @Test
@@ -74,5 +75,18 @@ public class ThreadLocalCloseableTest {
 
     assertThat(closeables.size(), equalTo(iterations));
     closeables.forEach(EasyMock::verify);
+  }
+
+  @Test
+  public void shouldThrowOnAccessAfterClose() {
+    final ThreadLocalCloseable<Closeable> testCloseable = new ThreadLocalCloseable<>(
+        () ->  () -> {}
+    );
+    testCloseable.close();
+    try {
+      testCloseable.get();
+      fail("get() should throw IllegalStateException");
+    } catch (final IllegalStateException e) {
+    }
   }
 }

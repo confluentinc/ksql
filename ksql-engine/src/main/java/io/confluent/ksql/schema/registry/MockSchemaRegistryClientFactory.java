@@ -19,10 +19,7 @@ package io.confluent.ksql.schema.registry;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
-import java.util.function.Supplier;
-
-public class MockSchemaRegistryClientFactory implements Supplier<SchemaRegistryClient> {
-  @Override
+public class MockSchemaRegistryClientFactory {
   public SchemaRegistryClient get() {
     return new MockSchemaRegistryClient();
   }

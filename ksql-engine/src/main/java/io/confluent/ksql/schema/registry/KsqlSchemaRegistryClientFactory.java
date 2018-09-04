@@ -29,7 +29,7 @@ import org.apache.kafka.common.security.ssl.SslFactory;
 /**
  * Configurable Schema Registry client factory, enabling SSL.
  */
-public class KsqlSchemaRegistryClientFactory implements Supplier<SchemaRegistryClient> {
+public class KsqlSchemaRegistryClientFactory {
 
   private final SslFactory sslFactory;
   private final Supplier<RestService> serviceSupplier;
@@ -69,7 +69,6 @@ public class KsqlSchemaRegistryClientFactory implements Supplier<SchemaRegistryC
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
   }
 
-  @Override
   public SchemaRegistryClient get() {
     final RestService restService = serviceSupplier.get();
     final SSLContext sslContext = sslFactory.sslContext();

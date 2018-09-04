@@ -121,7 +121,7 @@ public class KsqlResourceTest {
   @Before
   public void setUp() throws IOException, RestClientException {
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-        = new MockSchemaRegistryClientFactory();
+        = new MockSchemaRegistryClientFactory()::get;
     final SchemaRegistryClient schemaRegistryClient = schemaRegistryClientFactory.get();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());

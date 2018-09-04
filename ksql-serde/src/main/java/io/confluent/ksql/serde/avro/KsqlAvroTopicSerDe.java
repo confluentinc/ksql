@@ -80,13 +80,4 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
-
-  @Override
-  public Serde<GenericRow> getGenericRowSerde(final Schema schemaMaybeWithSource,
-                                              final KsqlConfig ksqlConfig,
-                                              final boolean isInternal,
-                                              final SchemaRegistryClient schemaRegistryClient) {
-    return getGenericRowSerde(
-        schemaMaybeWithSource, ksqlConfig, isInternal, () -> schemaRegistryClient);
-  }
 }

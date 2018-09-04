@@ -24,7 +24,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -84,7 +83,7 @@ public class StructuredDataSourceNodeTest {
         ksqlConfig,
         new FakeKafkaTopicClient(),
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
 

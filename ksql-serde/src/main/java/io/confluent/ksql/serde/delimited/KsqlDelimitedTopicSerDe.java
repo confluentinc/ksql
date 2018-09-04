@@ -39,9 +39,11 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
-                                              final boolean isInternal,
-                                              final SchemaRegistryClient schemaRegistryClient) {
+  public Serde<GenericRow> getGenericRowSerde(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final boolean isInternal,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
@@ -51,14 +53,5 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
-  }
-
-  @Override
-  public Serde<GenericRow> getGenericRowSerde(
-      final Schema schema,
-      final KsqlConfig ksqlConfig,
-      final boolean isInternal,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
-    return getGenericRowSerde(schema, ksqlConfig, isInternal, schemaRegistryClientFactory.get());
   }
 }

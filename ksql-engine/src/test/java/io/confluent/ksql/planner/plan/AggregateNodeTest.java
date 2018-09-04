@@ -148,7 +148,7 @@ public class AggregateNodeTest {
         ksqlConfig,
         topicClient,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
 }

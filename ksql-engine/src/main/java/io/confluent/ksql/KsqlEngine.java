@@ -118,7 +118,7 @@ public class KsqlEngine implements Closeable {
   public KsqlEngine(final KsqlConfig ksqlConfig) {
     this(
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig),
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get,
         new DefaultKafkaClientSupplier(),
         new MetaStoreImpl(new InternalFunctionRegistry())
     );
@@ -160,7 +160,9 @@ public class KsqlEngine implements Closeable {
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(
             schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null");
-    this.schemaRegistryClient = this.schemaRegistryClientFactory.get();
+    this.schemaRegistryClient =
+        Objects.requireNonNull(
+            this.schemaRegistryClientFactory.get(), "Schema registry can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(

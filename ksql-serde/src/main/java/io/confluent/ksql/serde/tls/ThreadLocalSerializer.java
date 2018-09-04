@@ -31,12 +31,12 @@ public class ThreadLocalSerializer implements Serializer<GenericRow> {
   }
 
   @Override
-  public void configure(Map<String, ?> properties, boolean isKey) {
+  public void configure(final Map<String, ?> properties, final boolean isKey) {
     serializer.get().configure(properties, isKey);
   }
 
   @Override
-  public byte[] serialize(String topicName, GenericRow record) {
+  public byte[] serialize(final String topicName, final GenericRow record) {
     return serializer.get().serialize(topicName, record);
   }
 

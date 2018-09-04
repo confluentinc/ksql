@@ -45,7 +45,7 @@ public class KsqlContext {
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
-        new KsqlSchemaRegistryClientFactory(ksqlConfig));
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get);
   }
 
   public static KsqlContext create(

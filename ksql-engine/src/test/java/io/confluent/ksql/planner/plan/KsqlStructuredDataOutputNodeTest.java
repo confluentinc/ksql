@@ -179,7 +179,7 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlConfig,
         topicClient,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
   @Test
@@ -197,7 +197,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForNonWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClientFactory());
+        new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -217,7 +217,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClientFactory());
+        new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
     EasyMock.verify();
 
@@ -236,7 +236,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClientForWindowTable,
         new InternalFunctionRegistry(),
         new HashMap<>(),
-        new MockSchemaRegistryClientFactory());
+        new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
     EasyMock.verify();
 

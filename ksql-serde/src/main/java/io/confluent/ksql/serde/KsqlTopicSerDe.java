@@ -39,11 +39,6 @@ public abstract class KsqlTopicSerDe {
     return serDe;
   }
 
-  public abstract Serde<GenericRow> getGenericRowSerde(Schema schema,
-                                                       KsqlConfig ksqlConfig,
-                                                       boolean isInternal,
-                                                       SchemaRegistryClient schemaRegistryClient);
-
   public abstract Serde<GenericRow> getGenericRowSerde(
       Schema schemaMaybeWithSource,
       KsqlConfig ksqlConfig,

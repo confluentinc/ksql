@@ -161,7 +161,7 @@ public class JoinNodeTest {
         ksqlConfig,
         topicClient,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
   private void

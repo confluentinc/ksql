@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -71,7 +70,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
-        new MockSchemaRegistryClientFactory());
+        new MockSchemaRegistryClientFactory()::get);
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 

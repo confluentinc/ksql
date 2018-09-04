@@ -31,12 +31,12 @@ public class ThreadLocalDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(Map<String, ?> properties, boolean isKey) {
+  public void configure(final Map<String, ?> properties, final boolean isKey) {
     deserializer.get().configure(properties, isKey);
   }
 
   @Override
-  public GenericRow deserialize(String topicName, byte[] record) {
+  public GenericRow deserialize(final String topicName, final byte[] record) {
     return deserializer.get().deserialize(topicName, record);
   }
 

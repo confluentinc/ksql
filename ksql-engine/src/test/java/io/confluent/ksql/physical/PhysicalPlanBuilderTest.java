@@ -72,7 +72,7 @@ public class PhysicalPlanBuilderTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-      = new MockSchemaRegistryClientFactory();
+      = new MockSchemaRegistryClientFactory()::get;
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",

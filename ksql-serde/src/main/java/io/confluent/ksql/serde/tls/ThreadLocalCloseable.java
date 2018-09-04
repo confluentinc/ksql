@@ -24,17 +24,22 @@ import java.util.function.Supplier;
 
 public class ThreadLocalCloseable<T extends Closeable> implements Closeable {
   private final List<T> created;
-  final ThreadLocal<T> local;
+  private final ThreadLocal<T> local;
+  private boolean closed;
 
-  protected ThreadLocalCloseable(final Supplier<T> initialValueSupplier) {
+  ThreadLocalCloseable(final Supplier<T> initialValueSupplier) {
     this.created = new LinkedList<>();
-    this.local = new ThreadLocal<T>() {
-      @Override
-      protected synchronized T initialValue() {
-        created.add(initialValueSupplier.get());
-        return created.get(created.size() - 1);
-      }
-    };
+    this.closed = false;
+    this.local = ThreadLocal.withInitial(
+        () -> {
+          synchronized (this) {
+            if (closed) {
+              throw new IllegalStateException("ThreadLocalCloseable has been closed");
+            }
+            created.add(initialValueSupplier.get());
+            return created.get(created.size() - 1);
+          }
+        });
   }
 
   public T get() {
@@ -42,7 +47,8 @@ public class ThreadLocalCloseable<T extends Closeable> implements Closeable {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
+    closed = true;
     for (final Closeable c : created) {
       try {
         c.close();

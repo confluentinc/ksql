@@ -19,8 +19,6 @@ package io.confluent.ksql.planner.plan;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
@@ -71,7 +69,7 @@ public class ProjectNodeTest {
         ksqlConfig,
         kafkaTopicClient,
         functionRegistry,
-        props, new MockSchemaRegistryClientFactory());
+        props, new MockSchemaRegistryClientFactory()::get);
   }
 
   @Test
@@ -98,7 +96,7 @@ public class ProjectNodeTest {
         ksqlConfig,
         kafkaTopicClient,
         functionRegistry,
-        props, new MockSchemaRegistryClientFactory());
+        props, new MockSchemaRegistryClientFactory()::get);
 
     EasyMock.verify(stream);
   }

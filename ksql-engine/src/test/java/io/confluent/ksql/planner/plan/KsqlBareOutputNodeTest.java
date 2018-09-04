@@ -121,7 +121,7 @@ public class KsqlBareOutputNodeTest {
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
   private TopologyDescription.Node getNodeByName(final String nodeName) {

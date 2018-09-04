@@ -1375,7 +1375,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final Long valueAsLong;
     try {
       valueAsLong = Long.parseLong(context.getText());
-    } catch (NumberFormatException e) {
+    } catch (final NumberFormatException e) {
       throw new ParsingException("Invalid numeric literal: " + context.getText());
     }
     if (valueAsLong < 0) {

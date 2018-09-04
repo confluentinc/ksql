@@ -74,7 +74,8 @@ public class KsqlStdOut extends StructuredDataSource {
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeExtractionPolicy(TimestampExtractionPolicy policy) {
+  public StructuredDataSource cloneWithTimeExtractionPolicy(
+      final TimestampExtractionPolicy policy) {
     return this;
   }
 

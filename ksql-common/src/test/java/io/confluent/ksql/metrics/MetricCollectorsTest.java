@@ -39,8 +39,8 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateStats() throws Exception {
-    List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
-    Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
+    final List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
+    final Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
   }
@@ -49,24 +49,24 @@ public class MetricCollectorsTest {
   @Test
   public void shouldKeepWorkingWhenDuplicateTopicConsumerIsRemoved() throws Exception {
 
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "stream-thread-1") );
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "stream-thread-2") );
 
 
 
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
             new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
                     new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType.CREATE_TIME,  1l, 10, 10, "key", "1234567890")) );
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
 
 
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
-    String firstPassStats = MetricCollectors.getStatsFor(TEST_TOPIC, false);
+    final String firstPassStats = MetricCollectors.getStatsFor(TEST_TOPIC, false);
 
     assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-messages:         2"));
 
@@ -74,7 +74,7 @@ public class MetricCollectorsTest {
 
     collector1.onConsume(consumerRecords);
 
-    String statsForTopic2 =  MetricCollectors.getStatsFor(TEST_TOPIC, false);
+    final String statsForTopic2 =  MetricCollectors.getStatsFor(TEST_TOPIC, false);
 
     assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-messages:         2"));
   }
@@ -82,10 +82,10 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateStatsAcrossAllProducers() throws Exception {
-    ProducerCollector collector1 = new ProducerCollector();
+    final ProducerCollector collector1 = new ProducerCollector();
     collector1.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "client1"));
 
-    ProducerCollector collector2 = new ProducerCollector();
+    final ProducerCollector collector2 = new ProducerCollector();
     collector2.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "client2"));
 
     for (int i = 0; i < 500; i++) {
@@ -105,19 +105,19 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateStatsAcrossAllConsumers() throws Exception {
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client2"));
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
-    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
       recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
           .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -128,19 +128,19 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateTotalMessageConsumptionAcrossAllConsumers() throws Exception {
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client2"));
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
-    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
           .CREATE_TIME,  1l, 10, 10,"key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -149,13 +149,13 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateTotalBytesConsumptionAcrossAllConsumers() throws Exception {
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client2"));
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
-    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     int totalSz = 0;
     for (int i = 0; i < 10; i++) {
       recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
@@ -163,7 +163,7 @@ public class MetricCollectorsTest {
       totalSz += 15 + 2 * i;
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -172,28 +172,28 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateConsumptionStatsByQuery() throws Exception {
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
-    ConsumerCollector collector3 = new ConsumerCollector();
+    final ConsumerCollector collector3 = new ConsumerCollector();
     collector3.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group2"));
 
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
-    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
       recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
           .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
     collector3.onConsume(consumerRecords);
 
-    List<Double> consumptionByQuery = new ArrayList<>(
+    final List<Double> consumptionByQuery = new ArrayList<>(
         MetricCollectors.currentConsumptionRateByQuery());
     consumptionByQuery.sort(Comparator.naturalOrder());
 
@@ -209,36 +209,36 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldNotIncludeRestoreConsumersWhenComputingPerQueryStats() throws Exception {
-    ConsumerCollector collector1 = new ConsumerCollector();
+    final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
-    ConsumerCollector collector2 = new ConsumerCollector();
+    final ConsumerCollector collector2 = new ConsumerCollector();
     collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
-    ConsumerCollector collector3 = new ConsumerCollector();
+    final ConsumerCollector collector3 = new ConsumerCollector();
     collector3.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group2"));
 
     // The restore consumer doesn't have a group id, and hence we should not count it as part of
     // the overall query stats.
-    ConsumerCollector collector4 = new ConsumerCollector();
+    final ConsumerCollector collector4 = new ConsumerCollector();
     collector4.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG,
                                          "restore-consumer-client"));
 
 
-    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
-    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
       recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
           .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
     collector3.onConsume(consumerRecords);
     collector4.onConsume(consumerRecords);
 
-    List<Double> consumptionByQuery = new ArrayList<>(
+    final List<Double> consumptionByQuery = new ArrayList<>(
         MetricCollectors.currentConsumptionRateByQuery());
     consumptionByQuery.sort(Comparator.naturalOrder());
 
@@ -254,10 +254,10 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateErrorRatesAcrossProducersAndConsumers() {
-    ConsumerCollector consumerCollector = new ConsumerCollector();
+    final ConsumerCollector consumerCollector = new ConsumerCollector();
     consumerCollector.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "groupfoo1"));
 
-    ProducerCollector producerCollector = new ProducerCollector();
+    final ProducerCollector producerCollector = new ProducerCollector();
     producerCollector.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "clientfoo2"));
 
     for (int i = 0; i < 1000; i++) {

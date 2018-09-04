@@ -73,7 +73,7 @@ public class JsonFormatTest {
 
   @Before
   public void before() throws Exception {
-    Map<String, Object> configMap = new HashMap<>();
+    final Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
@@ -81,7 +81,7 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
     topicClient = ksqlEngine.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
@@ -97,36 +97,36 @@ public class JsonFormatTest {
   }
 
   private void produceInitData() throws Exception {
-    OrderDataProvider orderDataProvider = new OrderDataProvider();
+    final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
     topicProducer
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
-    Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
+    final Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-    GenericRow messageRow = new GenericRow(Collections.singletonList(
+    final GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
         + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
 
-    Map<String, GenericRow> records = new HashMap<>();
+    final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
 
     topicProducer.produceInputData(messageLogTopic, records, messageSchema);
   }
 
   private void execInitCreateStreamQueries() throws Exception {
-    String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+    final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
         + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
         + "map<varchar, double>) WITH (value_format = 'json', "
         + "kafka_topic='%s' , "
         + "key='ordertime');", inputStream, inputTopic);
 
-    String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
+    final String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
                                          + "(value_format = 'json', kafka_topic='%s', "
                                          + "KEY='userid');",
                                          usersTable, usersTopic);
 
-    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
+    final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
     ksqlEngine.buildMultipleQueries(ordersStreamStr, ksqlConfig, Collections.emptyMap());
@@ -162,15 +162,15 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    Schema resultSchema = SchemaUtil
+    final Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
         "2017-07-24 23:01:54.814",
         1500962514814L)));
 
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -226,13 +226,13 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    Schema resultSchema = SchemaUtil
+    final Schema resultSchema = SchemaUtil
             .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
 
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -248,18 +248,18 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    Schema resultSchema = SchemaUtil
+    final Schema resultSchema = SchemaUtil
             .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
 
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
 
-  private void executePersistentQuery(String queryString) throws Exception {
+  private void executePersistentQuery(final String queryString) throws Exception {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
@@ -267,7 +267,7 @@ public class JsonFormatTest {
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 
-  private Map<String, GenericRow> readNormalResults(String resultTopic, Schema resultSchema, int expectedNumMessages) {
+  private Map<String, GenericRow> readNormalResults(final String resultTopic, final Schema resultSchema, final int expectedNumMessages) {
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
   }
 

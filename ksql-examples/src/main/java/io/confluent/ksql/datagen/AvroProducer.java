@@ -31,7 +31,7 @@ public class AvroProducer extends DataGenProducer {
   private final KsqlConfig ksqlConfig;
   private final SchemaRegistryClient schemaRegistryClient;
 
-  public AvroProducer(KsqlConfig ksqlConfig) {
+  public AvroProducer(final KsqlConfig ksqlConfig) {
     if (ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) == null) {
       throw new KsqlException("Schema registry url is not set.");
     }
@@ -44,9 +44,9 @@ public class AvroProducer extends DataGenProducer {
 
   @Override
   protected Serializer<GenericRow> getSerializer(
-      Schema avroSchema,
-      org.apache.kafka.connect.data.Schema kafkaSchema,
-      String topicName
+      final Schema avroSchema,
+      final org.apache.kafka.connect.data.Schema kafkaSchema,
+      final String topicName
   ) {
     return new KsqlAvroTopicSerDe()
         .getGenericRowSerde(kafkaSchema, ksqlConfig, false, schemaRegistryClient).serializer();

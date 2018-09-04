@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public class ListRegisteredTopics extends Statement {
 
-  public ListRegisteredTopics(Optional<NodeLocation> location) {
+  public ListRegisteredTopics(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -33,7 +33,7 @@ public class ListRegisteredTopics extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

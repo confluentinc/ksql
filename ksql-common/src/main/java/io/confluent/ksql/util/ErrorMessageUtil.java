@@ -61,11 +61,12 @@ public final class ErrorMessageUtil {
     }
   }
 
-  private static List<Throwable> getThrowables(Throwable e) {
+  private static List<Throwable> getThrowables(final Throwable e) {
     final List<Throwable> list = new ArrayList<>();
-    while (e != null && !list.contains(e)) {
-      list.add(e);
-      e = e.getCause();
+    Throwable cause = e;
+    while (cause != null && !list.contains(cause)) {
+      list.add(cause);
+      cause = cause.getCause();
     }
     return list;
   }

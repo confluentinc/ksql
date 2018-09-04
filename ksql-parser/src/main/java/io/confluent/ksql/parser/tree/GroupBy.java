@@ -30,17 +30,17 @@ public class GroupBy
   private final boolean isDistinct;
   private final List<GroupingElement> groupingElements;
 
-  public GroupBy(boolean isDistinct, List<GroupingElement> groupingElements) {
+  public GroupBy(final boolean isDistinct, final List<GroupingElement> groupingElements) {
     this(Optional.empty(), isDistinct, groupingElements);
   }
 
-  public GroupBy(NodeLocation location, boolean isDistinct,
-                 List<GroupingElement> groupingElements) {
+  public GroupBy(final NodeLocation location, final boolean isDistinct,
+                 final List<GroupingElement> groupingElements) {
     this(Optional.of(location), isDistinct, groupingElements);
   }
 
-  private GroupBy(Optional<NodeLocation> location, boolean isDistinct,
-                  List<GroupingElement> groupingElements) {
+  private GroupBy(final Optional<NodeLocation> location, final boolean isDistinct,
+                  final List<GroupingElement> groupingElements) {
     super(location);
     this.isDistinct = isDistinct;
     this.groupingElements = ImmutableList.copyOf(requireNonNull(groupingElements));
@@ -55,19 +55,19 @@ public class GroupBy
   }
 
   @Override
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitGroupBy(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GroupBy groupBy = (GroupBy) o;
+    final GroupBy groupBy = (GroupBy) o;
     return isDistinct == groupBy.isDistinct
            && Objects.equals(groupingElements, groupBy.groupingElements);
   }

@@ -117,11 +117,11 @@ public class ErrorMessageUtilTest {
 
   private static class TestException extends Exception {
 
-    private TestException(String msg) {
+    private TestException(final String msg) {
       super(msg);
     }
 
-    private TestException(String msg, Throwable cause) {
+    private TestException(final String msg, final Throwable cause) {
       super(msg, cause);
     }
   }

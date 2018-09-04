@@ -25,7 +25,7 @@ public class FieldReference
 
   private final int fieldIndex;
 
-  public FieldReference(int fieldIndex) {
+  public FieldReference(final int fieldIndex) {
     super(Optional.empty());
     checkArgument(fieldIndex >= 0, "fieldIndex must be >= 0");
 
@@ -37,12 +37,12 @@ public class FieldReference
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitFieldReference(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -50,7 +50,7 @@ public class FieldReference
       return false;
     }
 
-    FieldReference that = (FieldReference) o;
+    final FieldReference that = (FieldReference) o;
 
     return fieldIndex == that.fieldIndex;
   }

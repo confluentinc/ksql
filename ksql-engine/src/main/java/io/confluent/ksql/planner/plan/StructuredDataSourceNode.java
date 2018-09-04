@@ -91,9 +91,9 @@ public class StructuredDataSourceNode
   public StructuredDataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
-      @JsonProperty("schema") Schema schema
+      @JsonProperty("schema") final Schema schema
   ) {
-    super(id);
+    super(id, structuredDataSource.getDataSourceType());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
     this.schema = schema;
@@ -119,9 +119,9 @@ public class StructuredDataSourceNode
   }
 
   @Override
-  public int getPartitions(KafkaTopicClient kafkaTopicClient) {
-    String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
-    Map<String, TopicDescription> descriptions
+  public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
+    final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
+    final Map<String, TopicDescription> descriptions
         = kafkaTopicClient.describeTopics(Arrays.asList(topicName));
     if (!descriptions.containsKey(topicName)) {
       throw new KsqlException("Could not get topic description for " + topicName);
@@ -135,7 +135,7 @@ public class StructuredDataSourceNode
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitStructuredDataSourceNode(this, context);
   }
 
@@ -152,9 +152,9 @@ public class StructuredDataSourceNode
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
 
-    KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
+    final KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
-    Serde<GenericRow> genericRowSerde =
+    final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
                 getSchema()), ksqlConfig, false, schemaRegistryClient);
@@ -196,7 +196,7 @@ public class StructuredDataSourceNode
     );
   }
 
-  private Topology.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {
+  private Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
     if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
       final String offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString();
       if (offestReset.equalsIgnoreCase("EARLIEST")) {
@@ -220,7 +220,7 @@ public class StructuredDataSourceNode
       }
     } else {
       for (int i = 2; i < schema.fields().size(); i++) {
-        Field field = schema.fields().get(i);
+        final Field field = schema.fields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
             return i - 2;

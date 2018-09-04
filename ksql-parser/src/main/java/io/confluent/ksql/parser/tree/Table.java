@@ -83,13 +83,13 @@ public class Table
   }
 
   public void setProperties(
-      Map<String, Expression> properties) {
+      final Map<String, Expression> properties) {
     this.properties.clear();
     this.properties.putAll(properties);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTable(this, context);
   }
 
@@ -99,7 +99,7 @@ public class Table
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -107,7 +107,7 @@ public class Table
       return false;
     }
 
-    Table table = (Table) o;
+    final Table table = (Table) o;
     return Objects.equals(name, table.name);
   }
 

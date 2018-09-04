@@ -27,7 +27,7 @@ public class LongLiteral extends Literal {
     this(Optional.empty(), value);
   }
 
-  public LongLiteral(final NodeLocation location, long value) {
+  public LongLiteral(final NodeLocation location, final long value) {
     this(Optional.of(location), value);
   }
 
@@ -41,12 +41,12 @@ public class LongLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitLongLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -54,7 +54,7 @@ public class LongLiteral extends Literal {
       return false;
     }
 
-    LongLiteral that = (LongLiteral) o;
+    final LongLiteral that = (LongLiteral) o;
 
     if (value != that.value) {
       return false;

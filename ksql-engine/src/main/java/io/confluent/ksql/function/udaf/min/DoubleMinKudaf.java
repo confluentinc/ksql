@@ -25,7 +25,7 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
-  DoubleMinKudaf(String functionName, int argIndexInValue) {
+  DoubleMinKudaf(final String functionName, final int argIndexInValue) {
     super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.OPTIONAL_FLOAT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
         "Computes the minimum double value by key."
@@ -33,7 +33,7 @@ public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
   }
 
   @Override
-  public Double aggregate(Double currentValue, Double aggregateValue) {
+  public Double aggregate(final Double currentValue, final Double aggregateValue) {
     if (currentValue < aggregateValue) {
       return currentValue;
     }

@@ -74,7 +74,7 @@ public class SchemaKTable extends SchemaKStream {
   public SchemaKTable into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+      final Set<Integer> rowkeyIndexes
   ) {
     if (isWindowed) {
       final Serde<Windowed<String>> windowedSerde
@@ -85,7 +85,7 @@ public class SchemaKTable extends SchemaKStream {
                 if (row == null) {
                   return null;
                 }
-                List columns = new ArrayList();
+                final List<Object> columns = new ArrayList<>();
                 for (int i = 0; i < row.getColumns().size(); i++) {
                   if (!rowkeyIndexes.contains(i)) {
                     columns.add(row.getColumns().get(i));
@@ -100,7 +100,7 @@ public class SchemaKTable extends SchemaKStream {
             if (row == null) {
               return null;
             }
-            List columns = new ArrayList();
+            final List<Object> columns = new ArrayList<>();
             for (int i = 0; i < row.getColumns().size(); i++) {
               if (!rowkeyIndexes.contains(i)) {
                 columns.add(row.getColumns().get(i));
@@ -145,7 +145,7 @@ public class SchemaKTable extends SchemaKStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-    Selection selection = new Selection(expressionPairList, functionRegistry, this);
+    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
     return new SchemaKTable(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

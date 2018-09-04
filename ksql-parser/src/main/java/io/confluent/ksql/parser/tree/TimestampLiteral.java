@@ -26,15 +26,15 @@ public class TimestampLiteral
 
   private final String value;
 
-  public TimestampLiteral(String value) {
+  public TimestampLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public TimestampLiteral(NodeLocation location, String value) {
+  public TimestampLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  private TimestampLiteral(Optional<NodeLocation> location, String value) {
+  private TimestampLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
 
@@ -46,12 +46,12 @@ public class TimestampLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTimestampLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -59,7 +59,7 @@ public class TimestampLiteral
       return false;
     }
 
-    TimestampLiteral that = (TimestampLiteral) o;
+    final TimestampLiteral that = (TimestampLiteral) o;
     return Objects.equals(value, that.value);
   }
 

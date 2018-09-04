@@ -31,12 +31,12 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
   private final Schema schema;
 
-  public KsqlDelimitedSerializer(Schema schema) {
+  public KsqlDelimitedSerializer(final Schema schema) {
     this.schema = schema;
   }
 
   @Override
-  public void configure(Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
 
   }
 
@@ -46,12 +46,12 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
       return null;
     }
     try {
-      StringWriter stringWriter = new StringWriter();
-      CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
+      final StringWriter stringWriter = new StringWriter();
+      final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
       csvPrinter.printRecord(genericRow.getColumns());
-      String result = stringWriter.toString();
+      final String result = stringWriter.toString();
       return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException("Error serializing CSV message", e);
     }
 

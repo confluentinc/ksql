@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 @Path("/query")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
+@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
@@ -67,14 +68,13 @@ public class StreamedQueryResource {
   }
 
   @POST
-  @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    String ksql = request.getKsql();
-    Statement statement;
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    final String ksql = request.getKsql();
+    final Statement statement;
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }
-    Map<String, Object> clientLocalProperties =
+    final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {
       statement = statementParser.parseSingleStatement(ksql);
@@ -83,7 +83,7 @@ public class StreamedQueryResource {
     }
 
     if (statement instanceof Query) {
-      QueryStreamWriter queryStreamWriter;
+      final QueryStreamWriter queryStreamWriter;
       try {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
@@ -92,14 +92,14 @@ public class StreamedQueryResource {
             ksql,
             clientLocalProperties,
             objectMapper);
-      } catch (KsqlException e) {
+      } catch (final KsqlException e) {
         return Errors.badRequest(e);
       }
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
 
     } else if (statement instanceof PrintTopic) {
-      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
+      final TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
           clientLocalProperties,
           (PrintTopic) statement
       );
@@ -114,7 +114,7 @@ public class StreamedQueryResource {
       final Map<String, Object> clientLocalProperties,
       final PrintTopic printTopic
   ) {
-    String topicName = printTopic.getTopic().toString();
+    final String topicName = printTopic.getTopic().toString();
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(

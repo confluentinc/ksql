@@ -262,12 +262,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-    for (final CompatibilityBreakingConfigDef compatiblityConfigDef
+
+    for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
-        compatiblityConfigDef.defineCurrent(configDef);
+        compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
-        compatiblityConfigDef.defineOld(configDef);
+        compatibilityBreakingConfigDef.defineOld(configDef);
       }
     }
     return configDef;
@@ -343,7 +344,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         new Pair<>("", PRODUCER_ABSTRACT_CONFIG),
         new Pair<>("", STREAMS_ABSTRACT_CONFIG)
     );
-    for (Pair<String, AbstractConfig> spec : configSpecsToTry) {
+    for (final Pair<String, AbstractConfig> spec : configSpecsToTry) {
       final ConfigValue configValue
           = resolveConfig(spec.getLeft(), spec.getRight(), key, value);
       if (configValue.type.isPresent()) {
@@ -371,7 +372,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     this(true, props);
   }
 
-  public KsqlConfig(boolean current, final Map<?, ?> props) {
+  public KsqlConfig(final boolean current, final Map<?, ?> props) {
     super(configDef(current), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
@@ -406,7 +407,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, Object> getKsqlStreamConfigProps() {
     final Map<String, Object> props = new HashMap<>();
-    for (ConfigValue config : ksqlStreamConfigProps.values()) {
+    for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       props.put(config.key, config.value);
     }
     return Collections.unmodifiableMap(props);
@@ -502,7 +503,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   private int timestampColumnIndex = -1;
 
-  public void setKsqlTimestampColumnIndex(int index) {
+  public void setKsqlTimestampColumnIndex(final int index) {
     this.timestampColumnIndex = index;
   }
 

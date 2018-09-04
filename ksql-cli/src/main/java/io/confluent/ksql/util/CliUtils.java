@@ -39,10 +39,10 @@ public class CliUtils {
   private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(
-      SqlBaseParser.RegisterTopicContext registerTopicContext
+      final SqlBaseParser.RegisterTopicContext registerTopicContext
   ) {
-    AstBuilder astBuilder = new AstBuilder(null);
-    RegisterTopic registerTopic =
+    final AstBuilder astBuilder = new AstBuilder(null);
+    final RegisterTopic registerTopic =
         (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) == null) {
       throw new KsqlException("VALUE_FORMAT is not set for the topic.");
@@ -50,7 +50,7 @@ public class CliUtils {
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
         .equalsIgnoreCase("'AVRO'")) {
       if (registerTopic.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FILE)) {
-        String avroSchema = getAvroSchema(AstBuilder.unquote(
+        final String avroSchema = getAvroSchema(AstBuilder.unquote(
             registerTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString(), "'")
         );
         return Optional.of(avroSchema);
@@ -64,16 +64,16 @@ public class CliUtils {
 
   public String getAvroSchema(final String schemaFilePath) {
     try {
-      byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
-      ObjectMapper objectMapper = new ObjectMapper();
-      JsonNode root = objectMapper.readTree(jsonData);
+      final byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
+      final ObjectMapper objectMapper = new ObjectMapper();
+      final JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
-    } catch (JsonParseException e) {
+    } catch (final JsonParseException e) {
       throw new KsqlException(
           "Could not parse the avro schema file. Details: " + e.getMessage(),
           e
       );
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Could not read the avro schema file. Details: " + e.getMessage(), e);
     }
   }
@@ -92,11 +92,11 @@ public class CliUtils {
         );
   }
 
-  public static String getLocalServerAddress(int portNumber) {
+  public static String getLocalServerAddress(final int portNumber) {
     return String.format("http://localhost:%d", portNumber);
   }
 
-  public static boolean createFile(Path path) {
+  public static boolean createFile(final Path path) {
     try {
       final Path parent = path.getParent();
       if (parent == null) {
@@ -108,7 +108,7 @@ public class CliUtils {
         Files.createFile(path);
       }
       return true;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("createFile failed, path: {}", path, e);
       return false;
     }

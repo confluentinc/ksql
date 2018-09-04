@@ -45,7 +45,7 @@ public class ItemDataProvider extends TestDataProvider {
 
   private Map<String, GenericRow> buildData() {
 
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
     dataMap.put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")));
     dataMap.put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2",  "clock radio")));
     dataMap.put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3",  "road bike")));

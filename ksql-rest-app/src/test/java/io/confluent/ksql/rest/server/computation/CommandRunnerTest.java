@@ -37,42 +37,42 @@ import org.junit.Test;
 public class CommandRunnerTest {
 
   private Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> getRecordMap() {
-    List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
-    List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
-    for (Pair commandPair: commandList) {
+    final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
+    final List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
+    for (final Pair commandPair: commandList) {
       recordList.add(new ConsumerRecord<>("T", 1, 1, (CommandId) commandPair
           .getLeft(), (Command) commandPair.getRight()));
     }
-    Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
+    final Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
     recordMap.put(new TopicPartition("T", 1), recordList);
     return recordMap;
   }
 
   @Test
   public void shouldFetchAndRunNewCommandsFromCommandTopic() throws Exception {
-    StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
     statementExecutor.handleStatement(anyObject(), anyObject());
     expectLastCall().times(4);
     replay(statementExecutor);
 
-    CommandStore commandStore = mock(CommandStore.class);
+    final CommandStore commandStore = mock(CommandStore.class);
     expect(commandStore.getNewCommands()).andReturn(new ConsumerRecords<>(getRecordMap()));
     replay(commandStore);
-    CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
     commandRunner.fetchAndRunCommands();
     verify(statementExecutor);
   }
 
   @Test
   public void shouldFetchAndRunPriorCommandsFromCommandTopic() throws Exception {
-    StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
     statementExecutor.handleRestoration(anyObject());
     expectLastCall();
     replay(statementExecutor);
-    CommandStore commandStore = mock(CommandStore.class);
+    final CommandStore commandStore = mock(CommandStore.class);
     expect(commandStore.getRestoreCommands()).andReturn(new RestoreCommands());
     replay(commandStore);
-    CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
     commandRunner.processPriorCommands();
 
     verify(statementExecutor);

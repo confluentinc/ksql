@@ -60,8 +60,8 @@ public class CommandId {
   }
 
   @JsonCreator
-  public static CommandId fromString(String fromString) {
-    String[] splitOnSlash = fromString.split("/", 3);
+  public static CommandId fromString(final String fromString) {
+    final String[] splitOnSlash = fromString.split("/", 3);
     if (splitOnSlash.length != 3) {
       throw new IllegalArgumentException("Expected a string of the form <type>/<entity>/<action>");
     }
@@ -92,14 +92,14 @@ public class CommandId {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CommandId commandId = (CommandId) o;
+    final CommandId commandId = (CommandId) o;
     return type == commandId.type
         && Objects.equals(entity, commandId.entity)
         && action == commandId.action;

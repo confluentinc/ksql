@@ -26,7 +26,7 @@ public abstract class KsqlTopicSerDe {
 
   private final DataSource.DataSourceSerDe serDe;
 
-  protected KsqlTopicSerDe(DataSource.DataSourceSerDe serDe) {
+  protected KsqlTopicSerDe(final DataSource.DataSourceSerDe serDe) {
     this.serDe = serDe;
   }
 

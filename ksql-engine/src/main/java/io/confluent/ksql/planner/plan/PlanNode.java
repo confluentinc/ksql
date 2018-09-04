@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -30,18 +31,26 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
+
 public abstract class PlanNode {
 
   private final PlanNodeId id;
+  private final DataSourceType nodeOutputType;
 
-  protected PlanNode(final PlanNodeId id) {
+  protected PlanNode(final PlanNodeId id, final DataSourceType nodeOutputType) {
     requireNonNull(id, "id is null");
+    requireNonNull(nodeOutputType, "nodeOutputType is null");
     this.id = id;
+    this.nodeOutputType = nodeOutputType;
   }
 
   @JsonProperty("id")
   public PlanNodeId getId() {
     return id;
+  }
+
+  public DataSourceType getNodeOutputType() {
+    return nodeOutputType;
   }
 
   public abstract Schema getSchema();
@@ -50,7 +59,7 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);
   }
 

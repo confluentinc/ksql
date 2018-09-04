@@ -67,7 +67,7 @@ public abstract class OutputNode
       @JsonProperty("schema") final Schema schema,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy) {
-    super(id);
+    super(id, source.getNodeOutputType());
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");
     requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy is null");
@@ -112,12 +112,12 @@ public abstract class OutputNode
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitOutput(this, context);
   }
 

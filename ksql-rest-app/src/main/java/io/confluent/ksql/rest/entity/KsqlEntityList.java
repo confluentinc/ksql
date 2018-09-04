@@ -31,7 +31,7 @@ public class KsqlEntityList extends ArrayList<KsqlEntity> {
   public KsqlEntityList() {
   }
 
-  public KsqlEntityList(Collection<? extends KsqlEntity> c) {
+  public KsqlEntityList(final Collection<? extends KsqlEntity> c) {
     super(c);
   }
 }

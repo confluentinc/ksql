@@ -29,8 +29,8 @@ public class KudafUndoAggregator implements Aggregator<String, GenericRow, Gener
   private Map<Integer, Integer> aggValToValColumnMap;
 
   public KudafUndoAggregator(
-      Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
-      Map<Integer, Integer> aggValToValColumnMap) {
+      final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap) {
     Objects.requireNonNull(aggValToAggFunctionMap);
     Objects.requireNonNull(aggValToValColumnMap);
     this.aggValToAggFunctionMap = Collections.unmodifiableMap(
@@ -40,7 +40,7 @@ public class KudafUndoAggregator implements Aggregator<String, GenericRow, Gener
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
+  public GenericRow apply(final String s, final GenericRow rowValue, final GenericRow aggRowValue) {
     aggValToValColumnMap.forEach(
         (aggRowIndex, rowIndex) ->
             aggRowValue.getColumns().set(aggRowIndex, rowValue.getColumns().get(rowIndex)));

@@ -43,13 +43,13 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldSetInitialValuesCorrectly() {
-    Map<String, Object> initialProps = new HashMap<>();
+    final Map<String, Object> initialProps = new HashMap<>();
     initialProps.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 10);
     initialProps.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
     initialProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 800);
     initialProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 5);
 
-    KsqlConfig ksqlConfig = new KsqlConfig(initialProps);
+    final KsqlConfig ksqlConfig = new KsqlConfig(initialProps);
 
     assertThat(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(10));
     assertThat(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo((short) 3));
@@ -59,28 +59,28 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetLogAndContinueExceptionHandlerByDefault() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
   public void shouldSetLogAndContinueExceptionHandlerWhenFailOnDeserializationErrorFalse() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
   public void shouldNotSetDeserializationExceptionHandlerWhenFailOnDeserializationErrorTrue() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, nullValue());
   }
 
   @Test
   public void shouldSetStreamsConfigConsumerUnprefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("100"));
   }
 
@@ -89,7 +89,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
             StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    Object result = ksqlConfig.getKsqlStreamConfigProps().get(
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
         StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("100"));
   }
@@ -178,7 +178,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
             KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-2"));
-    String result = ksqlConfigClone.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final String result = ksqlConfigClone.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     assertThat(result, equalTo("test-2"));
   }
 
@@ -189,7 +189,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("200"));
   }
 
@@ -200,16 +200,16 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
     assertThat(result, equalTo("200"));
   }
 
   @Test
   public void shouldPreserveOriginalCompatibilitySensitiveConfigs() {
-    Map<String, String> originalProperties = ImmutableMap.of(
+    final Map<String, String> originalProperties = ImmutableMap.of(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "not_the_default");
-    KsqlConfig currentConfig = new KsqlConfig(Collections.emptyMap());
-    KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
+    final KsqlConfig currentConfig = new KsqlConfig(Collections.emptyMap());
+    final KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
     assertThat(
         compatibleConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG),
         equalTo("not_the_default"));
@@ -217,9 +217,9 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldUseCurrentValueForCompatibilityInsensitiveConfigs() {
-    Map<String, String> originalProperties = Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, "false");
-    KsqlConfig currentConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, true));
-    KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
+    final Map<String, String> originalProperties = Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, "false");
+    final KsqlConfig currentConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_ENABLE_UDFS, true));
+    final KsqlConfig compatibleConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(originalProperties);
     assertThat(compatibleConfig.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS), is(true));
   }
 

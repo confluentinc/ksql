@@ -20,11 +20,11 @@ import io.confluent.ksql.util.KsqlException;
 
 public class KsqlFunctionException extends KsqlException {
 
-  public KsqlFunctionException(String message) {
+  public KsqlFunctionException(final String message) {
     super(message);
   }
 
-  public KsqlFunctionException(String s, Throwable throwable) {
+  public KsqlFunctionException(final String s, final Throwable throwable) {
     super(s, throwable);
   }
 }

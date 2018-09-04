@@ -51,8 +51,8 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeJsonCorrectly() throws JsonProcessingException {
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> orderRow = new HashMap<>();
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
@@ -60,11 +60,11 @@ public class KsqlJsonDeserializerTest {
     orderRow.put("arraycol", new Double[]{10.0, 20.0});
     orderRow.put("mapcol", Collections.singletonMap("key1", 10.0));
 
-    byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
+    final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
+    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -75,8 +75,8 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> orderRow = new HashMap<>();
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
@@ -84,17 +84,17 @@ public class KsqlJsonDeserializerTest {
     orderRow.put("arraycol", new Double[]{10.0, 20.0});
     orderRow.put("mapcol", Collections.singletonMap("key1", 10.0));
 
-    byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
+    final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    Schema newOrderSchema = SchemaBuilder.struct()
+    final Schema newOrderSchema = SchemaBuilder.struct()
         .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
         .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema, false);
+    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema, false);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -105,18 +105,18 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeEvenWithMissingFields() throws JsonProcessingException {
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> orderRow = new HashMap<>();
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
     orderRow.put("orderunits", 10.0);
 
-    byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
+    final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
+    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -130,7 +130,7 @@ public class KsqlJsonDeserializerTest {
   public void shouldTreatNullAsNull() throws JsonProcessingException {
     final ObjectMapper objectMapper = new ObjectMapper();
     final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema, false);
-    Map<String, Object> row = new HashMap<>();
+    final Map<String, Object> row = new HashMap<>();
     row.put("ordertime", null);
     row.put("@orderid", null);
     row.put("itemid", null);
@@ -139,7 +139,7 @@ public class KsqlJsonDeserializerTest {
     row.put("mapCol", null);
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, null, null, new Double[]{0.0, null}, null));
-    GenericRow genericRow = deserializer.deserialize("", objectMapper.writeValueAsBytes(row));
+    final GenericRow genericRow = deserializer.deserialize("", objectMapper.writeValueAsBytes(row));
     assertThat(genericRow, equalTo(expected));
 
   }

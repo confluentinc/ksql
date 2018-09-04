@@ -26,15 +26,15 @@ public class TimeLiteral
 
   private final String value;
 
-  public TimeLiteral(String value) {
+  public TimeLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public TimeLiteral(NodeLocation location, String value) {
+  public TimeLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  private TimeLiteral(Optional<NodeLocation> location, String value) {
+  private TimeLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
     this.value = value;
@@ -45,12 +45,12 @@ public class TimeLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTimeLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -58,7 +58,7 @@ public class TimeLiteral
       return false;
     }
 
-    TimeLiteral that = (TimeLiteral) o;
+    final TimeLiteral that = (TimeLiteral) o;
     return Objects.equals(value, that.value);
   }
 

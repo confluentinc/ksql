@@ -57,7 +57,7 @@ public class DataGenProducerTest {
         .field("address", addressSchema)
         .optional().build();
 
-    Pair<String, GenericRow> rowPair = dataGenProducer.generateOneGenericRow(generator, new AvroData(1), generator.schema(), ordersSchema, new SessionManager(), "orderid");
+    final Pair<String, GenericRow> rowPair = dataGenProducer.generateOneGenericRow(generator, new AvroData(1), generator.schema(), ordersSchema, new SessionManager(), "orderid");
     assertThat(rowPair.getLeft(), instanceOf(String.class));
     assertThat(rowPair.getRight().getColumns().size(), equalTo(5));
     assertThat(rowPair.getRight().getColumns().get(4), instanceOf(Struct.class));

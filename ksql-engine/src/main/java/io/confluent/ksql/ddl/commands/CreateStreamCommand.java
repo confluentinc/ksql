@@ -38,12 +38,12 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlStream ksqlStream = new KsqlStream(
+    final KsqlStream ksqlStream = new KsqlStream(
         sqlExpression,
         sourceName,
         schema,

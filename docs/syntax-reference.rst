@@ -113,6 +113,7 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
 - SET, UNSET statements
+- INSERT INTO statement
 
 It does not support statements such as:
 
@@ -331,6 +332,14 @@ its corresponding topic.
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key.
 
+For joins, the key of the resulting stream will be the value from the column
+from the left stream that was used in the join criteria. This column will be
+registered as the key of the resulting stream if included in the selected
+columns.
+
+For stream-table joins, the column used in the join criteria for the table
+must be the table key.
+
 The WITH clause for the result supports the following properties:
 
 +---------------+------------------------------------------------------------------------------------------------------+
@@ -355,7 +364,7 @@ The WITH clause for the result supports the following properties:
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field. By default,                |
 |               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|               | Timestamps have a millisecond accuracy.
+|               | Timestamps have a millisecond accuracy.                                                              |
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |
@@ -401,6 +410,14 @@ CREATE TABLE AS SELECT
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
 Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
+
+For joins, the key of the resulting table will be the value from the column
+from the left table that was used in the join criteria. This column will be
+registered as the key of the resulting table if included in the selected
+columns.
+
+For joins, the columns used in the join criteria must be the keys of the
+tables being joined.
 
 The WITH clause supports the following properties:
 
@@ -1082,7 +1099,7 @@ Scalar functions
 |                        |                                                            | It is possible to switch back to this legacy mode |
 |                        |                                                            | by setting                                        |
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                            | ``true``                                          |
+|                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

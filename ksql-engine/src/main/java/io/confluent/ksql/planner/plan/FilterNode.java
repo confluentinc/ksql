@@ -45,7 +45,7 @@ public class FilterNode
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
                     @JsonProperty("source") final PlanNode source,
                     @JsonProperty("predicate") final Expression predicate) {
-    super(id);
+    super(id, source.getNodeOutputType());
 
     this.source = source;
     this.schema = source.getSchema();
@@ -79,12 +79,12 @@ public class FilterNode
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitFilter(this, context);
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 

@@ -24,7 +24,7 @@ public class RunScript extends Statement {
 
   final String schemaFilePath;
 
-  public RunScript(Optional<NodeLocation> location, String catalogFilePath) {
+  public RunScript(final Optional<NodeLocation> location, final String catalogFilePath) {
     super(location);
     if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
       this.schemaFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);
@@ -44,7 +44,7 @@ public class RunScript extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

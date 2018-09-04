@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,7 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpression() {
     final String simpleQuery = "SELECT iteminfo->category->name, address->state FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -74,7 +74,7 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldNotCreateFunctionCallIfNotNeeded() {
     final String simpleQuery = "SELECT orderid FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(1));
@@ -89,7 +89,7 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
     final String simpleQuery = "SELECT arraycol[0]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -107,11 +107,10 @@ public class StatementRewriteForStructTest {
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
 
-
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
     final String simpleQuery = "SELECT arraycol[CAST (item->id AS INTEGER)]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -129,7 +128,7 @@ public class StatementRewriteForStructTest {
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
 
-  private QuerySpecification getQuerySpecification(Statement statement) {
+  private QuerySpecification getQuerySpecification(final Statement statement) {
     assertThat(statement, instanceOf(Query.class));
     final Query query = (Query) statement;
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));

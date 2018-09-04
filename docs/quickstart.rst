@@ -17,5 +17,10 @@ KSQL Tutorials and Examples
     - :ref:`Clickstream Data Analysis Pipeline Using KSQL <ksql_tutorials>`. Learn how to use KSQL,
       ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
 
+    .. include:: ../../includes/connect-streams-pipeline-link.rst
+        :start-line: 2
+        :end-line: 6
+
+
 
 

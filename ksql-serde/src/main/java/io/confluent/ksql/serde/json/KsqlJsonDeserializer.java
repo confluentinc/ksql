@@ -38,10 +38,13 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
-  //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerializer.class);
+
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
@@ -62,26 +65,29 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(final Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
   }
 
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
-    if (bytes == null) {
-      return null;
-    }
     try {
-      return getGenericRow(bytes);
-    } catch (Exception e) {
+      final GenericRow row = getGenericRow(bytes);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
+      }
+      return row;
+    } catch (final Exception e) {
       throw new SerializationException(
-          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
-          e
-      );
+          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }
   }
 
   @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(final byte[] rowJsonBytes) throws IOException {
+    if (rowJsonBytes == null) {
+      return null;
+    }
+
     final JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     final CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
 
@@ -93,7 +99,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final Object columnVal = valueMap
           .get(keyMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));

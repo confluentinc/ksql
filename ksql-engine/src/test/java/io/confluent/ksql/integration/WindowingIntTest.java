@@ -1,5 +1,6 @@
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.integration.IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -31,7 +32,8 @@ import org.junit.experimental.categories.Category;
 public class WindowingIntTest {
 
   private static final int WINDOW_SIZE_SEC = 5;
-  private static final int MAX_POLL_PER_ITERATION = 100;
+  private static final TimeWindowedDeserializer<String> WINDOWED_DESERIALIZER =
+      new TimeWindowedDeserializer<>(new StringDeserializer());
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> datasetOneMetaData;
@@ -70,7 +72,6 @@ public class WindowingIntTest {
 
     testHarness.publishTestData(topicName, dataProvider, now);
 
-
     final String streamName = "NOWINDOW_AGGTEST";
 
     final String queryString = String.format(
@@ -81,28 +82,28 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
-     items **/, 20.0, 2.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      final Map<String, GenericRow> aggregateResults = testHarness.consumeData(streamName,
-                                                                           resultSchema, 1, new
-                                                                                   StringDeserializer(), MAX_POLL_PER_ITERATION);
+      final Map<String, GenericRow> aggregateResults = testHarness.consumeData(
+          streamName,
+          resultSchema, 1, new
+          StringDeserializer(), RESULTS_POLL_MAX_TIME_MS);
       final GenericRow actual = aggregateResults.get("ITEM_1");
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -112,26 +113,27 @@ public class WindowingIntTest {
   
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
-    verifyAggTumbling("TUMBLING_AGGTEST", String.format(
-        "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-        "TUMBLING_AGGTEST",
-        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*)",
-        "TUMBLING ( SIZE 10 SECONDS)"
-    ));
-  }
+    final String streamName = "TUMBLING_AGGTEST";
 
-  private void verifyAggTumbling(final String streamName, final String query) throws Exception {
+    ksqlContext.sql(String.format(
+        "CREATE TABLE %s AS SELECT "
+            + "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
+            + "FROM ORDERS WINDOW TUMBLING ( SIZE 10 SECONDS) "
+            + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
+        streamName
+    ));
+
     testHarness.publishTestData(topicName, dataProvider, now);
-    ksqlContext.sql(query);
 
     final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
-     items **/, 20.0, 100.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new TimeWindowedDeserializer<>(new StringDeserializer()), MAX_POLL_PER_ITERATION);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
+          streamName, resultSchema, 1,
+          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
@@ -152,8 +154,8 @@ public class WindowingIntTest {
         KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
-  private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
-    for (Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
+  private void updateResults(final Map<String, GenericRow> results, final Map<Windowed<String>, GenericRow> windowedResults) {
+    for (final Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
       results.put(entry.getKey().key(), entry.getValue());
     }
   }
@@ -175,7 +177,7 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
@@ -183,20 +185,22 @@ public class WindowingIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new TimeWindowedDeserializer<>(new StringDeserializer()), 1000);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
+          streamName, resultSchema, 1,
+          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -221,28 +225,30 @@ public class WindowingIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
-    GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
+    final GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
 
     final Map<String, GenericRow> results = new HashMap<>();
 
     TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, datasetOneMetaData.size(), new TimeWindowedDeserializer<>(new StringDeserializer()), 1000);
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
+          streamName, resultSchema, datasetOneMetaData.size(),
+          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
       updateResults(results, windowedResults);
       final GenericRow actual = results.get("ORDER_6");
       return expectedResults.equals(actual) && results.size() == 6;
     }, 60000, "didn't receive correct results within timeout");
 
-    Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
+    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
                topicBeforeCleanup.size(), equalTo(5));
-    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
-    Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
+    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
         (), topicsAfterCleanUp.size(), equalTo(3));
@@ -251,15 +257,22 @@ public class WindowingIntTest {
 
   }
 
-  private int alignTimeToWindowSize(int secondOfMinuteModulus) throws InterruptedException {
+  private int alignTimeToWindowSize(final int secondOfMinuteModulus) throws InterruptedException {
     while (LocalTime.now().getSecond() % secondOfMinuteModulus != 0){
       Thread.sleep(500);
     }
     return LocalTime.now().getSecond();
   }
 
-  private void createOrdersStream() throws Exception {
-    ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
+  private void createOrdersStream() {
+    ksqlContext.sql("CREATE STREAM ORDERS ("
+        + "ORDERTIME bigint, "
+        + "ORDERID varchar, "
+        + "ITEMID varchar, "
+        + "ORDERUNITS double, "
+        + "PRICEARRAY array<double>, "
+        + "KEYVALUEMAP map<varchar, double>) "
+        + "WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
   }
 
 }

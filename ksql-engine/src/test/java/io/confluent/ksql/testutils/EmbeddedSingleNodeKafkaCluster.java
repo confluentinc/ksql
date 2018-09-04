@@ -112,7 +112,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-
+    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
@@ -142,7 +142,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       if (zookeeper != null) {
         zookeeper.stop();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -192,7 +192,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    *
    * @param topic The name of the topic.
    */
-  public void createTopic(String topic) {
+  public void createTopic(final String topic) {
     createTopic(topic, 1, 1, new Properties());
   }
 
@@ -203,7 +203,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param partitions  The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
-  public void createTopic(String topic, int partitions, int replication) {
+  public void createTopic(final String topic, final int partitions, final int replication) {
     createTopic(topic, partitions, replication, new Properties());
   }
 
@@ -215,10 +215,10 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(String topic,
-                          int partitions,
-                          int replication,
-                          Properties topicConfig) {
+  public void createTopic(final String topic,
+                          final int partitions,
+                          final int replication,
+                          final Properties topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
@@ -246,7 +246,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final scala.collection.immutable.Set<Acl> scalaAcls =
         JavaConversions.asScalaSet(javaAcls).toSet();
 
-    kafka.security.auth.ResourceType scalaResType =
+    final kafka.security.auth.ResourceType scalaResType =
         ResourceType$.MODULE$.fromJava(resource.resourceType());
 
     final kafka.security.auth.Resource scalaResource =
@@ -269,7 +269,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   private Properties effectiveBrokerConfigFrom() {
-    Properties effectiveConfig = new Properties();
+    final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
@@ -350,12 +350,12 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return new EmbeddedSingleNodeKafkaCluster(brokerConfig, clientConfig);
     }
 
-    private void addListenersProp(String listenerType) {
+    private void addListenersProp(final String listenerType) {
       final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
       brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
     }
 
-    private void removeListenersProp(String listenerType) {
+    private void removeListenersProp(final String listenerType) {
       final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
       final String replacement = Arrays.stream(current.split(","))
           .filter(part -> !part.startsWith(listenerType + "://"))

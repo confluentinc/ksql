@@ -13,7 +13,7 @@ public class IntegerSumKudafTest extends BaseSumKudafTest<Integer, IntegerSumKud
   }
 
   protected IntegerSumKudaf getSumKudaf() {
-    KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
+    final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
         .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     assertThat(aggregateFunction, instanceOf(IntegerSumKudaf.class));
     return  (IntegerSumKudaf) aggregateFunction;

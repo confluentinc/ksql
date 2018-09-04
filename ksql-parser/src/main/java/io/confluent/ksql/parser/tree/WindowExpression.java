@@ -25,7 +25,8 @@ public class WindowExpression extends Node {
   private final String windowName;
   private  final KsqlWindowExpression ksqlWindowExpression;
 
-  public WindowExpression(String windowName, KsqlWindowExpression ksqlWindowExpression) {
+  public WindowExpression(
+      final String windowName, final KsqlWindowExpression ksqlWindowExpression) {
     this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
@@ -47,14 +48,14 @@ public class WindowExpression extends Node {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    WindowExpression o = (WindowExpression) obj;
+    final WindowExpression o = (WindowExpression) obj;
     return Objects.equals(ksqlWindowExpression, o.ksqlWindowExpression);
   }
 
@@ -69,11 +70,11 @@ public class WindowExpression extends Node {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitWindowExpression(this, context);
   }
 
-  public static TimeUnit getWindowUnit(String windowUnitString) {
+  public static TimeUnit getWindowUnit(final String windowUnitString) {
     try {
       if (!windowUnitString.endsWith("S")) {
         return TimeUnit.valueOf(windowUnitString + "S");

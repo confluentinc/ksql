@@ -44,7 +44,7 @@ public class BasicCollectorTest {
       return currentTime;
     }
 
-    public void setCurrentTimeMillis(long timeMillis) {
+    public void setCurrentTimeMillis(final long timeMillis) {
       currentTime = timeMillis;
     }
   }
@@ -68,9 +68,9 @@ public class BasicCollectorTest {
 
   @Test
   public void testGetCollector() {
-    BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
 
-    KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
+    final KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
     expectedMetrics.setTimestamp(timeUtils.nowInUnixTime());
     expectedMetrics.setConfluentPlatformVersion(Version.getVersion());
     expectedMetrics.setKsqlComponentType(moduleType.name());
@@ -84,7 +84,7 @@ public class BasicCollectorTest {
     Long currentTimeSec = 1000l;
 
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
 
     currentTimeSec += 12300l;
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);

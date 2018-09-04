@@ -64,7 +64,7 @@ public class StandaloneExecutor implements Executable {
       udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
       throw e;
@@ -74,7 +74,7 @@ public class StandaloneExecutor implements Executable {
   public void stop() {
     try {
       ksqlEngine.close();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
     }
     shutdownLatch.countDown();
@@ -89,7 +89,7 @@ public class StandaloneExecutor implements Executable {
                                           final String queriesFile,
                                           final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);
@@ -114,10 +114,10 @@ public class StandaloneExecutor implements Executable {
 
   private void executeStatements(final String queries) {
     final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries, ksqlConfig);
-    for (QueryMetadata queryMetadata : queryMetadataList) {
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.start();
+        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+        persistentQueryMd.start();
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
@@ -140,7 +140,7 @@ public class StandaloneExecutor implements Executable {
         sb.append(System.lineSeparator());
         line = br.readLine();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
     }
     return sb.toString();

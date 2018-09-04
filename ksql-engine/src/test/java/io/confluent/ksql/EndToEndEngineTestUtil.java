@@ -86,7 +86,7 @@ class EndToEndEngineTestUtil {
       this.spec = spec;
     }
 
-    private static void compare(Object o1, Object o2, String path) {
+    private static void compare(final Object o1, final Object o2, final String path) {
       if (o1 == null && o2 == null) {
         return;
       }
@@ -96,7 +96,7 @@ class EndToEndEngineTestUtil {
       if (o1 instanceof Map) {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
         assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
-        for (Object k : ((Map) o1).keySet()) {
+        for (final Object k : ((Map) o1).keySet()) {
           compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + String.valueOf(k));
         }
       } else if (o1 instanceof List) {
@@ -112,7 +112,7 @@ class EndToEndEngineTestUtil {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       compare(spec, o, "VALUE-SPEC");
       return Objects.equals(spec, o);
     }
@@ -171,7 +171,7 @@ class EndToEndEngineTestUtil {
       try {
         schemaString = schemaRegistryClient.getLatestSchemaMetadata(
             topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
       return new ValueSpec(
@@ -186,7 +186,7 @@ class EndToEndEngineTestUtil {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
 
-    public ValueSpecAvroSerializer(SchemaRegistryClient schemaRegistryClient) {
+    public ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroSerializer = new KafkaAvroSerializer(schemaRegistryClient);
     }
@@ -205,7 +205,7 @@ class EndToEndEngineTestUtil {
       try {
         schemaString = schemaRegistryClient.getLatestSchemaMetadata(
             topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
       final Object avroObject = valueSpecToAvro(
@@ -243,7 +243,7 @@ class EndToEndEngineTestUtil {
       }
       try {
         return new ObjectMapper().readValue(data, Map.class);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
@@ -265,7 +265,7 @@ class EndToEndEngineTestUtil {
       }
       try {
         return new ObjectMapper().writeValueAsBytes(spec);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
@@ -478,7 +478,7 @@ class EndToEndEngineTestUtil {
              expectedOutput.value,
              expectedOutput.timestamp);
        }
-      } catch (AssertionError assertionError) {
+      } catch (final AssertionError assertionError) {
         throw new AssertionError("Query name: "
             + name
             + " in file: " + testPath
@@ -488,13 +488,13 @@ class EndToEndEngineTestUtil {
     }
 
     void initializeTopics(final KsqlEngine ksqlEngine) {
-      for (Topic topic : topics) {
+      for (final Topic topic : topics) {
         ksqlEngine.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
         if (topic.getSchema() != null) {
           try {
             ksqlEngine.getSchemaRegistryClient().register(
                 topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException(e);
           }
         }
@@ -570,7 +570,8 @@ class EndToEndEngineTestUtil {
     try (final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClient,
-        metaStore
+        metaStore,
+        ksqlConfig
     )) {
       query.initializeTopics(ksqlEngine);
       final TopologyTestDriver testDriver
@@ -614,7 +615,7 @@ class EndToEndEngineTestUtil {
         );
       case RECORD:
         final GenericRecord record = new GenericData.Record(schema);
-        for (org.apache.avro.Schema.Field field : schema.getFields()) {
+        for (final org.apache.avro.Schema.Field field : schema.getFields()) {
           record.put(
               field.name(),
               valueSpecToAvro(((Map<String, ?>)spec).get(field.name()), field.schema())
@@ -622,7 +623,7 @@ class EndToEndEngineTestUtil {
         }
         return record;
       case UNION:
-        for (org.apache.avro.Schema memberSchema : schema.getTypes()) {
+        for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
           if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
             return valueSpecToAvro(spec, memberSchema);
           }
@@ -678,7 +679,7 @@ class EndToEndEngineTestUtil {
                 )
             );
       case RECORD:
-        Map<String, Object> recordSpec = new HashMap<>();
+        final Map<String, Object> recordSpec = new HashMap<>();
         schema.getFields().forEach(
             f -> recordSpec.put(
                 toUpper ? f.name().toUpperCase() : f.name(),

@@ -387,7 +387,7 @@ public class AvroSchemaInferenceTest {
 
   private Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
     final SchemaBuilder builder = SchemaBuilder.struct();
-    for (TableElement tableElement : statement.getElements()) {
+    for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
           TypeUtil.getTypeSchema(tableElement.getType())
@@ -410,14 +410,14 @@ public class AvroSchemaInferenceTest {
     final String statementText
         = "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='avro');";
     final KsqlParser parser = new KsqlParser();
-    final Statement statement = parser.buildAst(statementText, metaStore).get(0);
+    final Statement statement = parser.buildAst(statementText, metaStore).get(0).getStatement();
 
     final StatementWithSchema inferred
         = StatementWithSchema.forStatement(
         statement, statementText, new HashMap<>(), schemaRegistryClient);
 
     final Statement statementWithSchema
-        = parser.buildAst(inferred.getStatementText(), metaStore).get(0);
+        = parser.buildAst(inferred.getStatementText(), metaStore).get(0).getStatement();
     final Schema inferredSchema = getSchemaForDdlStatement(
         (AbstractStreamCreateStatement) statementWithSchema);
     assertThat(inferredSchema, equalTo(ksqlStreamSchema));

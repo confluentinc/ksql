@@ -103,7 +103,7 @@ public class EntityUtilTest {
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
     assertThat(entity.get(0).getSchema().getFields().get().size(), equalTo(1));
-    FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
+    final FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }

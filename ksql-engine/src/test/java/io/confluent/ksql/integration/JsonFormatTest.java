@@ -81,7 +81,7 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
     topicClient = ksqlEngine.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 

@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -99,14 +100,17 @@ public class SecureIntegrationTest {
   private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
+  private AdminClient adminClient;
 
   @Before
   public void before() throws Exception {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
+    adminClient = AdminClient
+        .create(new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
+        adminClient);
 
     produceInitData();
   }
@@ -125,7 +129,7 @@ public class SecureIntegrationTest {
       } catch (final Exception e) {
         e.printStackTrace(System.err);
       }
-      topicClient.close();
+      adminClient.close();
     }
   }
 
@@ -257,7 +261,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
 
     execInitCreateStreamQueries();
   }

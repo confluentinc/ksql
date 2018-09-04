@@ -11,8 +11,11 @@ as a part of the |cp| bundle.
 KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
-    You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
-    production. These images are coming soon.
+    You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
+    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+    To start KSQL containers in configurations like "KSQL Headless Server" and
+    "Interactive Server with Interceptors", see
+    :ref:`Docker Configuration Parameters <config_reference>`.
 
 .. contents::
     :local:
@@ -56,17 +59,15 @@ You can only connect to one KSQL server at a time. The KSQL CLI does not support
 
 Follow these instructions to start KSQL server using the ``ksql-server-start`` script.
 
-Tip
-    For development and testing purposes, you can also use Confluent CLI to start |cp|, including KSQL, on a single host.
-    For more information, see :ref:`quickstart`.
+.. include:: ../../../includes/installation-types-zip-tar.rst
 
 #.  Specify your KSQL server configuration parameters. You can also set any property for the Kafka Streams API, the Kafka
     producer, or the Kafka consumer. The required parameters are ``bootstrap.servers`` and ``listeners``. You can specify
     the parameters in the KSQL properties file or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS``
     take precedence over those specified in the properties file.
 
-    A recommended approach is to configure a common set of properties using ``KSQL_OPTS`` and override specific
-    properties as needed, using the KSQL properties file.
+    A recommended approach is to configure a common set of properties using the KSQL configuration file and override
+    specific properties as needed, using the ``KSQL_OPTS`` environment variable.
 
     Here are the default settings:
 

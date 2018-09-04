@@ -25,8 +25,7 @@ Stream
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
 be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
-derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a
-Kafka topic on the Kafka
+derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
 brokers.
 
 Table
@@ -112,7 +111,7 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
-- SET statement
+- SET, UNSET statements
 
 It does not support statements such as:
 
@@ -187,7 +186,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -239,13 +238,13 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively.
 
-KSQL has currently the following equirements for creating a table from a Kafka topic:
+KSQL has currently the following requirements for creating a table from a Kafka topic:
 
 1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
    below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
 2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_constraints`.
+   instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -264,7 +263,7 @@ The WITH clause supports the following properties:
 |                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
 |                         | message value. You must set the KEY property to this corresponding field/column in the     |
 |                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -372,7 +371,8 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that WINDOW, GROUP BY and HAVING clauses can only be used if the
+``from_item`` is a stream.
 
 The WITH clause supports the following properties:
 
@@ -468,7 +468,7 @@ Example of describing a table with extended information:
     -----------------------------------
     id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
 
-    For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+    For query topology and execution plan run: EXPLAIN <QueryId>; for more information
 
     Local runtime statistics
     ------------------------
@@ -562,13 +562,23 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
+    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
 
 **Description**
 
 Print the contents of Kafka topics to the KSQL CLI.
 
 .. important:: SQL grammar defaults to uppercase formatting. You can use quotations (``"``) to print topics that contain lowercase characters.
+
+The PRINT statement supports the following properties:
+
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                                      |
++=========================+==================================================================================================================+
+| FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:
 
@@ -600,7 +610,8 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that WINDOW, GROUP BY and HAVING clauses can only be used if the from_item is a stream.
+Note that WINDOW, GROUP BY and HAVING clauses can only be used if the
+``from_item`` is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -608,8 +619,8 @@ In the above statements from_item is one of the following:
 -  ``table_name [ [ AS ] alias]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
-The WHERE clause can refer to any column defined for a stream or table, including the two implicit columns ``ROWTIME``
-and ``ROWKEY``.
+The WHERE clause can refer to any column defined for a stream or table,
+including the two implicit columns ``ROWTIME`` and ``ROWKEY``.
 
 Example:
 
@@ -619,8 +630,9 @@ Example:
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
 
-**Tip:** If you want to select older data, you can configure KSQL to query the stream from the beginning.  You must
-run this configuration before running the query:
+**Tip:** If you want to select older data, you can configure KSQL to query
+the stream from the beginning.  You must run this configuration before
+running the query:
 
 .. code:: sql
 
@@ -816,10 +828,10 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                    | Description                                       |
 +========================+============================================================+===================================================+
-| ABS                    | ``ABS(col1)``                                              | The absolute value of a value                     |
+| ABS                    |  ``ABS(col1)``                                             | The absolute value of a value                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
-|                        |                                                            | value contains in it.                             |
+|                        |                                                            | value contains in it                              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value                            |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
@@ -876,11 +888,11 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
-===============
-Key Constraints
-===============
+================
+Key Requirements
+================
 
 Message Keys
 ------------

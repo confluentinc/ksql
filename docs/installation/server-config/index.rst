@@ -13,6 +13,8 @@ Configuring KSQL Server
 KSQL configuration parameters can be set for KSQL server and queries as well as for the underlying Kafka Streams and
 Kafka Clients (producer and consumer).
 
+.. include:: ../../../../includes/installation-types-zip-tar.rst
+
 .. _set-ksql-server-properties:
 
 ------------------------------

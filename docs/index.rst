@@ -3,11 +3,8 @@
 KSQL
 ====
 
-.. raw:: html
-
-   <h2>What Is KSQL?</h2>
-
----------------------
+What Is KSQL?
+-------------
 
 KSQL is the open source streaming SQL engine for Apache Kafka®. It provides an easy-to-use yet powerful interactive SQL
 interface for stream processing on Kafka, without the need to write code in a programming language such as Java or
@@ -18,11 +15,8 @@ including data filtering, transformations, aggregations, joins, windowing, and s
     :start-line: 8
     :end-line: 17
 
-.. raw:: html
-
-   <h2>What Can I Do With KSQL?</h2>
-
----------------------
+What Can I Do With KSQL?
+------------------------
 
 Streaming ETL
     Apache Kafka is a popular choice for powering data pipelines. KSQL makes it simple to transform data within the pipeline, readying messages to cleanly land in another system.
@@ -45,11 +39,13 @@ Sensor data and IoT
 Customer 360-view
     Achieve a comprehensive understanding of your customers across every interaction through a variety of channels, where new information is continuously incorporated in real-time.
 
-.. raw:: html
+What Are the Components?
+------------------------
 
-   <h2>What Are the Components?</h2>
-
----------------------
+.. figure:: img/ksql-architecture-and-components.png
+  :width:  960pt
+  :height: 540pt
+  :align: center
 
 KSQL Server
     The KSQL server runs the engine that executes KSQL queries. This includes processing, reading, and writing data to
@@ -64,21 +60,19 @@ KSQL CLI
     client to the KSQL server. For production scenarios you may also configure KSQL servers to run in non-interactive
     "headless" configuration, thereby preventing KSQL CLI access.
 
+KSQL servers, clients, queries, and applications run outside of Kafka brokers,
+in separate JVM instances, or in separate clusters entirely. 
 
-.. raw:: html
+Supported Versions and Interoperability
+---------------------------------------
 
-   <h2>Supported Versions and Interoperability</h2>
-
----------------------
+.. _ksql-supported-versions:
 
 .. include:: includes/ksql-supported-versions.rst
 
 
-.. raw:: html
-
-   <h2>KSQL Documentation</h2>
-
----------------------
+KSQL Documentation
+------------------
 
 .. toctree::
     :titlesonly:

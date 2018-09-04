@@ -67,7 +67,7 @@ public class KafkaTopicClientImplIntegrationTest {
 
   @After
   public void tearDown() {
-    client.close();
+    adminClient.close();
   }
 
   @Test

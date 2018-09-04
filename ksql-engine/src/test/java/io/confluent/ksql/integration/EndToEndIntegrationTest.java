@@ -87,7 +87,7 @@ public class EndToEndIntegrationTest {
 
     ksqlConfig = testHarness.ksqlConfig.clone();
 
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);

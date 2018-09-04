@@ -112,7 +112,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-
+    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));

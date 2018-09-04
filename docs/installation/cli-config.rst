@@ -15,6 +15,9 @@ To connect the KSQL CLI to a cluster, run this command with your KSQL server URL
 
     $ <path-to-confluent>/bin/ksql <ksql-server-URL>
 
+Change
+
+
 Configuring Per-session Properties
 ----------------------------------
 

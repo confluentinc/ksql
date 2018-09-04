@@ -17,6 +17,8 @@ $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```
 
+Change
+
 This will start the KSQL server in the background and the KSQL CLI in the
 foreground.
 

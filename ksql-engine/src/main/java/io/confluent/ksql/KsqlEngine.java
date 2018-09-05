@@ -180,7 +180,10 @@ public class KsqlEngine implements Closeable {
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, schemaRegistryClient, true));
+        new CommandFactories(topicClient,
+            schemaRegistryClient,
+            true,
+            initializationKsqlConfig.getKsqlStreamConfigProps()));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();

@@ -220,7 +220,7 @@ public class StandaloneExecutor implements Executable {
 
   private void executeStatements(final String queries) {
     final List<PreparedStatement> preparedStatements =
-        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone(), false);
+        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
     for (final PreparedStatement preparedStatement: preparedStatements) {
       final Statement statement = preparedStatement.getStatement();
       HANDLERS

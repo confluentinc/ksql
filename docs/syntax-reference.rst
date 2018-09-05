@@ -1106,7 +1106,7 @@ Scalar functions
 |                        |                                                            | the given format. Single quotes in the            |
 |                        |                                                            | timestamp format can be escaped with '', for      |
 |                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
-|                        |                                                            | TIMEZONE is optional parameter and it is a        |
+|                        |                                                            | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                            | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                            | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

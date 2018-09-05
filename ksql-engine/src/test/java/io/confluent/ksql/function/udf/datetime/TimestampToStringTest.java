@@ -24,11 +24,16 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.IntStream;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class TimestampToStringTest {
 
   private TimestampToString udf;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp(){
@@ -85,8 +90,10 @@ public class TimestampToStringTest {
     assertThat(universalTime, is("2018-08-15 17:10:43 UTC"));
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfInvalidTimeZone() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Unknown time-zone ID: PST");
     udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST");
   }
 
@@ -101,23 +108,33 @@ public class TimestampToStringTest {
     assertThat(result, is(expectedResult));
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfTooFewParameters() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage(
+        "should have at least two input arguments: date value and format.");
     udf.evaluate(1638360611123L);
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfTooManyParameters() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage(
+        "should have at most three input arguments: date value, format and zone.");
     udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "UTC", "extra");
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfFormatInvalid() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Unknown pattern letter: i");
     udf.evaluate("2021-12-01 12:10:11.123", "invalid");
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfNotTimestamp() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("java.lang.String cannot be cast to java.lang.Long");
     udf.evaluate("invalid", "2021-12-01 12:10:11.123");
   }
 

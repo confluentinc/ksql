@@ -120,9 +120,7 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
-    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-        = new MockSchemaRegistryClientFactory()::get;
-    final SchemaRegistryClient schemaRegistryClient = schemaRegistryClientFactory.get();
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
@@ -130,7 +128,7 @@ public class KsqlResourceTest {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         kafkaTopicClient,
-        schemaRegistryClientFactory);
+        () -> schemaRegistryClient);
   }
 
   @After

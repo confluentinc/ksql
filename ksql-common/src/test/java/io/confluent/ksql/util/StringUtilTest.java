@@ -24,28 +24,46 @@ import org.junit.Test;
 public class StringUtilTest {
 
   @Test
-  public void testCleanQuotes() {
-    assertThat("COLUMN_NAME",
-        is(StringUtil.cleanQuotes("'COLUMN_NAME'")));
+  public void testNotCleanIfMissingQuotePrefix() {
+    assertCleaned("COLUMN_NAME'", "COLUMN_NAME'");
+  }
+
+  @Test
+  public void testNotCleanIfMissingQuotePostfix() {
+    assertCleaned("'COLUMN_NAME", "'COLUMN_NAME");
+  }
+
+  @Test
+  public void testCleanQuotesIfQuoted() {
+    assertCleaned("'COLUMN_NAME'", "COLUMN_NAME");
+  }
+
+  @Test
+  public void testDoesNotReduceAnyQuotesIfNotQuotedString() {
+    assertCleaned("prefix ''Something in quotes'' postfix",
+        "prefix 'Something in quotes' postfix");
+  }
+
+  @Test
+  public void testReducesDoubleSingleQuotesInQuotedStringToSingleSingleQuotes() {
+    assertCleaned("'prefix ''Something in quotes'' postfix'",
+        "prefix 'Something in quotes' postfix");
+
+    assertCleaned("'a '''' b ''' c '''' d '' e '' f '''",
+        "a '' b '' c '' d ' e ' f '");
   }
 
   @Test
   public void testCleanDateFormat() {
-    assertDateFormat("yyyy-MM-dd''T''HH:mm:ssX", "yyyy-MM-dd'T'HH:mm:ssX");
-    assertDateFormat("'yyyy-MM-dd''T''HH:mm:ssX'", "yyyy-MM-dd'T'HH:mm:ssX");
-    assertDateFormat("yyyy.MM.dd G ''at'' HH:mm:ss z", "yyyy.MM.dd G 'at' HH:mm:ss z");
-    assertDateFormat("'yyyy.MM.dd G ''at'' HH:mm:ss z'", "yyyy.MM.dd G 'at' HH:mm:ss z");
-    assertDateFormat("EEE, MMM d, ''''yy","EEE, MMM d, ''yy");
-    assertDateFormat("'EEE, MMM d, ''''yy'", "EEE, MMM d, ''yy");
-    assertDateFormat("hh ''o''clock'' a, zzzz", "hh 'o''clock' a, zzzz");
-    assertDateFormat("'hh ''o''clock'' a, zzzz'", "hh 'o''clock' a, zzzz");
-    assertDateFormat("YYYY-''W''ww-u", "YYYY-'W'ww-u");
-    assertDateFormat("'YYYY-''W''ww-u'", "YYYY-'W'ww-u");
+    assertCleaned("'yyyy-MM-dd''T''HH:mm:ssX'", "yyyy-MM-dd'T'HH:mm:ssX");
+    assertCleaned("'yyyy.MM.dd G ''at'' HH:mm:ss z'", "yyyy.MM.dd G 'at' HH:mm:ss z");
+    assertCleaned("'EEE, MMM d, ''''yy'", "EEE, MMM d, ''yy");
+    assertCleaned("'hh ''o''clock'' a, zzzz'", "hh 'o'clock' a, zzzz");
+    assertCleaned("'YYYY-''W''ww-u'", "YYYY-'W'ww-u");
   }
 
-  private void assertDateFormat(final String input, final String expected){
+  private static void assertCleaned(final String input, final String expected){
     final String result = StringUtil.cleanQuotes(input);
     assertThat(result, is(expected));
   }
-
 }

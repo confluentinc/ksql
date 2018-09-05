@@ -375,23 +375,6 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test
-  public void shouldCloseAdminClient() {
-    // Given:
-    adminClient.close();
-    expectLastCall();
-
-    replay(adminClient);
-
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-
-    // When:
-    kafkaTopicClient.close();
-
-    // Then:
-    verify(adminClient);
-  }
-
   @SuppressWarnings("unchecked")
   private static DescribeTopicsResult describeTopicReturningUnknownPartitionException() {
     final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);

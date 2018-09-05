@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
@@ -62,8 +63,10 @@ public class KsqlContext {
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient cannot be null.");
+    final AdminClient adminClient = clientSupplier
+        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
     final KafkaTopicClient kafkaTopicClient = new
-        KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+        KafkaTopicClientImpl(adminClient);
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final KsqlEngine engine = new KsqlEngine(
         kafkaTopicClient,

@@ -615,8 +615,8 @@ Note that WINDOW, GROUP BY and HAVING clauses can only be used if the
 
 In the above statements from_item is one of the following:
 
--  ``stream_name [ [ AS ] alias]``
--  ``table_name [ [ AS ] alias]``
+-  ``stream_name [ alias ]``
+-  ``table_name [ alias ]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
 The WHERE clause can refer to any column defined for a stream or table,

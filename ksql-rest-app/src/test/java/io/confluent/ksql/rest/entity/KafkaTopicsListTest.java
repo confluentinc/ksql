@@ -44,8 +44,9 @@ public class KafkaTopicsListTest {
     final TopicPartition topicPartition = new TopicPartition("test-topic", 1);
     final KafkaConsumerGroupClientImpl.ConsumerSummary consumerSummary = new KafkaConsumerGroupClientImpl.ConsumerSummary("consumer-id");
     consumerSummary.addPartition(topicPartition);
-    final KafkaConsumerGroupClientImpl.ConsumerGroupSummary consumerGroupSummary = new KafkaConsumerGroupClientImpl.ConsumerGroupSummary();
-    consumerGroupSummary.addConsumerSummary(consumerSummary);
+    final KafkaConsumerGroupClientImpl.ConsumerGroupSummary consumerGroupSummary
+        = new KafkaConsumerGroupClientImpl.ConsumerGroupSummary(Collections.singleton(consumerSummary));
+
 
 
 

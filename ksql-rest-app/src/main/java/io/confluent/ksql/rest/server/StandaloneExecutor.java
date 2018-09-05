@@ -89,7 +89,7 @@ public class StandaloneExecutor implements Executable {
                                           final String queriesFile,
                                           final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);

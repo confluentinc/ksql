@@ -50,20 +50,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private final boolean isDeleteTopicEnabled;
 
   /**
-   * Construct a topic client.
-   *
-   * @param adminClientConfig the admin client config.
-   */
-  public KafkaTopicClientImpl(final Map<String, Object> adminClientConfig) {
-    this(AdminClient.create(adminClientConfig));
-  }
-
-  /**
    * Construct a topic client from an existing admin client.
    *
    * @param adminClient the admin client. Note: Will be closed on {@link #close()}.
    */
-  KafkaTopicClientImpl(final AdminClient adminClient) {
+  public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
     this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
   }
@@ -276,10 +267,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     return topicName.startsWith(applicationId + "-")
            && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
                || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
-  }
-
-  public void close() {
-    this.adminClient.close();
   }
 
   private void validateTopicProperties(final String topic,

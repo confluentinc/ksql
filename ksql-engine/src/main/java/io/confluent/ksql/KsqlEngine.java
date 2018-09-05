@@ -223,8 +223,7 @@ public class KsqlEngine implements Closeable {
     // Build query AST from the query string
     final List<PreparedStatement> queries = parseStatements(
         queriesString,
-        tempMetaStore,
-        true
+        tempMetaStore
     );
 
     return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
@@ -290,8 +289,7 @@ public class KsqlEngine implements Closeable {
 
   public List<PreparedStatement> parseStatements(
       final String queriesString,
-      final MetaStore tempMetaStore,
-      final boolean queriesOnly
+      final MetaStore tempMetaStore
   ) {
     try {
       final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
@@ -304,14 +302,10 @@ public class KsqlEngine implements Closeable {
           stmt -> buildSingleQueryAst(
               stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
 
-      if (queriesOnly) {
-        return statements
-            .stream()
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-      } else {
-        return statements;
-      }
+      return statements
+          .stream()
+          .filter(Objects::nonNull)
+          .collect(Collectors.toList());
     } catch (Exception e) {
       throw new ParseFailedException("Exception while processing statement: " + e.getMessage(), e);
     }
@@ -483,9 +477,7 @@ public class KsqlEngine implements Closeable {
           tempMetaStoreForParser
       );
       return new PreparedStatement(statementString, statement);
-    } else if (statement instanceof SetProperty) {
-      return new PreparedStatement(statementString, statement);
-    } else if (statement instanceof UnsetProperty) {
+    } else if (statement instanceof SetProperty || statement instanceof UnsetProperty) {
       return new PreparedStatement(statementString, statement);
     }
     return null;
@@ -624,8 +616,7 @@ public class KsqlEngine implements Closeable {
     return planQueries(
         parseStatements(
             queries,
-            metaStoreCopy,
-            true
+            metaStoreCopy
         ),
         ksqlConfig,
         Collections.emptyMap(),

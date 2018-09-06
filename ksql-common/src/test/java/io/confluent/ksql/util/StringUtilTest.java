@@ -41,7 +41,7 @@ public class StringUtilTest {
   @Test
   public void testDoesNotReduceAnyQuotesIfNotQuotedString() {
     assertCleaned("prefix ''Something in quotes'' postfix",
-        "prefix 'Something in quotes' postfix");
+        "prefix ''Something in quotes'' postfix");
   }
 
   @Test

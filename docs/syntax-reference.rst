@@ -1,7 +1,7 @@
 .. _ksql_syntax_reference:
 
-Syntax Reference
-================
+KSQL Syntax Reference
+=====================
 
 KSQL has similar semantics to SQL:
 

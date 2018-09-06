@@ -16,9 +16,13 @@
 
 package io.confluent.ksql;
 
+import static org.easymock.EasyMock.anyBoolean;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -37,6 +41,8 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,6 +54,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
@@ -57,16 +65,20 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.easymock.EasyMock.mock;
+
 public class KsqlEngineTest {
 
   private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+      () -> schemaRegistryClient;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
-      schemaRegistryClient,
+      schemaRegistryClientFactory,
       new DefaultKafkaClientSupplier(),
       metaStore);
 
@@ -326,12 +338,43 @@ public class KsqlEngineTest {
     topicClient.close();
     expectLastCall();
     replay(topicClient);
-    final KsqlEngine ksqlEngine = new KsqlEngine(topicClient, schemaRegistryClient, metaStore);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        topicClient,
+        schemaRegistryClientFactory,
+        metaStore);
 
     // When:
     ksqlEngine.close();
 
     // Then:
     verify(topicClient);
+  }
+
+  @Test
+  public void shouldUseSerdeSupplierToBuildQueries() {
+    final KsqlTopicSerDe mockKsqlSerde = mock(KsqlTopicSerDe.class);
+    final MetaStore metaStore =
+        MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        topicClient,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier(),
+        metaStore
+    );
+
+    expect(
+        mockKsqlSerde.getGenericRowSerde(
+            anyObject(org.apache.kafka.connect.data.Schema.class),
+            anyObject(KsqlConfig.class),
+            anyBoolean(),
+            same(schemaRegistryClientFactory)))
+        .andDelegateTo(new KsqlJsonTopicSerDe())
+        .atLeastOnce();
+
+    replay(mockKsqlSerde);
+
+    ksqlEngine.createQueries("create table bar as select * from test2;", ksqlConfig);
+
+    verify(mockKsqlSerde);
   }
 }

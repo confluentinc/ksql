@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -146,7 +147,7 @@ public class StructuredDataSourceNode
       final KafkaTopicClient kafkaTopicClient,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
@@ -156,8 +157,8 @@ public class StructuredDataSourceNode
         .getKsqlTopic().getKsqlTopicSerDe();
     final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
-            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                getSchema()), ksqlConfig, false, schemaRegistryClient);
+            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
+            ksqlConfig, false, schemaRegistryClientFactory);
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
@@ -168,7 +169,7 @@ public class StructuredDataSourceNode
           table,
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-              getSchema(), ksqlConfig, true, schemaRegistryClient),
+              getSchema(), ksqlConfig, true, schemaRegistryClientFactory),
           timestampExtractor
       );
       return new SchemaKTable(
@@ -179,7 +180,7 @@ public class StructuredDataSourceNode
           table.isWindowed(),
           SchemaKStream.Type.SOURCE,
           functionRegistry,
-          schemaRegistryClient
+          schemaRegistryClientFactory.get()
       );
     }
 
@@ -191,7 +192,7 @@ public class StructuredDataSourceNode
                 .withTimestampExtractor(timestampExtractor)
         ).mapValues(nonWindowedValueMapper).transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient
+        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClientFactory.get()
     );
   }
 

@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -41,19 +43,25 @@ public class KsqlContext {
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, null);
+    return create(
+        ksqlConfig,
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get);
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
+    return create(
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier()
+    );
   }
 
   public static KsqlContext create(
       KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final KafkaClientSupplier clientSupplier
   ) {
     if (ksqlConfig == null) {
@@ -68,8 +76,7 @@ public class KsqlContext {
 
     final KsqlEngine engine = new KsqlEngine(
         new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()),
-        schemaRegistryClient == null
-            ? new KsqlSchemaRegistryClientFactory(ksqlConfig).create() : schemaRegistryClient,
+        schemaRegistryClientFactory,
         clientSupplier
     );
 

@@ -30,6 +30,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
+
 import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -164,7 +166,7 @@ public class OutputNodeTest {
                                      final KafkaTopicClient kafkaTopicClient,
                                      final FunctionRegistry functionRegistry,
                                      final Map<String, Object> props,
-                                     final SchemaRegistryClient schemaRegistryClient) {
+                                     final Supplier<SchemaRegistryClient> schemaRegistryClient) {
       return null;
     }
   }

@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
@@ -118,9 +119,9 @@ public class SchemaKTableTest {
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
-    return topic.getKsqlTopicSerDe().getGenericRowSerde(schema,
-                                                        new KsqlConfig(Collections.emptyMap()),
-                                                        false, new MockSchemaRegistryClient());
+    return topic.getKsqlTopicSerDe().getGenericRowSerde(
+        schema, new KsqlConfig(Collections.emptyMap()), false,
+        new MockSchemaRegistryClientFactory()::get);
   }
 
 
@@ -241,7 +242,7 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, null);
+        initialSchemaKTable.getSchema(), null, false, () -> null);
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
@@ -278,7 +279,7 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, null);
+        initialSchemaKTable.getSchema(), null, false, () -> null);
 
     // Call groupBy and extract the captured mapper
     initialSchemaKTable.groupBy(Serdes.String(), rowSerde, groupByExpressions);

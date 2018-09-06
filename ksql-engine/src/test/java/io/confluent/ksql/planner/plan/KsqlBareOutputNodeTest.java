@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -120,7 +121,7 @@ public class KsqlBareOutputNodeTest {
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
   private TopologyDescription.Node getNodeByName(final String nodeName) {

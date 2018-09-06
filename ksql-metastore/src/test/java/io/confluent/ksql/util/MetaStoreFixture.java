@@ -22,14 +22,22 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.function.Supplier;
+
 public class MetaStoreFixture {
 
   public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
+    return getNewMetaStore(functionRegistry, KsqlJsonTopicSerDe::new);
+  }
+
+  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
+                                          final Supplier<KsqlTopicSerDe> serde) {
 
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
@@ -47,7 +55,7 @@ public class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
+        new KsqlTopic("TEST1", "test1", serde.get());
 
     final KsqlStream ksqlStream = new KsqlStream("sqlexpression",
         "TEST1",
@@ -70,7 +78,7 @@ public class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
+        new KsqlTopic("TEST2", "test2", serde.get());
     final KsqlTable ksqlTable = new KsqlTable(
         "sqlexpression",
         "TEST2",
@@ -117,7 +125,7 @@ public class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ORDERS_TOPIC", "orders_topic", serde.get());
 
     final KsqlStream ksqlStreamOrders = new KsqlStream(
         "sqlexpression",
@@ -141,7 +149,7 @@ public class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic3 =
-        new KsqlTopic("TEST3", "test3", new KsqlJsonTopicSerDe());
+        new KsqlTopic("TEST3", "test3", serde.get());
     final KsqlTable ksqlTable3 = new KsqlTable(
         "sqlexpression",
         "TEST3",
@@ -164,7 +172,7 @@ public class MetaStoreFixture {
 
     final KsqlTopic
         nestedArrayStructMapTopic =
-        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", serde.get());
 
     final KsqlStream nestedArrayStructMapOrders = new KsqlStream(
         "sqlexpression",

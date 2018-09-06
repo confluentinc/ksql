@@ -18,7 +18,6 @@ package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
@@ -114,13 +113,6 @@ public class KsqlContext {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata persistentQueryMetadata
             = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.registerQueryStateListener(
-            new QueryStateListener(
-                ksqlEngine.getMetrics(),
-                queryMetadata.getKafkaStreams(),
-                queryMetadata.getQueryApplicationId()
-
-            ));
         persistentQueryMetadata.start();
       } else {
         System.err.println("Ignoring statemenst: " + sql);

@@ -19,10 +19,14 @@ package io.confluent.ksql.internal;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -37,6 +41,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 public class KsqlEngineMetrics implements Closeable {
 
   private final List<Sensor> sensors;
+  private final List<CountMetric> countMetrics;
   private final String metricGroupName;
   private final Sensor numActiveQueries;
   private final Sensor messagesIn;
@@ -46,12 +51,6 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor numIdleQueries;
   private final Sensor messageConsumptionByQuery;
   private final Sensor errorRate;
-  private final Sensor createdQueriesCount;
-  private final Sensor runningQueriesCount;
-  private final Sensor rebalancingQueriesCount;
-  private final Sensor pendigShutDownQueriesCount;
-  private final Sensor errorQueriesCount;
-  private final Sensor notRunningQueriesCount;
 
   private final String ksqlServiceId;
 
@@ -60,12 +59,18 @@ public class KsqlEngineMetrics implements Closeable {
   private final Metrics metrics;
 
   public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
+    this(metricGroupPrefix, ksqlEngine, MetricCollectors.getMetrics());
+  }
+
+  public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine,
+      final Metrics metrics) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
+    this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
-    this.metrics = MetricCollectors.getMetrics();
+    this.metrics = metrics;
 
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
@@ -75,21 +80,14 @@ public class KsqlEngineMetrics implements Closeable {
     this.numIdleQueries = configureIdleQueriesSensor(metrics);
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
     this.errorRate = configureErrorRate(metrics);
-    this.createdQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.CREATED);
-    this.runningQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.RUNNING);
-    this.rebalancingQueriesCount = configureNumActiveQueriesForGivenState(metrics,
-        State.REBALANCING);
-    this.pendigShutDownQueriesCount = configureNumActiveQueriesForGivenState(metrics,
-        State.PENDING_SHUTDOWN);
-    this.errorQueriesCount = configureNumActiveQueriesForGivenState(metrics, State.ERROR);
-    this.notRunningQueriesCount =
-        configureNumActiveQueriesForGivenState(metrics, State.NOT_RUNNING);
+    Arrays.stream(State.values())
+        .forEach(state -> configureNumActiveQueriesForGivenState(metrics, state));
   }
 
   @Override
   public void close() {
-    final Metrics metrics = MetricCollectors.getMetrics();
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
+    countMetrics.forEach(countMetric -> metrics.removeMetric(countMetric.getMetricName()));
   }
 
   public void updateMetrics() {
@@ -108,6 +106,16 @@ public class KsqlEngineMetrics implements Closeable {
   // Visible for testing
   List<Sensor> registeredSensors() {
     return sensors;
+  }
+
+  public void registerQueries(final List<QueryMetadata> queryMetadataList) {
+    queryMetadataList.forEach(queryMetadata -> queryMetadata.registerQueryStateListener(
+        new QueryStateListener(
+            metrics,
+            queryMetadata.getKafkaStreams(),
+            queryMetadata.getQueryApplicationId()
+        )
+    ));
   }
 
   private void recordMessageConsumptionByQueryStats(
@@ -254,29 +262,43 @@ public class KsqlEngineMetrics implements Closeable {
   }
 
 
-  private Sensor configureNumActiveQueriesForGivenState(final Metrics metrics,
+  private CountMetric configureNumActiveQueriesForGivenState(final Metrics metrics,
       final KafkaStreams.State state) {
-    final String sensorName = metricGroupName + "-" + state + "-queries";
-    final Sensor sensor = createSensor(metrics, sensorName);
-    sensor.add(
-        metrics.metricName(ksqlServiceId + sensorName, this.metricGroupName,
-            "The current number of active queries running in this engine"),
-        new MeasurableStat() {
-          @Override
-          public double measure(final MetricConfig metricConfig, final long l) {
-            final long countValue = ksqlEngine.getPersistentQueries()
-                .stream()
-                .filter(queryMetadata -> queryMetadata.getKafkaStreams().state() == state)
-                .count();
-            return (double) countValue;
-          }
+    final String gaugeName = ksqlServiceId + metricGroupName + "-" + state + "-queries";
+    final Gauge<Long> gauge = new Gauge<Long>() {
+      @Override
+      public Long value(final MetricConfig metricConfig, final long l) {
+        return ksqlEngine.getPersistentQueries()
+            .stream()
+            .filter(queryMetadata -> queryMetadata.getKafkaStreams().state() == state)
+            .count();
+      }
+    };
 
-          @Override
-          public void record(final MetricConfig metricConfig, final double v, final long l) {
-            // We don't want to record anything, since the live queries anyway.
-          }
-        });
-    return sensor;
+    final MetricName metricName = metrics.metricName(gaugeName,
+        metricGroupName,
+        String.format("Count of queries in %s state.", state.toString()));
+    final CountMetric countMetric = new CountMetric(metricName, gauge);
+    metrics.addMetric(metricName, gauge);
+    countMetrics.add(countMetric);
+    return countMetric;
+  }
 
+  private static class CountMetric {
+    private final Gauge<Long> count;
+    private final MetricName metricName;
+
+    CountMetric(final MetricName metricName, final Gauge<Long> count) {
+      this.metricName = metricName;
+      this.count = count;
+    }
+
+    public MetricName getMetricName() {
+      return metricName;
+    }
+
+    public Gauge<Long> getCount() {
+      return count;
+    }
   }
 }

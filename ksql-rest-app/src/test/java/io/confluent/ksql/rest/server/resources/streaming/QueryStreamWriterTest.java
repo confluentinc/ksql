@@ -115,8 +115,6 @@ public class QueryStreamWriterTest {
 
     expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
-    final Metrics metrics = MetricsTestUtil.getMetrics();
-    expect(ksqlEngine.getMetrics()).andReturn(metrics);
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();

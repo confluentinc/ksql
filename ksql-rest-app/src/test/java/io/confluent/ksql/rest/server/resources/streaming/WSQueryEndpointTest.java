@@ -166,8 +166,6 @@ public class WSQueryEndpointTest {
     expect(ksqlEngine.buildMultipleQueries(statement, ksqlConfig, properties))
         .andReturn(Collections.singletonList(queryMetadata))
         .anyTimes();
-    final Metrics metrics = MetricsTestUtil.getMetrics();
-    expect(ksqlEngine.getMetrics()).andReturn(metrics);
 
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
     queryMetadata.setLimitHandler(anyObject());

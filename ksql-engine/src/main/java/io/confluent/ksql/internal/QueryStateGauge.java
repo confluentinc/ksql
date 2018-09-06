@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.internal;
 
-import io.confluent.ksql.util.KsqlQueryStateUtil;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.streams.KafkaStreams;
@@ -26,7 +25,7 @@ public class QueryStateGauge implements Gauge<String> {
   private String queryState;
 
   public QueryStateGauge(final KafkaStreams kafkaStreams) {
-    queryState = KsqlQueryStateUtil.getQueryStatString(kafkaStreams.state());
+    queryState = kafkaStreams.state().toString();
   }
 
   @Override
@@ -34,11 +33,7 @@ public class QueryStateGauge implements Gauge<String> {
     return queryState;
   }
 
-  public String getQueryState() {
-    return queryState;
-  }
-
   public void setQueryState(final KafkaStreams.State state) {
-    this.queryState = KsqlQueryStateUtil.getQueryStatString(state);
+    this.queryState = state.toString();
   }
 }

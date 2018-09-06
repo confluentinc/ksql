@@ -172,10 +172,7 @@ public class StreamedQueryResourceTest {
     expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
     mockKafkaStreams.close();
     expectLastCall();
-    mockKafkaStreams.cleanUp();
-    expectLastCall();
-    mockKafkaStreams.setStateListener(anyObject());
-    expectLastCall();
+
 
     final OutputNode mockOutputNode = niceMock(OutputNode.class);
     expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))
@@ -201,8 +198,6 @@ public class StreamedQueryResourceTest {
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
-    final Metrics metrics = MetricsTestUtil.getMetrics();
-    expect(mockKsqlEngine.getMetrics()).andReturn(metrics).times(2);
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));

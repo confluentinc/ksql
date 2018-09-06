@@ -125,9 +125,7 @@ public class QueryMetadata {
       log.error("Could not clean up the query with application id: {}. Query status is: {}",
                 queryApplicationId, kafkaStreams.state());
     }
-    if (queryStateListener.isPresent()) {
-      queryStateListener.get().close();
-    }
+    queryStateListener.ifPresent(QueryStateListener::close);
   }
 
   private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {
@@ -181,9 +179,7 @@ public class QueryMetadata {
 
   public void start() {
     log.info("Starting query with application id: {}", queryApplicationId);
-    if (queryStateListener.isPresent()) {
-      kafkaStreams.setStateListener(queryStateListener.get());
-    }
+    queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }
 

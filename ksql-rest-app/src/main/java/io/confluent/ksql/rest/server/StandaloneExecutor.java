@@ -31,7 +31,6 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;

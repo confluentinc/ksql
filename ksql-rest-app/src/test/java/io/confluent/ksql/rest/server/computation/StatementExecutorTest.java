@@ -155,7 +155,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     final MetaStore mockMetaStore = mock(MetaStore.class);
     final PersistentQueryMetadata mockQueryMetadata = mock(PersistentQueryMetadata.class);
-    expect(mockQueryMetadata.getQueryApplicationId()).andReturn("Test");
+    expect(mockQueryMetadata.getQueryId()).andReturn(mock(QueryId.class));
 
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
@@ -187,20 +187,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
-    final Metrics metrics = MetricsTestUtil.getMetrics();
-    expect(mockEngine.getMetrics()).andReturn(metrics);
-    expect(mockQueryMetadata.getQueryId()).andReturn(new QueryId("foo"));
-    final KafkaStreams kafkaStreams = niceMock(KafkaStreams.class);
-    kafkaStreams.setStateListener(anyObject());
-    expectLastCall();
-    expect(kafkaStreams.state()).andReturn(State.RUNNING);
-    expect(mockQueryMetadata.getKafkaStreams()).andReturn(kafkaStreams);
-    mockQueryMetadata.registerQueryStateListener(anyObject());
-    expectLastCall();
     mockQueryMetadata.start();
     expectLastCall();
 
-    replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata, kafkaStreams);
+    replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);
 
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 

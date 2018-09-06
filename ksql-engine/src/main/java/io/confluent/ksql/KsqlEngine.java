@@ -82,7 +82,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -231,7 +230,10 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    final List<QueryMetadata> queryMetadataList =
+        planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    engineMetrics.registerQueries(queryMetadataList);
+    return queryMetadataList;
   }
 
   private List<QueryMetadata> planQueries(
@@ -575,10 +577,6 @@ public class KsqlEngine implements Closeable {
     return true;
   }
 
-  public Metrics getMetrics() {
-    return engineMetrics.getMetrics();
-  }
-
   public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
     return persistentQueries.get(queryId);
   }
@@ -637,7 +635,7 @@ public class KsqlEngine implements Closeable {
 
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
     final MetaStore metaStoreCopy = metaStore.clone();
-    return planQueries(
+    final List<QueryMetadata> queryMetadataList = planQueries(
         parseStatements(
             queries,
             metaStoreCopy,
@@ -647,6 +645,8 @@ public class KsqlEngine implements Closeable {
         Collections.emptyMap(),
         metaStoreCopy
     );
+    engineMetrics.registerQueries(queryMetadataList);
+    return queryMetadataList;
   }
 
   public List<UdfFactory> listScalarFunctions() {

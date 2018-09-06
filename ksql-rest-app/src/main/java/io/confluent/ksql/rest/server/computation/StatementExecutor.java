@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -292,13 +291,6 @@ public class StatementExecutor {
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.registerQueryStateListener(
-              new QueryStateListener(
-                  ksqlEngine.getMetrics(),
-                  queryMetadata.getKafkaStreams(),
-                  queryMetadata.getQueryApplicationId()
-              )
-          );
           persistentQueryMd.start();
         }
       }
@@ -407,13 +399,6 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
         return false;
       } else {
-        persistentQueryMd.registerQueryStateListener(
-            new QueryStateListener(
-                ksqlEngine.getMetrics(),
-                queryMetadata.getKafkaStreams(),
-                queryMetadata.getQueryApplicationId()
-            )
-        );
         persistentQueryMd.start();
         return true;
       }

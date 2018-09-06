@@ -20,31 +20,20 @@ import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.JmxReporter;
-import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.easymock.EasyMock;
-import org.easymock.Mock;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class QueryMetadataTest {
 
@@ -92,6 +81,11 @@ public class QueryMetadataTest {
     queryMetadata.registerQueryStateListener(queryStateListener);
     queryMetadata.start();
     assertThat(metrics.metric(metricName).metricName().name(), equalTo("Query1-query-status"));
+    assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("RUNNING"));
+    queryStateListener.onChange(State.REBALANCING, State.RUNNING);
+    assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("REBALANCING"));
+    queryStateListener.onChange(State.RUNNING, State.REBALANCING);
+    assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("RUNNING"));
     queryMetadata.close();
     EasyMock.verify(kafkaStreams);
     assertThat(metrics.metric(metricName), nullValue());

@@ -173,7 +173,6 @@ public class PhysicalPlanBuilder {
     ));
 
     final KafkaStreams streams = buildStreams(
-        bareOutputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -249,7 +248,6 @@ public class PhysicalPlanBuilder {
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     final KafkaStreams streams = buildStreams(
-        outputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -341,7 +339,6 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
-      final OutputNode outputNode,
       final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,8 @@ package io.confluent.ksql.cli;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -417,19 +417,16 @@ public class Cli implements Closeable, AutoCloseable {
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
-        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
-          @Override
-          public void run() {
-            for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-              try {
-                final StreamedRow row = queryStream.next();
-                terminal.printStreamedRow(row);
-                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
-                  break;
-                }
-              } catch (final IOException exception) {
-                throw new RuntimeException(exception);
+        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
+            try {
+              final StreamedRow row = queryStream.next();
+              terminal.printStreamedRow(row);
+              if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
+                break;
               }
+            } catch (final IOException exception) {
+              throw new RuntimeException(exception);
             }
           }
         });

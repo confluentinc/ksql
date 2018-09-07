@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,7 +88,7 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  protected void puts(final InfoCmp.Capability capability) {
+  public void puts(final InfoCmp.Capability capability) {
     // Ignore
   }
 

@@ -64,6 +64,7 @@ public class JoinNode extends PlanNode {
   private final DataSource.DataSourceType leftType;
   private final DataSource.DataSourceType rightType;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public JoinNode(@JsonProperty("id") final PlanNodeId id,
                   @JsonProperty("type") final JoinType joinType,
                   @JsonProperty("left") final PlanNode left,
@@ -75,7 +76,7 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("within") final WithinExpression withinExpression,
                   @JsonProperty("leftType") final DataSource.DataSourceType leftType,
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
-
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     // TODO: Type should be derived.
     super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
         ? DataSourceType.KTABLE

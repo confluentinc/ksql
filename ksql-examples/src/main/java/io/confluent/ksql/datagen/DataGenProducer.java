@@ -46,7 +46,9 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public abstract class DataGenProducer {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
@@ -282,7 +284,9 @@ public abstract class DataGenProducer {
    * @param currentValue current token
    * @return session token
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private String handleSessionisationOfValue(
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final SessionManager sessionManager,
       final String currentValue) {
 

@@ -61,7 +61,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class UdfLoader {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
   private static final String UDF_METRIC_GROUP = "ksql-udf";

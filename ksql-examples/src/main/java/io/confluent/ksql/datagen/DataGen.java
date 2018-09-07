@@ -28,7 +28,9 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class DataGen {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private DataGen() {
   }
@@ -278,7 +280,9 @@ public final class DataGen {
         return this;
       }
 
+      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
       private Builder parseArg(final String arg) throws IOException {
+        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
         if ("help".equals(arg)) {
           help = true;
           return this;

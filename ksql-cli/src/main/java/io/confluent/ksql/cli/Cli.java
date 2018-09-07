@@ -212,19 +212,23 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
+  @SuppressWarnings("RedundantStringOperation") // Incorrect warning. Operation is not redundant
   private List<String> getLogicalLines(final String input) {
     // TODO: Convert the input string into an InputStream, then feed it to the terminal via
     // TerminalBuilder.streams(InputStream, OutputStream)
     final List<String> result = new ArrayList<>();
     StringBuilder logicalLine = new StringBuilder();
     for (final String physicalLine : input.split("\n")) {
-      if (!physicalLine.trim().isEmpty()) {
-        if (physicalLine.endsWith("\\")) {
-          logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
-        } else {
-          result.add(logicalLine.append(physicalLine).toString().trim());
-          logicalLine = new StringBuilder();
-        }
+      final String trimmed = physicalLine.trim();
+      if (trimmed.isEmpty()) {
+        continue;
+      }
+
+      if (trimmed.endsWith("\\")) {
+        logicalLine.append(trimmed.substring(0, trimmed.length() - 1));
+      } else {
+        result.add(logicalLine.append(trimmed).toString().trim());
+        logicalLine = new StringBuilder();
       }
     }
     return result;

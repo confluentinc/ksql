@@ -2,6 +2,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -35,13 +36,12 @@ import javax.xml.parsers.ParserConfigurationException;
  */
 public class TopologyFileGenerator {
 
-    private static final String BASE_DIRECTORY = "ksql-engine/src/test/resources/";
-    private static final String DIRECTORY_NAME_SUFFIX = "_expected_topology";
+    private static final String BASE_DIRECTORY = "ksql-engine/src/test/resources/expected_topology/";
 
     public static void main(final String[] args) throws IOException, ParserConfigurationException, SAXException {
 
         final String formattedVersion = getFormattedVersionFromPomFile();
-        final String generatedTopologyPath = BASE_DIRECTORY + formattedVersion + DIRECTORY_NAME_SUFFIX;
+        final String generatedTopologyPath = BASE_DIRECTORY + formattedVersion;
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));
         final Path dirPath = Paths.get(generatedTopologyPath);
@@ -49,9 +49,7 @@ public class TopologyFileGenerator {
         if (!dirPath.toFile().exists()) {
             Files.createDirectory(dirPath);
         } else {
-            System.out.println(String.format("Directory %s already exists, if you want to re-generate topology"
-                                             + " files then delete %s and run this program again", dirPath, dirPath));
-            System.exit(1);
+            System.out.println(String.format("Directory %s already exists, this will re-generate topology files", dirPath));
         }
 
         EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getQueryList());
@@ -59,8 +57,10 @@ public class TopologyFileGenerator {
         System.exit(0);
     }
 
-    private  static List<Query>  getQueryList() throws IOException {
-        return QueryTranslationTest.buildQueryList();
+    private static List<Query>  getQueryList() throws IOException {
+        return QueryTranslationTest.buildQueryList().stream()
+            .filter(q -> !q.isAnyExceptionExpected())
+            .collect(Collectors.toList());
     }
 
 

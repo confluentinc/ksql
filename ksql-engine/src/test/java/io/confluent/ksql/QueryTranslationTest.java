@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -52,7 +53,7 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
-  private static final String CURRENT_TOPOLOGY_CHECKS_DIR = "5_0_expected_topology";
+  private static final String CURRENT_TOPOLOGY_CHECKS_DIR = "expected_topology/5_0";
   private static final String PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP = "topology.dir";
 
   private final Query query;
@@ -74,9 +75,16 @@ public class QueryTranslationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
     final String topologyDirectory = System.getProperty(PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP, CURRENT_TOPOLOGY_CHECKS_DIR);
-    final Map<String, String> expectedTopologies = loadExpectedTopologies(topologyDirectory);
+    final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
     return buildQueryList().stream()
-          .peek(q -> q.setExpectedTopology(expectedTopologies.get(formatQueryName(q.getName()))))
+          .peek(q -> {
+            final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
+            // could be null if the query has expected errors, no topology or configs saved
+            if (topologyAndConfigs !=null) {
+              q.setExpectedTopology(topologyAndConfigs.topology);
+              q.setPersistedProperties(topologyAndConfigs.configs);
+            }
+          })
           .map(query -> new Object[]{query.getName(), query})
           .collect(Collectors.toCollection(ArrayList::new));
   }

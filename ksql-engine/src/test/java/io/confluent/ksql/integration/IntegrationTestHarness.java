@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -71,6 +72,9 @@ public class IntegrationTestHarness {
   private final AtomicInteger producedCount;
 
   private static IntegrationTestHarness THIS;
+  private AdminClient adminClient;
+
+  private final Map<String, Object> unifiedConfigs = new HashMap<>();
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
@@ -85,7 +89,9 @@ public class IntegrationTestHarness {
 
   // Topic generation
   public void createTopic(final String topicName) {
-    createTopic(topicName, 1, (short) 1);
+    if(!topicClient.isTopicExists(topicName)) {
+      createTopic(topicName, 1, (short) 1);
+    }
   }
   public void createTopic(final String topicName, final int numPartitions, final short replicatonFactor) {
     topicClient.createTopic(topicName, numPartitions, replicatonFactor);
@@ -182,6 +188,7 @@ public class IntegrationTestHarness {
 
   }
 
+
   public <K> Map<K, GenericRow> consumeData(String topic,
                                             final Schema schema,
                                             final int expectedNumMessages,
@@ -193,7 +200,8 @@ public class IntegrationTestHarness {
 
     final Map<K, GenericRow> result = new HashMap<>();
 
-    final Properties consumerConfig = consumerConfig();
+    final Properties consumerConfig = consumerConfig(
+        CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
 
     try (KafkaConsumer<K, GenericRow> consumer
              = new KafkaConsumer<>(consumerConfig,
@@ -229,7 +237,8 @@ public class IntegrationTestHarness {
                                               final long resultsPollMaxTimeMs) {
 
     final List<ConsumerRecord> results = new ArrayList<>();
-    try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(),
+    try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(
+        CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis()),
         new StringDeserializer(),
         new ByteArrayDeserializer())) {
       consumer.subscribe(Collections.singleton(topic.toUpperCase()));
@@ -255,13 +264,31 @@ public class IntegrationTestHarness {
 
   }
 
-  private Properties consumerConfig() {
+
+  // Just so we can test consumer group stuff
+
+  KafkaConsumer<String, byte[]> createSubscribedConsumer(final String topic, final String groupId) {
+    final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(groupId),
+        new StringDeserializer(),
+        new ByteArrayDeserializer());
+      consumer.subscribe(Collections.singleton(topic));
+    return consumer;
+  }
+
+
+
+
+  public Map<String, Object> allConfigs() {
+    return unifiedConfigs;
+  }
+
+  private Properties consumerConfig(final String groupId) {
     final Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlConfig.getKsqlStreamConfigProps().get(
                            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
-                       CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
+        groupId);
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     return consumerConfig;
   }
@@ -322,12 +349,16 @@ public class IntegrationTestHarness {
     configMap.put("consumer.interceptor.classes", DummyConsumerInterceptor.class.getName());
     configMap.putAll(callerConfigMap);
 
+    unifiedConfigs.putAll(configMap);
+
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicClient = new KafkaTopicClientImpl(
+        adminClient);
   }
 
   public void stop() {
-    this.topicClient.close();
+    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 

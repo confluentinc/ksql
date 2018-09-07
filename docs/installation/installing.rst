@@ -19,8 +19,11 @@ Watch the `screencast of Installing and Running KSQL <https://www.youtube.com/em
 KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
-    You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
-    production. These images are coming soon.
+    You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
+    Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+    To start KSQL containers in configurations like "KSQL Headless Server" and
+    "Interactive Server with Interceptors", see
+    :ref:`Docker Configuration Parameters <config_reference>`.
 
 .. contents::
     :local:
@@ -80,7 +83,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
         bootstrap.servers=localhost:9092
         listeners=http://localhost:8088
-        ui.enabled=true
 
     For more information, see :ref:`ksql-server-config`.
 
@@ -89,12 +91,6 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
     .. code:: bash
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
-
-    or with overriding properties:
-
-    .. code:: bash
-
-        $ KSQL_OPTS=-Dui.enabled=false <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 

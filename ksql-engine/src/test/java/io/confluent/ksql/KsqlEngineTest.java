@@ -34,6 +34,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
@@ -50,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -181,7 +183,7 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    final List<Pair<String, Statement>> parsedStatements = ksqlEngine.parseQueries(
+    final List<PreparedStatement> parsedStatements = ksqlEngine.parseQueries(
         runScriptContent.toString(), metaStore.clone());
 
     assertThat(parsedStatements.size(), equalTo(3));
@@ -321,19 +323,25 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+  public void shouldCloseAdminClientOnClose() {
     // Given:
-    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
-    topicClient.close();
+    final AdminClient adminClient = niceMock(AdminClient.class);
+    adminClient.close();
     expectLastCall();
-    replay(topicClient);
+    replay(adminClient);
     final KsqlEngine ksqlEngine
-        = new KsqlEngine(topicClient, schemaRegistryClient, metaStore, ksqlConfig);
+        = new KsqlEngine(
+            new FakeKafkaTopicClient(),
+            schemaRegistryClient,
+            new DefaultKafkaClientSupplier(),
+            metaStore,
+            ksqlConfig,
+          adminClient);
 
     // When:
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient);
+    verify(adminClient);
   }
 }

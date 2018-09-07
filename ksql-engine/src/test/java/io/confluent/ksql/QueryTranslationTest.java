@@ -19,10 +19,11 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -204,23 +207,27 @@ public class QueryTranslationTest {
 
   private static Topic createTopicFromStatement(final String sql) {
     final KsqlParser parser = new KsqlParser();
-    final SqlBaseParser.StatementContext context
-        = parser.getStatements(sql).get(0).statement();
-    if (context instanceof SqlBaseParser.CreateStreamContext
-        || context instanceof SqlBaseParser.CreateTableContext) {
-      final Statement statement
-          = parser.buildAst(sql, new MetaStoreImpl(new InternalFunctionRegistry())).get(0);
-      final Map<String, Expression> properties =
-          ((AbstractStreamCreateStatement) statement).getProperties();
+    final MetaStoreImpl metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+
+    final Predicate<ParsedStatement> filter = stmt ->
+        stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
+            || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
+
+    final Function<PreparedStatement, Topic> mapper = stmt -> {
+      final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
+          .getStatement();
+
+      final Map<String, Expression> properties = statement.getProperties();
       final String topicName
           = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
       final String format
           = StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+
       final org.apache.avro.Schema avroSchema;
       if (format.equals(DataSource.AVRO_SERDE_NAME)) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-        ((AbstractStreamCreateStatement) statement).getElements().forEach(
+        statement.getElements().forEach(
             e -> schemaBuilder.field(e.getName(), TypeUtil.getTypeSchema(e.getType()))
         );
         avroSchema = new AvroData(1).fromConnectSchema(addNames(schemaBuilder.build()));
@@ -228,8 +235,10 @@ public class QueryTranslationTest {
         avroSchema = null;
       }
       return new Topic(topicName, avroSchema, getSerdeSupplier(format));
-    }
-    return null;
+    };
+
+    final List<Topic> topics = parser.buildAst(sql, metaStore, filter, mapper);
+    return topics.isEmpty() ? null :topics.get(0);
   }
 
   private static Topic createTopicFromNode(final JsonNode node) {

@@ -54,8 +54,9 @@ public class QueryMetadataTest {
   @Before
   public void setup() {
     metrics = MetricsTestUtil.getMetrics();
-    metricName = metrics.metricName(queryApplicationId + "-query-status", metricGroupName,
-        "The current status of the given query.");
+    metricName = metrics.metricName("query-status", metricGroupName,
+        "The current status of the given query.",
+        Collections.singletonMap("status", queryApplicationId));
     outputNode = EasyMock.niceMock(OutputNode.class);
     kafkaStreams = EasyMock.niceMock(KafkaStreams.class);
   }
@@ -80,7 +81,7 @@ public class QueryMetadataTest {
     );
     queryMetadata.registerQueryStateListener(queryStateListener);
     queryMetadata.start();
-    assertThat(metrics.metric(metricName).metricName().name(), equalTo("Query1-query-status"));
+    assertThat(metrics.metric(metricName).metricName().name(), equalTo("query-status"));
     assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("RUNNING"));
     queryStateListener.onChange(State.REBALANCING, State.RUNNING);
     assertThat(metrics.metric(metricName).metricValue().toString(), equalTo("REBALANCING"));

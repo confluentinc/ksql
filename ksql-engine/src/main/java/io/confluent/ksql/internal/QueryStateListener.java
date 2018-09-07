@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.internal;
 
+import java.util.Collections;
 import java.util.Objects;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
@@ -34,9 +35,13 @@ public class QueryStateListener implements StateListener {
       final String queryApplicationId) {
     this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null."); ;
     final String metricGroupName = "ksql-queries";
-    this.metricName = metrics.metricName(queryApplicationId + "-query-status", metricGroupName,
-        "The current status of the given query.");
     this.queryStateGauge = new QueryStateGauge(kafkaStreams);
+    this.metricName = metrics.metricName(
+        "query-status",
+        metricGroupName,
+        "The current status of the given query.",
+        Collections.singletonMap("status", queryApplicationId));
+
     this.metrics.addMetric(metricName, queryStateGauge);
   }
 

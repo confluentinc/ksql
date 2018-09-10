@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+  "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+  "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+
+<suppressions>
+
+  <!--
+      DO NOT USE THIS SUPPRESSION FILE
+
+      If you really MUST suppress a rule, rather than just fixing / refactoring the code, then
+      use inline code comments.
+
+      There are two formats for the code comments:
+
+      Turning off all rules CHECKSTYLE:OFF and CHECKSTYLE:ON, e.g.
+
+      // CHECKSTYLE:OFF
+      private void someBadFunction {
+         // CHECKSTYLE:ON
+          ... you code here.
+      }
+
+      Or turning off specific rules. Run names are separated by the pipe character '|'. e.g.
+
+      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|JavaNCSS
+      private void someBadFunction {
+         // CHECKSTYLE_RULES.ON: CyclomaticComplexity|JavaNCSS
+          ... you code here.
+      }
+
+      The reason code comments are preferred is that they work better with IDE plugins such as
+      IDEA CheckStyle.
+  -->
+
+</suppressions>

@@ -32,6 +32,7 @@ import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -110,14 +111,15 @@ public class ProjectNode
   }
 
   @Override
-  public SchemaKStream buildStream(final StreamsBuilder builder,
-                                   final KsqlConfig ksqlConfig,
-                                   final KafkaTopicClient kafkaTopicClient,
-                                   final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props,
-                                   final SchemaRegistryClient schemaRegistryClient) {
+  public SchemaKStream buildStream(
+      final StreamsBuilder builder,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final FunctionRegistry functionRegistry,
+      final Map<String, Object> props,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient,
-        functionRegistry, props, schemaRegistryClient)
+        functionRegistry, props, schemaRegistryClientFactory)
         .select(getProjectNameExpressionPairList());
   }
 }

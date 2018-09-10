@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -24,8 +25,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.server.computation.Command;
+import jdk.nashorn.internal.ir.Terminal;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matchers;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+
+import static org.hamcrest.CoreMatchers.any;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 final class TestRunner {
   private final Cli localCli;
@@ -34,50 +56,5 @@ final class TestRunner {
   TestRunner(final Cli localCli, final TestTerminal testTerminal) {
     this.localCli = Objects.requireNonNull(localCli, "localCli");
     this.testTerminal = Objects.requireNonNull(testTerminal, "testTerminal");
-  }
-
-  void testListOrShow(final String commandSuffix, final TestResult.OrderedResult expectedResult) {
-    testListOrShow(commandSuffix, expectedResult, true);
-  }
-
-  void testListOrShow(final String commandSuffix, final TestResult expectedResult,
-      final boolean requireOrder) {
-    test("list " + commandSuffix, expectedResult, requireOrder);
-    test("show " + commandSuffix, expectedResult, requireOrder);
-  }
-
-  void test(final String command, final TestResult.OrderedResult expectedResult) {
-    test(command, expectedResult, true);
-  }
-
-  private void test(final String command, final TestResult expectedResult,
-      final boolean requireOrder) {
-    run(command, requireOrder);
-    final Collection<List<String>> finalResults = new ArrayList<>();
-    try {
-      TestUtils.waitForCondition(() -> {
-        final TestResult actualResult = testTerminal.getTestResult();
-        finalResults.clear();
-        finalResults.addAll(actualResult.data);
-        return actualResult.data.containsAll(expectedResult.data);
-      }, 30000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
-    } catch (final AssertionError e) {
-      assertThat(finalResults, Matchers.hasItems(expectedResult.toDataArray()));
-    } catch (final InterruptedException e) {
-      fail("Test got interrutped when waiting for result " + expectedResult.toString());
-    }
-  }
-
-  void run(String command, final boolean requireOrder) {
-    try {
-      if (!command.endsWith(";")) {
-        command += ";";
-      }
-      System.out.println("[Run Command] " + command);
-      testTerminal.resetTestResult(requireOrder);
-      localCli.handleLine(command);
-    } catch (final Exception e) {
-      throw new AssertionError("Failed to run command: " + command, e);
-    }
   }
 }

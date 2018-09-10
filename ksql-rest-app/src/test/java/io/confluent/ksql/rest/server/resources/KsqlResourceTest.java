@@ -189,7 +189,6 @@ public class KsqlResourceTest {
     private static Properties getDefaultKsqlConfig() {
       final Map<String, Object> configMap = new HashMap<>();
       configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-      configMap.put("application.id", "KsqlResourceTest");
       configMap.put("commit.interval.ms", 0);
       configMap.put("cache.max.bytes.buffering", 0);
       configMap.put("auto.offset.reset", "earliest");

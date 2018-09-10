@@ -75,7 +75,6 @@ public class PhysicalPlanBuilderTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
-          "application.id", "KSQL",
           "commit.interval.ms", 0,
           "cache.max.bytes.buffering", 0,
           "auto.offset.reset", "earliest"));

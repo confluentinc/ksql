@@ -48,7 +48,7 @@ public class QueryEngineTest {
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
-      schemaRegistryClient,
+      () -> schemaRegistryClient,
       metaStore,
       ksqlConfig);
 

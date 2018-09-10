@@ -49,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
@@ -67,7 +69,7 @@ public class PhysicalPlanBuilder {
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
-  private final SchemaRegistryClient schemaRegistryClient;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
 
@@ -79,7 +81,7 @@ public class PhysicalPlanBuilder {
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
       final MetaStore metaStore,
-      final SchemaRegistryClient schemaRegistryClient,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final QueryIdGenerator queryIdGenerator,
       final KafkaStreamsBuilder kafkaStreamsBuilder
   ) {
@@ -90,7 +92,7 @@ public class PhysicalPlanBuilder {
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
-    this.schemaRegistryClient = schemaRegistryClient;
+    this.schemaRegistryClientFactory = schemaRegistryClientFactory;
     this.queryIdGenerator = queryIdGenerator;
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
   }
@@ -104,7 +106,7 @@ public class PhysicalPlanBuilder {
             kafkaTopicClient,
             functionRegistry,
             overriddenStreamsProperties,
-            schemaRegistryClient
+            schemaRegistryClientFactory
         );
     final OutputNode outputNode = resultStream.outputNode();
     final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;

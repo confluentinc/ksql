@@ -16,13 +16,13 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.util.KsqlConfig;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -57,7 +57,8 @@ public final class DataGen {
     }
 
     final Generator generator = new Generator(arguments.schemaFile, new Random());
-    final DataGenProducer dataProducer = getProducer(arguments);
+    final DataGenProducer dataProducer = new ProducerFactory()
+        .getProducer(arguments.format, arguments.schemaRegistryUrl);
     final Properties props = getProperties(arguments);
 
     dataProducer.populateTopic(
@@ -80,30 +81,6 @@ public final class DataGen {
     }
 
     return props;
-  }
-
-  private static DataGenProducer getProducer(final Arguments arguments) {
-    switch (arguments.format) {
-      case AVRO:
-        return new AvroProducer(
-            new KsqlConfig(
-                Collections.singletonMap(
-                    KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                    arguments.schemaRegistryUrl
-                )
-            )
-        );
-
-      case JSON:
-        return new JsonProducer();
-
-      case DELIMITED:
-        return new DelimitedProducer();
-
-      default:
-        throw new IllegalArgumentException("Invalid format in '" + arguments.format
-                                           + "'; was expecting one of AVRO, JSON, or DELIMITED%n");
-    }
   }
 
   private static void usage() {

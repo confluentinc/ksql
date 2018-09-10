@@ -34,11 +34,10 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
-public class DataGenProducerTest {
+public class RowGeneratorTest {
 
   @Test
   public void shouldGenerateCorrectRow() throws IOException {
-    final DataGenProducer dataGenProducer = new JsonProducer();
     final Generator generator = new Generator(new File("./src/main/resources/orders_schema.avro"), new Random());
     final Properties props = new Properties();
 
@@ -57,7 +56,11 @@ public class DataGenProducerTest {
         .field("address", addressSchema)
         .optional().build();
 
-    final Pair<String, GenericRow> rowPair = dataGenProducer.generateOneGenericRow(generator, new AvroData(1), generator.schema(), ordersSchema, new SessionManager(), "orderid");
+    final RowGenerator rowGenerator = new RowGenerator(
+        generator, new AvroData(1), generator.schema(),
+        ordersSchema, new SessionManager(), "orderid");
+
+    final Pair<String, GenericRow> rowPair = rowGenerator.generateRow();
     assertThat(rowPair.getLeft(), instanceOf(String.class));
     assertThat(rowPair.getRight().getColumns().size(), equalTo(5));
     assertThat(rowPair.getRight().getColumns().get(4), instanceOf(Struct.class));

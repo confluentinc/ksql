@@ -21,9 +21,9 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,9 +34,11 @@ import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -47,7 +49,7 @@ public class OutputNodeTest {
   private Schema schema;
   @Mock(MockType.NICE)
   private PlanNodeId id;
-  @Mock(MockType.NICE)
+
   private PlanNode source;
   @Mock(MockType.NICE)
   private TimestampExtractionPolicy timestampExtractionPolicy;
@@ -55,6 +57,13 @@ public class OutputNodeTest {
   private OutputNode.LimitHandler limitHandler;
   private OutputNode node;
   private OutputNode.Callback callback;
+
+  @Before
+  public void init() {
+    source = EasyMock.niceMock(PlanNode.class);
+    EasyMock.expect(source.getNodeOutputType()).andReturn(DataSourceType.KSTREAM);
+    EasyMock.replay(source);
+  }
 
   @Test
   public void shouldNotBlowUpIfNoLimitHandlerRegistered() {

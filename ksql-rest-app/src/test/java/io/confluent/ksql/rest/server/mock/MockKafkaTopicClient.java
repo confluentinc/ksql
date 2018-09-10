@@ -80,8 +80,4 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void deleteInternalTopics(final String applicationId) {
   }
-
-  @Override
-  public void close() {
-  }
 }

@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -85,7 +86,7 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
-    super(id);
+    super(id, DataSourceType.KTABLE);
 
     this.source = source;
     this.schema = schema;

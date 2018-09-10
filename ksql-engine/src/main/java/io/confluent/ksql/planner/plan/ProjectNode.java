@@ -54,7 +54,7 @@ public class ProjectNode
                      @JsonProperty("schema") final Schema schema,
                      @JsonProperty("projectExpressions")
                        final List<Expression> projectExpressions) {
-    super(id);
+    super(id, source.getNodeOutputType());
 
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");

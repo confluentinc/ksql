@@ -54,8 +54,8 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-pageviews \
-            368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-            ksql-datagen \ 
+            confluentinc/ksql-examples:5.0.0 \
+            ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=pageviews \
                 format=delimited \
@@ -65,8 +65,8 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-users \
-            368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-            ksql-datagen \ 
+            confluentinc/ksql-examples:5.0.0 \
+            ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=users \
                 format=json \
@@ -98,7 +98,7 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
+        confluentinc/ksql-examples:5.0.0 \
         ksql-datagen \
             quickstart=orders \
             format=avro \
@@ -190,8 +190,8 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  --name datagen-orders-local \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-        ksql-datagen \ 
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
             quickstart=orders \
             format=avro \
             topic=orders_local \
@@ -201,8 +201,8 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-        ksql-datagen \ 
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
             quickstart=orders \
             format=avro \
             topic=orders_3rdparty \

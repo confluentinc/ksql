@@ -339,19 +339,20 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         getJsonSerializer(false)
     );
 
-    final CommandStore commandStore = new CommandStore(
-        commandTopic,
-        commandConsumer,
-        commandProducer,
-        new CommandIdAssigner(ksqlEngine.getMetaStore())
-    );
-
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,
         ksqlEngine,
         statementParser
+    );
+
+    final CommandStore commandStore = new CommandStore(
+        commandTopic,
+        commandConsumer,
+        commandProducer,
+        new CommandIdAssigner(ksqlEngine.getMetaStore()),
+        statementExecutor
     );
 
     final CommandRunner commandRunner = new CommandRunner(

@@ -180,10 +180,11 @@ public class KsqlResourceTest {
           getJsonSerializer(false)
       );
 
-      final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       final StatementExecutor statementExecutor = new StatementExecutor(
           ksqlConfig, ksqlEngine, new StatementParser(ksqlEngine));
+      final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()),
+          statementExecutor);
       return get(ksqlConfig, ksqlEngine, commandStore, statementExecutor);
     }
 
@@ -650,14 +651,16 @@ public class KsqlResourceTest {
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
-    final CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId, (x) -> {});
-    commandStatusFuture.complete(
-        new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    final CommandStatusFuture commandStatusFuture
+        = new CommandStatusFuture(
+            commandId, new CommandStatus(CommandStatus.Status.QUEUED, "queued"));
+    commandStatusFuture.update(new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    commandStatusFuture.complete();
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
     EasyMock.expect(commandStore.distributeStatement(
         EasyMock.eq(ksqlString), EasyMock.anyObject(Statement.class),
         EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
-        .andReturn(commandId);
+        .andReturn(commandStatusFuture);
     final StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
     EasyMock.expect(
         statementExecutor.registerQueuedStatement(commandId)).andReturn(commandStatusFuture);
@@ -685,17 +688,18 @@ public class KsqlResourceTest {
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
-    final CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId, (x) -> {});
-    commandStatusFuture.complete(
+    final CommandStatusFuture commandStatusFuture
+        = new CommandStatusFuture(
+            commandId, new CommandStatus(CommandStatus.Status.QUEUED, ""));
+    commandStatusFuture.update(
         new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    commandStatusFuture.complete();
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
     EasyMock.expect(commandStore.distributeStatement(
         EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
         EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
-        .andReturn(commandId);
+        .andReturn(commandStatusFuture);
     final StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
-    EasyMock.expect(
-        statementExecutor.registerQueuedStatement(commandId)).andReturn(commandStatusFuture);
     EasyMock.replay(commandStore, statementExecutor);
 
     final KsqlResource testResource = TestKsqlResourceUtil.get(

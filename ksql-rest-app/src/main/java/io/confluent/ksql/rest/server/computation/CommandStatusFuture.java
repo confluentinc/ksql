@@ -19,24 +19,17 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
-import org.apache.kafka.common.utils.Utils;
-
 
 public class CommandStatusFuture implements Future<CommandStatus> {
-  public interface Cleanup {
-    void run(CommandId commandId);
-  }
-
   private final CommandId commandId;
-  private Cleanup cleanup;
-  private final AtomicReference<CommandStatus> result;
+  private boolean completed;
+  private CommandStatus result;
 
-  public CommandStatusFuture(final CommandId commandId, final Cleanup cleanup) {
+  public CommandStatusFuture(
+      final CommandId commandId, final CommandStatus initialStatus) {
     this.commandId = commandId;
-    this.cleanup = cleanup;
-    this.result = new AtomicReference<>(null);
+    this.completed = false;
+    this.result = initialStatus;
   }
 
   @Override
@@ -51,33 +44,41 @@ public class CommandStatusFuture implements Future<CommandStatus> {
 
   @Override
   public boolean isDone() {
-    return result.get() != null;
+    return completed;
   }
 
   @Override
-  public CommandStatus get() throws InterruptedException {
-    while (result.get() == null) {
-      result.wait();
+  public synchronized CommandStatus get() throws InterruptedException {
+    while (!completed) {
+      wait();
     }
-    cleanup.run(commandId);
-    return result.get();
+    return result;
   }
 
   @Override
-  public CommandStatus get(final long timeout, final TimeUnit unit)
-          throws InterruptedException, TimeoutException {
+  public synchronized CommandStatus get(final long timeout, final TimeUnit unit)
+          throws InterruptedException {
     final long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
-    while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
-      Utils.sleep(1);
+    while (System.currentTimeMillis() < endTimeMs && !completed) {
+      wait(Math.max(endTimeMs - System.currentTimeMillis(), 1));
     }
-    if (result.get() == null) {
-      throw new TimeoutException();
-    }
-    cleanup.run(commandId);
-    return result.get();
+    return result;
   }
 
-  public void complete(final CommandStatus result) {
-    this.result.set(result);
+  public synchronized CommandStatus getCurrentStatus() {
+    return result;
+  }
+
+  public CommandId getCommandId() {
+    return commandId;
+  }
+
+  public synchronized void update(final CommandStatus result) {
+    this.result = result;
+  }
+
+  public synchronized void complete() {
+    this.completed = true;
+    notifyAll();
   }
 }

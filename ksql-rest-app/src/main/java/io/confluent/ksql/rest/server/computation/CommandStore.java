@@ -53,17 +53,20 @@ public class CommandStore implements Closeable {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final AtomicBoolean closed;
+  private final StatementExecutor statementExecutor;
 
   public CommandStore(
       final String commandTopic,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer,
-      final CommandIdAssigner commandIdAssigner
+      final CommandIdAssigner commandIdAssigner,
+      final StatementExecutor statementExecutor
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
+    this.statementExecutor = statementExecutor;
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
 
@@ -90,7 +93,7 @@ public class CommandStore implements Closeable {
    * @param overwriteProperties Any command-specific Streams properties to use.
    * @return The ID assigned to the statement
    */
-  public CommandId distributeStatement(
+  public CommandStatusFuture distributeStatement(
       final String statementString,
       final Statement statement,
       final KsqlConfig ksqlConfig,
@@ -101,6 +104,7 @@ public class CommandStore implements Closeable {
         statementString,
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandStatusFuture statusFuture = statementExecutor.registerQueuedStatement(commandId);
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (final Exception e) {
@@ -113,7 +117,7 @@ public class CommandStore implements Closeable {
           e
       );
     }
-    return commandId;
+    return statusFuture;
   }
 
   /**

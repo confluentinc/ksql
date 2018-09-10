@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
@@ -51,6 +52,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
+import org.easymock.IMocksControl;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Test;
@@ -66,6 +68,8 @@ public class CommandStoreTest {
   private Consumer<CommandId, Command> commandConsumer;
   @Mock(type = MockType.NICE)
   private Producer<CommandId, Command> commandProducer;
+  @Mock(type = MockType.NICE)
+  private StatementExecutor statementExecutor;
 
 
   @Test
@@ -97,6 +101,45 @@ public class CommandStoreTest {
     assertThat(commands, equalTo(Arrays.asList(new Pair<>(createId, originalCommand),
         new Pair<>(dropId, dropCommand),
         new Pair<>(createId, latestCommand))));
+  }
+
+  @Test
+  public void shouldRegisterBeforeDistribute() throws ExecutionException, InterruptedException {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
+    final Map<String, Object> overrideProperties = Collections.singletonMap(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    final String statementText = "test-statement";
+
+    final IMocksControl mockMaker = EasyMock.createStrictControl();
+    final Statement statement = mock(Statement.class);
+    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
+    final Future<RecordMetadata> future = mock(Future.class);
+    final CommandStatusFuture statusFuture = mock(CommandStatusFuture.class);
+    final StatementExecutor statementExecutor = mockMaker.createMock(StatementExecutor.class);
+    final Producer<CommandId, Command> commandProducer = mockMaker.createMock(Producer.class);
+    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+
+    expect(commandIdAssigner.getCommandId(statement)).andReturn(commandId);
+    expect(statementExecutor.registerQueuedStatement(commandId)).andReturn(statusFuture);
+    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
+    future.get();
+    expectLastCall().andReturn(null);
+
+    mockMaker.replay();
+    replay(commandIdAssigner, future);
+
+    final CommandStore commandStore = new CommandStore(
+        COMMAND_TOPIC,
+        commandConsumer,
+        commandProducer,
+        commandIdAssigner,
+        statementExecutor);
+
+    commandStore.distributeStatement(statementText, statement, ksqlConfig, overrideProperties);
+
+    verify(commandIdAssigner, commandProducer, future);
+    mockMaker.verify();
   }
 
   @Test
@@ -160,7 +203,8 @@ public class CommandStoreTest {
         COMMAND_TOPIC,
         commandConsumer,
         commandProducer,
-        commandIdAssigner);
+        commandIdAssigner,
+        statementExecutor);
   }
 
   private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore command) {

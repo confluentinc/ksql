@@ -25,7 +25,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -254,7 +257,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    assertThat(statusStore.size(), equalTo(6));
+    assertThat(statusStore.size(), equalTo(5));
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
@@ -262,6 +265,77 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(statusStore.get(terminateCommandId).getStatus(),
                equalTo(CommandStatus.Status.SUCCESS));
 
+  }
+
+  @Test
+  public void shouldFailRegisterWhenFutureAlreadyRegistered() {
+    final CommandId commandId
+        = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+    statementExecutor.registerQueuedStatement(commandId);
+    try {
+      statementExecutor.registerQueuedStatement(commandId);
+      fail("Second registration call should throw IllegalStateException");
+    } catch (final IllegalStateException e) {
+    }
+  }
+
+  @Test
+  public void shouldRegisterNewAfterHandlingExisting() {
+    final Command command = new Command(
+        "CREATE STREAM foo ("
+            + "biz bigint,"
+            + " baz varchar) "
+            + "WITH (kafka_topic = 'foo', "
+            + "value_format = 'json');",
+        Collections.emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
+        "foo",
+        CommandId.Action.CREATE);
+    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
+    statementExecutor.handleStatement(command, commandId);
+    assertThat(statementExecutor.registerQueuedStatement(commandId), not(is(future)));
+  }
+
+  @Test
+  public void shouldCompleteFutureOnSuccess() {
+    final Command command = new Command(
+        "CREATE STREAM foo ("
+            + "biz bigint,"
+            + " baz varchar) "
+            + "WITH (kafka_topic = 'foo', "
+            + "value_format = 'json');",
+        Collections.emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
+        "foo",
+        CommandId.Action.CREATE);
+    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
+    assertThat(future.isDone(), is(false));
+    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.QUEUED));
+    statementExecutor.handleStatement(command, commandId);
+    assertThat(future.isDone(), is(true));
+    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+  }
+
+  @Test
+  public void shouldCompleteFutureOnFailure() {
+    final Command command = new Command(
+        "CREATE STREAM foo ("
+            + "biz bigint,"
+            + " baz varchar) "
+            + "WITH (kafka_topic = 'foo', "
+            + "value_format = 'json');",
+        Collections.emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
+        "foo",
+        CommandId.Action.CREATE);
+    statementExecutor.handleStatement(command, commandId);
+    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
+    statementExecutor.handleStatement(command, commandId);
+    assertThat(future.isDone(), is(true));
+    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.ERROR));
   }
 
   @Test
@@ -300,7 +374,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldEnforceReferentialIntegrity() {
 
     // First create streams/tables and start queries
-    createStrreamsAndTables();
+    createStreamsAndTables();
 
     // Now try to drop streams/tables to test referential integrity
     tryDropThatViolatesReferentialIntegrity();

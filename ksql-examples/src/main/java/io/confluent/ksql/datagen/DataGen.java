@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
+import java.util.function.BiConsumer;
 
 public final class DataGen {
 
@@ -148,6 +149,22 @@ public final class DataGen {
     }
 
     private static final class Builder {
+
+      private static final Map<String, BiConsumer<Builder, String>> ARG_HANDLERS =
+          ImmutableMap.<String, BiConsumer<Builder, String>>builder()
+              .put("quickstart", (builder, argVal) -> builder.quickstart = parseQuickStart(argVal))
+              .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
+              .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
+              .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
+              .put("topic", (builder, argVal) -> builder.topicName = argVal)
+              .put("key", (builder, argVal) -> builder.keyName = argVal)
+              .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
+              .put("maxInterval",
+                  (builder, argVal) -> builder.maxInterval = parseIterations(argVal))
+              .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
+              .put("propertiesFile",
+                  (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal))
+              .build();
 
       private Quickstart quickstart;
 
@@ -286,56 +303,44 @@ public final class DataGen {
           ));
         }
 
-        switch (argName) {
-          case "quickstart":
-            try {
-              quickstart = Quickstart.valueOf(argValue.toUpperCase());
-            } catch (final IllegalArgumentException iae) {
-              throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of "
-                  + Arrays.toString(Quickstart.values())
-                  + " (case-insensitive)",
-                  argValue
-              ));
-            }
-            break;
-          case "bootstrap-server":
-            bootstrapServer = argValue;
-            break;
-          case "schema":
-            schemaFile = new FileInputStream(argValue);
-            break;
-          case "format":
-            format = parseFormat(argValue);
-            break;
-          case "topic":
-            topicName = argValue;
-            break;
-          case "key":
-            keyName = argValue;
-            break;
-          case "iterations":
-            iterations = parseIterations(argValue);
-            break;
-          case "maxInterval":
-            maxInterval = parseIterations(argValue);
-            break;
-          case "schemaRegistryUrl":
-            schemaRegistryUrl = argValue;
-            break;
-          case "propertiesFile":
-            propertiesFile = new FileInputStream(argValue);
-            break;
-          default:
-            throw new ArgumentParseException(String.format(
-                "Unknown argument name in '%s'",
-                argName
-            ));
-        }
+        setArg(argName, argValue);
         return this;
       }
 
-      private Format parseFormat(final String formatString) {
+      private void setArg(final String argName, final String argVal) {
+        final BiConsumer<Builder, String> handler = ARG_HANDLERS.get(argName);
+        if (handler == null) {
+          throw new ArgumentParseException(String.format(
+              "Unknown argument name in '%s'",
+              argName
+          ));
+        }
+
+        handler.accept(this, argVal);
+      }
+
+      private static FileInputStream toFileInputStream(final String argVal) {
+        try {
+          return new FileInputStream(argVal);
+        } catch (final Exception e) {
+          throw new IllegalArgumentException("File not found: " + argVal, e);
+        }
+      }
+
+      private static Quickstart parseQuickStart(final String argValue) {
+        try {
+          return Quickstart.valueOf(argValue.toUpperCase());
+        } catch (final IllegalArgumentException iae) {
+          throw new ArgumentParseException(String.format(
+              "Invalid quickstart in '%s'; was expecting one of "
+              + Arrays.toString(Quickstart.values())
+              + " (case-insensitive)",
+              argValue
+          ));
+        }
+      }
+
+      private static Format parseFormat(final String formatString) {
         try {
           return Format.valueOf(formatString.toUpperCase());
         } catch (final IllegalArgumentException exception) {
@@ -347,7 +352,7 @@ public final class DataGen {
         }
       }
 
-      private int parseIterations(final String iterationsString) {
+      private static int parseIterations(final String iterationsString) {
         try {
           final int result = Integer.valueOf(iterationsString, 10);
           if (result <= 0) {

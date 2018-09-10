@@ -633,19 +633,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
-    final MetaStore metaStoreCopy = metaStore.clone();
-    final List<QueryMetadata> queryMetadataList = planQueries(
-        parseStatements(
-            queries,
-            metaStoreCopy,
-            true
-        ),
-        ksqlConfig,
-        Collections.emptyMap(),
-        metaStoreCopy
-    );
-
-    return queryMetadataList;
+    return buildMultipleQueries(queries, ksqlConfig, Collections.emptyMap());
   }
 
   public List<UdfFactory> listScalarFunctions() {

@@ -21,7 +21,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.Pair;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,7 +58,7 @@ public class Analysis {
     return into;
   }
 
-  public void setInto(StructuredDataSource into, boolean doCreateInto) {
+  public void setInto(final StructuredDataSource into, final boolean doCreateInto) {
     this.into = into;
     this.doCreateInto = doCreateInto;
   }
@@ -77,7 +76,7 @@ public class Analysis {
     return whereExpression;
   }
 
-  public void setWhereExpression(Expression whereExpression) {
+  public void setWhereExpression(final Expression whereExpression) {
     this.whereExpression = whereExpression;
   }
 
@@ -93,15 +92,15 @@ public class Analysis {
     return join;
   }
 
-  public void setJoin(JoinNode join) {
+  public void setJoin(final JoinNode join) {
     this.join = join;
   }
 
-  public void setIntoFormat(String intoFormat) {
+  public void setIntoFormat(final String intoFormat) {
     this.intoFormat = intoFormat;
   }
 
-  public void setIntoKafkaTopicName(String intoKafkaTopicName) {
+  public void setIntoKafkaTopicName(final String intoKafkaTopicName) {
     this.intoKafkaTopicName = intoKafkaTopicName;
   }
 
@@ -121,7 +120,7 @@ public class Analysis {
     return windowExpression;
   }
 
-  public void setWindowExpression(WindowExpression windowExpression) {
+  public void setWindowExpression(final WindowExpression windowExpression) {
     this.windowExpression = windowExpression;
   }
 
@@ -129,7 +128,7 @@ public class Analysis {
     return havingExpression;
   }
 
-  public void setHavingExpression(Expression havingExpression) {
+  public void setHavingExpression(final Expression havingExpression) {
     this.havingExpression = havingExpression;
   }
 
@@ -141,15 +140,15 @@ public class Analysis {
     return Optional.ofNullable(limitClause);
   }
 
-  public void setLimitClause(Integer limitClause) {
+  public void setLimitClause(final Integer limitClause) {
     this.limitClause = limitClause;
   }
 
-  public Pair<StructuredDataSource, String> getFromDataSource(int index) {
+  public Pair<StructuredDataSource, String> getFromDataSource(final int index) {
     return fromDataSources.get(index);
   }
 
-  void addDataSource(Pair<StructuredDataSource, String> fromDataSource) {
+  void addDataSource(final Pair<StructuredDataSource, String> fromDataSource) {
     fromDataSources.add(fromDataSource);
   }
 }

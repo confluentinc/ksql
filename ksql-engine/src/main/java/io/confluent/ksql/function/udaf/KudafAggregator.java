@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function.udaf;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
-
-import org.apache.kafka.streams.kstream.Merger;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator implements UdafAggregator {
 
@@ -33,15 +31,15 @@ public class KudafAggregator implements UdafAggregator {
   private Map<Integer, Integer> aggValToValColumnMap;
 
   public KudafAggregator(
-      Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap,
-      Map<Integer, Integer> aggValToValColumnMap) {
+      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap,
+      final Map<Integer, Integer> aggValToValColumnMap) {
     this.aggValToAggFunctionMap = aggValToAggFunctionMap;
     this.aggValToValColumnMap = aggValToValColumnMap;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
+  public GenericRow apply(final String s, final GenericRow rowValue, final GenericRow aggRowValue) {
     // copy over group-by and aggregate parameter columns into the output row
     aggValToValColumnMap.forEach(
         (key, value) ->
@@ -64,9 +62,9 @@ public class KudafAggregator implements UdafAggregator {
   @Override
   public Merger<String, GenericRow> getMerger() {
     return (key, aggRowOne, aggRowTwo) -> {
-      List<Object> columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
+      final List<Object> columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
           .collect(Collectors.toList());
-      GenericRow mergedRow = new GenericRow(columns);
+      final GenericRow mergedRow = new GenericRow(columns);
 
       aggValToValColumnMap.forEach((columnIndex, value) -> {
         if (aggRowOne.getColumns().get(value) == null) {

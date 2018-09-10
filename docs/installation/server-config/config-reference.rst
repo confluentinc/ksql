@@ -90,7 +90,7 @@ threads. For more information about Kafka Streams threading model, see :ref:`str
 
 
 KSQL Query Settings
-------------------
+-------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
@@ -134,7 +134,7 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
-.. _ksql.sink.partitions:
+.. _ksql-sink-partitions:
 
 --------------------
 ksql.sink.partitions
@@ -142,7 +142,7 @@ ksql.sink.partitions
 
 The default number of partitions for the topics created by KSQL. The default is four.
 
-.. _ksql.sink.replicas:
+.. _ksql-sink-replicas:
 
 ------------------
 ksql.sink.replicas
@@ -174,17 +174,24 @@ For an example, see :ref:`restrict-ksql-interactive`.
 listeners
 ---------
 
-Comma-separated list of URIs (including protocol) that the broker will listen on. Specify hostname as ``0.0.0.0`` to bind
-to all interfaces or leave it empty to bind to the default interface. For example:
+The ``listeners`` setting controls the REST API endpoint for the KSQL server.
+For more info, see :ref:`ksql-rest-api`. 
+
+Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
+bind to the default interface. For example:
 
 .. code:: bash
 
-    listeners=PLAINTEXT://myhost:9092
+    # Bind to all interfaces.
+    listeners=http://0.0.0.0:8088
+
+    # Bind only to localhost.
+    listeners=http://localhost:8088
 
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings
----------------------------
+------------------------------------
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 

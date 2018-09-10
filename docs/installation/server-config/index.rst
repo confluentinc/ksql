@@ -13,6 +13,8 @@ Configuring KSQL Server
 KSQL configuration parameters can be set for KSQL server and queries as well as for the underlying Kafka Streams and
 Kafka Clients (producer and consumer).
 
+.. include:: ../../../../includes/installation-types-zip-tar.rst
+
 .. _set-ksql-server-properties:
 
 ------------------------------
@@ -41,7 +43,6 @@ For example:
 
     bootstrap.servers=localhost:9092
     listeners=http://localhost:8088
-    ui.enabled=true
 
 After you have updated the server configuration file, you can start the KSQL server with the configuration file
 specified.
@@ -56,18 +57,18 @@ KSQL_OPTS Environment Variable
 ------------------------------
 
 You can override KSQL server configuration parameters by using the ``KSQL_OPTS`` environment variable. The properties are
-standard Java system properties. For example, to change ``ui.enabled`` from true to false:
+standard Java system properties. For example, to set ``ksql.streams.num.streams.threads`` to ``1``:
 
 .. code:: bash
 
-    $ KSQL_OPTS="-Dui.enabled=false" <path-to-confluent>/bin/ksql-server-start \
+    $ KSQL_OPTS="-Dksql.streams.num.streams.threads=1" <path-to-confluent>/bin/ksql-server-start \
       <path-to-confluent>/etc/ksql/ksql-server.properties
 
-You can specify multiple parameters at the same time. For example, to configure ``ui.enabled`` and ``num.stream.threads``:
+You can specify multiple parameters at the same time. For example, to configure ``ksql.streams.auto.offset.reset`` and ``ksql.streams.num.stream.threads``:
 
 .. code:: bash
 
-    $ KSQL_OPTS="-Dui.enabled=false -Dnum.stream.threads=1" <path-to-confluent>/bin/ksql-server-start \
+    $ KSQL_OPTS="-Dksql.streams.auto.offset.reset=earliest -Dksql.streams.num.stream.threads=1" <path-to-confluent>/bin/ksql-server-start \
       <path-to-confluent>/etc/ksql/ksql-server.properties
 
 -----------

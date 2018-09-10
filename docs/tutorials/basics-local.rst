@@ -3,6 +3,14 @@
 Writing Streaming Queries Against Kafka Using KSQL (Local)
 ==========================================================
 
+Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
+
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+    <iframe src="https://www.youtube.com/embed/EzVZOUt9JsU" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
+    </div>
+
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 
 To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
@@ -17,25 +25,143 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 42
-      :end-line: 76
+      :start-after: basics_tutorial_01_start
+      :end-before: basics_tutorial_01_end
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 338
-      :end-line: 349
+      :start-after: log_limitations_start
+      :end-before: log_limitations_end
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 76
-      :end-line: 82
+      :start-after: basics_tutorial_02_start
+      :end-before: basics_tutorial_02_end
 
 .. include:: ../includes/ksql-includes.rst
-      :start-line: 82
-      :end-line: 327
+      :start-after: basics_tutorial_03_start
+      :end-before: basics_tutorial_03_end
 
-Confluent Platform
-------------------
+.. _struct_support: 
 
-If you are running the |cp|, you can stop it with this
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __struct_support_01_start
+    :end-before: __struct_support_01_end
+
+.. code:: bash
+
+       $ <path-to-confluent>/bin/ksql-datagen  \
+            quickstart=orders \
+            format=avro \
+            topic=orders 
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __struct_support_02_start
+    :end-before: __struct_support_02_end
+
+.. _ss-joins: 
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __ss-join_01_start
+    :end-before: __ss-join_01_end
+
+.. code:: bash
+
+    $ <path-to-confluent>/bin/kafka-console-producer \
+	  --broker-list localhost:9092 \
+	  --topic new_orders \
+	  --property "parse.key=true" \
+	  --property "key.separator=:"<<EOF
+    1:{"order_id":1,"total_amount":10.50,"customer_name":"Bob Smith"}
+    2:{"order_id":2,"total_amount":3.32,"customer_name":"Sarah Black"}
+    3:{"order_id":3,"total_amount":21.00,"customer_name":"Emma Turner"}
+    EOF
+
+    $ <path-to-confluent>/bin/kafka-console-producer \
+	  --broker-list localhost:9092 \
+	  --topic shipments \
+	  --property "parse.key=true" \
+	  --property "key.separator=:"<<EOF
+    1:{"order_id":1,"shipment_id":42,"warehouse":"Nashville"}
+    3:{"order_id":3,"shipment_id":43,"warehouse":"Palo Alto"}
+    EOF
+
+.. tip:: Note that you may see the following warning message when running the above statements—it can be safely ignored: 
+
+      .. code:: bash
+
+            Error while fetching metadata with correlation id 1 : {new_orders=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+            Error while fetching metadata with correlation id 1 : {shipments=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __ss-join_02_start
+    :end-before: __ss-join_02_end
+
+
+.. _tt-joins: 
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __tt-join_01_start
+    :end-before: __tt-join_01_end
+
+.. code:: bash
+
+    $ <path-to-confluent>/bin/kafka-console-producer \
+	  --broker-list localhost:9092 \
+	  --topic warehouse_location \
+	  --property "parse.key=true" \
+	  --property "key.separator=:"<<EOF
+    1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
+    2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
+    3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
+    EOF
+
+    $ <path-to-confluent>/bin/kafka-console-producer \
+	  --broker-list localhost:9092 \
+	  --topic warehouse_size \
+	  --property "parse.key=true" \
+	  --property "key.separator=:"<<EOF
+    1:{"warehouse_id":1,"square_footage":16000}
+    2:{"warehouse_id":2,"square_footage":42000}
+    3:{"warehouse_id":3,"square_footage":94000}
+    EOF
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __tt-join_02_start
+    :end-before: __tt-join_02_end
+
+.. _insert-into: 
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __insert-into_01_start
+    :end-before: __insert-into_01_end
+
+.. tip:: Each of these commands should be run in a separate window. When the exercise is finished, exit them by pressing Ctrl-C.
+
+.. code:: bash
+
+       $ <path-to-confluent>/bin/ksql-datagen \ 
+            quickstart=orders \
+            format=avro \
+            topic=orders_local 
+
+       $ <path-to-confluent>/bin/ksql-datagen \ 
+            quickstart=orders \
+            format=avro \
+            topic=orders_3rdparty 
+
+.. include:: ../includes/ksql-includes.rst
+    :start-after: __insert-into_02_start
+    :end-before: __insert-into_02_end
+
+.. _terminate: 
+
+.. include:: ../includes/ksql-includes.rst
+      :start-after: terminate_and_exit__start
+      :end-before: terminate_and_exit__end
+
+Confluent CLI
+--------------
+
+If you are running |cp| using the CLI, you can stop it with this
 command.
 
 .. code:: bash

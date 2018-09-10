@@ -17,12 +17,11 @@
 package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.ExpressionFormatter;
-
 import java.util.Optional;
 
 public abstract class Expression extends Node {
 
-  protected Expression(Optional<NodeLocation> location) {
+  protected Expression(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -30,7 +29,7 @@ public abstract class Expression extends Node {
    * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
    */
   @Override
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExpression(this, context);
   }
 

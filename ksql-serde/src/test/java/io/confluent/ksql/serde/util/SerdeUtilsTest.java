@@ -16,11 +16,7 @@
 
 package io.confluent.ksql.serde.util;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.util.KsqlException;
@@ -30,115 +26,115 @@ public class SerdeUtilsTest {
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
-    Boolean b = SerdeUtils.toBoolean(true);
+    final Boolean b = SerdeUtils.toBoolean(true);
     assertThat(b, equalTo(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonBooleanToBoolean() {
-    Boolean b = SerdeUtils.toBoolean(1);
+    final Boolean b = SerdeUtils.toBoolean(1);
   }
 
   @Test
   public void shouldConvertToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(1);
+    final Integer i = SerdeUtils.toInteger(1);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertLongToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(1L);
+    final Integer i = SerdeUtils.toInteger(1L);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertDoubleToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger(1.0);
+    final Integer i = SerdeUtils.toInteger(1.0);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertStringToIntCorrectly() {
-    Integer i = SerdeUtils.toInteger("1");
+    final Integer i = SerdeUtils.toInteger("1");
     assertThat(i, equalTo(1));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToInt() {
-    Integer i = SerdeUtils.toInteger("1!:)");
+    final Integer i = SerdeUtils.toInteger("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonIntegerToIntegr() {
-    Object i = SerdeUtils.toInteger(true);
+    final Object i = SerdeUtils.toInteger(true);
   }
 
   @Test
   public void shouldConvertToLongCorrectly() {
-    Long l = SerdeUtils.toLong(1L);
+    final Long l = SerdeUtils.toLong(1L);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertIntToLongCorrectly() {
-    Long l = SerdeUtils.toLong(1);
+    final Long l = SerdeUtils.toLong(1);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertDoubleToLongCorrectly() {
-    Long l = SerdeUtils.toLong(1.0);
+    final Long l = SerdeUtils.toLong(1.0);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertStringToLongCorrectly() {
-    Long l = SerdeUtils.toLong("1");
+    final Long l = SerdeUtils.toLong("1");
     assertThat(l, equalTo(1L));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToLong() {
-    Long l = SerdeUtils.toLong("1!:)");
+    final Long l = SerdeUtils.toLong("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleLong() {
-    Object i = SerdeUtils.toInteger(true);
+    final Object i = SerdeUtils.toInteger(true);
   }
 
 
   @Test
   public void shouldConvertToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(1.0);
+    final Double d = SerdeUtils.toDouble(1.0);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertIntToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(1);
+    final Double d = SerdeUtils.toDouble(1);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertLongToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble(1L);
+    final Double d = SerdeUtils.toDouble(1L);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertStringToDoubleCorrectly() {
-    Double d = SerdeUtils.toDouble("1.0");
+    final Double d = SerdeUtils.toDouble("1.0");
     assertThat(d, equalTo(1.0));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
-    Double d = SerdeUtils.toDouble("1!:)");
+    final Double d = SerdeUtils.toDouble("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
-    Object i = SerdeUtils.toDouble(true);
+    final Object i = SerdeUtils.toDouble(true);
   }
 }

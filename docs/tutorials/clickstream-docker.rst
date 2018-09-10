@@ -24,13 +24,13 @@ Depending on your network speed, this may take up to 10-15 minutes.
 The ``-p`` flag will forward the Grafana dashboard to port 33000 on
 your local host.
 
-.. code:: bash
+.. codewithvars:: bash
 
     $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:|release| bash
 
 Your output should resemble:
 
-.. code:: bash
+.. codewithvars:: bash
 
     Unable to find image 'confluentinc/ksql-clickstream-demo:|release|' locally
     latest: Pulling from confluentinc/ksql-clickstream-demo

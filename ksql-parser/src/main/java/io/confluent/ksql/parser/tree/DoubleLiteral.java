@@ -16,24 +16,24 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public class DoubleLiteral
     extends Literal {
 
   private final double value;
 
-  public DoubleLiteral(String value) {
+  public DoubleLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public DoubleLiteral(NodeLocation location, String value) {
+  public DoubleLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  private DoubleLiteral(Optional<NodeLocation> location, String value) {
+  private DoubleLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
     this.value = Double.parseDouble(value);
@@ -44,12 +44,12 @@ public class DoubleLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDoubleLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -57,7 +57,7 @@ public class DoubleLiteral
       return false;
     }
 
-    DoubleLiteral that = (DoubleLiteral) o;
+    final DoubleLiteral that = (DoubleLiteral) o;
 
     if (Double.compare(that.value, value) != 0) {
       return false;
@@ -69,7 +69,7 @@ public class DoubleLiteral
   @SuppressWarnings("UnaryPlus")
   @Override
   public int hashCode() {
-    long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
+    final long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
     return (int) (temp ^ (temp >>> 32));
   }
 }

@@ -16,25 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class TableSubquery
     extends QueryBody {
 
   private final Query query;
 
-  public TableSubquery(Query query) {
+  public TableSubquery(final Query query) {
     this(Optional.empty(), query);
   }
 
-  public TableSubquery(NodeLocation location, Query query) {
+  public TableSubquery(final NodeLocation location, final Query query) {
     this(Optional.of(location), query);
   }
 
-  private TableSubquery(Optional<NodeLocation> location, Query query) {
+  private TableSubquery(final Optional<NodeLocation> location, final Query query) {
     super(location);
     this.query = query;
   }
@@ -44,7 +44,7 @@ public class TableSubquery
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTableSubquery(this, context);
   }
 
@@ -56,7 +56,7 @@ public class TableSubquery
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -64,7 +64,7 @@ public class TableSubquery
       return false;
     }
 
-    TableSubquery tableSubquery = (TableSubquery) o;
+    final TableSubquery tableSubquery = (TableSubquery) o;
     return Objects.equals(query, tableSubquery.query);
   }
 

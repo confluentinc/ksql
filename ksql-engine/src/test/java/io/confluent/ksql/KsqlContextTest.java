@@ -16,27 +16,25 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.streams.KafkaStreams;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.streams.KafkaStreams;
+import org.junit.Test;
 
 public class KsqlContextTest {
 
@@ -49,8 +47,8 @@ public class KsqlContextTest {
 
   @Test
   public void shouldRunSimpleStatements() throws Exception {
-    KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    KsqlEngine ksqlEngine = mock(KsqlEngine.class);
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
 
     expect(ksqlEngine.buildMultipleQueries(statement1, ksqlConfig, Collections.emptyMap()))
         .andReturn
@@ -59,7 +57,7 @@ public class KsqlContextTest {
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
     replay(ksqlEngine);
 
-    KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);
+    final KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
 
@@ -67,19 +65,19 @@ public class KsqlContextTest {
   }
 
   @SuppressWarnings("unchecked")
-  private List<QueryMetadata> getQueryMetadata(QueryId queryid, DataSource.DataSourceType type) {
-    KafkaStreams queryStreams = mock(KafkaStreams.class);
+  private List<QueryMetadata> getQueryMetadata(final QueryId queryid, final DataSource.DataSourceType type) {
+    final KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
 
-    OutputNode outputNode = mock(OutputNode.class);
+    final OutputNode outputNode = mock(OutputNode.class);
     expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
     replay(outputNode);
-    StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
+    final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
     expect(structuredDataSource.getName()).andReturn("");
     replay(structuredDataSource);
 
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
+    final PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
                                                                                    queryStreams,
                                                                                    outputNode,
                                                                                   structuredDataSource,

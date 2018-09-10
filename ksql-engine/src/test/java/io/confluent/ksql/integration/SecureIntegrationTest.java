@@ -16,30 +16,21 @@
 
 package io.confluent.ksql.integration;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.PatternType;
-import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.resource.ResourceType;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.test.TestUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static org.apache.kafka.common.acl.AclOperation.ALL;
+import static org.apache.kafka.common.acl.AclOperation.CREATE;
+import static org.apache.kafka.common.acl.AclOperation.DELETE;
+import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
+import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+import static org.apache.kafka.common.acl.AclOperation.READ;
+import static org.apache.kafka.common.acl.AclOperation.WRITE;
+import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
+import static org.apache.kafka.common.resource.ResourceType.GROUP;
+import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
@@ -56,23 +47,30 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
-
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
-import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
-import static org.apache.kafka.common.acl.AclOperation.ALL;
-import static org.apache.kafka.common.acl.AclOperation.CREATE;
-import static org.apache.kafka.common.acl.AclOperation.DELETE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
-import static org.apache.kafka.common.acl.AclOperation.READ;
-import static org.apache.kafka.common.acl.AclOperation.WRITE;
-import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
-import static org.apache.kafka.common.resource.ResourceType.GROUP;
-import static org.apache.kafka.common.resource.ResourceType.TOPIC;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.test.TestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -102,14 +100,17 @@ public class SecureIntegrationTest {
   private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
+  private AdminClient adminClient;
 
   @Before
   public void before() throws Exception {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
+    adminClient = AdminClient
+        .create(new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
+        adminClient);
 
     produceInitData();
   }
@@ -128,7 +129,7 @@ public class SecureIntegrationTest {
       } catch (final Exception e) {
         e.printStackTrace(System.err);
       }
-      topicClient.close();
+      adminClient.close();
     }
   }
 
@@ -260,7 +261,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
 
     execInitCreateStreamQueries();
   }
@@ -329,7 +330,7 @@ public class SecureIntegrationTest {
   }
 
   private void execInitCreateStreamQueries() {
-    String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+    final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
                                            + "map<varchar, double>) WITH (value_format = 'json', "
                                            + "kafka_topic='%s' , "

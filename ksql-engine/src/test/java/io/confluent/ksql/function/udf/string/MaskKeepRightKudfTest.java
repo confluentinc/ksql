@@ -14,13 +14,14 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import io.confluent.ksql.function.KsqlFunctionException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.function.KsqlFunctionException;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class MaskKeepRightKudfTest {
   private final MaskKeepRightKudf udf = new MaskKeepRightKudf();

@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.function.udf.geo;
 
-import java.util.List;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
+import java.util.List;
 
 /**
  * Compute the distance between two points on the surface of the earth, according to the Haversine
@@ -45,32 +45,33 @@ public class GeoDistanceKudf implements Kudf {
 
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if ((args.length < 4) || (args.length > 5)) {
       throw new KsqlFunctionException(
           "GeoDistance function expects either 4 or 5 arguments: lat1, lon1, lat2, lon2, (MI/KM)");
     }
 
-    double lat1 = ((Number) args[0]).doubleValue();
-    double lon1 = ((Number) args[1]).doubleValue();
-    double lat2 = ((Number) args[2]).doubleValue();
-    double lon2 = ((Number) args[3]).doubleValue();
+    final double lat1 = ((Number) args[0]).doubleValue();
+    final double lon1 = ((Number) args[1]).doubleValue();
+    final double lat2 = ((Number) args[2]).doubleValue();
+    final double lon2 = ((Number) args[3]).doubleValue();
     validateLatLonValues(lat1, lon1, lat2, lon2);
-    double chosenRadius = selectEarthRadiusToUse(args);
+    final double chosenRadius = selectEarthRadiusToUse(args);
 
-    double deltaLat = Math.toRadians(lat2 - lat1);
-    double deltaLon = Math.toRadians(lon2 - lon1);
+    final double deltaLat = Math.toRadians(lat2 - lat1);
+    final double deltaLon = Math.toRadians(lon2 - lon1);
 
-    double lat1Radians = Math.toRadians(lat1);
-    double lat2Radians = Math.toRadians(lat2);
+    final double lat1Radians = Math.toRadians(lat1);
+    final double lat2Radians = Math.toRadians(lat2);
 
-    double a =
+    final double a =
         haversin(deltaLat) + haversin(deltaLon) * Math.cos(lat1Radians) * Math.cos(lat2Radians);
-    double distanceInRadians = 2 * Math.asin(Math.sqrt(a));
+    final double distanceInRadians = 2 * Math.asin(Math.sqrt(a));
     return distanceInRadians * chosenRadius;
   }
 
-  private void validateLatLonValues(double lat1, double lon1, double lat2, double lon2) {
+  private void validateLatLonValues(
+      final double lat1, final double lon1, final double lat2, final double lon2) {
     if (lat1 < 0 || lat2 < 0 || lat1 > 90 || lat2 > 90) {
       throw new KsqlFunctionException(
           "valid latitude values for GeoDistance function are in the range of 0 to 90"
@@ -83,10 +84,10 @@ public class GeoDistanceKudf implements Kudf {
     }
   }
 
-  private double selectEarthRadiusToUse(Object... args) {
+  private double selectEarthRadiusToUse(final Object... args) {
     double chosenRadius = EARTH_RADIUS_KM;
     if (args.length == 5) {
-      String outputUnit = args[4].toString().toLowerCase();
+      final String outputUnit = args[4].toString().toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
       } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
@@ -101,7 +102,7 @@ public class GeoDistanceKudf implements Kudf {
     return chosenRadius;
   }
 
-  private static double haversin(double val) {
+  private static double haversin(final double val) {
     return Math.pow(Math.sin(val / 2), 2);
   }
 }

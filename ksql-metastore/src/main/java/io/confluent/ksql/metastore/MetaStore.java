@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.metastore;
 
-import java.util.Map;
-import java.util.Set;
-
 import io.confluent.ksql.function.FunctionRegistry;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public interface MetaStore extends FunctionRegistry {
 
@@ -28,6 +28,8 @@ public interface MetaStore extends FunctionRegistry {
   void putTopic(KsqlTopic topic);
 
   StructuredDataSource getSource(String sourceName);
+
+  Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
 
   void putSource(StructuredDataSource dataSource);
 

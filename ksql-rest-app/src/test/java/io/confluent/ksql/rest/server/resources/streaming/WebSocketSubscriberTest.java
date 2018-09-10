@@ -16,31 +16,26 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.rest.util.JsonMapper;
+import java.io.IOException;
+import java.util.Map;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
+import javax.websocket.RemoteEndpoint.Async;
+import javax.websocket.RemoteEndpoint.Basic;
+import javax.websocket.Session;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
 import org.easymock.EasyMock;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.RemoteEndpoint.Async;
-import javax.websocket.RemoteEndpoint.Basic;
-import javax.websocket.Session;
-
-import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
-
-import static org.junit.Assert.assertEquals;
 
 public class WebSocketSubscriberTest {
 
@@ -68,7 +63,7 @@ public class WebSocketSubscriberTest {
     replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
-    Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
+    final Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
     async.sendText(EasyMock.capture(json), EasyMock.anyObject());
     EasyMock.expectLastCall().times(3);
 
@@ -93,7 +88,7 @@ public class WebSocketSubscriberTest {
     replayOnSubscribe();
 
     EasyMock.expect(session.getAsyncRemote()).andReturn(async).anyTimes();
-    Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
+    final Capture<String> json = EasyMock.newCapture(CaptureType.ALL);
     async.sendText(EasyMock.capture(json), EasyMock.anyObject());
     subscription.request(1);
     subscription.cancel();
@@ -114,11 +109,11 @@ public class WebSocketSubscriberTest {
 
     session.getBasicRemote();
     EasyMock.expectLastCall().andReturn(basic).once();
-    Capture<String> schema = EasyMock.newCapture();
+    final Capture<String> schema = EasyMock.newCapture();
     basic.sendText(EasyMock.capture(schema));
     EasyMock.expectLastCall().andThrow(new IOException("bad bad io")).once();
 
-    Capture<CloseReason> reason = EasyMock.newCapture();
+    final Capture<CloseReason> reason = EasyMock.newCapture();
     session.close(EasyMock.capture(reason));
     subscription.cancel();
 
@@ -148,7 +143,7 @@ public class WebSocketSubscriberTest {
   public void testOnError() throws Exception {
     replayOnSubscribe();
 
-    Capture<CloseReason> reason = EasyMock.newCapture();
+    final Capture<CloseReason> reason = EasyMock.newCapture();
     EasyMock.expect(session.getId()).andReturn("abc123").once();
     session.close(EasyMock.capture(reason));
     EasyMock.expectLastCall().once();

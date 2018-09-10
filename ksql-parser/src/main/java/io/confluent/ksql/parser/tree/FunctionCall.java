@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class FunctionCall
     extends Expression {
@@ -30,35 +30,55 @@ public class FunctionCall
   private final boolean distinct;
   private final List<Expression> arguments;
 
-  public FunctionCall(QualifiedName name, List<Expression> arguments) {
+  public FunctionCall(final QualifiedName name, final List<Expression> arguments) {
     this(Optional.empty(), name, Optional.<Window>empty(), false, arguments);
   }
 
-  public FunctionCall(NodeLocation location, QualifiedName name, List<Expression> arguments) {
+  public FunctionCall(
+      final NodeLocation location,
+      final QualifiedName name,
+      final List<Expression> arguments) {
     this(Optional.of(location), name, Optional.<Window>empty(), false, arguments);
   }
 
-  public FunctionCall(QualifiedName name, boolean distinct, List<Expression> arguments) {
+  public FunctionCall(
+      final QualifiedName name,
+      final boolean distinct,
+      final List<Expression> arguments) {
     this(Optional.empty(), name, Optional.<Window>empty(), distinct, arguments);
   }
 
-  public FunctionCall(NodeLocation location, QualifiedName name, boolean distinct,
-                      List<Expression> arguments) {
+  public FunctionCall(
+      final NodeLocation location,
+      final QualifiedName name,
+      final boolean distinct,
+      final List<Expression> arguments) {
     this(Optional.of(location), name, Optional.<Window>empty(), distinct, arguments);
   }
 
-  public FunctionCall(QualifiedName name, Optional<Window> window, boolean distinct,
-                      List<Expression> arguments) {
+  public FunctionCall(
+      final QualifiedName name,
+      final Optional<Window> window,
+      final boolean distinct,
+      final List<Expression> arguments) {
     this(Optional.empty(), name, window, distinct, arguments);
   }
 
-  public FunctionCall(NodeLocation location, QualifiedName name, Optional<Window> window,
-                      boolean distinct, List<Expression> arguments) {
+  public FunctionCall(
+      final NodeLocation location,
+      final QualifiedName name,
+      final Optional<Window> window,
+      final boolean distinct,
+      final List<Expression> arguments) {
     this(Optional.of(location), name, window, distinct, arguments);
   }
 
-  private FunctionCall(Optional<NodeLocation> location, QualifiedName name, Optional<Window> window,
-                       boolean distinct, List<Expression> arguments) {
+  private FunctionCall(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final Optional<Window> window,
+      final boolean distinct,
+      final List<Expression> arguments) {
     super(location);
     requireNonNull(name, "name is null");
     requireNonNull(window, "window is null");
@@ -87,19 +107,19 @@ public class FunctionCall
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitFunctionCall(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    FunctionCall o = (FunctionCall) obj;
+    final FunctionCall o = (FunctionCall) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(window, o.window)
            && Objects.equals(distinct, o.distinct)

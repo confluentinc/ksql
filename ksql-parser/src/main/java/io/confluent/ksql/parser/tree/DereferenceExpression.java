@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class DereferenceExpression
     extends Expression {
@@ -29,16 +29,21 @@ public class DereferenceExpression
   private final Expression base;
   private final String fieldName;
 
-  public DereferenceExpression(Expression base, String fieldName) {
+  public DereferenceExpression(final Expression base, final String fieldName) {
     this(Optional.empty(), base, fieldName);
   }
 
-  public DereferenceExpression(NodeLocation location, Expression base, String fieldName) {
+  public DereferenceExpression(
+      final NodeLocation location,
+      final Expression base,
+      final String fieldName) {
     this(Optional.of(location), base, fieldName);
   }
 
-  public DereferenceExpression(Optional<NodeLocation> location, Expression base,
-                                String fieldName) {
+  public DereferenceExpression(
+      final Optional<NodeLocation> location,
+      final Expression base,
+      final String fieldName) {
     super(location);
     checkArgument(base != null, "base is null");
     checkArgument(fieldName != null, "fieldName is null");
@@ -47,7 +52,7 @@ public class DereferenceExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDereferenceExpression(this, context);
   }
 
@@ -63,20 +68,21 @@ public class DereferenceExpression
    * If this DereferenceExpression looks like a QualifiedName, return QualifiedName.
    * Otherwise return null
    */
-  public static QualifiedName getQualifiedName(DereferenceExpression expression) {
-    List<String> parts = tryParseParts(expression.base, expression.fieldName);
+  public static QualifiedName getQualifiedName(final DereferenceExpression expression) {
+    final List<String> parts = tryParseParts(expression.base, expression.fieldName);
     return parts == null ? null : QualifiedName.of(parts);
   }
 
-  private static List<String> tryParseParts(Expression base, String fieldName) {
+  private static List<String> tryParseParts(final Expression base, final String fieldName) {
     if (base instanceof QualifiedNameReference) {
-      List<String> newList = new ArrayList<>(((QualifiedNameReference) base).getName().getParts());
+      final List<String> newList =
+          new ArrayList<>(((QualifiedNameReference) base).getName().getParts());
       newList.add(fieldName);
       return newList;
     } else if (base instanceof DereferenceExpression) {
-      QualifiedName baseQualifiedName = getQualifiedName((DereferenceExpression) base);
+      final QualifiedName baseQualifiedName = getQualifiedName((DereferenceExpression) base);
       if (baseQualifiedName != null) {
-        List<String> newList = new ArrayList<>(baseQualifiedName.getParts());
+        final List<String> newList = new ArrayList<>(baseQualifiedName.getParts());
         newList.add(fieldName);
         return newList;
       }
@@ -85,14 +91,14 @@ public class DereferenceExpression
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DereferenceExpression that = (DereferenceExpression) o;
+    final DereferenceExpression that = (DereferenceExpression) o;
     return Objects.equals(base, that.base)
            && Objects.equals(fieldName, that.fieldName);
   }

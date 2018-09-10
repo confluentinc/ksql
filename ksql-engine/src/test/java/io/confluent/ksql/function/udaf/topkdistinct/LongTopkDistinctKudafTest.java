@@ -16,18 +16,14 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import com.google.common.collect.ImmutableList;
-
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Test;
 
 public class LongTopkDistinctKudafTest {
 
@@ -39,7 +35,7 @@ public class LongTopkDistinctKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Long> currentVal = new ArrayList<>();
-    for (Long d: valuesArray) {
+    for (final Long d: valuesArray) {
       currentVal = longTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
@@ -56,8 +52,8 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
-    List<Long> array2 = ImmutableList.of(60L, 50L, 48L);
+    final List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
+    final List<Long> array2 = ImmutableList.of(60L, 50L, 48L);
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60L, 50L, 48L)));
@@ -65,8 +61,8 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Long> array1 = ImmutableList.of(50L, 45L);
-    List<Long> array2 = ImmutableList.of(60L);
+    final List<Long> array1 = ImmutableList.of(50L, 45L);
+    final List<Long> array2 = ImmutableList.of(60L);
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60L, 50L, 45L)));
@@ -74,8 +70,8 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    List<Long> array1 = ImmutableList.of(50L, 45L);
-    List<Long> array2 = ImmutableList.of(60L, 50L);
+    final List<Long> array1 = ImmutableList.of(50L, 45L);
+    final List<Long> array2 = ImmutableList.of(60L, 50L);
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60L, 50L, 45L)));
@@ -83,8 +79,8 @@ public class LongTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    List<Long> array1 = ImmutableList.of(60L);
-    List<Long> array2 = ImmutableList.of(60L);
+    final List<Long> array1 = ImmutableList.of(60L);
+    final List<Long> array2 = ImmutableList.of(60L);
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         ImmutableList.of(60L)));

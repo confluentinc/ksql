@@ -18,14 +18,8 @@ package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.streams.StreamsConfig;
-
-import java.util.Map;
 import java.util.Objects;
-
-import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public class LongColumnTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
@@ -39,14 +33,8 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
   }
 
   @Override
-  public void applyTo(final KsqlConfig config, final Map<String, Object> newStreamProperties) {
-    newStreamProperties.put(
-        KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX,
-        config.getKsqlTimestampColumnIndex()
-    );
-    newStreamProperties.put(
-        StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
-        LongTimestampExtractor.class);
+  public TimestampExtractor create(final int columnIndex) {
+    return new LongTimestampExtractor(columnIndex);
   }
 
   @Override

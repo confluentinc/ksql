@@ -3,6 +3,14 @@
 KSQL Operations
 ===============
 
+Watch the `screencast of Taking KSQL to Production <https://www.youtube.com/embed/f3wV8W_zjwE>`_ on YouTube.
+
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+    <iframe src="https://www.youtube.com/embed/f3wV8W_zjwE" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
+    </div>
+
 ================================================
 Local Development and Testing with Confluent CLI
 ================================================
@@ -45,8 +53,8 @@ KSQL includes JMX (Java Management Extensions) metrics which give insights into 
 These metrics include the number of messages, the total throughput, throughput distribution, error rate, and more.
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 328
-    :end-line: 335
+    :start-after: enable_JMX_metrics_start
+    :end-before: enable_JMX_metrics_end
 
 The ``ksql-print-metrics`` command line utility collects these metrics and prints them to the console. You can invoke this
 utility from your terminal:
@@ -108,3 +116,132 @@ KSQL doesn’t clean up its internal topics?
 ------------------------------------------
 Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
+----------------------------------------
+KSQL CLI doesn’t connect to KSQL server? 
+----------------------------------------
+The following warning may occur when you start the KSQL CLI.   
+
+.. code:: bash
+
+    **************** WARNING ******************
+    Remote server address may not be valid:
+    Error issuing GET to KSQL server
+
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+    *******************************************
+
+Also, you may see a similar error when you create a KSQL query by using the
+CLI.
+
+.. code:: bash
+
+    Error issuing POST to KSQL server
+    Caused by: java.net.SocketException: Connection reset
+    Caused by: Connection reset
+
+In both cases, the CLI can't connect to the KSQL server, which may be caused by
+one of the following conditions.
+
+- KSQL CLI isn't connected to the correct KSQL server port.
+- KSQL server isn't running.
+- KSQL server is running but listening on a different port.
+
+Check the port that KSQL CLI is using
+-------------------------------------
+
+Ensure that the KSQL CLI is configured with the correct KSQL server port.
+By default, the server listens on port ``8088``. For more info, see 
+:ref:`Starting the KSQL CLI <install_ksql-cli>`.
+
+Check the KSQL server configuration
+-----------------------------------
+
+In the KSQL server configuration file, check that the list of listeners
+has the host address and port configured correctly. Look for the ``listeners``
+setting:
+
+.. code:: bash
+
+    listeners=http://localhost:8088
+
+For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
+
+Check for a port conflict
+-------------------------
+
+There may be another process running on the port that the KSQL server listens
+on. Use the following command to check the process that's running on the port
+assigned to the KSQL server. This example checks the default port, which is
+``8088``.  
+
+.. code:: bash
+
+    netstat -anv | egrep -w .*8088.*LISTEN
+
+Your output should resemble:
+
+.. code:: bash
+
+    tcp4  0 0  *.8088       *.*    LISTEN      131072 131072    46314      0
+
+In this example, ``46314`` is the PID of the process that's listening on port
+``8088``. Run the following command to get info on the process.
+
+.. code:: bash
+
+    ps -wwwp <pid>
+
+Your output should resemble:
+
+.. code:: bash
+
+    io.confluent.ksql.rest.server.KsqlServerMain ./config/ksql-server.properties
+
+If the ``KsqlServerMain`` process isn't shown, a different process has taken the
+port that ``KsqlServerMain`` would normally use. Check the assigned listeners in 
+the KSQL server configuration, and restart the KSQL CLI with the correct port.
+
+------------------------------------------------
+Replicated topic with Avro schema causes errors? 
+------------------------------------------------
+
+Confluent Replicator renames topics during replication, and if there are
+associated Avro schemas, they aren't automatically matched with the renamed
+topics.
+
+In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which shows
+that the Avro schema ID exists in the Schema Registry, and KSQL can deserialize
+the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
+
+.. code:: bash
+
+    CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews.replica', value_format='AVRO');
+
+    [2018-06-21 19:12:08,135] WARN task [1_6] Skipping record due to deserialization error. topic=[pageviews.replica] partition=[6] offset=[1663] (org.apache.kafka.streams.processor.internals.RecordDeserializer:86)
+    org.apache.kafka.connect.errors.DataException: pageviews.replica
+            at io.confluent.connect.avro.AvroConverter.toConnectData(AvroConverter.java:97)
+            at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:48)
+            at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:27)
+
+The solution is to register schemas manually against the replicated subject name for the topic:
+
+.. code:: bash
+
+    # Original topic name = pageviews
+    # Replicated topic name = pageviews.replica
+    curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
+
+----------------------
+Check KSQL server logs 
+----------------------
+If you're still having trouble, check the KSQL server logs for errors. 
+
+.. code:: bash
+
+    confluent log ksql-server
+
+
+Look for logs in the default directory at ``/usr/local/logs`` or in the
+``LOG_DIR`` that you assign when you start the KSQL CLI. For more info, see 
+:ref:`Starting the KSQL CLI <install_ksql-cli>`.

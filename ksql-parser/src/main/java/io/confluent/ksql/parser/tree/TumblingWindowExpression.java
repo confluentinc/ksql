@@ -16,30 +16,28 @@
 
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
-
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
   private final TimeUnit sizeUnit;
 
-  public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
+  public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
     this(Optional.empty(), size, sizeUnit);
   }
 
-  private TumblingWindowExpression(Optional<NodeLocation> location, long size,
-                                   TimeUnit sizeUnit) {
+  private TumblingWindowExpression(final Optional<NodeLocation> location, final long size,
+                                   final TimeUnit sizeUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
@@ -54,7 +52,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTumblingWindowExpression(this, context);
   }
 
@@ -69,14 +67,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
+    final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
   }
 

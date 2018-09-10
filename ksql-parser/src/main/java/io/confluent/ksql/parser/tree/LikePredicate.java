@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class LikePredicate
     extends Expression {
@@ -28,17 +28,21 @@ public class LikePredicate
   private final Expression pattern;
   private final Expression escape;
 
-  public LikePredicate(Expression value, Expression pattern, Expression escape) {
+  public LikePredicate(final Expression value, final Expression pattern, final Expression escape) {
     this(Optional.empty(), value, pattern, escape);
   }
 
-  public LikePredicate(NodeLocation location, Expression value, Expression pattern,
-                       Expression escape) {
+  public LikePredicate(
+      final NodeLocation location,
+      final Expression value,
+      final Expression pattern,
+      final Expression escape) {
     this(Optional.of(location), value, pattern, escape);
   }
 
-  private LikePredicate(Optional<NodeLocation> location, Expression value, Expression pattern,
-                        Expression escape) {
+  private LikePredicate(
+      final Optional<NodeLocation> location, final Expression value, final Expression pattern,
+                        final Expression escape) {
     super(location);
     requireNonNull(value, "value is null");
     requireNonNull(pattern, "pattern is null");
@@ -61,12 +65,12 @@ public class LikePredicate
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitLikePredicate(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -74,7 +78,7 @@ public class LikePredicate
       return false;
     }
 
-    LikePredicate that = (LikePredicate) o;
+    final LikePredicate that = (LikePredicate) o;
     return Objects.equals(value, that.value)
            && Objects.equals(pattern, that.pattern)
            && Objects.equals(escape, that.escape);

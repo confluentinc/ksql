@@ -17,36 +17,33 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.StatementParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/query")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
+@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
@@ -71,14 +68,13 @@ public class StreamedQueryResource {
   }
 
   @POST
-  @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    String ksql = request.getKsql();
-    Statement statement;
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    final String ksql = request.getKsql();
+    final Statement statement;
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }
-    Map<String, Object> clientLocalProperties =
+    final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {
       statement = statementParser.parseSingleStatement(ksql);
@@ -87,7 +83,7 @@ public class StreamedQueryResource {
     }
 
     if (statement instanceof Query) {
-      QueryStreamWriter queryStreamWriter;
+      final QueryStreamWriter queryStreamWriter;
       try {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
@@ -96,14 +92,14 @@ public class StreamedQueryResource {
             ksql,
             clientLocalProperties,
             objectMapper);
-      } catch (KsqlException e) {
+      } catch (final KsqlException e) {
         return Errors.badRequest(e);
       }
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
 
     } else if (statement instanceof PrintTopic) {
-      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
+      final TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
           clientLocalProperties,
           (PrintTopic) statement
       );
@@ -118,7 +114,7 @@ public class StreamedQueryResource {
       final Map<String, Object> clientLocalProperties,
       final PrintTopic printTopic
   ) {
-    String topicName = printTopic.getTopic().toString();
+    final String topicName = printTopic.getTopic().toString();
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(

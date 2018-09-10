@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,15 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.base.Preconditions;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.TopicPartition;
-
+import com.google.common.base.Preconditions;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.util.KafkaConsumerGroupClient;
+import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,21 +37,18 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.util.KafkaConsumerGroupClient;
-import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaTopicsList extends KsqlEntity {
 
   private final Collection<KafkaTopicInfo> topics;
 
   @JsonCreator
   public KafkaTopicsList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("topics") Collection<KafkaTopicInfo> topics
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("topics") final Collection<KafkaTopicInfo> topics
   ) {
     super(statementText);
     Preconditions.checkNotNull(topics, "topics field must not be null");
@@ -62,14 +60,14 @@ public class KafkaTopicsList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KafkaTopicsList)) {
       return false;
     }
-    KafkaTopicsList that = (KafkaTopicsList) o;
+    final KafkaTopicsList that = (KafkaTopicsList) o;
     return Objects.equals(getTopics(), that.getTopics());
   }
 
@@ -79,25 +77,23 @@ public class KafkaTopicsList extends KsqlEntity {
   }
 
   public static KafkaTopicsList build(
-      String statementText,
-      Collection<KsqlTopic> ksqlTopics,
-      Map<String, TopicDescription> kafkaTopicDescriptions,
-      KsqlConfig ksqlConfig,
-      KafkaConsumerGroupClient consumerGroupClient
+      final String statementText,
+      final Collection<KsqlTopic> ksqlTopics,
+      final Map<String, TopicDescription> kafkaTopicDescriptions,
+      final KsqlConfig ksqlConfig,
+      final KafkaConsumerGroupClient consumerGroupClient
   ) {
 
-    Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
+    final Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
 
-    List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
-    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(
-        kafkaTopicDescriptions,
-        ksqlConfig
-    ));
+    final List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
+    final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
+        filterKsqlInternalTopics(kafkaTopicDescriptions, ksqlConfig));
 
-    Map<String, List<Integer>> topicConsumersAndGroupCount = getTopicConsumerAndGroupCounts(
+    final Map<String, List<Integer>> topicConsumersAndGroupCount = getTopicConsumerAndGroupCounts(
         consumerGroupClient);
 
-    for (TopicDescription desp : kafkaTopicDescriptions.values()) {
+    for (final TopicDescription desp : filteredDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
           registeredNames.contains(desp.name()),
@@ -114,21 +110,21 @@ public class KafkaTopicsList extends KsqlEntity {
    * @return all topics with their associated consumerCount and consumerGroupCount
    */
   private static Map<String, List<Integer>> getTopicConsumerAndGroupCounts(
-      KafkaConsumerGroupClient consumerGroupClient
+      final KafkaConsumerGroupClient consumerGroupClient
   ) {
 
-    List<String> consumerGroups = consumerGroupClient.listGroups();
+    final List<String> consumerGroups = consumerGroupClient.listGroups();
 
-    Map<String, AtomicInteger> topicConsumerCount = new HashMap<>();
-    Map<String, Set<String>> topicConsumerGroupCount = new HashMap<>();
+    final Map<String, AtomicInteger> topicConsumerCount = new HashMap<>();
+    final Map<String, Set<String>> topicConsumerGroupCount = new HashMap<>();
 
-    for (String group : consumerGroups) {
-      Collection<KafkaConsumerGroupClientImpl.ConsumerSummary> consumerSummaryList =
+    for (final String group : consumerGroups) {
+      final Collection<KafkaConsumerGroupClientImpl.ConsumerSummary> consumerSummaryList =
           consumerGroupClient.describeConsumerGroup(group).consumers();
 
-      for (KafkaConsumerGroupClientImpl.ConsumerSummary consumerSummary : consumerSummaryList) {
+      for (final KafkaConsumerGroupClientImpl.ConsumerSummary summary : consumerSummaryList) {
 
-        for (TopicPartition topicPartition : consumerSummary.partitions()) {
+        for (final TopicPartition topicPartition : summary.partitions()) {
           topicConsumerCount
               .computeIfAbsent(topicPartition.topic(), k -> new AtomicInteger())
               .incrementAndGet();
@@ -137,7 +133,7 @@ public class KafkaTopicsList extends KsqlEntity {
         }
       }
     }
-    HashMap<String, List<Integer>> results = new HashMap<>();
+    final HashMap<String, List<Integer>> results = new HashMap<>();
     topicConsumerCount.forEach(
         (k, v) -> {
           results.computeIfAbsent(k, v1 -> new ArrayList<>()).add(v.intValue());
@@ -148,26 +144,26 @@ public class KafkaTopicsList extends KsqlEntity {
     return results;
   }
 
-  private static Set<String> getRegisteredKafkaTopicNames(Collection<KsqlTopic> ksqlTopics) {
-    Set<String> registeredNames = new HashSet<>();
-    for (KsqlTopic ksqlTopic : ksqlTopics) {
+  private static Set<String> getRegisteredKafkaTopicNames(final Collection<KsqlTopic> ksqlTopics) {
+    final Set<String> registeredNames = new HashSet<>();
+    for (final KsqlTopic ksqlTopic : ksqlTopics) {
       registeredNames.add(ksqlTopic.getKafkaTopicName());
     }
     return registeredNames;
   }
 
   private static Map<String, TopicDescription> filterKsqlInternalTopics(
-      Map<String, TopicDescription> kafkaTopicDescriptions, KsqlConfig ksqlConfig
+      final Map<String, TopicDescription> kafkaTopicDescriptions, final KsqlConfig ksqlConfig
   ) {
-    Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    final Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
+    final String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
                        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    String persistentQueryPrefix = ksqlConfig.getString(
+    final String persistentQueryPrefix = ksqlConfig.getString(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    String transientQueryPrefix = ksqlConfig.getString(
+    final String transientQueryPrefix = ksqlConfig.getString(
         KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
 
-    for (Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
+    for (final Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
       if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix)
           && !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
         filteredKafkaTopics.put(entry.getKey().toLowerCase(), entry.getValue());

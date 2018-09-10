@@ -16,30 +16,43 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class Join
     extends Relation {
 
   private final Optional<WithinExpression> withinExpression;
 
-  public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
+  public Join(
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria) {
     this(Optional.empty(), type, left, right, criteria, null);
   }
 
-  public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria, Optional<WithinExpression> withinExpression) {
+  public Join(
+      final NodeLocation location,
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria,
+      final Optional<WithinExpression> withinExpression) {
     this(Optional.of(location), type, left, right, criteria, withinExpression);
   }
 
-  private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
-               Optional<JoinCriteria> criteria,
-               Optional<WithinExpression> withinExpression) {
+  private Join(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria,
+      final Optional<WithinExpression> withinExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
@@ -95,7 +108,7 @@ public class Join
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitJoin(this, context);
   }
 
@@ -111,14 +124,14 @@ public class Join
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if ((o == null) || (getClass() != o.getClass())) {
       return false;
     }
-    Join join = (Join) o;
+    final Join join = (Join) o;
     return (type == join.type)
            && Objects.equals(left, join.left)
            && Objects.equals(right, join.right)

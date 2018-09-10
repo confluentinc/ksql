@@ -1,8 +1,7 @@
-# https://confluentinc.atlassian.net/browse/KSQL-292
-
 ARG DOCKER_UPSTREAM_REGISTRY
+ARG DOCKER_UPSTREAM_TAG
 
-FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base:5.0.0-beta1
+FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base:${DOCKER_UPSTREAM_TAG}
 
 ARG PROJECT_VERSION
 ARG ARTIFACT_ID
@@ -14,9 +13,9 @@ ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/*
 ENV KSQL_CONFIG_DIR="/etc/ksql"
 ENV KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
 
-RUN wget -q https://packages.confluent.io/archive/5.0/confluent-oss-5.0.0-beta1-2.11.tar.gz \
-    && tar xzvf confluent-oss-5.0.0-beta1-2.11.tar.gz --strip-components 1 \
-    && rm confluent-oss-5.0.0-beta1-2.11.tar.gz
+RUN wget -q https://s3-us-west-2.amazonaws.com/staging-confluent-packages-5.0.0/archive/5.0/confluent-oss-5.0.0-2.11.tar.gz \
+    && tar xzvf confluent-oss-5.0.0-2.11.tar.gz --strip-components 1 \
+    && rm confluent-oss-5.0.0-2.11.tar.gz
 
 RUN wget -q https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_5.0.3_amd64.deb \
     && wget -q https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.8.deb \

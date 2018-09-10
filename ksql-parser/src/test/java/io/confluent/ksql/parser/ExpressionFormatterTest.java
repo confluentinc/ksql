@@ -17,21 +17,13 @@
 
 package io.confluent.ksql.parser;
 
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.Array;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.util.Pair;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -52,29 +44,32 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.SubqueryExpression;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Values;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.tree.WindowFrame;
-
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import io.confluent.ksql.util.Pair;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public class ExpressionFormatterTest {
 
@@ -111,7 +106,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLongLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new LongLiteral("1")), equalTo("1"));
+    assertThat(ExpressionFormatter.formatExpression(new LongLiteral(1)), equalTo("1"));
   }
 
   @Test
@@ -228,15 +223,15 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatNotExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new NotExpression(new LongLiteral("1"))), equalTo("(NOT 1)"));
+    assertThat(ExpressionFormatter.formatExpression(new NotExpression(new LongLiteral(1))), equalTo("(NOT 1)"));
   }
 
   @Test
   public void shouldFormatComparisonExpression() {
     assertThat(ExpressionFormatter.formatExpression(
         new ComparisonExpression(ComparisonExpression.Type.EQUAL,
-            new LongLiteral("1"),
-            new LongLiteral("1"))),
+            new LongLiteral(1),
+            new LongLiteral(1))),
         equalTo("(1 = 1)"));
   }
 
@@ -263,14 +258,14 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatArithmeticUnary() {
     assertThat(ExpressionFormatter.formatExpression(new ArithmeticUnaryExpression(ArithmeticUnaryExpression.Sign.MINUS,
-        new LongLiteral("1"))),
+        new LongLiteral(1))),
         equalTo("-1"));
   }
 
   @Test
   public void shouldFormatArithmeticBinary() {
     assertThat(ExpressionFormatter.formatExpression(new ArithmeticBinaryExpression(ArithmeticBinaryExpression.Type.ADD,
-            new LongLiteral("1"), new LongLiteral("2"))),
+            new LongLiteral(1), new LongLiteral(2))),
         equalTo("(1 + 2)"));
   }
 
@@ -282,12 +277,12 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatCast() {
-    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral("1"), "Double", false)), equalTo("CAST(1 AS Double)"));
+    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral(1), "Double", false)), equalTo("CAST(1 AS Double)"));
   }
 
   @Test
   public void shouldFormatTryCast() {
-    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral("1"), "Double", true)), equalTo("TRY_CAST(1 AS Double)"));
+    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral(1), "Double", true)), equalTo("TRY_CAST(1 AS Double)"));
   }
 
   @Test
@@ -295,7 +290,7 @@ public class ExpressionFormatterTest {
     final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
-                new LongLiteral("1"))),
+                new LongLiteral(1))),
         Optional.empty());
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(CASE WHEN 'foo' THEN 1 END)"));
   }
@@ -305,8 +300,8 @@ public class ExpressionFormatterTest {
     final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
-                new LongLiteral("1"))),
-        Optional.of(new LongLiteral("2")));
+                new LongLiteral(1))),
+        Optional.of(new LongLiteral(2)));
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(CASE WHEN 'foo' THEN 1 ELSE 2 END)"));
   }
 
@@ -316,8 +311,8 @@ public class ExpressionFormatterTest {
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
-                new LongLiteral("1"))),
-        Optional.of(new LongLiteral("2")));
+                new LongLiteral(1))),
+        Optional.of(new LongLiteral(2)));
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(CASE 'operand' WHEN 'foo' THEN 1 ELSE 2 END)"));
   }
 
@@ -327,19 +322,19 @@ public class ExpressionFormatterTest {
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
-                new LongLiteral("1"))),
+                new LongLiteral(1))),
         Optional.empty());
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("(CASE 'operand' WHEN 'foo' THEN 1 END)"));
   }
 
   @Test
   public void shouldFormatWhen() {
-    assertThat(ExpressionFormatter.formatExpression(new WhenClause(new LongLiteral("1"), new LongLiteral("2"))), equalTo("WHEN 1 THEN 2"));
+    assertThat(ExpressionFormatter.formatExpression(new WhenClause(new LongLiteral(1), new LongLiteral(2))), equalTo("WHEN 1 THEN 2"));
   }
 
   @Test
   public void shouldFormatBetweenPredicate() {
-    final BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral("5"), new LongLiteral("10"));
+    final BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral(5), new LongLiteral(10));
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('blah' BETWEEN 5 AND 10)"));
   }
 
@@ -365,6 +360,18 @@ public class ExpressionFormatterTest {
     assertThat(
         ExpressionFormatter.formatExpression(struct),
         equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
+  }
+
+  @Test
+  public void shouldFormatStructWithColumnWithReservedWordName() {
+    final Struct struct
+        = new Struct(
+        ImmutableList.of(
+            new Pair<>("END", new PrimitiveType(Type.KsqlType.INTEGER))
+        ));
+    assertThat(
+        ExpressionFormatter.formatExpression(struct),
+        equalTo("STRUCT<`END` INTEGER>"));
   }
 
   @Test

@@ -16,28 +16,25 @@
 
 package io.confluent.ksql;
 
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.niceMock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
@@ -49,19 +46,18 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class KsqlEngineTest {
 
@@ -74,7 +70,8 @@ public class KsqlEngineTest {
       topicClient,
       schemaRegistryClient,
       new DefaultKafkaClientSupplier(),
-      metaStore);
+      metaStore,
+      ksqlConfig);
 
   @After
   public void closeEngine() {
@@ -101,13 +98,13 @@ public class KsqlEngineTest {
 
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() throws Exception {
-    ObjectMapper mapper = new ObjectMapper();
-    byte[] m = new byte[32];
+    final ObjectMapper mapper = new ObjectMapper();
+    final byte[] m = new byte[32];
     for (int i = 0; i < 32; i++) {
       m[i] = (byte)i;
     }
-    ByteBuffer bb = ByteBuffer.wrap(m);
-    String s = mapper.writeValueAsString(bb);
+    final ByteBuffer bb = ByteBuffer.wrap(m);
+    final String s = mapper.writeValueAsString(bb);
     ksqlEngine.createQueries("blah;", ksqlConfig);
   }
 
@@ -115,7 +112,7 @@ public class KsqlEngineTest {
   public void shouldUpdateReferentialIntegrityTableCorrectly() throws Exception {
     ksqlEngine.createQueries("create table bar as select * from test2;" +
                                    "create table foo as select * from test2;", ksqlConfig);
-    MetaStore metaStore = ksqlEngine.getMetaStore();
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
     assertThat(metaStore.getQueriesWithSource("TEST2"),
                equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
     assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR_0")));
@@ -129,7 +126,7 @@ public class KsqlEngineTest {
                                "create table foo as select * from test2;", ksqlConfig);
       ksqlEngine.createQueries("drop table foo;", ksqlConfig);
       Assert.fail();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
           "Exception while processing statements :Cannot drop FOO. \n"
@@ -141,13 +138,13 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldFailDDLStatementIfTopicDoesNotExist() {
-    String ddlStatement = "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
+    final String ddlStatement = "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON');";
     try {
-      List<QueryMetadata> queries =
+      final List<QueryMetadata> queries =
           ksqlEngine.buildMultipleQueries(ddlStatement.toString(), ksqlConfig, Collections.emptyMap());
       Assert.fail();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       assertThat(e.getMessage(), equalTo("Kafka topic does not exist: S1_NOTEXIST"));
     }
   }
@@ -164,21 +161,21 @@ public class KsqlEngineTest {
   @Test
   public void shouldEnforceTopicExistenceCorrectly() throws Exception {
     topicClient.createTopic("s1_topic", 1, (short) 1);
-    StringBuilder runScriptContent =
+    final StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
     runScriptContent.append("CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
                             + "S1 GROUP BY COL1;\n");
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
-    List<QueryMetadata> queries =
+    final List<QueryMetadata> queries =
         ksqlEngine.buildMultipleQueries(runScriptContent.toString(), ksqlConfig, Collections.emptyMap());
     Assert.assertTrue(topicClient.isTopicExists("T1"));
   }
 
   @Test
   public void shouldNotEnforceTopicExistanceWhileParsing() throws Exception {
-    StringBuilder runScriptContent =
+    final StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
     runScriptContent.append("CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
@@ -186,7 +183,7 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    List<Pair<String, Statement>> parsedStatements = ksqlEngine.parseQueries(
+    final List<PreparedStatement> parsedStatements = ksqlEngine.parseQueries(
         runScriptContent.toString(), metaStore.clone());
 
     assertThat(parsedStatements.size(), equalTo(3));
@@ -199,7 +196,7 @@ public class KsqlEngineTest {
         "create stream bar with (value_format = 'avro') as select * from test1;"
         + "create stream foo as select * from test1;",
         ksqlConfig, Collections.emptyMap());
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
@@ -218,7 +215,7 @@ public class KsqlEngineTest {
             "create table bar with (value_format = 'avro') as select * from test2;"
             + "create table foo as select * from test2;",
             ksqlConfig, Collections.emptyMap());
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
@@ -237,7 +234,7 @@ public class KsqlEngineTest {
         "create stream bar with (value_format = 'avro') as select * from test1;"
         + "create stream foo as select * from test1;",
         ksqlConfig, Collections.emptyMap());
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
@@ -279,7 +276,7 @@ public class KsqlEngineTest {
         "create table bar with (value_format = 'avro') as select * from test2;"
         + "create table foo as select * from test2;",
         ksqlConfig, Collections.emptyMap());
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
@@ -299,7 +296,7 @@ public class KsqlEngineTest {
         "create stream s1  with (value_format = 'avro') as select * from test1;"
         + "create table t1 as select col1, count(*) from s1 group by col1;",
         ksqlConfig, Collections.emptyMap());
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
@@ -326,18 +323,25 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+  public void shouldCloseAdminClientOnClose() {
     // Given:
-    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
-    topicClient.close();
+    final AdminClient adminClient = niceMock(AdminClient.class);
+    adminClient.close();
     expectLastCall();
-    replay(topicClient);
-    final KsqlEngine ksqlEngine = new KsqlEngine(topicClient, schemaRegistryClient, metaStore);
+    replay(adminClient);
+    final KsqlEngine ksqlEngine
+        = new KsqlEngine(
+            new FakeKafkaTopicClient(),
+            schemaRegistryClient,
+            new DefaultKafkaClientSupplier(),
+            metaStore,
+            ksqlConfig,
+          adminClient);
 
     // When:
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient);
+    verify(adminClient);
   }
 }

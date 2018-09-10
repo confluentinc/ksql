@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropView
     extends Statement {
@@ -27,15 +27,18 @@ public class DropView
   private final QualifiedName name;
   private final boolean exists;
 
-  public DropView(QualifiedName name, boolean exists) {
+  public DropView(final QualifiedName name, final boolean exists) {
     this(Optional.empty(), name, exists);
   }
 
-  public DropView(NodeLocation location, QualifiedName name, boolean exists) {
+  public DropView(final NodeLocation location, final QualifiedName name, final boolean exists) {
     this(Optional.of(location), name, exists);
   }
 
-  private DropView(Optional<NodeLocation> location, QualifiedName name, boolean exists) {
+  private DropView(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final boolean exists) {
     super(location);
     this.name = name;
     this.exists = exists;
@@ -50,7 +53,7 @@ public class DropView
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropView(this, context);
   }
 
@@ -60,14 +63,14 @@ public class DropView
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    DropView o = (DropView) obj;
+    final DropView o = (DropView) obj;
     return Objects.equals(name, o.name)
            && (exists == o.exists);
   }

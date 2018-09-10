@@ -16,21 +16,9 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,6 +32,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -115,7 +111,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
         ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
@@ -126,6 +121,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final SchemaKStream result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
+        ksqlConfig,
         functionRegistry,
         outputProperties,
         schemaRegistryClient
@@ -155,7 +151,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private boolean shouldBeCompacted(SchemaKStream result) {
+  private boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
            && !((SchemaKTable) result).isWindowed();
   }
@@ -164,6 +160,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private SchemaKStream createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
       final SchemaRegistryClient schemaRegistryClient
@@ -179,13 +176,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         this.getKeyField(),
         Collections.singletonList(schemaKStream),
         SchemaKStream.Type.SINK,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
-      String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
-      Field keyField = SchemaUtil.getFieldByName(
+      final String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
+      final Field keyField = SchemaUtil.getFieldByName(
           result.getSchema(), keyFieldName)
           .orElseThrow(() -> new KsqlException(String.format(
               "Column %s does not exist in the result schema."
@@ -239,7 +237,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
-  public KsqlStructuredDataOutputNode cloneWithDoCreateInto(boolean newDoCreateInto) {
+  public KsqlStructuredDataOutputNode cloneWithDoCreateInto(final boolean newDoCreateInto) {
     return new KsqlStructuredDataOutputNode(
         getId(),
         getSource(),
@@ -301,22 +299,22 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withOutputProperties(Map<String, Object> outputProperties) {
+    Builder withOutputProperties(final Map<String, Object> outputProperties) {
       this.outputProperties = outputProperties;
       return this;
     }
 
-    Builder withTopicName(String topicName) {
+    Builder withTopicName(final String topicName) {
       this.topicName = topicName;
       return this;
     }
 
-    Builder withKsqlTopic(KsqlTopic ksqlTopic) {
+    Builder withKsqlTopic(final KsqlTopic ksqlTopic) {
       this.ksqlTopic = ksqlTopic;
       return this;
     }
 
-    Builder withKeyField(Field keyField) {
+    Builder withKeyField(final Field keyField) {
       this.keyField = keyField;
       return this;
     }
@@ -326,12 +324,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withSchema(Schema schema) {
+    Builder withSchema(final Schema schema) {
       this.schema = schema;
       return this;
     }
 
-    Builder withSource(PlanNode source) {
+    Builder withSource(final PlanNode source) {
       this.source = source;
       return this;
     }

@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class Select
     extends Node {
@@ -31,15 +30,21 @@ public class Select
   private final boolean distinct;
   private final List<SelectItem> selectItems;
 
-  public Select(boolean distinct, List<SelectItem> selectItems) {
+  public Select(final boolean distinct, final List<SelectItem> selectItems) {
     this(Optional.empty(), distinct, selectItems);
   }
 
-  public Select(NodeLocation location, boolean distinct, List<SelectItem> selectItems) {
+  public Select(
+      final NodeLocation location,
+      final boolean distinct,
+      final List<SelectItem> selectItems) {
     this(Optional.of(location), distinct, selectItems);
   }
 
-  private Select(Optional<NodeLocation> location, boolean distinct, List<SelectItem> selectItems) {
+  private Select(
+      final Optional<NodeLocation> location,
+      final boolean distinct,
+      final List<SelectItem> selectItems) {
     super(location);
     this.distinct = distinct;
     this.selectItems = ImmutableList.copyOf(requireNonNull(selectItems, "selectItems"));
@@ -54,7 +59,7 @@ public class Select
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSelect(this, context);
   }
 
@@ -68,7 +73,7 @@ public class Select
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -76,7 +81,7 @@ public class Select
       return false;
     }
 
-    Select select = (Select) o;
+    final Select select = (Select) o;
     return (distinct == select.distinct)
            && Objects.equals(selectItems, select.selectItems);
   }

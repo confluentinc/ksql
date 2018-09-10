@@ -32,16 +32,39 @@ Each method in the class that represents a UDF must be public and annotated with
 you create represents a collection of UDFs all with the same name but may have different
 arguments and return types.
 
+Optional ``@UdfParameter`` annotations can be added to method parameters to provide users with
+richer information.
+
+
+Null Handling
+~~~~~~~~~~~~~
+
+If a UDF uses primitive types in its signature it is indicating that the parameter should never be null.
+Conversely, using boxed types indicates the function can accept null values for the parameter.
+It is up to the implementor of the UDF to chose which is the most appropriate.
+A common pattern is to return ``null`` if the input is ``null``, though generally this is only for
+parameters that are expected to be supplied from the source row being processed. For example,
+a ``substring(String str, int pos)`` UDF might return null if ``str`` is null, but a
+null ``pos`` parameter would be treated as an error, and hence should be a primitive.
+(In actual fact, the in-built substring is more lenient and would return null if pos was null).
+
+The return type of a UDF can also be a primitive or boxed type. A primitive return type indicates
+the function will never return ``null``, where as a boxed type indicates it may return ``null``.
+
+The KSQL server will check the value being passed to each parameter and report an error to the server
+log for any null values being passed to a primitive type. The associated column in the output row
+will be ``null``.
 
 Example UDF class
 ~~~~~~~~~~~~~~~~~
 
 The class below creates a UDF named ``multiply``. The name of the UDF is provided in the ``name``
 parameter of the ``UdfDescription`` annotation. This name is case-insensitive and is what can be
-used to call the UDF. As can be seen this UDF can be invoked in three different ways:
+used to call the UDF. As can be seen this UDF can be invoked in different ways:
 
 - with two int parameters returning a long (BIGINT) result.
 - with two long (BIGINT) parameters returning a long (BIGINT) result.
+- with two nullable Long (BIGINT) parameters returning a nullable Long (BIGINT) result.
 - with two double parameters returning a double result.
 
 .. code:: java
@@ -49,21 +72,29 @@ used to call the UDF. As can be seen this UDF can be invoked in three different 
     @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
     public class Multiply {
 
-      @Udf(description = "multiply two ints")
-      public long multiply(final int v1, final int v2) {
+      @Udf(description = "multiply two non-nullable INTs.")
+      public long multiply(
+        @UdfParameter(value = "V1", description = "the first value") final int v1,
+        @UdfParameter(value = "V2", description = "the second value") final int v2) {
         return v1 * v2;
       }
 
-      @Udf(description = "multiply two longs")
-      public long multiply(final long v1, final long v2) {
+      @Udf(description = "multiply two non-nullable BIGINTs.")
+      public long multiply(
+        @UdfParameter("V1") final long v1,
+        @UdfParameter("V2") final long v2) {
         return v1 * v2;
       }
 
-      @Udf(description = "multiply two doubles")
+      @Udf(description = "multiply two nullable BIGINTs. If either param is null, null is returned.")
+      public Long multiply(final Long v1, final Long v2) {
+        return v1 == null || v2 == null ? null : v1 * v2;
+      }
+
+      @Udf(description = "multiply two non-nullable DOUBLEs.")
       public double multiply(final double v1, double v2) {
         return v1 * v2;
       }
-
     }
 
 
@@ -94,21 +125,59 @@ Udf Annotation
 
 The ``@Udf`` annotation is applied to public methods of a class annotated with ``@UdfDescription``.
 Each annotated method will become an invocable function in KSQL. The annotation only has a single
-field ``description`` that is required. You can use this to better describe what a particular version
+field ``description`` that is optional. You can use this to better describe what a particular version
 of the UDF does, for example:
 
 .. code:: java
 
-    @Udf(description = "Returns a string that is a substring of this string. The"
-        + " substring begins with the character at the specified startIndex and"
-        + " extends to the end of this string.")
-    public String substring(final String value, final int startIndex)
+    @Udf(description = "Returns a substring of str that starts at pos"
+      + " and continues to the end of the string")
+    public String substring(final String str, final int pos)
 
-    @Udf(description = "Returns a string that is a substring of this string. The"
-        + " substring begins with the character at the specified startIndex and"
-        + " extends to the character at endIndex -1.")
-    public String substring(final String value, final int startIndex, final int endIndex)
+    @Udf(description = "Returns a substring of str that starts at pos and is of length len")
+    public String substring(final String str, final int pos, final int len)
 
+UdfParameter Annotation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``@UdfParameter`` annotation is optional and is applied to the parameters of methods annotated with
+``@Udf``. KSQL will use the additional information in the ``@UdfParameter`` annotation to provide
+users with richer information about the method when, for example, they execute
+``DESCRIBE FUNCTION`` on the method.
+
+The annotation has two parameters: ``value`` is the name of the parameter and ``description`` which
+can be used to better describe what the parameter does, for example:
+
+.. code:: java
+
+    @Udf
+    public String substring(
+       @UdfParameter("str") final String str,
+       @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
+
+Configurable UDF
+~~~~~~~~~~~~~~~~
+
+If the UDF class needs access to the KSQL server configuration it can implement
+``io.confluent.common.Configurable``, e.g.
+
+.. code:: java
+
+    @UdfDescription(name = "MyFirstUDF", description = "multiplies 2 numbers")
+    public class SomeConfigurableUdf implements Configurable {
+      private String someSetting = "a.default.value";
+
+      @Override
+      public void configure(final Map<String, ?> map) {
+        this.someSetting = (String)map.get("ksql.functions.myfirstudf.some.setting");
+      }
+
+      ...
+    }
+
+For security reasons, only settings whose name is prefixed with
+``ksql.functions.<lowercase-udfname>.`` or ``ksql.functions._global_.`` will be propagated to the
+Udf.
 
 UDAFs
 -----
@@ -153,8 +222,8 @@ used to call the UDAF. The UDAF can be invoked in four ways:
           }
 
           @Override
-          public Long aggregate(final Long aggregate, final Long aLong) {
-            return aggregate + aLong;
+          public Long aggregate(final Long value, final Long aggregate) {
+            return aggregate + value;
           }
 
           @Override
@@ -198,7 +267,7 @@ used to call the UDAF. The UDAF can be invoked in four ways:
           }
 
           @Override
-          public Double aggregate(final Double aggregate, final Double val) {
+          public Double aggregate(final Double val, final Double aggregate) {
             return aggregate + val;
           }
 
@@ -408,5 +477,4 @@ Metric Collection
 Metric collection can be enabled by setting the config ``ksql.udf.collect.metrics`` to ``true``.
 This defaults to ``false`` and is generally not recommended for production usage as metrics
 will be collected on each invocation and will introduce some overhead to processing time.
-
 

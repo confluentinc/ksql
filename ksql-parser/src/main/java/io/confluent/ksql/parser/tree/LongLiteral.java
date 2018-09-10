@@ -16,33 +16,24 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.parser.ParsingException;
-
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
 
-public class LongLiteral
-    extends Literal {
+public class LongLiteral extends Literal {
 
   private final long value;
 
-  public LongLiteral(String value) {
+  public LongLiteral(final long value) {
     this(Optional.empty(), value);
   }
 
-  public LongLiteral(NodeLocation location, String value) {
+  public LongLiteral(final NodeLocation location, final long value) {
     this(Optional.of(location), value);
   }
 
-  private LongLiteral(Optional<NodeLocation> location, String value) {
+  private LongLiteral(final Optional<NodeLocation> location, final long value) {
     super(location);
-    requireNonNull(value, "value is null");
-    try {
-      this.value = Long.parseLong(value);
-    } catch (NumberFormatException e) {
-      throw new ParsingException("Invalid numeric literal: " + value);
-    }
+    this.value = value;
   }
 
   public long getValue() {
@@ -50,12 +41,12 @@ public class LongLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitLongLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -63,7 +54,7 @@ public class LongLiteral
       return false;
     }
 
-    LongLiteral that = (LongLiteral) o;
+    final LongLiteral that = (LongLiteral) o;
 
     if (value != that.value) {
       return false;

@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.function.udf.structfieldextractor;
 
-import io.confluent.ksql.function.FunctionUtil;
-import org.apache.kafka.connect.data.Struct;
-
+import io.confluent.ksql.function.UdfUtil;
 import io.confluent.ksql.function.udf.Kudf;
+import org.apache.kafka.connect.data.Struct;
 
 public class FetchFieldFromStruct implements Kudf {
 
@@ -27,7 +26,7 @@ public class FetchFieldFromStruct implements Kudf {
 
   @Override
   public Object evaluate(final Object... args) {
-    FunctionUtil.ensureCorrectArgs(FUNCTION_NAME, args, Struct.class, String.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, Struct.class, String.class);
     if (args[0] == null) {
       return null;
     }

@@ -16,30 +16,28 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import io.confluent.ksql.util.Pair;
-
-import static java.util.Objects.requireNonNull;
 
 public final class Struct
     extends Type {
 
   private final List<Pair<String, Type>> items;
 
-  public Struct(List<Pair<String, Type>> items) {
+  public Struct(final List<Pair<String, Type>> items) {
     this(Optional.empty(), items);
   }
 
-  public Struct(NodeLocation location, List<Pair<String, Type>> items) {
+  public Struct(final NodeLocation location, final List<Pair<String, Type>> items) {
     this(Optional.of(location), items);
   }
 
-  private Struct(Optional<NodeLocation> location, List<Pair<String, Type>> items) {
+  private Struct(final Optional<NodeLocation> location, final List<Pair<String, Type>> items) {
     super(location, KsqlType.STRUCT);
     requireNonNull(items, "items is null");
     this.items = ImmutableList.copyOf(items);
@@ -50,7 +48,7 @@ public final class Struct
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitStruct(this, context);
   }
 
@@ -60,14 +58,14 @@ public final class Struct
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    Struct other = (Struct) obj;
+    final Struct other = (Struct) obj;
     return Objects.equals(this.items, other.items);
   }
 }

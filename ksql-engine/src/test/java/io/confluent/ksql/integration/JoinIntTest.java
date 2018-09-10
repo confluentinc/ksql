@@ -7,9 +7,11 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
-
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
@@ -18,11 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 
 @Category({IntegrationTest.class})
@@ -52,7 +49,7 @@ public class JoinIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start(Collections.emptyMap());
-    Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
+    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
     ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
@@ -96,11 +93,11 @@ public class JoinIntTest {
   }
 
 
-  private void shouldLeftJoinOrderAndItems(String testStreamName,
-                                          String orderStreamTopic,
-                                          String orderStreamName,
-                                          String itemTableName,
-                                          DataSource.DataSourceSerDe dataSourceSerDe)
+  private void shouldLeftJoinOrderAndItems(final String testStreamName,
+                                          final String orderStreamTopic,
+                                          final String orderStreamName,
+                                          final String itemTableName,
+                                          final DataSource.DataSourceSerDe dataSourceSerDe)
       throws Exception {
 
     final String queryString = String.format(
@@ -115,9 +112,9 @@ public class JoinIntTest {
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
 
-    Map<String, GenericRow> expectedResults =
+    final Map<String, GenericRow> expectedResults =
         Collections.singletonMap("ITEM_1",
                                  new GenericRow(Arrays.asList(
                                      null,
@@ -142,7 +139,7 @@ public class JoinIntTest {
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
           testHarness.publishTestData(orderStreamTopic, orderDataProvider, now, dataSourceSerDe);
-        } catch(Exception e) {
+        } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
@@ -182,9 +179,9 @@ public class JoinIntTest {
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
 
-    Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
+    final Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -196,7 +193,7 @@ public class JoinIntTest {
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
           testHarness.publishTestData(orderStreamTopicJson, orderDataProvider, now);
-        } catch(Exception e) {
+        } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
@@ -238,9 +235,9 @@ public class JoinIntTest {
     ksqlContext.sql(queryString);
 
     final String outputStream = "OUTPUT";
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(outputStream).getSchema();
+    final Schema resultSchema = ksqlContext.getMetaStore().getSource(outputStream).getSchema();
 
-    Map<String, GenericRow> expectedResults =
+    final Map<String, GenericRow> expectedResults =
         Collections.singletonMap("ITEM_1",
             new GenericRow(Arrays.asList(
                 null,
@@ -264,7 +261,7 @@ public class JoinIntTest {
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
           testHarness.publishTestData(orderStreamTopicAvro, orderDataProvider, now, DataSource.DataSourceSerDe.AVRO);
-        } catch(Exception e) {
+        } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }

@@ -16,17 +16,16 @@
 
 package io.confluent.ksql.metastore;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public class KsqlStream extends StructuredDataSource {
 
   public KsqlStream(
-      String sqlExpression,
+      final String sqlExpression,
       final String datasourceName,
       final Schema schema,
       final Field keyField,
@@ -58,7 +57,7 @@ public class KsqlStream extends StructuredDataSource {
 
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
-    Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KsqlStream(
         sqlExpression,
         dataSourceName,

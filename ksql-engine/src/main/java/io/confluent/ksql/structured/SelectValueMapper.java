@@ -16,19 +16,17 @@
 
 package io.confluent.ksql.structured;
 
-import org.apache.kafka.streams.kstream.ValueMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.kafka.streams.kstream.ValueMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   private static Logger log = LoggerFactory.getLogger(SelectValueMapper.class);
@@ -71,7 +69,7 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
         newColumns.add(
             expressionEvaluators.get(i).getExpressionEvaluator().evaluate(parameterObjects)
         );
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error(
             "Error calculating column with index {} : {}",
             i,

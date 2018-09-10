@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public abstract class Node {
 
@@ -26,14 +26,14 @@ public abstract class Node {
 
   private Optional<Node> parent = Optional.empty();
 
-  protected Node(Optional<NodeLocation> location) {
+  protected Node(final Optional<NodeLocation> location) {
     this.location = requireNonNull(location, "location is null");
   }
 
   /**
    * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
    */
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitNode(this, context);
   }
 
@@ -45,11 +45,11 @@ public abstract class Node {
     return parent;
   }
 
-  public void setParent(Optional<Node> parent) {
+  public void setParent(final Optional<Node> parent) {
     this.parent = parent;
   }
   
-  public void setParent(Node parent) {
+  public void setParent(final Node parent) {
     this.parent = Optional.ofNullable(parent);
   }
 

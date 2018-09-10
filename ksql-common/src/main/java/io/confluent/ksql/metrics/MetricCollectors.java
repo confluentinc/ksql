@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,7 @@
 
 package io.confluent.ksql.metrics;
 
-import org.apache.kafka.common.metrics.JmxReporter;
-import org.apache.kafka.common.metrics.MetricConfig;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.utils.SystemTime;
-
+import io.confluent.common.utils.Time;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,15 +25,17 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.confluent.common.utils.Time;
+import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.utils.SystemTime;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
-public class MetricCollectors {
-
+public final class MetricCollectors {
 
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
@@ -47,19 +44,22 @@ public class MetricCollectors {
     initialize();
   }
 
-  private static Time time = new io.confluent.common.utils.SystemTime();
+  private static final Time time = new io.confluent.common.utils.SystemTime();
+
+  private MetricCollectors() {
+  }
 
   // visible for testing.
   // We need to call this from the MetricCollectorsTest because otherwise tests clobber each
   // others metric data. We also need it from the KsqlEngineMetricsTest
   public static void initialize() {
-    MetricConfig metricConfig = new MetricConfig()
+    final MetricConfig metricConfig = new MetricConfig()
         .samples(100)
         .timeWindow(
             1000,
             TimeUnit.MILLISECONDS
         );
-    List<MetricsReporter> reporters = new ArrayList<>();
+    final List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
     // Replace all static contents other than Time to ensure they are cleaned for tests that are
     // not aware of the need to initialize/cleanup this test, in case test processes are reused.
@@ -92,21 +92,21 @@ public class MetricCollectors {
     return finalId;
   }
 
-  static void remove(String id) {
+  static void remove(final String id) {
     collectorMap.remove(id);
   }
 
-  public static String getStatsFor(final String topic, boolean isError) {
+  public static String getStatsFor(final String topic, final boolean isError) {
 
-    ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
+    final ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
     collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase(), isError)));
 
-    Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
+    final Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
 
     return format(aggregateStats.values(), isError ? "last-failed" : "last-message");
   }
 
-  public static void recordError(String topic) {
+  public static void recordError(final String topic) {
     collectorMap.values().iterator().next().recordError(topic);
   }
 
@@ -114,7 +114,7 @@ public class MetricCollectors {
   static Map<String, TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
   ) {
-    Map<String, TopicSensors.Stat> results = new TreeMap<>();
+    final Map<String, TopicSensors.Stat> results = new TreeMap<>();
     allStats.forEach(stat -> {
       results.computeIfAbsent(
           stat.name(),
@@ -125,8 +125,10 @@ public class MetricCollectors {
     return results;
   }
 
-  private static String format(Collection<TopicSensors.Stat> stats, String lastEventTimestampMsg) {
-    StringBuilder results = new StringBuilder();
+  private static String format(
+      final Collection<TopicSensors.Stat> stats,
+      final String lastEventTimestampMsg) {
+    final StringBuilder results = new StringBuilder();
     stats.forEach(stat -> results.append(stat.formatted()).append(" "));
     if (stats.size() > 0) {
       results

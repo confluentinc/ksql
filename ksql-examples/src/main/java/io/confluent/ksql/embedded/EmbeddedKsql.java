@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,18 @@
 
 package io.confluent.ksql.embedded;
 
-import java.util.Collections;
-
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 
-public class EmbeddedKsql {
+public final class EmbeddedKsql {
 
-  public static void main(String[] args) throws Exception {
+  private EmbeddedKsql() {
+  }
 
-    KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
+  public static void main(final String[] args) throws Exception {
+
+    final KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class Explain
     extends Statement {
@@ -33,30 +32,30 @@ public class Explain
   private final List<ExplainOption> options;
 
   public Explain(
-      String queryId,
-      Statement statement,
-      boolean analyze,
-      List<ExplainOption> options
+      final String queryId,
+      final Statement statement,
+      final boolean analyze,
+      final List<ExplainOption> options
   ) {
     this(Optional.empty(), analyze, queryId, statement, options);
   }
 
   public Explain(
-      NodeLocation location,
-      boolean analyze,
-      String queryId,
-      Statement statement,
-      List<ExplainOption> options
+      final NodeLocation location,
+      final boolean analyze,
+      final String queryId,
+      final Statement statement,
+      final List<ExplainOption> options
   ) {
     this(Optional.of(location), analyze, queryId, statement, options);
   }
 
   private Explain(
-      Optional<NodeLocation> location,
-      boolean analyze,
-      String queryId,
-      Statement statement,
-      List<ExplainOption> options
+      final Optional<NodeLocation> location,
+      final boolean analyze,
+      final String queryId,
+      final Statement statement,
+      final List<ExplainOption> options
   ) {
     super(location);
     this.statement = statement;// requireNonNull(statement, "statement is null");
@@ -86,7 +85,7 @@ public class Explain
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExplain(this, context);
   }
 
@@ -96,14 +95,14 @@ public class Explain
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    Explain o = (Explain) obj;
+    final Explain o = (Explain) obj;
     return Objects.equals(statement, o.statement)
            && Objects.equals(options, o.options)
            && Objects.equals(analyze, o.analyze);

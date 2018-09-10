@@ -17,13 +17,13 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
@@ -38,13 +38,13 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
     return hasAggregateFunction;
   }
 
-  public void setHasAggregateFunction(boolean hasAggregateFunction) {
+  public void setHasAggregateFunction(final boolean hasAggregateFunction) {
     this.hasAggregateFunction = hasAggregateFunction;
   }
 
-  public AggregateAnalyzer(AggregateAnalysis aggregateAnalysis,
-                           Analysis analysis,
-                           FunctionRegistry functionRegistry) {
+  public AggregateAnalyzer(final AggregateAnalysis aggregateAnalysis,
+                           final Analysis analysis,
+                           final FunctionRegistry functionRegistry) {
     this.aggregateAnalysis = aggregateAnalysis;
     this.analysis = analysis;
     this.functionRegistry = functionRegistry;
@@ -52,16 +52,16 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
 
   @Override
   protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
-    String functionName = node.getName().getSuffix();
+    final String functionName = node.getName().getSuffix();
     if (functionRegistry.isAggregate(functionName)) {
       if (node.getArguments().isEmpty()) {
-        Expression argExpression;
+        final Expression argExpression;
         if (analysis.getJoin() != null) {
-          Expression baseExpression = new QualifiedNameReference(
+          final Expression baseExpression = new QualifiedNameReference(
               QualifiedName.of(analysis.getJoin().getLeftAlias()));
           argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         } else {
-          Expression baseExpression = new QualifiedNameReference(
+          final Expression baseExpression = new QualifiedNameReference(
               QualifiedName.of(analysis.getFromDataSources().get(0).getRight()));
           argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         }
@@ -74,7 +74,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
       hasAggregateFunction = true;
     }
 
-    for (Expression argExp: node.getArguments()) {
+    for (final Expression argExp: node.getArguments()) {
       process(argExp, context);
     }
     return null;
@@ -83,7 +83,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   @Override
   protected Node visitDereferenceExpression(final DereferenceExpression node,
                                              final AnalysisContext context) {
-    String name = node.toString();
+    final String name = node.toString();
     if (!aggregateAnalysis.hasRequiredColumn(name)) {
       aggregateAnalysis.addRequiredColumn(name, node);
     }

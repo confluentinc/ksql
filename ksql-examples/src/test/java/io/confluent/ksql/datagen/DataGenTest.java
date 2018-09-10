@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.datagen;
 
-import org.junit.Test;
-
 import java.io.IOException;
+import org.junit.Test;
 
 public class DataGenTest {
 

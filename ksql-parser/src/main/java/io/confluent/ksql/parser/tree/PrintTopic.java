@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class PrintTopic extends Statement {
 
@@ -63,14 +63,14 @@ public class PrintTopic extends Statement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof PrintTopic)) {
       return false;
     }
-    PrintTopic that = (PrintTopic) o;
+    final PrintTopic that = (PrintTopic) o;
     return getFromBeginning() == that.getFromBeginning()
         && Objects.equals(getTopic(), that.getTopic())
         && getIntervalValue() == that.getIntervalValue();

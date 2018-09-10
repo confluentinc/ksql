@@ -16,31 +16,31 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class Array extends Type {
 
   private Type itemType;
 
-  public Array(Type itemType) {
+  public Array(final Type itemType) {
     this(Optional.empty(), itemType);
   }
 
-  public Array(NodeLocation location, Type itemType) {
+  public Array(final NodeLocation location, final Type itemType) {
     this(Optional.of(location), itemType);
   }
 
-  private Array(Optional<NodeLocation> location, Type itemType) {
+  private Array(final Optional<NodeLocation> location, final Type itemType) {
     super(location, KsqlType.ARRAY);
     requireNonNull(itemType, "itemType is null");
     this.itemType = itemType;
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitArray(this, context);
   }
 
@@ -54,7 +54,7 @@ public class Array extends Type {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return
         obj instanceof Array
         && Objects.equals(itemType, ((Array)obj).itemType);

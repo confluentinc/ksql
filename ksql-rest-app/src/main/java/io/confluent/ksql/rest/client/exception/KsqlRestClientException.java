@@ -17,11 +17,11 @@
 package io.confluent.ksql.rest.client.exception;
 
 public class KsqlRestClientException extends RuntimeException {
-  public KsqlRestClientException(String message) {
+  public KsqlRestClientException(final String message) {
     super(message);
   }
 
-  public KsqlRestClientException(String message, Throwable throwable) {
+  public KsqlRestClientException(final String message, final Throwable throwable) {
     super(message, throwable);
   }
 }

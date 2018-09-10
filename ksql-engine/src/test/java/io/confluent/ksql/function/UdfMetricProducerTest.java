@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -25,11 +29,6 @@ import org.apache.kafka.common.utils.MockTime;
 import org.apache.kafka.common.utils.Time;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UdfMetricProducerTest {
 
@@ -68,7 +67,7 @@ public class UdfMetricProducerTest {
 
     try {
       metricProducer.evaluate("foo");
-    } catch (Exception e) {
+    } catch (final Exception e) {
       // ignored
     }
 

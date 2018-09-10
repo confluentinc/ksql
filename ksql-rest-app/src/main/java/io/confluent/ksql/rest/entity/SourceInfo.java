@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,17 +17,17 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-import java.util.Objects;
-
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.SourceInfo.Table;
+import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(value = {
     @JsonSubTypes.Type(name = "STREAM", value = Stream.class),
@@ -38,23 +38,24 @@ public class SourceInfo {
   private final String topic;
   private final String format;
 
-  public SourceInfo(String name, String topic, String format) {
+  public SourceInfo(final String name, final String topic, final String format) {
     this.name = name;
     this.topic = topic;
     this.format = format;
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Stream extends SourceInfo {
     @JsonCreator
     public Stream(
-        @JsonProperty("name") String name,
-        @JsonProperty("topic") String topic,
-        @JsonProperty("format") String format
+        @JsonProperty("name") final String name,
+        @JsonProperty("topic") final String topic,
+        @JsonProperty("format") final String format
     ) {
       super(name, topic, format);
     }
 
-    public Stream(KsqlStream ksqlStream) {
+    public Stream(final KsqlStream ksqlStream) {
       this(
           ksqlStream.getName(),
           ksqlStream.getKsqlTopic().getKafkaTopicName(),
@@ -63,21 +64,22 @@ public class SourceInfo {
     }
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Table extends SourceInfo {
     private final boolean isWindowed;
 
     @JsonCreator
     public Table(
-        @JsonProperty("name") String name,
-        @JsonProperty("topic") String topic,
-        @JsonProperty("format") String format,
-        @JsonProperty("isWindowed") Boolean isWindowed
+        @JsonProperty("name") final String name,
+        @JsonProperty("topic") final String topic,
+        @JsonProperty("format") final String format,
+        @JsonProperty("isWindowed") final Boolean isWindowed
     ) {
       super(name, topic, format);
       this.isWindowed = isWindowed;
     }
 
-    public Table(KsqlTable ksqlTable) {
+    public Table(final KsqlTable ksqlTable) {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),
@@ -91,7 +93,7 @@ public class SourceInfo {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
@@ -101,7 +103,7 @@ public class SourceInfo {
       if (!super.equals(o)) {
         return false;
       }
-      Table table = (Table) o;
+      final Table table = (Table) o;
       return isWindowed == table.isWindowed;
     }
 
@@ -124,14 +126,14 @@ public class SourceInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SourceInfo that = (SourceInfo) o;
+    final SourceInfo that = (SourceInfo) o;
     return Objects.equals(name, that.name)
            && Objects.equals(topic, that.topic)
            && Objects.equals(format, that.format);

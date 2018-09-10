@@ -21,15 +21,15 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 
 public class AvroDataTranslator implements DataTranslator {
@@ -75,7 +75,6 @@ public class AvroDataTranslator implements DataTranslator {
 
   private static class TypeNameGenerator {
     private static final String DELIMITER = "_";
-    private static final String DEFAULT_SCHEMA_NAME_BASE = "KSQLDefaultSchemaName";
 
     static final String MAP_KEY_NAME = "MapKey";
     static final String MAP_VALUE_NAME = "MapValue";
@@ -83,7 +82,7 @@ public class AvroDataTranslator implements DataTranslator {
     private Iterable<String> names;
 
     TypeNameGenerator() {
-      this(ImmutableList.of(DEFAULT_SCHEMA_NAME_BASE));
+      this(ImmutableList.of(KsqlConstants.AVRO_SCHEMA_FULL_NAME));
     }
 
     private TypeNameGenerator(final Iterable<String> names) {

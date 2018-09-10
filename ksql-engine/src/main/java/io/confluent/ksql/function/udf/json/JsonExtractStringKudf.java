@@ -16,41 +16,42 @@
 
 package io.confluent.ksql.function.udf.json;
 
-import com.google.common.collect.ImmutableList;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfUtil;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.json.JsonPathTokenizer;
 import java.io.IOException;
 import java.util.List;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.json.JsonPathTokenizer;
-
 public class JsonExtractStringKudf implements Kudf {
   private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();
+  public static final String NAME = "EXTRACTJSONFIELD";
 
   private List<String> tokens = null;
 
   @Override
-  public Object evaluate(Object... args) {
-    if (args.length != 2) {
-      throw new KsqlFunctionException("getStringFromJson udf should have two input arguments:"
-                                      + " JSON document and JSON path.");
-    }
+  public Object evaluate(final Object... args) {
+    UdfUtil.ensureCorrectArgs("EXTRACTJSONFIELD", args, String.class, String.class);
 
     ensureInitialized(args);
 
+    if (args[0] == null) {
+      return null;
+    }
+
     JsonNode currentNode = parseJsonDoc(args[0]);
-    for (String token : tokens) {
+    for (final String token : tokens) {
       if (currentNode instanceof ArrayNode) {
         try {
           final int index = Integer.parseInt(token);
           currentNode = currentNode.get(index);
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
           return null;
         }
       } else {
@@ -74,6 +75,10 @@ public class JsonExtractStringKudf implements Kudf {
       return;
     }
 
+    if (args[1] == null) {
+      throw new KsqlException("Path can not be null");
+    }
+
     final String path = args[1].toString();
     final JsonPathTokenizer tokenizer = new JsonPathTokenizer(path);
     tokens = ImmutableList.copyOf(tokenizer);
@@ -83,7 +88,7 @@ public class JsonExtractStringKudf implements Kudf {
     final String jsonString = arg.toString();
     try {
       return OBJECT_READER.readTree(jsonString);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
     }
   }

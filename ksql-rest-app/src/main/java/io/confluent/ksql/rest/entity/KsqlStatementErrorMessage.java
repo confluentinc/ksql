@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,36 +16,43 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.confluent.ksql.util.ErrorMessageUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import io.confluent.ksql.util.ErrorMessageUtil;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   private final String statementText;
   private final KsqlEntityList entities;
 
+  @SuppressWarnings("WeakerAccess") // Invoked via reflection
   public KsqlStatementErrorMessage(
-      @JsonProperty("error_code") int errorCode,
-      @JsonProperty("message") String message,
-      @JsonProperty("stackTrace") List<String> stackTrace,
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("entities") KsqlEntityList entities) {
+      @JsonProperty("error_code") final int errorCode,
+      @JsonProperty("message") final String message,
+      @JsonProperty("stackTrace") final List<String> stackTrace,
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("entities") final KsqlEntityList entities) {
     super(errorCode, message, stackTrace);
     this.entities = entities;
     this.statementText = statementText;
   }
 
   public KsqlStatementErrorMessage(
-      int errorCode, String message, String statementText, KsqlEntityList entityList) {
+      final int errorCode,
+      final String message,
+      final String statementText,
+      final KsqlEntityList entityList) {
     this(errorCode, message, Collections.emptyList(), statementText, entityList);
   }
 
   public KsqlStatementErrorMessage(
-      int errorCode, Throwable t, String statementText, KsqlEntityList entityList) {
+      final int errorCode,
+      final Throwable t,
+      final String statementText,
+      final KsqlEntityList entityList) {
     this(
         errorCode, ErrorMessageUtil.buildErrorMessage(t), getStackTraceStrings(t),
         statementText, entityList);

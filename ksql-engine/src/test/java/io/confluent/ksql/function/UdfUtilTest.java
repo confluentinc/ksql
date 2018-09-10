@@ -17,27 +17,43 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
-public class FunctionUtilTest {
+public class UdfUtilTest {
 
   @Test
   public void shouldPassIfArgsAreCorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
+    UdfUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfTypeIsIncorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class);
+    UdfUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class);
+  }
+
+  @Test (expected = KsqlException.class)
+  public void shouldFailIfArgCountIsTooFew() {
+    final Object[] args = new Object[] {"TtestArg1", 10L};
+    UdfUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class, String.class);
+  }
+
+  @Test (expected = KsqlException.class)
+  public void shouldFailIfArgCountIsTooMany() {
+    final Object[] args = new Object[] {"TtestArg1", 10L};
+    UdfUtil.ensureCorrectArgs("Test", args, String.class);
   }
 
   @Test
   public void shouldPassWithNullArgs() {
     final Object[] args = new Object[] {"TtestArg1", null};
-    FunctionUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
+    UdfUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
   }
 
+  @Test
+  public void shouldHandleSubTypes() {
+    final Object[] args = new Object[] {1.345, 55};
+    UdfUtil.ensureCorrectArgs("Test", args, Number.class, Number.class);
+  }
 }

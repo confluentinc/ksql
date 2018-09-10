@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import org.apache.kafka.streams.kstream.JoinWindows;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.streams.kstream.JoinWindows;
 
 public class WithinExpression extends Node {
 
@@ -81,14 +80,14 @@ public class WithinExpression extends Node {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    WithinExpression withinExpression = (WithinExpression) o;
+    final WithinExpression withinExpression = (WithinExpression) o;
     return before == withinExpression.before && after == withinExpression.after
            && Objects.equals(beforeTimeUnit, withinExpression.beforeTimeUnit)
            && Objects.equals(afterTimeUnit, withinExpression.afterTimeUnit);

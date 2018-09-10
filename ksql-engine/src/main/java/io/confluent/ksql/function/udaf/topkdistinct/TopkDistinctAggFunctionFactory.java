@@ -16,16 +16,14 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.function.AggregateFunctionFactory;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Schema;
 
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
@@ -53,7 +51,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }

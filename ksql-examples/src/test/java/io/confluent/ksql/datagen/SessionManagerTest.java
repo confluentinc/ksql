@@ -16,13 +16,15 @@
 
 package io.confluent.ksql.datagen;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class SessionManagerTest {
 
@@ -30,19 +32,19 @@ public class SessionManagerTest {
     @Test
     public void sessionShouldForceTokenReUseWhenMaxedOut() {
 
-        SessionManager sm = new SessionManager();
+        final SessionManager sm = new SessionManager();
 
         sm.setMaxSessionDurationSeconds(1);
         sm.setMaxSessions(5);
 
-        Set<String> expectedSet = new HashSet<String>(Arrays.asList( "0", "1", "2", "3", "4"));
+        final Set<String> expectedSet = new HashSet<String>(Arrays.asList( "0", "1", "2", "3", "4"));
 
         /**
          * FillActiveSessions
          */
         for (int i = 0; i < 5; i ++) {
 
-            String token = sm.getToken(Integer.toString(i));
+            final String token = sm.getToken(Integer.toString(i));
             assertTrue("Got Token:" + token, expectedSet.contains(token));
             sm.newSession(token);
         }
@@ -51,7 +53,7 @@ public class SessionManagerTest {
     @Test
     public void sessionShouldExpireAndReuse() throws InterruptedException {
 
-        SessionManager sm = new SessionManager();
+        final SessionManager sm = new SessionManager();
 
         sm.setMaxSessionDurationSeconds(1);
         sm.setMaxSessions(5);
@@ -75,15 +77,15 @@ public class SessionManagerTest {
         for (int i = 0; i < 5; i ++) {
 
             // force expiration & check
-            boolean active = sm.isActiveAndExpire(Integer.toString(i));
+            final boolean active = sm.isActiveAndExpire(Integer.toString(i));
             assertFalse(active);
 
             // want to re-use the oldest-existing session if we havent seen this before
-            boolean isRecycled = sm.isExpiredSession(Integer.toString(i));
+            final boolean isRecycled = sm.isExpiredSession(Integer.toString(i));
 
             assertTrue("Should be recycled session: " + i, isRecycled);
 
-            String oldest = sm.recycleOldestExpired();
+            final String oldest = sm.recycleOldestExpired();
 
             assertNotNull(oldest);
 
@@ -97,7 +99,7 @@ public class SessionManagerTest {
     @Test
     public void isReturningOldestExpiredSession() throws InterruptedException {
 
-        SessionManager sm = new SessionManager();
+        final SessionManager sm = new SessionManager();
         sm.setMaxSessionDurationSeconds(1);
         sm.newSession("1");
         Thread.sleep(200);
@@ -118,8 +120,8 @@ public class SessionManagerTest {
     @Test
     public void isActiveThenAddSession() throws InterruptedException {
 
-        SessionManager sm = new SessionManager();
-        String sessionToken = "not-active";
+        final SessionManager sm = new SessionManager();
+        final String sessionToken = "not-active";
         assertFalse(sm.isActiveAndExpire(sessionToken));
         sm.newSession(sessionToken);
         assertTrue(sm.isActiveAndExpire(sessionToken));
@@ -129,9 +131,9 @@ public class SessionManagerTest {
     @Test
     public void doesSessionExpire() throws InterruptedException {
 
-        SessionManager sm = new SessionManager();
+        final SessionManager sm = new SessionManager();
         sm.setMaxSessionDurationSeconds(1);
-        String sessionToken = "active";
+        final String sessionToken = "active";
         sm.newSession(sessionToken);
         assertTrue(sm.isActiveAndExpire(sessionToken));
 

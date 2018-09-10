@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,12 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Arrays;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public class MinAggFunctionFactory extends AggregateFunctionFactory {
   private static final String FUNCTION_NAME = "MIN";
@@ -37,8 +35,8 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
+    for (final KsqlAggregateFunction<?, ?> ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

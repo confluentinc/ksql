@@ -26,8 +26,7 @@ Stream
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
 be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
-derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a
-Kafka topic on the Kafka
+derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
 brokers.
 
 Table
@@ -113,7 +112,8 @@ The RUN SCRIPT command supports a subset of KSQL statements:
 
 - Persistent queries: :ref:`create-stream`, :ref:`create-table`, :ref:`create-stream-as-select`, :ref:`create-table-as-select`
 - :ref:`drop-stream` and :ref:`drop-table`
-- SET statement
+- SET, UNSET statements
+- INSERT INTO statement
 
 It does not support statements such as:
 
@@ -166,7 +166,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
@@ -192,7 +192,7 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -209,8 +209,8 @@ The WITH clause supports the following properties:
 
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Example:
 
@@ -243,7 +243,7 @@ The supported column data types are:
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
 -  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
 -  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
    For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
@@ -254,13 +254,13 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-KSQL has currently the following equirements for creating a table from a Kafka topic:
+KSQL has currently the following requirements for creating a table from a Kafka topic:
 
 1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
    below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_constraints`.
+   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
 2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_constraints`.
+   instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -279,7 +279,7 @@ The WITH clause supports the following properties:
 |                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
 |                         | message value. You must set the KEY property to this corresponding field/column in the     |
 |                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_constraints` for more information.                                      |
+|                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -295,8 +295,8 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Example:
 
@@ -318,8 +318,8 @@ CREATE STREAM AS SELECT
     CREATE STREAM stream_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
-      [ LEFT JOIN join_table ON join_criteria ]
+      FROM from_stream
+      [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
       [ WHERE condition ]
       [PARTITION BY column_name];
 
@@ -331,6 +331,14 @@ its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key.
+
+For joins, the key of the resulting stream will be the value from the column
+from the left stream that was used in the join criteria. This column will be
+registered as the key of the resulting stream if included in the selected
+columns.
+
+For stream-table joins, the column used in the join criteria for the table
+must be the table key.
 
 The WITH clause for the result supports the following properties:
 
@@ -356,7 +364,7 @@ The WITH clause for the result supports the following properties:
 |               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
 |               | will process records in this stream based on the timestamp in this field. By default,                |
 |               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|               | Timestamps have a millisecond accuracy.
+|               | Timestamps have a millisecond accuracy.                                                              |
 |               |                                                                                                      |
 |               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |               |                                                                                                      |
@@ -373,8 +381,8 @@ The WITH clause for the result supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 Note: The ``KEY`` property is not supported – use PARTITION BY instead.
 
@@ -390,7 +398,8 @@ CREATE TABLE AS SELECT
     CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_item
+      FROM from_table
+      [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
@@ -400,7 +409,15 @@ CREATE TABLE AS SELECT
 
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
-Note that the WINDOW clause can only be used if the from_item is a stream.
+Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
+
+For joins, the key of the resulting table will be the value from the column
+from the left table that was used in the join criteria. This column will be
+registered as the key of the resulting table if included in the selected
+columns.
+
+For joins, the columns used in the join criteria must be the keys of the
+tables being joined.
 
 The WITH clause supports the following properties:
 
@@ -445,8 +462,8 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 2
-    :end-line: 6
+    :start-after: Avro_note_start
+    :end-before: Avro_note_end
 
 .. _insert-into:
 
@@ -531,7 +548,7 @@ Example of describing a table with extended information:
     -----------------------------------
     id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
 
-    For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+    For query topology and execution plan run: EXPLAIN <QueryId>; for more information
 
     Local runtime statistics
     ------------------------
@@ -606,7 +623,7 @@ Example of explaining a running query:
 .. _drop-stream:
 
 DROP STREAM [IF EXISTS] [DELETE TOPIC];
------------------------
+---------------------------------------
 
 **Synopsis**
 
@@ -626,7 +643,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 .. _drop-table:
 
 DROP TABLE [IF EXISTS] [DELETE TOPIC];
-----------------------
+--------------------------------------
 
 **Synopsis**
 
@@ -648,13 +665,23 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
+    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
 
 **Description**
 
 Print the contents of Kafka topics to the KSQL CLI.
 
 .. important:: SQL grammar defaults to uppercase formatting. You can use quotations (``"``) to print topics that contain lowercase characters.
+
+The PRINT statement supports the following properties:
+
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                                      |
++=========================+==================================================================================================================+
+| FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:
 
@@ -687,7 +714,7 @@ SELECT
 Selects rows from a KSQL stream or table. The result of this statement
 will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
-Note that the WINDOW  clause can only be used if the from_item is a stream.
+Note that the WINDOW  clause can only be used if the ``from_item`` is a stream.
 
 In the above statements from_item is one of the following:
 
@@ -695,8 +722,8 @@ In the above statements from_item is one of the following:
 -  ``table_name [ [ AS ] alias]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
-The WHERE clause can refer to any column defined for a stream or table, including the two implicit columns ``ROWTIME``
-and ``ROWKEY``.
+The WHERE clause can refer to any column defined for a stream or table,
+including the two implicit columns ``ROWTIME`` and ``ROWKEY``.
 
 Example:
 
@@ -958,13 +985,6 @@ The explanation for each operator includes a supporting example based on the fol
 
   SELECT USERS.FIRST_NAME FROM USERS;
 
-- Field Dereference (``->``) The field dereference operator is used to dereference a field
-  within a struct.
-
-.. code:: sql
-
-  SELECT ADDRESS->STREET_NAME FROM USERS;
-
 - Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
   an array index or a map key.
 
@@ -972,7 +992,7 @@ The explanation for each operator includes a supporting example based on the fol
 
   SELECT NICKNAMES[0] FROM USERS;
 
-.. _funtions:
+.. _functions:
 
 ================
 Scalar functions
@@ -981,10 +1001,10 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                    | Description                                       |
 +========================+============================================================+===================================================+
-| ABS                    | ``ABS(col1)``                                              | The absolute value of a value.                    |
+| ABS                    |  ``ABS(col1)``                                             | The absolute value of a value                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
-|                        |                                                            | value contains in it.                             |
+|                        |                                                            | value contains in it                              |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
@@ -1007,11 +1027,10 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           | ``GEODISTANCE(lat1, lon1,                                  | Distance between two lat-lon points,              |
-|                        |               lat2, lon2,                                  | each specified in decimal degrees.                |
-|                        |               unit)``                                      | An optional final parameter can                   |
-|                        |                                                            | be used to specify either                         |
-|                        |                                                            | 'KM'(default) or 'Miles'.                         |
+| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
+|                        |                                                            | points, both specified in decimal degrees. An     |
+|                        |                                                            | optional final parameter specifies ``KM``         |
+|                        |                                                            | (the default) or ``miles``.                       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
@@ -1066,8 +1085,21 @@ Scalar functions
 |                        |                                                            | quotes in the timestamp format can be escaped with|
 |                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices.                                          |
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
+|                        |                                                            | Return a substring of ``str`` that starts at      |
+|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                            | the end of the string.                            |
+|                        |                                                            |                                                   |
+|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
+|                        |                                                            | Where ``start`` and ``end`` where base-zero       |
+|                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
+|                        |                                                            | the substring.                                    |
+|                        |                                                            |                                                   |
+|                        |                                                            | It is possible to switch back to this legacy mode |
+|                        |                                                            | by setting                                        |
+|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |
@@ -1102,11 +1134,11 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 
-.. _ksql_key_constraints:
+.. _ksql_key_requirements:
 
-===============
-Key Constraints
-===============
+================
+Key Requirements
+================
 
 Message Keys
 ------------

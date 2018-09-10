@@ -17,16 +17,16 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.server.resources.Errors;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class StreamedRow {
 
@@ -92,7 +92,7 @@ public class StreamedRow {
     return Objects.hash(row, errorMessage, finalMessage);
   }
 
-  private static void checkUnion(Object... fields) {
+  private static void checkUnion(final Object... fields) {
     final List<Object> fs = Arrays.asList(fields);
     final long count = fs.stream()
         .filter(Objects::nonNull)

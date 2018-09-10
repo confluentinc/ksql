@@ -16,25 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class DecimalLiteral
     extends Literal {
 
   private final String value;
 
-  public DecimalLiteral(String value) {
+  public DecimalLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public DecimalLiteral(NodeLocation location, String value) {
+  public DecimalLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  public DecimalLiteral(Optional<NodeLocation> location, String value) {
+  public DecimalLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     this.value = requireNonNull(value, "value is null");
   }
@@ -44,19 +44,19 @@ public class DecimalLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDecimalLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DecimalLiteral that = (DecimalLiteral) o;
+    final DecimalLiteral that = (DecimalLiteral) o;
     return Objects.equals(value, that.value);
   }
 

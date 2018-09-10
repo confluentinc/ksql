@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class Delete
     extends Statement {
@@ -28,15 +28,18 @@ public class Delete
   private final Table table;
   private final Optional<Expression> where;
 
-  public Delete(Table table, Optional<Expression> where) {
+  public Delete(final Table table, final Optional<Expression> where) {
     this(Optional.empty(), table, where);
   }
 
-  public Delete(NodeLocation location, Table table, Optional<Expression> where) {
+  public Delete(final NodeLocation location, final Table table, final Optional<Expression> where) {
     this(Optional.of(location), table, where);
   }
 
-  private Delete(Optional<NodeLocation> location, Table table, Optional<Expression> where) {
+  private Delete(
+      final Optional<NodeLocation> location,
+      final Table table,
+      final Optional<Expression> where) {
     super(location);
     this.table = requireNonNull(table, "table is null");
     this.where = requireNonNull(where, "where is null");
@@ -51,7 +54,7 @@ public class Delete
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDelete(this, context);
   }
 
@@ -61,14 +64,14 @@ public class Delete
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    Delete o = (Delete) obj;
+    final Delete o = (Delete) obj;
     return Objects.equals(table, o.table)
            && Objects.equals(where, o.where);
   }

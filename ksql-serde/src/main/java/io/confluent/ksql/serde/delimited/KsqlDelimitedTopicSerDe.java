@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
 
 public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
@@ -39,10 +37,10 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(Schema schema, KsqlConfig ksqlConfig,
-                                              boolean isInternal,
-                                              SchemaRegistryClient schemaRegistryClient) {
-    Map<String, Object> serdeProps = new HashMap<>();
+  public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
+                                              final boolean isInternal,
+                                              final SchemaRegistryClient schemaRegistryClient) {
+    final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);

@@ -33,8 +33,8 @@ public class TestUdaf {
       }
 
       @Override
-      public Long aggregate(final Long aggregate, final Long aLong) {
-        return aggregate + aLong;
+      public Long aggregate(final Long value, final Long aggregate) {
+        return aggregate + value;
       }
 
       @Override
@@ -78,7 +78,7 @@ public class TestUdaf {
       }
 
       @Override
-      public Double aggregate(final Double aggregate, final Double val) {
+      public Double aggregate(final Double val, final Double aggregate) {
         return aggregate + val;
       }
 

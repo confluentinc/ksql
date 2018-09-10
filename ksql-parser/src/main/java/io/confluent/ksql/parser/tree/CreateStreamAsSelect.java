@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
@@ -79,7 +78,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateStreamAsSelect(this, context);
   }
 
@@ -89,14 +88,14 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
+    final CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)

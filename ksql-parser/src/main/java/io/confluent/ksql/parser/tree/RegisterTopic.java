@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class RegisterTopic
     extends Statement implements DdlStatement {
@@ -32,19 +31,19 @@ public class RegisterTopic
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public RegisterTopic(QualifiedName name, boolean notExists,
-                       Map<String, Expression> properties) {
+  public RegisterTopic(final QualifiedName name, final boolean notExists,
+                       final Map<String, Expression> properties) {
     this(Optional.empty(), name, notExists, properties);
   }
 
-  public RegisterTopic(NodeLocation location, QualifiedName name,
-                       boolean notExists, Map<String, Expression> properties) {
+  public RegisterTopic(final NodeLocation location, final QualifiedName name,
+                       final boolean notExists, final Map<String, Expression> properties) {
     this(Optional.of(location), name, notExists, properties);
   }
 
-  private RegisterTopic(Optional<NodeLocation> location, QualifiedName name,
-                        boolean notExists,
-                        Map<String, Expression> properties) {
+  private RegisterTopic(final Optional<NodeLocation> location, final QualifiedName name,
+                        final boolean notExists,
+                        final Map<String, Expression> properties) {
     super(location);
     this.name = requireNonNull(name, "topic is null");
     this.notExists = notExists;
@@ -65,7 +64,7 @@ public class RegisterTopic
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateTopic(this, context);
   }
 
@@ -75,14 +74,14 @@ public class RegisterTopic
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    RegisterTopic o = (RegisterTopic) obj;
+    final RegisterTopic o = (RegisterTopic) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(notExists, o.notExists)
            && Objects.equals(properties, o.properties);

@@ -81,7 +81,7 @@
         <guava.version>24.0-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
-        <jline.version>3.3.1</jline.version>
+        <jline.version>3.9.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
@@ -310,12 +310,24 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-path,-deprecation</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                     <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

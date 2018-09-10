@@ -30,23 +30,22 @@ import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.Optional;
 
 
 public class ExpressionAnalyzer {
   private final Schema schema;
   private final boolean isJoinSchema;
 
-  ExpressionAnalyzer(Schema schema, boolean isJoinSchema) {
+  ExpressionAnalyzer(final Schema schema, final boolean isJoinSchema) {
     this.schema = schema;
     this.isJoinSchema = isJoinSchema;
   }
 
-  void analyzeExpression(Expression expression) {
-    Visitor visitor = new Visitor(schema);
+  void analyzeExpression(final Expression expression) {
+    final Visitor visitor = new Visitor(schema);
     visitor.process(expression, null);
   }
 
@@ -55,61 +54,69 @@ public class ExpressionAnalyzer {
 
     final Schema schema;
 
-    Visitor(Schema schema) {
+    Visitor(final Schema schema) {
       this.schema = schema;
     }
 
-    protected Object visitLikePredicate(LikePredicate node, Object context) {
+    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(FunctionCall node, Object context) {
-      for (Expression argExpr : node.getArguments()) {
+    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
+      for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
       return null;
     }
 
-    protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
+    protected Object visitArithmeticBinary(
+        final ArithmeticBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(IsNotNullPredicate node, Object context) {
+    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(IsNullPredicate node, Object context) {
+    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context) {
+    protected Object visitLogicalBinaryExpression(
+        final LogicalBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitComparisonExpression(ComparisonExpression node, Object context) {
+    protected Object visitComparisonExpression(
+        final ComparisonExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitNotExpression(NotExpression node, Object context) {
+    protected Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitDereferenceExpression(DereferenceExpression node, Object context) {
+    protected Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context) {
       String columnName = node.getFieldName();
       if (isJoinSchema) {
         columnName = node.toString();
       }
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
@@ -118,16 +125,18 @@ public class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitCast(Cast node, Object context) {
+    protected Object visitCast(final Cast node, final Object context) {
 
       process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
-      String columnName = node.getName().getSuffix();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+    protected Object visitQualifiedNameReference(
+        final QualifiedNameReference node,
+        final Object context) {
+      final String columnName = node.getName().getSuffix();
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));

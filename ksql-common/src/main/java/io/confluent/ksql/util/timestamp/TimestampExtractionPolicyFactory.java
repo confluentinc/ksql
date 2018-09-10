@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,17 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
-public class TimestampExtractionPolicyFactory {
+public final class TimestampExtractionPolicyFactory {
+
+  private TimestampExtractionPolicyFactory() {
+  }
 
   public static TimestampExtractionPolicy create(
       final Schema schema,

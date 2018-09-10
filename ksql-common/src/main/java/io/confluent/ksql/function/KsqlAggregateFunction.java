@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 
 public interface KsqlAggregateFunction<V, A> {

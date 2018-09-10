@@ -16,19 +16,19 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
+
+import java.util.Optional;
 
 public class ShowFunctions
     extends Statement {
 
-  public ShowFunctions(Optional<NodeLocation> location) {
+  public ShowFunctions(final Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitShowFunctions(this, context);
   }
 
@@ -38,7 +38,7 @@ public class ShowFunctions
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }

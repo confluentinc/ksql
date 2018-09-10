@@ -16,46 +16,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
-import org.junit.Test;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueuedQueryMetadata;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -70,30 +30,66 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
+import org.junit.Test;
+
 public class StreamedQueryResourceTest {
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
-    String queryString = "SELECT * FROM test_stream;";
+    final String queryString = "SELECT * FROM test_stream;";
 
-    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
 
-    StatementParser mockStatementParser = mock(StatementParser.class);
+    final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andThrow(new IllegalArgumentException("some msg only the parser would use"));
 
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(
+    final StreamedQueryResource testResource = new StreamedQueryResource(
         ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
-    Response response =
+    final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
         errorMessage.getMessage(), containsString("some msg only the parser would use"));
@@ -101,14 +97,14 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
-    String queryString = "SELECT * FROM test_stream;";
+    final String queryString = "SELECT * FROM test_stream;";
 
-    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
 
-    StatementParser mockStatementParser = mock(StatementParser.class);
+    final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Query.class));
 
@@ -117,14 +113,14 @@ public class StreamedQueryResourceTest {
 
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(
+    final StreamedQueryResource testResource = new StreamedQueryResource(
         ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
-    Response response =
+    final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
         errorMessage.getMessage(), containsString("some msg only the engine would use"));
@@ -149,14 +145,14 @@ public class StreamedQueryResourceTest {
       public void run() {
         try {
           for (int i = 0; i != NUM_ROWS; i++) {
-            String key = Integer.toString(i);
-            GenericRow value = new GenericRow(Collections.singletonList(i));
+            final String key = Integer.toString(i);
+            final GenericRow value = new GenericRow(Collections.singletonList(i));
             synchronized (writtenRows) {
               writtenRows.add(value);
             }
             rowQueue.put(new KeyValue<>(key, value));
           }
-        } catch (InterruptedException exception) {
+        } catch (final InterruptedException exception) {
           // This should happen during the test, so it's fine
         }
       }
@@ -183,9 +179,9 @@ public class StreamedQueryResourceTest {
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
-    KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
-    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    final KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
+    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
 
@@ -202,28 +198,28 @@ public class StreamedQueryResourceTest {
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
 
-    StatementParser mockStatementParser = mock(StatementParser.class);
+    final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
 
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(
+    final StreamedQueryResource testResource = new StreamedQueryResource(
         mockKsqlConfig, mockKsqlEngine, mockStatementParser, 1000);
 
-    Response response =
+    final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));
-    PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
-    PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
-    StreamingOutput responseStream = (StreamingOutput) response.getEntity();
+    final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
+    final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
+    final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
 
     final Thread queryWriterThread = new Thread(new Runnable() {
       @Override
       public void run() {
         try {
           responseStream.write(responseOutputStream);
-        } catch (EOFException exception) {
+        } catch (final EOFException exception) {
           // It's fine
-        } catch (IOException exception) {
+        } catch (final IOException exception) {
           throw new RuntimeException(exception);
         }
       }
@@ -231,21 +227,21 @@ public class StreamedQueryResourceTest {
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
     queryWriterThread.start();
 
-    Scanner responseScanner = new Scanner(responseInputStream);
+    final Scanner responseScanner = new Scanner(responseInputStream);
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     for (int i = 0; i != NUM_ROWS; i++) {
       if (!responseScanner.hasNextLine()) {
         throw new Exception("Response input stream failed to have expected line available");
       }
-      String responseLine = responseScanner.nextLine();
+      final String responseLine = responseScanner.nextLine();
       if (responseLine.trim().isEmpty()) {
         i--;
       } else {
-        GenericRow expectedRow;
+        final GenericRow expectedRow;
         synchronized (writtenRows) {
           expectedRow = writtenRows.poll();
         }
-        GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
+        final GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
         assertEquals(expectedRow, testRow);
       }
     }
@@ -261,7 +257,7 @@ public class StreamedQueryResourceTest {
 
     // If one of the other threads has somehow managed to throw an exception without breaking things up until this
     // point, we throw that exception now in the main thread and cause the test to fail
-    Throwable exception = threadException.get();
+    final Throwable exception = threadException.get();
     if (exception != null) {
       throw exception;
     }
@@ -295,7 +291,7 @@ public class StreamedQueryResourceTest {
       throwIfClosed();
       try {
         super.flush();
-      } catch (IOException exception) {
+      } catch (final IOException exception) {
         // Might have been closed during the call to super.flush();
         throwIfClosed();
         throw exception;
@@ -303,11 +299,11 @@ public class StreamedQueryResourceTest {
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
       throwIfClosed();
       try {
         super.write(b, off, len);
-      } catch (IOException exception) {
+      } catch (final IOException exception) {
         // Might have been closed during the call to super.write();
         throwIfClosed();
         throw exception;
@@ -315,11 +311,11 @@ public class StreamedQueryResourceTest {
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
       throwIfClosed();
       try {
         super.write(b);
-      } catch (IOException exception) {
+      } catch (final IOException exception) {
         // Might have been closed during the call to super.write();
         throwIfClosed();
         throw exception;

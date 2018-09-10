@@ -18,16 +18,15 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.planner.plan.OutputNode;
-
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.Topology;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.Topology;
 
 public class PersistentQueryMetadata extends QueryMetadata {
 
@@ -81,12 +80,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (!(o instanceof PersistentQueryMetadata)) {
       return false;
     }
 
-    PersistentQueryMetadata that = (PersistentQueryMetadata) o;
+    final PersistentQueryMetadata that = (PersistentQueryMetadata) o;
 
     return Objects.equals(this.id, that.id) && super.equals(o);
   }

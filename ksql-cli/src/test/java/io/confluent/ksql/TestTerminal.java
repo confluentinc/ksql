@@ -18,14 +18,12 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.OutputFormat;
-
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
 
 public class TestTerminal extends Console {
 
@@ -33,7 +31,7 @@ public class TestTerminal extends Console {
   private final StringWriter writer;
   private TestResult output;
 
-  public TestTerminal(OutputFormat outputFormat, KsqlRestClient restClient) {
+  public TestTerminal(final OutputFormat outputFormat, final KsqlRestClient restClient) {
     super(outputFormat, restClient);
 
     this.writer = new StringWriter();
@@ -42,7 +40,7 @@ public class TestTerminal extends Console {
     resetTestResult(true);
   }
 
-  public void resetTestResult(boolean requireOrder) {
+  public void resetTestResult(final boolean requireOrder) {
     output = TestResult.init(requireOrder);
   }
 
@@ -55,12 +53,12 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  public synchronized void addResult(GenericRow row) {
+  public synchronized void addResult(final GenericRow row) {
     output.addRow(row);
   }
 
   @Override
-  public void addResult(List<String> columnHeaders, List<List<String>> rows) {
+  public void addResult(final List<String> columnHeaders, final List<List<String>> rows) {
     output.addRows(rows);
   }
 
@@ -90,12 +88,12 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  protected void puts(InfoCmp.Capability capability) {
+  protected void puts(final InfoCmp.Capability capability) {
     // Ignore
   }
 
   @Override
-  public Terminal.SignalHandler handle(Terminal.Signal signal, Terminal.SignalHandler signalHandler) {
+  public Terminal.SignalHandler handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
     // Ignore
     return null;
   }

@@ -63,7 +63,6 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Before
   public void setUp() {
     final Map<String, Object> props = new HashMap<>();
-    props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
     ksqlConfig = new KsqlConfig(props);

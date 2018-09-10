@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
@@ -142,9 +143,9 @@ public class SchemaKStreamTest {
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
-    return topic.getKsqlTopicSerDe().getGenericRowSerde(schema,
-                                                        new KsqlConfig(Collections.emptyMap()),
-                                                        false, schemaRegistryClient);
+    return topic.getKsqlTopicSerDe().getGenericRowSerde(
+        schema, new KsqlConfig(Collections.emptyMap()), false,
+        new MockSchemaRegistryClientFactory()::get);
   }
 
   @Test
@@ -330,7 +331,7 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, null);
+        initialSchemaKStream.getSchema(), null, false, () -> null);
     final List<Expression> groupByExpressions = Arrays.asList(keyExpression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);
@@ -353,7 +354,7 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, null);
+        initialSchemaKStream.getSchema(), null, false, () -> null);
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         Serdes.String(), rowSerde, groupByExpressions);

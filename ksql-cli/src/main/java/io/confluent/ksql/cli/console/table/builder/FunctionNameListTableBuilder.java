@@ -33,7 +33,7 @@ public class FunctionNameListTableBuilder implements TableBuilder<FunctionNameLi
     final Stream<List<String>> rows = functionNameList.getFunctions()
         .stream()
         .sorted()
-        .map(func -> ImmutableList.of(func.getName(), func.getType().name().toLowerCase()));
+        .map(func -> ImmutableList.of(func.getName(), func.getType().name().toUpperCase()));
 
     return new Builder()
         .withColumnHeaders(HEADERS)

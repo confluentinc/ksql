@@ -33,7 +33,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
   private final KsqlRestClient restClient;
   private final PrintWriter writer;
 
-  RemoteServerSpecificCommand(
+  public RemoteServerSpecificCommand(
       final KsqlRestClient restClient,
       final PrintWriter writer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
@@ -67,7 +67,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
     validateClient(writer, restClient);
   }
 
-  private static void validateClient(
+  public static void validateClient(
       final PrintWriter writer,
       final KsqlRestClient restClient
   ) {

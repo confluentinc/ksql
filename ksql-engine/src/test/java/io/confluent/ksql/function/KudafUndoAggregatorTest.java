@@ -16,38 +16,36 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
-
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.instanceOf;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Test;
 
 public class KudafUndoAggregatorTest {
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
-    Schema schema = SchemaBuilder
+    final Schema schema = SchemaBuilder
         .struct()
         .field("foo", SchemaBuilder.string().build())
         .field("bar", SchemaBuilder.string().build())
         .field("baz", SchemaBuilder.int32().build())
         .build();
-    InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
+    final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     aggValToValColumnMap.put(0, 1);
     aggValToValColumnMap.put(1, 0);
-    Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
-    Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
-    KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
+    final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
+    final Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
+    final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
         "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
@@ -55,13 +53,13 @@ public class KudafUndoAggregatorTest {
             new AggregateFunctionArguments(expressionNames, Collections.singletonList("baz"))
         ));
 
-    GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
-    GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));
+    final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
+    final GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));
 
-    KudafUndoAggregator aggregator = new KudafUndoAggregator(
+    final KudafUndoAggregator aggregator = new KudafUndoAggregator(
         aggValToAggFunctionMap, aggValToValColumnMap);
 
-    GenericRow resultRow = aggregator.apply("unused", row, aggRow);
+    final GenericRow resultRow = aggregator.apply("unused", row, aggRow);
 
     assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("jon", "snow", 2))));
   }

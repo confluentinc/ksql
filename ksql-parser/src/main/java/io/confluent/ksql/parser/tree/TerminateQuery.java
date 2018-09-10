@@ -16,26 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
+import static com.google.common.base.MoreObjects.toStringHelper;
 
 import io.confluent.ksql.query.QueryId;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
+import java.util.Objects;
+import java.util.Optional;
 
 public class TerminateQuery extends Statement {
 
   private final QueryId queryId;
 
-  public TerminateQuery(String queryId) {
+  public TerminateQuery(final String queryId) {
     this(Optional.empty(), queryId);
   }
 
-  public TerminateQuery(NodeLocation location, String queryId) {
+  public TerminateQuery(final NodeLocation location, final String queryId) {
     this(Optional.of(location), queryId);
   }
 
-  private TerminateQuery(Optional<NodeLocation> location, String queryId) {
+  private TerminateQuery(final Optional<NodeLocation> location, final String queryId) {
     super(location);
     this.queryId = new QueryId(queryId);
   }
@@ -50,7 +49,7 @@ public class TerminateQuery extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

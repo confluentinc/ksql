@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,17 @@ package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.util.SerdeUtils;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
@@ -28,24 +38,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.util.SerdeUtils;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
-  //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerializer.class);
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
   private final JsonConverter jsonConverter;
@@ -65,26 +65,29 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public void configure(final Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
   }
 
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
-    if (bytes == null) {
-      return null;
-    }
     try {
-      return getGenericRow(bytes);
-    } catch (Exception e) {
+      final GenericRow row = getGenericRow(bytes);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
+      }
+      return row;
+    } catch (final Exception e) {
       throw new SerializationException(
-          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
-          e
-      );
+          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }
   }
 
   @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(final byte[] rowJsonBytes) throws IOException {
+    if (rowJsonBytes == null) {
+      return null;
+    }
+
     final JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     final CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
 
@@ -96,7 +99,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
     final  Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     final List<Object> columns = new ArrayList();
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final Object columnVal = valueMap
           .get(keyMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));
@@ -107,6 +110,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   // This is a temporary requirement until we can ensure that the types that Connect JSON
   // convertor creates are supported in KSQL.
+  @SuppressWarnings("unchecked")
   private Object enforceFieldType(final Schema fieldSchema, final Object columnVal) {
     if (columnVal == null) {
       return null;
@@ -141,7 +145,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Map<String, Object> enforceFieldTypeForMap(
       final Schema fieldSchema,
-      final Map<String, Object> columnMap) {
+      final Map<String, ?> columnMap) {
     return columnMap.entrySet().stream()
         .collect(Collectors.toMap(
             e -> enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
@@ -151,10 +155,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Struct enforceFieldTypeForStruct(
       final Schema fieldSchema,
-      final Map<String, Object> structMap) {
+      final Map<String, ?> structMap) {
     final Struct columnStruct = new Struct(fieldSchema);
-    final Map<String, String> caseInsensitiveFieldNameMap =
-        getCaseInsensitiveFieldNameMap(fieldSchema.fields());
     final Map<String, String> caseInsensitiveStructFieldNameMap =
         getCaseInsensitiveStructFieldNameMap(structMap);
     fieldSchema.fields()
@@ -167,16 +169,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     return columnStruct;
   }
 
-  private Map<String, String> getCaseInsensitiveFieldNameMap(final List<Field> fields) {
-    return fields.stream()
-        .map(Field::name)
-        .collect(Collectors.toMap(
-            String::toUpperCase,
-            name -> name));
-  }
-
   private Map<String, String> getCaseInsensitiveStructFieldNameMap(
-      final Map<String, Object> structMap
+      final Map<String, ?> structMap
   ) {
     return structMap.entrySet().stream()
         .collect(Collectors.toMap(
@@ -185,14 +179,18 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         ));
   }
 
-  static class CaseInsensitiveJsonNode {
+  @Override
+  public void close() {
+  }
 
-    Map<String, String> keyMap = new HashMap<>();
+  private static final class CaseInsensitiveJsonNode {
 
-    CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      Iterator<String> fieldNames = jsonNode.fieldNames();
+    private final Map<String, String> keyMap = new HashMap<>();
+
+    private CaseInsensitiveJsonNode(final JsonNode jsonNode) {
+      final Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
-        String fieldName = fieldNames.next();
+        final String fieldName = fieldNames.next();
         if (fieldName.startsWith("@")) {
           if (fieldName.length() == 1) {
             throw new KsqlException("Field name cannot be '@'.");
@@ -204,12 +202,5 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
       }
     }
-
-  }
-
-
-  @Override
-  public void close() {
-
   }
 }

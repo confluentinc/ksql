@@ -16,15 +16,6 @@
 
 package io.confluent.ksql;
 
-import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.Properties;
-
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.JLineTerminal;
@@ -34,11 +25,21 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Properties;
+import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Ksql {
+public final class Ksql {
   private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
 
-  public static void main(String[] args) throws IOException {
+  private Ksql() {
+  }
+
+  public static void main(final String[] args) throws IOException {
     final Options options = args.length == 0 ? Options.parse("http://localhost:8088")
                                              : Options.parse(args);
     if (options == null) {
@@ -57,7 +58,7 @@ public class Ksql {
       final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
       versionChecker.start(KsqlModuleType.CLI, properties);
 
-      try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+      try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),
                                    options.getStreamedQueryTimeoutMs(),
                                    restClient,
                                    new JLineTerminal(options.getOutputFormat(), restClient))
@@ -76,7 +77,7 @@ public class Ksql {
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();
     propertiesFile.ifPresent(file -> {
-      try (final FileInputStream input = new FileInputStream(file)) {
+      try (FileInputStream input = new FileInputStream(file)) {
         properties.load(input);
         if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
           properties.put(

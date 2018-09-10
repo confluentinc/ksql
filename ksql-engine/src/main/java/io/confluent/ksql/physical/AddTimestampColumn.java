@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
-
-import io.confluent.ksql.GenericRow;
 
 public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, GenericRow> {
   @Override
@@ -28,12 +27,12 @@ public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, 
     return new ValueTransformer<GenericRow, GenericRow>() {
       ProcessorContext processorContext;
       @Override
-      public void init(ProcessorContext processorContext) {
+      public void init(final ProcessorContext processorContext) {
         this.processorContext = processorContext;
       }
 
       @Override
-      public GenericRow transform(GenericRow row) {
+      public GenericRow transform(final GenericRow row) {
         if (row != null) {
           row.getColumns().add(0, processorContext.timestamp());
         }

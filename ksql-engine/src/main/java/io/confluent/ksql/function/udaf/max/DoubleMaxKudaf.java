@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.function.udaf.max;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
-
-import java.util.Collections;
-
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
 
-  DoubleMaxKudaf(String functionName, int argIndexInValue) {
+  DoubleMaxKudaf(final String functionName, final int argIndexInValue) {
     super(functionName, argIndexInValue, () -> Double.NEGATIVE_INFINITY,
         Schema.OPTIONAL_FLOAT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
@@ -36,7 +34,7 @@ public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
   }
 
   @Override
-  public Double aggregate(Double currentValue, Double aggregateValue) {
+  public Double aggregate(final Double currentValue, final Double aggregateValue) {
     if (currentValue > aggregateValue) {
       return currentValue;
     }

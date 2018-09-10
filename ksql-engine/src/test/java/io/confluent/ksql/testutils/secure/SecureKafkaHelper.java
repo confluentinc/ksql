@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.testutils.secure;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public final class SecureKafkaHelper {
 

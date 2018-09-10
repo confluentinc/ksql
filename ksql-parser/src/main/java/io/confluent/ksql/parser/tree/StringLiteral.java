@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.airlift.slice.Slice;
-
-import java.util.Objects;
-import java.util.Optional;
-
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.util.Objects.requireNonNull;
+
+import io.airlift.slice.Slice;
+import java.util.Objects;
+import java.util.Optional;
 
 public class StringLiteral
     extends Literal {
@@ -30,15 +29,15 @@ public class StringLiteral
   private final String value;
   private final Slice slice;
 
-  public StringLiteral(String value) {
+  public StringLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public StringLiteral(NodeLocation location, String value) {
+  public StringLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
-  private StringLiteral(Optional<NodeLocation> location, String value) {
+  private StringLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
     this.value = value;
@@ -54,12 +53,12 @@ public class StringLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitStringLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -67,7 +66,7 @@ public class StringLiteral
       return false;
     }
 
-    StringLiteral that = (StringLiteral) o;
+    final StringLiteral that = (StringLiteral) o;
     return Objects.equals(value, that.value);
   }
 

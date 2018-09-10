@@ -16,30 +16,29 @@
 
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.easymock.EasyMock;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ProjectNodeTest {
 
@@ -50,6 +49,11 @@ public class ProjectNodeTest {
   private final FakeKafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final HashMap<String, Object> props = new HashMap<>();
+
+  @Before
+  public void init() {
+    EasyMock.expect(source.getNodeOutputType()).andReturn(DataSourceType.KSTREAM);
+  }
 
   @Test(expected = KsqlException.class)
   public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {

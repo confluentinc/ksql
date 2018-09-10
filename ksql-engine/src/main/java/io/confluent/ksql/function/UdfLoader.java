@@ -16,31 +16,7 @@
 
 package io.confluent.ksql.function;
 
-
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Count;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
+import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -49,6 +25,7 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.security.ExtensionSecurityManager;
@@ -58,7 +35,31 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 import io.github.lukehutch.fastclasspathscanner.matchprocessor.ClassAnnotationMatchProcessor;
 import io.github.lukehutch.fastclasspathscanner.matchprocessor.MethodAnnotationMatchProcessor;
-
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.Count;
+import org.apache.kafka.common.metrics.stats.Max;
+import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UdfLoader {
 
@@ -188,7 +189,8 @@ public class UdfLoader {
               udafAnnotation.description(),
               udafAnnotation.author(),
               udafAnnotation.version(),
-              path),
+              path,
+              false),
               aggregateFunctions));
     };
   }
@@ -198,23 +200,25 @@ public class UdfLoader {
                                                              final String path) {
     return (theClass, executable) ->  {
       final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
-      if (annotation != null) {
-        LOGGER.info("Adding UDF name='{}' from path={}",
-            annotation.name(),
-            path);
-        final Method method = (Method) executable;
-        try {
-          final UdfInvoker udf = compiler.compile(method, loader);
-          addFunction(annotation, method, udf, path);
-        } catch (final KsqlException e) {
-          if (parentClassLoader == loader) {
-            throw e;
-          } else {
-            LOGGER.warn("Failed to add UDF to the MetaStore. name={} method={}",
-                annotation.name(),
-                method,
-                e);
-          }
+      if (annotation == null) {
+        LOGGER.warn("Ignoring method annotated with @Udf but missing @UdfDescription. "
+            + "method='{}' from path={}", executable.getName(), path);
+        return;
+      }
+
+      LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
+      final Method method = (Method) executable;
+      try {
+        final UdfInvoker udf = compiler.compile(method, loader);
+        addFunction(annotation, method, udf, path);
+      } catch (final KsqlException e) {
+        if (parentClassLoader == loader) {
+          throw e;
+        } else {
+          LOGGER.warn("Failed to add UDF to the MetaStore. name={} method={}",
+              annotation.name(),
+              method,
+              e);
         }
       }
     };
@@ -227,31 +231,48 @@ public class UdfLoader {
     // sanity check
     instantiateUdfClass(method, classLevelAnnotaion);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
-    final String sensorName = "ksql-udf-" + classLevelAnnotaion.name();
+    final String functionName = classLevelAnnotaion.name();
+    final String sensorName = "ksql-udf-" + functionName;
 
     @SuppressWarnings("unchecked")
     final Class<? extends Kudf> udfClass = metrics
         .map(m -> (Class)UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
-    addSensor(sensorName, classLevelAnnotaion.name());
+    addSensor(sensorName, functionName);
 
-    LOGGER.info("Adding function " + classLevelAnnotaion.name() + " for method " + method);
+    LOGGER.info("Adding function " + functionName + " for method " + method);
     metaStore.addFunctionFactory(new UdfFactory(udfClass,
-        new UdfMetadata(classLevelAnnotaion.name(),
+        new UdfMetadata(functionName,
             classLevelAnnotaion.description(),
             classLevelAnnotaion.author(),
             classLevelAnnotaion.version(),
-            path)));
+            path,
+            false)));
+
+    final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
+      final Type type = method.getGenericParameterTypes()[idx];
+      final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
+          .filter(t -> t instanceof UdfParameter)
+          .map(UdfParameter.class::cast)
+          .findAny();
+
+      final String name = annotation.map(UdfParameter::value).orElse("");
+      final String doc = annotation.map(UdfParameter::description).orElse("");
+      return SchemaUtil.getSchemaFromType(type, name, doc);
+    }).collect(Collectors.toList());
 
     metaStore.addFunction(new KsqlFunction(
         SchemaUtil.getSchemaFromType(method.getReturnType()),
-        Arrays.stream(method.getGenericParameterTypes())
-            .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
-        classLevelAnnotaion.name(),
+        parameters,
+        functionName,
         udfClass,
-        () -> {
-          final PluggableUdf theUdf
-              = new PluggableUdf(udf, instantiateUdfClass(method, classLevelAnnotaion));
+        ksqlConfig -> {
+          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotaion);
+          if (actualUdf instanceof Configurable) {
+            ((Configurable)actualUdf)
+                .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
+          }
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);
@@ -306,7 +327,7 @@ public class UdfLoader {
     final Optional<Metrics> metrics = collectMetrics
         ? Optional.of(MetricCollectors.getMetrics())
         : Optional.empty();
-    
+
     if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
       System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
     }

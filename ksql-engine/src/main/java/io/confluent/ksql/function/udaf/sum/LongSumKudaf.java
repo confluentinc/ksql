@@ -18,25 +18,23 @@ package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
-
-import java.util.Collections;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
 
 public class LongSumKudaf
     extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
 
-  LongSumKudaf(String functionName, int argIndexInValue) {
+  LongSumKudaf(final String functionName, final int argIndexInValue) {
     super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         "Computes the sum for a key.");
   }
 
   @Override
-  public Long aggregate(Long currentValue, Long aggregateValue) {
+  public Long aggregate(final Long currentValue, final Long aggregateValue) {
     return currentValue + aggregateValue;
   }
 
@@ -46,7 +44,7 @@ public class LongSumKudaf
   }
 
   @Override
-  public Long undo(Long valueToUndo, Long aggregateValue) {
+  public Long undo(final Long valueToUndo, final Long aggregateValue) {
     return aggregateValue - valueToUndo;
   }
 

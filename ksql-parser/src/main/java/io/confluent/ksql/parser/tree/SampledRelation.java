@@ -16,14 +16,13 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class SampledRelation
     extends Relation {
@@ -40,20 +39,32 @@ public class SampledRelation
   private final boolean rescaled;
   private final Optional<List<Expression>> columnsToStratifyOn;
 
-  public SampledRelation(Relation relation, Type type, Expression samplePercentage,
-                         boolean rescaled, Optional<List<Expression>> columnsToStratifyOn) {
+  public SampledRelation(
+      final Relation relation,
+      final Type type,
+      final Expression samplePercentage,
+      final boolean rescaled,
+      final Optional<List<Expression>> columnsToStratifyOn) {
     this(Optional.empty(), relation, type, samplePercentage, rescaled, columnsToStratifyOn);
   }
 
-  public SampledRelation(NodeLocation location, Relation relation, Type type,
-                         Expression samplePercentage, boolean rescaled,
-                         Optional<List<Expression>> columnsToStratifyOn) {
+  public SampledRelation(
+      final NodeLocation location,
+      final Relation relation,
+      final Type type,
+      final Expression samplePercentage,
+      final boolean rescaled,
+      final Optional<List<Expression>> columnsToStratifyOn) {
     this(Optional.of(location), relation, type, samplePercentage, rescaled, columnsToStratifyOn);
   }
 
-  private SampledRelation(Optional<NodeLocation> location, Relation relation, Type type,
-                          Expression samplePercentage, boolean rescaled,
-                          Optional<List<Expression>> columnsToStratifyOn) {
+  private SampledRelation(
+      final Optional<NodeLocation> location,
+      final Relation relation,
+      final Type type,
+      final Expression samplePercentage,
+      final boolean rescaled,
+      final Optional<List<Expression>> columnsToStratifyOn) {
     super(location);
     this.relation = requireNonNull(relation, "relation is null");
     this.type = requireNonNull(type, "type is null");
@@ -89,7 +100,7 @@ public class SampledRelation
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSampledRelation(this, context);
   }
 
@@ -104,14 +115,14 @@ public class SampledRelation
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SampledRelation that = (SampledRelation) o;
+    final SampledRelation that = (SampledRelation) o;
     return Objects.equals(relation, that.relation)
            && Objects.equals(type, that.type)
            && Objects.equals(samplePercentage, that.samplePercentage)

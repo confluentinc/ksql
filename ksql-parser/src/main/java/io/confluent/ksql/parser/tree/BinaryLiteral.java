@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.io.BaseEncoding;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.confluent.ksql.parser.ParsingException;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
-
-import static java.util.Objects.requireNonNull;
 
 public class BinaryLiteral
     extends Literal {
@@ -36,14 +35,14 @@ public class BinaryLiteral
 
   private final Slice value;
 
-  public BinaryLiteral(String value) {
+  public BinaryLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
-  public BinaryLiteral(Optional<NodeLocation> location, String value) {
+  public BinaryLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
     requireNonNull(value, "value is null");
-    String hexString = WHITESPACE_PATTERN.matcher(value).replaceAll("");
+    final String hexString = WHITESPACE_PATTERN.matcher(value).replaceAll("");
     if (NOT_HEX_DIGIT_PATTERN.matcher(hexString).matches()) {
       throw new ParsingException("Binary literal can only contain hexadecimal digits",
                                  location.get());
@@ -55,7 +54,7 @@ public class BinaryLiteral
     this.value = Slices.wrappedBuffer(BaseEncoding.base16().decode(hexString));
   }
 
-  public BinaryLiteral(NodeLocation location, String value) {
+  public BinaryLiteral(final NodeLocation location, final String value) {
     this(Optional.of(location), value);
   }
 
@@ -71,12 +70,12 @@ public class BinaryLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitBinaryLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -84,7 +83,7 @@ public class BinaryLiteral
       return false;
     }
 
-    BinaryLiteral that = (BinaryLiteral) o;
+    final BinaryLiteral that = (BinaryLiteral) o;
     return Objects.equals(value, that.value);
   }
 

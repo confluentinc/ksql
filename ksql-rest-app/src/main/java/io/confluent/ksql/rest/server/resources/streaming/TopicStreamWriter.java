@@ -16,6 +16,16 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -24,19 +34,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 
 public class TopicStreamWriter implements StreamingOutput {
 
@@ -50,12 +47,12 @@ public class TopicStreamWriter implements StreamingOutput {
   private long messagesWritten;
 
   public TopicStreamWriter(
-      SchemaRegistryClient schemaRegistryClient,
-      Map<String, Object> consumerProperties,
-      String topicName,
-      long interval,
-      long disconnectCheckInterval,
-      boolean fromBeginning
+      final SchemaRegistryClient schemaRegistryClient,
+      final Map<String, Object> consumerProperties,
+      final String topicName,
+      final long interval,
+      final long disconnectCheckInterval,
+      final boolean fromBeginning
   ) {
     this.schemaRegistryClient = schemaRegistryClient;
     this.topicName = topicName;
@@ -69,7 +66,7 @@ public class TopicStreamWriter implements StreamingOutput {
         new BytesDeserializer()
     );
 
-    List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
+    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
         .stream()
         .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
         .collect(Collectors.toList());
@@ -83,18 +80,18 @@ public class TopicStreamWriter implements StreamingOutput {
   }
 
   @Override
-  public void write(OutputStream out) {
+  public void write(final OutputStream out) {
     try {
       final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
       boolean printFormat = true;
       while (true) {
-        ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
+        final ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
           out.write("\n".getBytes(StandardCharsets.UTF_8));
           out.flush();
         } else {
           final List<String> values = formatter.format(records);
-          for (String value : values) {
+          for (final String value : values) {
             if (printFormat) {
               printFormat = false;
               out.write(("Format:" + formatter.getFormat().name() + "\n")
@@ -107,9 +104,9 @@ public class TopicStreamWriter implements StreamingOutput {
           }
         }
       }
-    } catch (EOFException exception) {
+    } catch (final EOFException exception) {
       // Connection terminated, we can stop writing
-    } catch (Exception exception) {
+    } catch (final Exception exception) {
       log.error("Exception encountered while writing to output stream", exception);
       outputException(out, exception);
     } finally {

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,20 +18,25 @@ package io.confluent.ksql.util;
 
 import java.util.List;
 
-public class StringUtil {
+public final class StringUtil {
+
+  private StringUtil() {
+  }
 
   public static String cleanQuotes(final String stringWithQuotes) {
     // TODO: move check to grammar
-    if (stringWithQuotes.startsWith("'") && stringWithQuotes.endsWith("'")) {
-      return stringWithQuotes.substring(1, stringWithQuotes.length() - 1);
+    if (!stringWithQuotes.startsWith("'") || !stringWithQuotes.endsWith("'")) {
+      return stringWithQuotes;
     }
-    return stringWithQuotes;
+    return stringWithQuotes
+        .substring(1, stringWithQuotes.length() - 1)
+        .replaceAll("''", "'");
   }
 
-  public static String join(String delimiter, List<? extends Object> objs) {
-    StringBuilder sb = new StringBuilder();
+  public static String join(final String delimiter, final List<?> objs) {
+    final StringBuilder sb = new StringBuilder();
     int cnt = 0;
-    for (Object obj : objs) {
+    for (final Object obj : objs) {
       if (cnt > 0) {
         sb.append(delimiter);
       }

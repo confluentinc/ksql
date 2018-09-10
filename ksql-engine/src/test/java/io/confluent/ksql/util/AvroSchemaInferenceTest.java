@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -27,15 +30,11 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import java.io.IOException;
+import java.util.HashMap;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 public class AvroSchemaInferenceTest {
   @Test
@@ -257,9 +256,69 @@ public class AvroSchemaInferenceTest {
   }
 
   @Test
-  public void shouldIgnoreConnectMapWithNonStringKey() {
+  public void shouldInferConnectMapWithInt8Key() {
     shouldInferConnectType(
-        SchemaBuilder.map(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA),
+        SchemaBuilder.map(Schema.INT8_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt16Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT16_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt32Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithInt64Key() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldInferConnectMapWithBooleanKey() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.BOOLEAN_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  @Test
+  public void shouldIgnoreConnectMapWithUnsupportedKey() {
+    shouldInferConnectType(
+        SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA),
         null
     );
   }
@@ -328,7 +387,7 @@ public class AvroSchemaInferenceTest {
 
   private Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
     final SchemaBuilder builder = SchemaBuilder.struct();
-    for (TableElement tableElement : statement.getElements()) {
+    for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
           TypeUtil.getTypeSchema(tableElement.getType())
@@ -351,14 +410,14 @@ public class AvroSchemaInferenceTest {
     final String statementText
         = "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='avro');";
     final KsqlParser parser = new KsqlParser();
-    final Statement statement = parser.buildAst(statementText, metaStore).get(0);
+    final Statement statement = parser.buildAst(statementText, metaStore).get(0).getStatement();
 
     final StatementWithSchema inferred
         = StatementWithSchema.forStatement(
         statement, statementText, new HashMap<>(), schemaRegistryClient);
 
     final Statement statementWithSchema
-        = parser.buildAst(inferred.getStatementText(), metaStore).get(0);
+        = parser.buildAst(inferred.getStatementText(), metaStore).get(0).getStatement();
     final Schema inferredSchema = getSchemaForDdlStatement(
         (AbstractStreamCreateStatement) statementWithSchema);
     assertThat(inferredSchema, equalTo(ksqlStreamSchema));

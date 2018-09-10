@@ -87,6 +87,8 @@ CREATE TABLE error_counts AS
 
 # Latest News
 
+* [KSQL June 2018 Preview Release available](https://www.confluent.io/blog/june-preview-release-confluent-plaform/), July 2018
+  -- support for nested data types (STRUCT), support for User Defined Functions (UDFs) and User Defined Aggregate Functions (UDAFs), support for Stream-Stream and Table-Table joins, and more
 * [KSQL May 2018 Preview Release available](https://www.confluent.io/blog/may-preview-release-advancing-ksql-and-schema-registry/), Jun 2018
   -- new KSQL Docker images (for server and for CLI), support for INSERT INTO statement, KSQL editor auto-completion, and more
 * [KSQL April 2018 Preview Release available](https://www.confluent.io/blog/introducing-confluent-platform-preview-releases/),
@@ -131,6 +133,7 @@ Contributions to the code, examples, documentation, etc. are very much appreciat
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
 - Learn how to work with the KSQL source code, including building and testing KSQL as well as contributing code changes
   to KSQL by reading our [Development and Contribution guidelines](CONTRIBUTING.md).
+- One good way to get started is by tackling a [newbie issue](https://github.com/confluentinc/ksql/labels/good%20first%20issue).
 
 
 # License

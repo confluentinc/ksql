@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser;
 
+import static java.lang.String.format;
+
 import io.confluent.ksql.parser.tree.NodeLocation;
 import org.antlr.v4.runtime.RecognitionException;
-
-import static java.lang.String.format;
 
 public class ParsingException
     extends RuntimeException {
@@ -27,19 +27,19 @@ public class ParsingException
   private final int line;
   private final int charPositionInLine;
 
-  public ParsingException(String message, RecognitionException cause, int line,
-                          int charPositionInLine) {
+  public ParsingException(final String message, final RecognitionException cause, final int line,
+                          final int charPositionInLine) {
     super(message, cause);
 
     this.line = line;
     this.charPositionInLine = charPositionInLine;
   }
 
-  public ParsingException(String message) {
+  public ParsingException(final String message) {
     this(message, null, 1, 0);
   }
 
-  public ParsingException(String message, NodeLocation nodeLocation) {
+  public ParsingException(final String message, final NodeLocation nodeLocation) {
     this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
   }
 

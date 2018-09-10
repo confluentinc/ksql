@@ -16,21 +16,26 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.Configurable;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.streams.processor.TimestampExtractor;
-
-import java.util.Map;
-
+import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
-public class StringTimestampExtractor implements TimestampExtractor, Configurable {
-  private StringToTimestampParser timestampParser;
-  private int timestampColumn = -1;
-  private String format;
+public class StringTimestampExtractor implements TimestampExtractor {
+  private final StringToTimestampParser timestampParser;
+  private final int timestampColumn;
+  private final String format;
+
+
+  StringTimestampExtractor(final String format, final int timestampColumn) {
+    this.format = Objects.requireNonNull(format, "format can't be null");
+    Preconditions.checkArgument(timestampColumn >= 0, "timestampColumn must be >= 0");
+    this.timestampColumn = timestampColumn;
+    this.timestampParser = new StringToTimestampParser(format);
+
+  }
 
   @Override
   public long extract(final ConsumerRecord<Object, Object> consumerRecord,
@@ -39,7 +44,7 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
     final String value = row.getColumnValue(timestampColumn);
     try {
       return timestampParser.parse(value);
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       throw new KsqlException("Unable to parse string timestamp from record."
           + " record=" + consumerRecord
           + " timestamp=" + value
@@ -48,26 +53,4 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
     }
   }
 
-  @Override
-  public void configure(final Map<String, ?> map) {
-    format = (String) map.get(KsqlConstants.STRING_TIMESTAMP_FORMAT);
-    if (format == null) {
-      throw new ConfigException("Value of "
-          + KsqlConstants.STRING_TIMESTAMP_FORMAT
-          + " must not be null");
-    }
-    final Integer index = (Integer) map.get(KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX);
-    if (index == null || index < 0) {
-      throw new ConfigException("Value of "
-          + KsqlConstants.KSQL_TIMESTAMP_COLUMN_INDEX
-          + " must be an integer >= 0");
-    }
-    this.timestampColumn = index;
-    try {
-      this.timestampParser = new StringToTimestampParser(format);
-    } catch (Exception e) {
-      throw new ConfigException("Invalid date format: "
-          + format + " " + e.getMessage(), e);
-    }
-  }
 }

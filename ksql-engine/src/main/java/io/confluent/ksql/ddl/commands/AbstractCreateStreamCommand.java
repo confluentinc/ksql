@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
@@ -32,12 +24,17 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 
 
@@ -57,10 +54,10 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
-      String sqlExpression,
+      final String sqlExpression,
       final AbstractStreamCreateStatement statement,
-      KafkaTopicClient kafkaTopicClient,
-      boolean enforceTopicExistence
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean enforceTopicExistence
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
@@ -68,7 +65,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.kafkaTopicClient = kafkaTopicClient;
 
     // TODO: get rid of toUpperCase in following code
-    Map<String, Expression> properties = statement.getProperties();
+    final Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)
@@ -111,27 +108,26 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
 
     this.isWindowed = false;
     if (properties.containsKey(DdlConfig.IS_WINDOWED_PROPERTY)) {
-      String isWindowedProp =
+      final String isWindowedProp =
           properties.get(DdlConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
       try {
         isWindowed = Boolean.parseBoolean(isWindowedProp);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new KsqlException("isWindowed property is not set correctly: " + isWindowedProp);
       }
     }
   }
 
-  private void checkTopicNameNotNull(Map<String, Expression> properties) {
+  private void checkTopicNameNotNull(final Map<String, Expression> properties) {
     // TODO: move the check to grammar
-    KsqlPreconditions.checkNotNull(
-        properties.get(DdlConfig.TOPIC_NAME_PROPERTY),
-        "Topic name should be set in WITH clause."
-    );
+    if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Topic name should be set in WITH clause.");
+    }
   }
 
-  private SchemaBuilder getStreamTableSchema(List<TableElement> tableElementList) {
+  private SchemaBuilder getStreamTableSchema(final List<TableElement> tableElementList) {
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    for (TableElement tableElement : tableElementList) {
+    for (final TableElement tableElement : tableElementList) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
           .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KsqlException(
@@ -149,22 +145,21 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     return tableSchema;
   }
 
-  void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {
+  void checkMetaData(final MetaStore metaStore, final String sourceName, final String topicName) {
     // TODO: move the check to the runtime since it accesses metaStore
-    KsqlPreconditions.checkArgument(
-        metaStore.getSource(sourceName) == null,
-        String.format("Source %s already exists.", sourceName)
-    );
+    if (metaStore.getSource(sourceName) != null) {
+      throw new KsqlException(String.format("Source %s already exists.", sourceName));
+    }
 
-    KsqlPreconditions.checkNotNull(
-        metaStore.getTopic(topicName),
-        String.format("The corresponding topic, %s, does not exist.", topicName)
-    );
+    if (metaStore.getTopic(topicName) == null) {
+      throw new KsqlException(
+          String.format("The corresponding topic, %s, does not exist.", topicName));
+    }
   }
 
   private RegisterTopicCommand registerTopicFirst(
-      Map<String, Expression> properties,
-      boolean enforceTopicExistence
+      final Map<String, Expression> properties,
+      final boolean enforceTopicExistence
   ) {
     if (properties.size() == 0) {
       throw new KsqlException("Create Stream/Table statement needs WITH clause.");
@@ -178,7 +173,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
           "Corresponding kafka topic(" + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
           + ") should be set in WITH clause.");
     }
-    String kafkaTopicName = StringUtil.cleanQuotes(
+    final String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     if (enforceTopicExistence && !kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
@@ -187,9 +182,9 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
 
-  private void validateWithClause(Set<String> withClauseVariables) {
+  private void validateWithClause(final Set<String> withClauseVariables) {
 
-    Set<String> validSet = new HashSet<>();
+    final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
@@ -200,7 +195,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
 
-    for (String withVariable : withClauseVariables) {
+    for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {
         throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
       }

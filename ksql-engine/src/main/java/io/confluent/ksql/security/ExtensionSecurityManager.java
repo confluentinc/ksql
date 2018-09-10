@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.security;
 
+import io.confluent.ksql.function.udf.PluggableUdf;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permission;
@@ -25,13 +26,11 @@ import java.security.Policy;
 import java.security.ProtectionDomain;
 import java.util.Stack;
 
-import io.confluent.ksql.function.udf.PluggableUdf;
-
 /**
  * A simple security manager extension to block UDFs from calling
  * System.exit or executing processes
  */
-public class ExtensionSecurityManager extends SecurityManager {
+public final class ExtensionSecurityManager extends SecurityManager {
 
   public static final ExtensionSecurityManager INSTANCE
       = new ExtensionSecurityManager();

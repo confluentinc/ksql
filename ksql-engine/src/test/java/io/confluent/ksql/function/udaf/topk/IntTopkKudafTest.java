@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableList;
-
-import org.apache.kafka.connect.data.Schema;
-import org.junit.Before;
-import org.junit.Test;
-
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,12 +29,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IntTopkKudafTest {
 
@@ -51,7 +48,7 @@ public class IntTopkKudafTest {
   @Test
   public void shouldAggregateTopK() {
     List<Integer> currentVal = new ArrayList<>();
-    for (Integer value : valuesArray) {
+    for (final Integer value : valuesArray) {
       currentVal = topkKudaf.aggregate(value, currentVal);
     }
 
@@ -68,8 +65,8 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    List<Integer> array1 = ImmutableList.of(50, 45, 25);
-    List<Integer> array2 = ImmutableList.of(60, 55, 48);
+    final List<Integer> array1 = ImmutableList.of(50, 45, 25);
+    final List<Integer> array2 = ImmutableList.of(60, 55, 48);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 55, 50)));
@@ -77,8 +74,8 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    List<Integer> array1 = ImmutableList.of(50, 45);
-    List<Integer> array2 = ImmutableList.of(60);
+    final List<Integer> array1 = ImmutableList.of(50, 45);
+    final List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
@@ -86,8 +83,8 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    List<Integer> array1 = ImmutableList.of(50);
-    List<Integer> array2 = ImmutableList.of(60);
+    final List<Integer> array1 = ImmutableList.of(50);
+    final List<Integer> array2 = ImmutableList.of(60);
 
     assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
         equalTo(ImmutableList.of(60, 50)));
@@ -95,9 +92,9 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
-    List<Integer> aggregate = topkKudaf.aggregate(1, new ArrayList<>());
+    final List<Integer> aggregate = topkKudaf.aggregate(1, new ArrayList<>());
     assertThat(aggregate, equalTo(ImmutableList.of(1)));
-    List<Integer> agg2 = topkKudaf.aggregate(100, aggregate);
+    final List<Integer> agg2 = topkKudaf.aggregate(100, aggregate);
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 

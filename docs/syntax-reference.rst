@@ -222,20 +222,6 @@ Example:
 
 .. _create-table:
 
-If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
-The same applies to the field names in a STRUCT type.
-For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
-use the following statement to declare your stream:
-
-.. code:: sql
-
-    CREATE STREAM pageviews (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR, `Properties` VARCHAR)
-      WITH (VALUE_FORMAT = 'JSON',
-            KAFKA_TOPIC = 'my-pageviews-topic');
-
-.. _create-stream-reserved:
-
-
 CREATE TABLE
 ------------
 
@@ -322,19 +308,6 @@ Example:
 
 .. _create-stream-as-select:
 
-If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
-The same applies to the field names in a STRUCT type.
-For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
-use the following statement to declare your table:
-
-.. code:: sql
-
-    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR)
-            KAFKA_TOPIC = 'my-users-topic',
-            KEY = 'user_id');
-
-.. _create-table-reserved:
-
 CREATE STREAM AS SELECT
 -----------------------
 
@@ -359,45 +332,53 @@ its corresponding topic.
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key.
 
+For joins, the key of the resulting stream will be the value from the column
+from the left stream that was used in the join criteria. This column will be
+registered as the key of the resulting stream if included in the selected
+columns.
+
+For stream-table joins, the column used in the join criteria for the table
+must be the table key.
+
 The WITH clause for the result supports the following properties:
 
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| Property                | Description                                                                                          |
-+=========================+======================================================================================================+
-| KAFKA_TOPIC             | The name of the Kafka topic that backs this stream. If this property is not set, then the            |
-|                         | name of the stream in upper case will be used as default.                                            |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream/table is used.                                              |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
-|                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
-|                         | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
-|                         | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
-|                         | replicas of the input stream or table will be used.                                                  |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP               | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for         |
-|                         | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
-|                         | will process records in this stream based on the timestamp in this field. By default,                |
-|                         | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|                         | Timestamps have a millisecond accuracy.                                                              |
-|                         |                                                                                                      |
-|                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
-|                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
-+-------------------------+------------------------------------------------------------------------------------------------------+
++---------------+------------------------------------------------------------------------------------------------------+
+| Property      | Description                                                                                          |
++===============+======================================================================================================+
+| KAFKA_TOPIC   | The name of the Kafka topic that backs this stream. If this property is not set, then the            |
+|               | name of the stream in upper case will be used as default.                                            |
++---------------+------------------------------------------------------------------------------------------------------+
+| VALUE_FORMAT  | Specifies the serialization format of the message value in the topic. Supported formats:             |
+|               | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
+|               | set, then the format of the input stream/table is used.                                              |
++---------------+------------------------------------------------------------------------------------------------------+
+| PARTITIONS    | The number of partitions in the backing topic. If this property is not set, then the number          |
+|               | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
+|               | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
+|               | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
++---------------+------------------------------------------------------------------------------------------------------+
+| REPLICAS      | The replication factor for the topic. If this property is not set, then the number of                |
+|               | replicas of the input stream or table will be used.                                                  |
++---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP     | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for         |
+|               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
+|               | will process records in this stream based on the timestamp in this field. By default,                |
+|               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
+|               | Timestamps have a millisecond accuracy.                                                              |
+|               |                                                                                                      |
+|               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
+|               |                                                                                                      |
+|               | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
+|               | e.g. given the statement                                                                             |
+|               | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
+|               | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
++---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -430,47 +411,55 @@ Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
 Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
 
+For joins, the key of the resulting table will be the value from the column
+from the left table that was used in the join criteria. This column will be
+registered as the key of the resulting table if included in the selected
+columns.
+
+For joins, the columns used in the join criteria must be the keys of the
+tables being joined.
+
 The WITH clause supports the following properties:
 
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| Property                | Description                                                                                          |
-+=========================+======================================================================================================+
-| KAFKA_TOPIC             | The name of the Kafka topic that backs this table. If this property is not set, then the             |
-|                         | name of the table will be used as default.                                                           |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream or table is used.                                           |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
-|                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
-|                         | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
-|                         | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
-|                         | replicas of the input stream or table will be used.                                                  |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP               | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for         |
-|                         | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
-|                         | will process records in this stream based on the timestamp in this field.                            |
-|                         | Timestamps have a millisecond accuracy.                                                              |
-|                         |                                                                                                      |
-|                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
-|                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
-|                         |                                                                                                      |
-|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
-|                         |    :language: sql                                                                                    |
-|                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
-+-------------------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
-+-----------------------------------+--------------------------------------------------------------------------------------------+
++---------------+------------------------------------------------------------------------------------------------------+
+| Property      | Description                                                                                          |
++===============+======================================================================================================+
+| KAFKA_TOPIC   | The name of the Kafka topic that backs this table. If this property is not set, then the             |
+|               | name of the table will be used as default.                                                           |
++---------------+------------------------------------------------------------------------------------------------------+
+| VALUE_FORMAT  | Specifies the serialization format of the message value in the topic. Supported formats:             |
+|               | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
+|               | set, then the format of the input stream or table is used.                                           |
++---------------+------------------------------------------------------------------------------------------------------+
+| PARTITIONS    | The number of partitions in the backing topic. If this property is not set, then the number          |
+|               | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
+|               | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
+|               | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
++---------------+------------------------------------------------------------------------------------------------------+
+| REPLICAS      | The replication factor for the topic. If this property is not set, then the number of                |
+|               | replicas of the input stream or table will be used.                                                  |
++---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP     | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for         |
+|               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
+|               | will process records in this stream based on the timestamp in this field.                            |
+|               | Timestamps have a millisecond accuracy.                                                              |
+|               |                                                                                                      |
+|               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
+|               |                                                                                                      |
+|               | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
+|               | e.g. given the statement                                                                             |
+|               |                                                                                                      |
+|               | .. literalinclude:: includes/ctas-snippet.sql                                                        |
+|               |    :language: sql                                                                                    |
+|               |                                                                                                      |
+|               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
++---------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | characters requiring single quotes, you can escape them with '', for example:              |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -504,20 +493,6 @@ stream_name and from_item must both refer to a Stream. Tables are not supported.
 Records written into the stream are not timestamp-ordered with respect to other queries.
 Therefore, the topic partitions of the output stream may contain out-of-order records even
 if the source stream for the query is ordered by timestamp.
-
-
-In any of CREATE STREAM AS SELECT, CREATE TABLE AS SELECT or INSERT INTO statements, if you have a column name
-that is a reserved word in KSQL you can access it by using back quotes. Note that when you use back quotes the
-identifier name is case sensitive. The same applies to the field names in STRUCT type.
-In the following example, we select a column with name ``Properties`` and a field from address colunm named ``select``:
-
-.. code:: sql
-
-    CREATE STREAM foo AS SELECT `Properties`, address -> `select` FROM bar;
-
-.. _create-stream-as-select-reserved:
-
-
 
 DESCRIBE
 --------
@@ -648,7 +623,7 @@ Example of explaining a running query:
 .. _drop-stream:
 
 DROP STREAM [IF EXISTS] [DELETE TOPIC];
------------------------
+---------------------------------------
 
 **Synopsis**
 
@@ -668,7 +643,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 .. _drop-table:
 
 DROP TABLE [IF EXISTS] [DELETE TOPIC];
-----------------------
+--------------------------------------
 
 **Synopsis**
 
@@ -1110,8 +1085,21 @@ Scalar functions
 |                        |                                                            | quotes in the timestamp format can be escaped with|
 |                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end       |
-|                        |                                                            | indices.                                          |
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
+|                        |                                                            | Return a substring of ``str`` that starts at      |
+|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                            | the end of the string.                            |
+|                        |                                                            |                                                   |
+|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
+|                        |                                                            | Where ``start`` and ``end`` where base-zero       |
+|                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
+|                        |                                                            | the substring.                                    |
+|                        |                                                            |                                                   |
+|                        |                                                            | It is possible to switch back to this legacy mode |
+|                        |                                                            | by setting                                        |
+|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                            | the string representation of the timestamp in     |

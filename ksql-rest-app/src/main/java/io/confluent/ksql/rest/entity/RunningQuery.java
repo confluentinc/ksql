@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,12 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Objects;
 import java.util.Set;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RunningQuery {
   private final String queryString;
   private final Set<String> sinks;
@@ -29,9 +30,9 @@ public class RunningQuery {
 
   @JsonCreator
   public RunningQuery(
-      @JsonProperty("statementText") String queryString,
-      @JsonProperty("sinks") Set<String> sinks,
-      @JsonProperty("id") EntityQueryId id
+      @JsonProperty("statementText") final String queryString,
+      @JsonProperty("sinks") final Set<String> sinks,
+      @JsonProperty("id") final EntityQueryId id
   ) {
     this.queryString = queryString;
     this.sinks = sinks;
@@ -51,14 +52,14 @@ public class RunningQuery {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof RunningQuery)) {
       return false;
     }
-    RunningQuery that = (RunningQuery) o;
+    final RunningQuery that = (RunningQuery) o;
     return Objects.equals(id, that.id)
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks);

@@ -16,13 +16,11 @@
 
 package io.confluent.ksql.function.udaf.count;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Collections;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public class CountAggFunctionFactory extends AggregateFunctionFactory {
   private static final String FUNCTION_NAME = "COUNT";
@@ -32,7 +30,7 @@ public class CountAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     return getAggregateFunctionList().get(0);
   }
 }

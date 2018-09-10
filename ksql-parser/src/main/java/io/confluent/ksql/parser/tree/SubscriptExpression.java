@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class SubscriptExpression
     extends Expression {
@@ -27,22 +27,24 @@ public class SubscriptExpression
   private final Expression base;
   private final Expression index;
 
-  public SubscriptExpression(Expression base, Expression index) {
+  public SubscriptExpression(final Expression base, final Expression index) {
     this(Optional.empty(), base, index);
   }
 
-  public SubscriptExpression(NodeLocation location, Expression base, Expression index) {
+  public SubscriptExpression(
+      final NodeLocation location, final Expression base, final Expression index) {
     this(Optional.of(location), base, index);
   }
 
-  private SubscriptExpression(Optional<NodeLocation> location, Expression base, Expression index) {
+  private SubscriptExpression(
+      final Optional<NodeLocation> location, final Expression base, final Expression index) {
     super(location);
     this.base = requireNonNull(base, "base is null");
     this.index = requireNonNull(index, "index is null");
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSubscriptExpression(this, context);
   }
 
@@ -55,7 +57,7 @@ public class SubscriptExpression
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -63,7 +65,7 @@ public class SubscriptExpression
       return false;
     }
 
-    SubscriptExpression that = (SubscriptExpression) o;
+    final SubscriptExpression that = (SubscriptExpression) o;
 
     return Objects.equals(this.base, that.base) && Objects.equals(this.index, that.index);
   }

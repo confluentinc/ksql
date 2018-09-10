@@ -16,8 +16,10 @@
 
 package io.confluent.ksql.function;
 
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +27,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
+import org.apache.kafka.connect.data.Schema;
 
 public class UdfFactory {
   private final UdfMetadata metadata;
@@ -95,6 +93,10 @@ public class UdfFactory {
     functions.values().forEach(consumer);
   }
 
+  public boolean isInternal() {
+    return metadata.isInternal();
+  }
+
   public String getPath() {
     return metadata.getPath();
   }
@@ -158,7 +160,7 @@ public class UdfFactory {
         .collect(Collectors.toList());
   }
 
-  private class FunctionParameter {
+  private static final class FunctionParameter {
     private final Schema.Type type;
     private final boolean isOptional;
 

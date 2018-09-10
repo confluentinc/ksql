@@ -16,23 +16,21 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import io.confluent.ksql.GenericRow;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
-import io.confluent.ksql.GenericRow;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-
+@SuppressWarnings("unchecked")
 public class KsqlDelimitedSerializerTest {
 
-  Schema orderSchema;
+  private Schema orderSchema;
 
   @Before
   public void before() {
@@ -47,23 +45,23 @@ public class KsqlDelimitedSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
-    GenericRow genericRow = new GenericRow(columns);
-    KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
-    byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+    final GenericRow genericRow = new GenericRow(columns);
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
+    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
-    String delimitedString = new String(bytes);
+    final String delimitedString = new String(bytes);
     assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0"));
   }
 
   @Test
   public void shouldSerializeRowWithNull() {
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
-    GenericRow genericRow = new GenericRow(columns);
-    KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
-    byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
+    final GenericRow genericRow = new GenericRow(columns);
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
+    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
-    String delimitedString = new String(bytes);
+    final String delimitedString = new String(bytes);
     assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,"));
   }
 }

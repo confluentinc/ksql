@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,20 +17,21 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TablesList extends KsqlEntity {
   private final Collection<SourceInfo.Table> tables;
 
   @JsonCreator
   public TablesList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("tables") Collection<SourceInfo.Table> tables
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("tables") final Collection<SourceInfo.Table> tables
   ) {
     super(statementText);
     this.tables = tables;
@@ -41,14 +42,14 @@ public class TablesList extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof TablesList)) {
       return false;
     }
-    TablesList that = (TablesList) o;
+    final TablesList that = (TablesList) o;
     return Objects.equals(getTables(), that.getTables());
   }
 

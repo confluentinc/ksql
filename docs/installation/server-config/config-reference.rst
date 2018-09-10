@@ -90,7 +90,7 @@ threads. For more information about Kafka Streams threading model, see :ref:`str
 
 
 KSQL Query Settings
-------------------
+-------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
@@ -127,7 +127,10 @@ The Schema Registry URL path to connect KSQL to.
 ksql.service.id
 ---------------
 
-The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. The service ID is also used as
+The service ID of the KSQL server. This is used to define the KSQL cluster membership of a KSQL server instance. If multiple KSQL
+servers connect to the same Kafka cluster (i.e. the same ``bootstrap.servers``) *and* have the same ``ksql.service.id`` they will form a KSQL cluster and share the workload. 
+
+By default, the service ID of KSQL servers is ``default_``. The service ID is also used as
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
@@ -188,7 +191,7 @@ bind to the default interface. For example:
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings
----------------------------
+------------------------------------
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 

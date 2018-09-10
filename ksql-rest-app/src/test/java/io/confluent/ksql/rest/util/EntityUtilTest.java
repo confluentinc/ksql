@@ -1,15 +1,14 @@
 package io.confluent.ksql.rest.util;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import io.confluent.ksql.rest.entity.FieldInfo;
+import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 public class EntityUtilTest {
   private void shouldBuildCorrectPrimitiveField(final Schema primitiveSchema,
@@ -104,7 +103,7 @@ public class EntityUtilTest {
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
     assertThat(entity.get(0).getSchema().getFields().get().size(), equalTo(1));
-    FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
+    final FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }

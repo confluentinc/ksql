@@ -16,24 +16,14 @@
 
 package io.confluent.ksql.testutils;
 
+import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.security.JaasUtils;
-import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.common.security.plain.PlainLoginModule;
-import org.apache.kafka.test.TestUtils;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.testutils.secure.ClientTrustStore;
+import io.confluent.ksql.testutils.secure.Credentials;
+import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
+import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,11 +38,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.confluent.ksql.testutils.secure.ClientTrustStore;
-import io.confluent.ksql.testutils.secure.Credentials;
-import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
-import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import kafka.security.auth.Acl;
 import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
@@ -61,9 +46,21 @@ import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
 import kafka.utils.ZKConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.security.JaasUtils;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.kafka.test.TestUtils;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
-
-import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
@@ -115,7 +112,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-
+    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
@@ -145,7 +142,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       if (zookeeper != null) {
         zookeeper.stop();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -195,7 +192,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    *
    * @param topic The name of the topic.
    */
-  public void createTopic(String topic) {
+  public void createTopic(final String topic) {
     createTopic(topic, 1, 1, new Properties());
   }
 
@@ -206,7 +203,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param partitions  The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
-  public void createTopic(String topic, int partitions, int replication) {
+  public void createTopic(final String topic, final int partitions, final int replication) {
     createTopic(topic, partitions, replication, new Properties());
   }
 
@@ -218,10 +215,10 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(String topic,
-                          int partitions,
-                          int replication,
-                          Properties topicConfig) {
+  public void createTopic(final String topic,
+                          final int partitions,
+                          final int replication,
+                          final Properties topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
@@ -249,7 +246,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final scala.collection.immutable.Set<Acl> scalaAcls =
         JavaConversions.asScalaSet(javaAcls).toSet();
 
-    kafka.security.auth.ResourceType scalaResType =
+    final kafka.security.auth.ResourceType scalaResType =
         ResourceType$.MODULE$.fromJava(resource.resourceType());
 
     final kafka.security.auth.Resource scalaResource =
@@ -272,7 +269,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   private Properties effectiveBrokerConfigFrom() {
-    Properties effectiveConfig = new Properties();
+    final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
@@ -353,12 +350,12 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return new EmbeddedSingleNodeKafkaCluster(brokerConfig, clientConfig);
     }
 
-    private void addListenersProp(String listenerType) {
+    private void addListenersProp(final String listenerType) {
       final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
       brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
     }
 
-    private void removeListenersProp(String listenerType) {
+    private void removeListenersProp(final String listenerType) {
       final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
       final String replacement = Arrays.stream(current.split(","))
           .filter(part -> !part.startsWith(listenerType + "://"))

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
@@ -29,7 +28,10 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-public class PrintMetrics {
+public final class PrintMetrics {
+
+  private PrintMetrics() {
+  }
 
   public static void printHelp() {
     System.err.println(
@@ -56,36 +58,36 @@ public class PrintMetrics {
             + "environmnent variable to an open port for the JMX service to listen on.");
   }
 
-  private static void printMetrics(int port) throws IOException {
-    JMXServiceURL jmxUrl = new JMXServiceURL(
+  private static void printMetrics(final int port) throws IOException {
+    final JMXServiceURL jmxUrl = new JMXServiceURL(
         String.format("service:jmx:rmi:///jndi/rmi://localhost:%d/jmxrmi", port));
-    JMXConnector connector = JMXConnectorFactory.connect(jmxUrl);
+    final JMXConnector connector = JMXConnectorFactory.connect(jmxUrl);
     connector.connect();
-    MBeanServerConnection connection = connector.getMBeanServerConnection();
+    final MBeanServerConnection connection = connector.getMBeanServerConnection();
 
     // print out all ksql engine metrics
-    Set<ObjectName> names = connection.queryNames(null, null);
-    List<ObjectName> ksqlObjects = new LinkedList<>();
-    for (ObjectName n : names) {
+    final Set<ObjectName> names = connection.queryNames(null, null);
+    final List<ObjectName> ksqlObjects = new LinkedList<>();
+    for (final ObjectName n : names) {
       if (n.toString().startsWith("io.confluent.ksql.metrics:type=ksql-engine")) {
         ksqlObjects.add(n);
       }
     }
-    for (ObjectName n : ksqlObjects) {
-      MBeanInfo info;
+    for (final ObjectName n : ksqlObjects) {
+      final MBeanInfo info;
       try {
         info = connection.getMBeanInfo(n);
-      } catch (Exception error) {
+      } catch (final Exception error) {
         throw new PrintMetricsException(
             "Unexpected error getting mbean info " + error.getMessage()
         );
       }
-      MBeanAttributeInfo[] attributes = info.getAttributes();
-      for (MBeanAttributeInfo attributeInfo : attributes) {
-        Object attribute;
+      final MBeanAttributeInfo[] attributes = info.getAttributes();
+      for (final MBeanAttributeInfo attributeInfo : attributes) {
+        final Object attribute;
         try {
           attribute = connection.getAttribute(n, attributeInfo.getName());
-        } catch (Exception error) {
+        } catch (final Exception error) {
           throw new PrintMetricsException(
               "Unexpected error getting attribute " + error.getMessage()
           );
@@ -95,8 +97,8 @@ public class PrintMetrics {
     }
   }
 
-  public static void main(String[] progArgs) throws IOException {
-    Arguments args = Arguments.parse(progArgs);
+  public static void main(final String[] progArgs) throws IOException {
+    final Arguments args = Arguments.parse(progArgs);
     if (args.help) {
       printHelp();
       return;
@@ -105,26 +107,26 @@ public class PrintMetrics {
     printMetrics(args.port);
   }
 
-  static class Arguments {
+  private static final class Arguments {
 
-    public boolean help;
-    public int port;
+    private final boolean help;
+    private final int port;
 
-    public Arguments(boolean help, int port) {
+    private Arguments(final boolean help, final int port) {
       this.help = help;
       this.port = port;
     }
 
-    public static Arguments parse(String[] args) {
+    private static Arguments parse(final String[] args) {
       boolean help = false;
       int port = -1;
 
-      for (String arg : args) {
+      for (final String arg : args) {
         if ("help".equals(arg)) {
           help = true;
           continue;
         }
-        String[] splitOnEquals = arg.split("=");
+        final String[] splitOnEquals = arg.split("=");
         if (splitOnEquals.length != 2) {
           throw new ArgumentParseException(String.format(
               "Invalid argument format in '%s'; expected <name>=<value>",
@@ -132,8 +134,8 @@ public class PrintMetrics {
           ));
         }
 
-        String argName = splitOnEquals[0].trim();
-        String argValue = splitOnEquals[1].trim();
+        final String argName = splitOnEquals[0].trim();
+        final String argValue = splitOnEquals[1].trim();
 
         if (argName.isEmpty()) {
           throw new ArgumentParseException(

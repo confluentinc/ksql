@@ -16,53 +16,8 @@
 
 package io.confluent.ksql;
 
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
-import javax.ws.rs.ProcessingException;
-
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.cli.Cli;
-import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
-import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-
 import static io.confluent.ksql.TestResult.build;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
@@ -80,17 +35,63 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TestKsqlRestApp;
+import io.confluent.ksql.util.TopicConsumer;
+import io.confluent.ksql.util.TopicProducer;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.ws.rs.ProcessingException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
-public class CliTest extends TestRunner {
+public class CliTest {
+
+  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+
+  private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
+      .builder(CLUSTER::bootstrapServers)
+      .build();
 
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+
   private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_KSQL_TOPIC_NAME;
-  private static final int PORT = 9098;
-  private static final String LOCAL_REST_SERVER_ADDR = "http://localhost:" + PORT;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
@@ -106,11 +107,11 @@ public class CliTest extends TestRunner {
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
-  private static KsqlRestApplication restServer;
+  private static TestRunner testRunner;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    KsqlRestClient restClient = new KsqlRestClient(LOCAL_REST_SERVER_ADDR);
+    final KsqlRestClient restClient = createRestClient();
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();
@@ -119,16 +120,10 @@ public class CliTest extends TestRunner {
     // TODO: add remote cli test cases
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
-    KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
-    commandTopicName = restServerConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
-    restServer = KsqlRestApplication.buildApplication(restServerConfig,
-                                                      EasyMock.mock(VersionCheckerAgent.class)
-    );
-
-    restServer.start();
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
@@ -137,7 +132,7 @@ public class CliTest extends TestRunner {
         terminal
     );
 
-    TestRunner.setup(localCli, terminal);
+    testRunner = new TestRunner(localCli, terminal);
 
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
@@ -147,13 +142,13 @@ public class CliTest extends TestRunner {
     produceInputStream(orderDataProvider);
   }
 
-  private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
+  private static void produceInputStream(final TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
     topicProducer.produceInputData(dataProvider);
   }
 
-  private static void createKStream(TestDataProvider dataProvider) {
-    test(
+  private static void createKStream(final TestDataProvider dataProvider) {
+    testRunner.test(
         String.format("CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
             dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
         build("Stream created")
@@ -161,14 +156,14 @@ public class CliTest extends TestRunner {
   }
 
   private static void testListOrShowCommands() {
-    TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
+    final TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
     testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
         "1", "0", "0")));
-    testListOrShow("topics", testResult);
-    testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
-    testListOrShow("streams", EMPTY_RESULT);
-    testListOrShow("tables", EMPTY_RESULT);
-    testListOrShow("queries", EMPTY_RESULT);
+    testRunner.testListOrShow("topics", testResult);
+    testRunner.testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
+    testRunner.testListOrShow("streams", EMPTY_RESULT);
+    testRunner.testListOrShow("tables", EMPTY_RESULT);
+    testRunner.testListOrShow("queries", EMPTY_RESULT);
   }
 
   @AfterClass
@@ -181,30 +176,11 @@ public class CliTest extends TestRunner {
 
     localCli.close();
     terminal.close();
-    restServer.stop();
-  }
-
-  private static Map<String, Object> genDefaultConfigMap() {
-    Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-    configMap.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(PORT));
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
-    configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
-    return configMap;
-  }
-
-  private static Properties defaultServerProperties() {
-    Properties serverProperties = new Properties();
-    serverProperties.putAll(genDefaultConfigMap());
-    return serverProperties;
   }
 
   private static Map<String, Object> validStartUpConfigs() {
     // TODO: these configs should be set with other configs on start-up, rather than setup later.
-    Map<String, Object> startConfigs = genDefaultConfigMap();
+    final Map<String, Object> startConfigs = new HashMap<>(REST_APP.getBaseConfig());
     startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
     startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
     startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
@@ -225,18 +201,18 @@ public class CliTest extends TestRunner {
     return startConfigs;
   }
 
-  private static void testCreateStreamAsSelect(String selectQuery, Schema resultSchema, Map<String, GenericRow> expectedResults) {
+  private static void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    String resultKStreamName = "RESULT_" + result_stream_no++;
+    final String resultKStreamName = "RESULT_" + result_stream_no++;
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */
-    test(queryString, build("Stream created and running"));
+    testRunner.test(queryString, build("Stream created and running"));
 
     /* Assert Results */
-    Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
+    final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
     terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no - 1));
 
@@ -244,75 +220,76 @@ public class CliTest extends TestRunner {
     assertThat(results, equalTo(expectedResults));
   }
 
-  private static void terminateQuery(String queryId) {
-    test(
+  private static void terminateQuery(final String queryId) {
+    testRunner.test(
         String.format("terminate %s", queryId),
         build("Query terminated.")
     );
   }
 
-  private static void dropStream(String name) {
-    test(
+  private static void dropStream(final String name) {
+    testRunner.test(
         String.format("drop stream %s", name),
         build("Source " + name + " was dropped. ")
     );
   }
 
-  private static void selectWithLimit(String selectQuery, int limit, TestResult.OrderedResult expectedResults) {
+  private static void selectWithLimit(String selectQuery, final int limit, final TestResult.OrderedResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
-    test(selectQuery, expectedResults);
+    testRunner.test(selectQuery, expectedResults);
   }
 
   @Test
-  public void testPrint() throws InterruptedException {
+  public void testPrint() {
+    final Thread thread =
+        new Thread(() -> testRunner.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+    thread.start();
 
-    Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-    wait.start();
-    Thread.sleep(1000);
-    wait.interrupt();
-
-    String terminalOutput = terminal.getOutputString();
-    assertThat(terminalOutput, containsString("Format:JSON"));
+    try {
+      assertThatEventually(() -> terminal.getOutputString(), containsString("Format:JSON"));
+    } finally {
+      thread.interrupt();
+    }
   }
 
   @Test
   public void testPropertySetUnset() {
-    test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
-    test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
-    test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
-    test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
-    test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
-    test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
-    test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
+    testRunner.test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
+    testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
+    testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
+    testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    testRunner.test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
+    testRunner.test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
 
-    test("unset 'application.id'", EMPTY_RESULT);
-    test("unset 'producer.batch.size'", EMPTY_RESULT);
-    test("unset 'max.request.size'", EMPTY_RESULT);
-    test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
-    test("unset 'enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
-    test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
-    test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
-    test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
-    test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'ksql.service.id'", EMPTY_RESULT);
+    testRunner.test("unset 'application.id'", EMPTY_RESULT);
+    testRunner.test("unset 'producer.batch.size'", EMPTY_RESULT);
+    testRunner.test("unset 'max.request.size'", EMPTY_RESULT);
+    testRunner.test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
+    testRunner.test("unset 'enable.auto.commit'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
+    testRunner.test("unset 'ksql.service.id'", EMPTY_RESULT);
 
-    testListOrShow("properties", build(validStartUpConfigs()), false);
+    testRunner.testListOrShow("properties", build(validStartUpConfigs()), false);
   }
 
   @Test
   public void testDescribe() {
-    test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
+    testRunner.test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
         build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
-    List<List<String>> rows = new ArrayList<>();
+    final List<List<String>> rows = new ArrayList<>();
     rows.add(Arrays.asList("ORDERTIME", "BIGINT"));
     rows.add(Arrays.asList("ORDERID", "VARCHAR(STRING)"));
     rows.add(Arrays.asList("ITEMID", "VARCHAR(STRING)"));
@@ -320,11 +297,11 @@ public class CliTest extends TestRunner {
     rows.add(Arrays.asList("TIMESTAMP", "VARCHAR(STRING)"));
     rows.add(Arrays.asList("PRICEARRAY", "ARRAY<DOUBLE>"));
     rows.add(Arrays.asList("KEYVALUEMAP", "MAP<STRING, DOUBLE>"));
-    test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
+    testRunner.test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
   }
 
   @Test
-  public void testSelectStar() throws Exception {
+  public void testSelectStar() {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),
@@ -334,7 +311,7 @@ public class CliTest extends TestRunner {
 
   @Test
   public void testSelectProject() {
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(
         Arrays.asList(
             "ITEM_1",
@@ -382,7 +359,7 @@ public class CliTest extends TestRunner {
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
 
-    Schema resultSchema = SchemaBuilder.struct()
+    final Schema resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
@@ -397,8 +374,8 @@ public class CliTest extends TestRunner {
 
   @Test
   public void testSelectFilter() {
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    Map<String, Double> mapField = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
@@ -421,13 +398,13 @@ public class CliTest extends TestRunner {
 
   @Test
   public void testSelectLimit() {
-    TestResult.OrderedResult expectedResult = TestResult.build();
-    Map<String, GenericRow> streamData = orderDataProvider.data();
-    int limit = 3;
+    final TestResult.OrderedResult expectedResult = TestResult.build();
+    final Map<String, GenericRow> streamData = orderDataProvider.data();
+    final int limit = 3;
     for (int i = 1; i <= limit; i++) {
-      GenericRow srcRow = streamData.get(Integer.toString(i));
-      List<Object> columns = srcRow.getColumns();
-      GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
+      final GenericRow srcRow = streamData.get(Integer.toString(i));
+      final List<Object> columns = srcRow.getColumns();
+      final GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
       expectedResult.addRow(resultRow);
     }
     selectWithLimit(
@@ -447,7 +424,7 @@ public class CliTest extends TestRunner {
         whereClause
     );
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
     // TODO: tests failed!
@@ -491,7 +468,7 @@ public class CliTest extends TestRunner {
 
   @Test
   public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
-    KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
+    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
     EasyMock.expect(mockRestClient.makeRootRequest()).andThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
     EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
@@ -507,14 +484,14 @@ public class CliTest extends TestRunner {
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, new KsqlRestClient(LOCAL_REST_SERVER_ADDR, Collections.emptyMap()), terminal);
+    new Cli(1L, 1L, createRestClient(), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
 
   @Test
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {
-    KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
+    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
     EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
         RestResponse.erroneous(
             new KsqlErrorMessage(
@@ -524,7 +501,7 @@ public class CliTest extends TestRunner {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, new KsqlRestClient(LOCAL_REST_SERVER_ADDR));
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, createRestClient());
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -543,41 +520,76 @@ public class CliTest extends TestRunner {
     rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
     rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
     rows.add(Arrays.asList("TOPK", "AGGREGATE"));
-    testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
+    testRunner.testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
   }
 
   @Test
   public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n" +
-            "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
-            "Type        : scalar\n" +
-            "Jar         : internal\n" +
-            "Variations  : \n" +
-            "\n" +
-            "\tArguments   : BIGINT, VARCHAR\n" +
-            "\tReturns     : VARCHAR\n" +
-            "\tDescription : \n";
+        "Author      : confluent\n" +
+        "Type        : scalar\n" +
+        "Jar         : internal\n" +
+        "Variations  : \n" +
+        "\n" +
+        "\tVariation   : TIMESTAMPTOSTRING(BIGINT, VARCHAR)\n" +
+        "\tReturns     : VARCHAR\n";
 
     localCli.handleLine("describe function timestamptostring;");
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 
   @Test
+  public void shouldDescribeOverloadedScalarFunction() throws Exception {
+    // Given:
+    localCli.handleLine("describe function substring;");
+
+    // Then:
+    final String output = terminal.getOutputString();
+
+    // Summary output:
+    assertThat(output, containsString(
+        "Name        : SUBSTRING\n"
+        + "Author      : Confluent\n"
+        + "Overview    : Returns a substring of the passed in value.\n"
+    ));
+    assertThat(output, containsString(
+        "Type        : scalar\n"
+        + "Jar         : internal\n"
+        + "Variations  :"
+    ));
+
+    // Variant output:
+    assertThat(output, containsString(
+        "\tVariation   : SUBSTRING(str VARCHAR, pos INT)\n"
+        + "\tReturns     : VARCHAR\n"
+        + "\tDescription : Returns a substring of str that starts at pos and continues to the end"
+    ));
+    assertThat(output, containsString(
+        "\tstr         : The source string. If null, then function returns null.\n"
+        + "\tpos         : The base-one position the substring starts from."
+    ));
+  }
+
+  @Test
   public void shouldDescribeAggregateFunction() throws Exception {
-    final String expectedOutput =
+    final String expectedSummary =
             "Name        : TOPK\n" +
             "Author      : confluent\n" +
-            "Version     : \n" +
-            "Overview    : \n" +
             "Type        : aggregate\n" +
             "Jar         : internal\n" +
             "Variations  : \n";
 
+    final String expectedVariant =
+        "\tVariation   : TOPK(INT)\n"
+        + "\tReturns     : ARRAY<INT>\n"
+        + "\tDescription : Calculates the TopK value for a column, per key.";
+
     localCli.handleLine("describe function topk;");
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
   }
 
   @Test
@@ -585,5 +597,9 @@ public class CliTest extends TestRunner {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  private static KsqlRestClient createRestClient() {
+    return new KsqlRestClient(REST_APP.getListeners().get(0).toString());
   }
 }

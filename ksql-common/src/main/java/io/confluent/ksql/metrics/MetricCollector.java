@@ -16,31 +16,30 @@
 
 package io.confluent.ksql.metrics;
 
+import java.util.Collection;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-import java.util.Collection;
-import java.util.Map;
-
 interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
-  default ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+  default ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
     return consumerRecords;
   }
 
-  default ProducerRecord onSend(ProducerRecord producerRecord) {
+  default ProducerRecord onSend(final ProducerRecord producerRecord) {
     return producerRecord;
   }
 
-  default void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {  }
+  default void onAcknowledgement(final RecordMetadata recordMetadata, final Exception e) {  }
 
   default void close() {  }
 
-  default void onCommit(Map map) {  }
+  default void onCommit(final Map map) {  }
 
-  default void configure(Map<String, ?> map) {  }
+  default void configure(final Map<String, ?> map) {  }
 
   default String getGroupId() {
     return null;

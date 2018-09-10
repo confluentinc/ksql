@@ -38,7 +38,7 @@ public interface Udaf<V, A> {
    * @param aggregate value of the Aggregate
    * @return new aggregate
    */
-  A aggregate(final V current, final A aggregate);
+  A aggregate(V current, A aggregate);
 
   /**
    * Merge two aggregates
@@ -46,5 +46,5 @@ public interface Udaf<V, A> {
    * @param aggTwo second aggregate
    * @return new aggregate
    */
-  A merge(final A aggOne, final A aggTwo);
+  A merge(A aggOne, A aggTwo);
 }

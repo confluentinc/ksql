@@ -16,31 +16,31 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class Map extends Type {
 
   private final Type valueType;
 
-  public Map(Type valueType) {
+  public Map(final Type valueType) {
     this(Optional.empty(), valueType);
   }
 
-  public Map(NodeLocation location, Type valueType) {
+  public Map(final NodeLocation location, final Type valueType) {
     this(Optional.of(location), valueType);
   }
 
-  private Map(Optional<NodeLocation> location, Type valueType) {
+  private Map(final Optional<NodeLocation> location, final Type valueType) {
     super(location, KsqlType.MAP);
     requireNonNull(valueType, "itemType is null");
     this.valueType = valueType;
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitMap(this, context);
   }
 
@@ -54,7 +54,7 @@ public class Map extends Type {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return
         obj instanceof Map
         && Objects.equals(valueType, ((Map)obj).valueType);

@@ -17,22 +17,19 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.easymock.EasyMock.anyObject;
+
 import com.google.common.collect.ImmutableMap;
-
-import org.apache.kafka.common.config.TopicConfig;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.rest.RestConfig;
-
-import static org.easymock.EasyMock.anyObject;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.common.config.TopicConfig;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 
 public class KsqlRestApplicationTest {

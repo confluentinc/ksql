@@ -15,7 +15,7 @@
         "null",
         "string"
       ],
-      "doc": "The version of the Confluent Platform this kql component is running."
+      "doc": "The version of the Confluent Platform this ksql component is running."
     },
     {
       "name": "ksqlComponentType",

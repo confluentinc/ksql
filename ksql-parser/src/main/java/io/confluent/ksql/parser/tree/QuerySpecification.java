@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class QuerySpecification
     extends QueryBody {
@@ -36,46 +36,46 @@ public class QuerySpecification
   private final Optional<String> limit;
 
   public QuerySpecification(
-      Select select,
-      Relation into,
-      boolean shouldCreateInto,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      Optional<String> limit) {
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
     this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
          having, limit);
   }
 
   public QuerySpecification(
-      NodeLocation location,
-      Select select,
-      Relation into,
-      boolean shouldCreateInto,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      Optional<String> limit) {
+      final NodeLocation location,
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
     this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
          groupBy,
          having, limit);
   }
 
   private QuerySpecification(
-      Optional<NodeLocation> location,
-      Select select,
-      Relation into,
-      boolean shouldCreateInto,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      Optional<String> limit) {
+      final Optional<NodeLocation> location,
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
     super(location);
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
@@ -134,7 +134,7 @@ public class QuerySpecification
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitQuerySpecification(this, context);
   }
 
@@ -152,14 +152,14 @@ public class QuerySpecification
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    QuerySpecification o = (QuerySpecification) obj;
+    final QuerySpecification o = (QuerySpecification) obj;
     return Objects.equals(select, o.select)
            && Objects.equals(from, o.from)
            && Objects.equals(where, o.where)

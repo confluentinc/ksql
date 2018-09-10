@@ -15,7 +15,33 @@
  **/
 package io.confluent.ksql.integration;
 
+import static java.lang.String.format;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.UserDataProvider;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -29,33 +55,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.UserDataProvider;
-
-import static java.lang.String.format;
-import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
@@ -83,11 +82,12 @@ public class EndToEndIntegrationTest {
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
+
     testHarness.start(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     ksqlConfig = testHarness.ksqlConfig.clone();
 
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -120,18 +120,19 @@ public class EndToEndIntegrationTest {
     final QueuedQueryMetadata queryMetadata = executeQuery(
         "SELECT * from %s;", userTable);
 
-    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
-    Set<String> actualUsers = new HashSet<>();
-    Set<String> expectedUsers = Utils.mkSet("USER_0", "USER_1", "USER_2", "USER_3", "USER_4");
+    final Set<String> actualUsers = new HashSet<>();
+    final Set<String> expectedUsers = Utils.mkSet("USER_0", "USER_1", "USER_2", "USER_3", "USER_4");
     while (actualUsers.size() < expectedUsers.size()) {
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      final KeyValue<String, GenericRow> nextRow = rowQueue.poll();
       if (nextRow != null) {
-        List<Object> columns = nextRow.value.getColumns();
+        final List<Object> columns = nextRow.value.getColumns();
         assertEquals(6, columns.size());
         actualUsers.add((String) columns.get(1));
       }
     }
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
     assertEquals(expectedUsers, actualUsers);
   }
 
@@ -140,22 +141,23 @@ public class EndToEndIntegrationTest {
     final QueuedQueryMetadata queryMetadata =
         executeQuery("SELECT pageid from %s;", pageViewStream);
 
-    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
-    List<String> actualPages = new ArrayList<>();
-    List<String> expectedPages =
+    final List<String> actualPages = new ArrayList<>();
+    final List<String> expectedPages =
         Arrays.asList("PAGE_1", "PAGE_2", "PAGE_3", "PAGE_4", "PAGE_5", "PAGE_5", "PAGE_5");
     while (actualPages.size() < expectedPages.size()) {
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      final KeyValue<String, GenericRow> nextRow = rowQueue.poll();
       if (nextRow != null) {
-        List<Object> columns = nextRow.value.getColumns();
+        final List<Object> columns = nextRow.value.getColumns();
         assertEquals(1, columns.size());
-        String page = (String) columns.get(0);
+        final String page = (String) columns.get(0);
         actualPages.add(page);
       }
     }
 
     assertEquals(expectedPages, actualPages);
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
     queryMetadata.getKafkaStreams().close();
   }
 
@@ -174,19 +176,19 @@ public class EndToEndIntegrationTest {
     final QueuedQueryMetadata queryMetadata = executeQuery(
         "SELECT * from pageviews_female;");
 
-    List<KeyValue<String, GenericRow>> results = new ArrayList<>();
-    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
+    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
     // From the mock data, we expect exactly 3 page views from female users.
-    List<String> expectedPages = Arrays.asList("PAGE_2", "PAGE_5", "PAGE_5");
-    List<String> expectedUsers = Arrays.asList("USER_2", "USER_0", "USER_2");
-    List<String> actualPages = new ArrayList<>();
-    List<String> actualUsers = new ArrayList<>();
+    final List<String> expectedPages = Arrays.asList("PAGE_2", "PAGE_5", "PAGE_5");
+    final List<String> expectedUsers = Arrays.asList("USER_2", "USER_0", "USER_2");
+    final List<String> actualPages = new ArrayList<>();
+    final List<String> actualUsers = new ArrayList<>();
 
     TestUtils.waitForCondition(() -> {
       try {
         log.debug("polling from pageviews_female");
-        KeyValue<String, GenericRow> nextRow = rowQueue.poll(8000, TimeUnit.MILLISECONDS);
+        final KeyValue<String, GenericRow> nextRow = rowQueue.poll(8000, TimeUnit.MILLISECONDS);
         if (nextRow != null) {
           results.add(nextRow);
         } else {
@@ -198,24 +200,26 @@ public class EndToEndIntegrationTest {
           testHarness
               .publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
         }
-      } catch (Exception e) {
+      } catch (final Exception e) {
         log.error("Got exception when polling from pageviews_female", e);
       }
       return 3 <= results.size();
     }, 30000, "Could not consume any records from " + pageViewTopic + " for 30 seconds");
 
-    for (KeyValue<String, GenericRow> result : results) {
-      List<Object> columns = result.value.getColumns();
+    for (final KeyValue<String, GenericRow> result : results) {
+      final List<Object> columns = result.value.getColumns();
       log.debug("pageview join: {}", columns);
 
       assertEquals(6, columns.size());
-      String user = (String) columns.get(2);
+      final String user = (String) columns.get(2);
       actualUsers.add(user);
 
-      String page = (String) columns.get(3);
+      final String page = (String) columns.get(3);
       actualPages.add(page);
     }
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertEquals(expectedPages, actualPages);
     assertEquals(expectedUsers, actualUsers);
   }
@@ -253,6 +257,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertThat(columns.get(3).toString(), startsWith("PAGE_"));
     assertThat(columns.get(4).toString(), startsWith("USER_"));
   }
@@ -278,6 +284,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    assertThat(testHarness.getConsumedCount(), greaterThan(0));
+    assertThat(testHarness.getProducedCount(), greaterThan(0));
     assertThat(columns.get(1).toString(), startsWith("USER_"));
     assertThat(columns.get(2).toString(), startsWith("PAGE_"));
     assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));
@@ -285,7 +293,7 @@ public class EndToEndIntegrationTest {
 
   private QueryMetadata executeStatement(final String statement,
                                          final String... args) throws Exception {
-    final String formatted = String.format(statement, args);
+    final String formatted = String.format(statement, (Object[])args);
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries =

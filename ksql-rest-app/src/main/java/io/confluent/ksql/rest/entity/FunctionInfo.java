@@ -17,31 +17,38 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FunctionInfo {
 
-  private final List<String> argumentTypes;
+  private final List<ArgumentInfo> arguments;
   private final String returnType;
   private final String description;
 
   @JsonCreator
   public FunctionInfo(
-      @JsonProperty("argumentTypes") final List<String> argumentTypes,
+      @JsonProperty("arguments") final List<ArgumentInfo> arguments,
       @JsonProperty("returnType") final String returnType,
       @JsonProperty("description") final String description
   ) {
-    this.argumentTypes = Objects.requireNonNull(argumentTypes, "argumentTypes can't be null");
+    this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.returnType = Objects.requireNonNull(returnType, "returnType can't be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
   }
 
+  @Deprecated // Maintained for backwards compatibility with v5.0, use getArguments() instead.
   public List<String> getArgumentTypes() {
-    return Collections.unmodifiableList(argumentTypes);
+    return arguments.stream().map(ArgumentInfo::getType).collect(Collectors.toList());
+  }
+
+  public List<ArgumentInfo> getArguments() {
+    return arguments;
   }
 
   public String getReturnType() {
@@ -61,20 +68,20 @@ public class FunctionInfo {
       return false;
     }
     final FunctionInfo that = (FunctionInfo) o;
-    return Objects.equals(argumentTypes, that.argumentTypes)
+    return Objects.equals(arguments, that.arguments)
         && Objects.equals(returnType, that.returnType)
         && Objects.equals(description, that.description);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(argumentTypes, returnType, description);
+    return Objects.hash(arguments, returnType, description);
   }
 
   @Override
   public String toString() {
     return "FunctionInfo{"
-        + "argumentTypes=" + argumentTypes
+        + "arguments=" + arguments
         + ", returnType='" + returnType + '\''
         + ", description='" + description + '\''
         + '}';

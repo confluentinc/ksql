@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class WindowFrame
     extends Node {
@@ -33,16 +33,23 @@ public class WindowFrame
   private final FrameBound start;
   private final Optional<FrameBound> end;
 
-  public WindowFrame(Type type, FrameBound start, Optional<FrameBound> end) {
+  public WindowFrame(final Type type, final FrameBound start, final Optional<FrameBound> end) {
     this(Optional.empty(), type, start, end);
   }
 
-  public WindowFrame(NodeLocation location, Type type, FrameBound start, Optional<FrameBound> end) {
+  public WindowFrame(
+      final NodeLocation location,
+      final Type type,
+      final FrameBound start,
+      final Optional<FrameBound> end) {
     this(Optional.of(location), type, start, end);
   }
 
-  private WindowFrame(Optional<NodeLocation> location, Type type, FrameBound start,
-                      Optional<FrameBound> end) {
+  private WindowFrame(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final FrameBound start,
+      final Optional<FrameBound> end) {
     super(location);
     this.type = requireNonNull(type, "type is null");
     this.start = requireNonNull(start, "start is null");
@@ -62,19 +69,19 @@ public class WindowFrame
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitWindowFrame(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    WindowFrame o = (WindowFrame) obj;
+    final WindowFrame o = (WindowFrame) obj;
     return Objects.equals(type, o.type)
            && Objects.equals(start, o.start)
            && Objects.equals(end, o.end);

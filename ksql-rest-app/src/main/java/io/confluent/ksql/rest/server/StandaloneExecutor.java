@@ -16,9 +16,14 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.FileInputStream;
@@ -31,15 +36,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Version;
-import io.confluent.ksql.util.WelcomeMsgUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandaloneExecutor implements Executable {
 
@@ -66,7 +64,7 @@ public class StandaloneExecutor implements Executable {
       udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
       throw e;
@@ -76,7 +74,7 @@ public class StandaloneExecutor implements Executable {
   public void stop() {
     try {
       ksqlEngine.close();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
     }
     shutdownLatch.countDown();
@@ -91,7 +89,7 @@ public class StandaloneExecutor implements Executable {
                                           final String queriesFile,
                                           final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);
@@ -116,10 +114,10 @@ public class StandaloneExecutor implements Executable {
 
   private void executeStatements(final String queries) {
     final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries, ksqlConfig);
-    for (QueryMetadata queryMetadata : queryMetadataList) {
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.start();
+        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+        persistentQueryMd.start();
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
@@ -134,7 +132,7 @@ public class StandaloneExecutor implements Executable {
 
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();
-    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(
         new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {
@@ -142,7 +140,7 @@ public class StandaloneExecutor implements Executable {
         sb.append(System.lineSeparator());
         line = br.readLine();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
     }
     return sb.toString();

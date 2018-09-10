@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public final class TableElement
     extends Node {
@@ -28,15 +28,15 @@ public final class TableElement
   private final String name;
   private final Type type;
 
-  public TableElement(String name, Type type) {
+  public TableElement(final String name, final Type type) {
     this(Optional.empty(), name, type);
   }
 
-  public TableElement(NodeLocation location, String name, Type type) {
+  public TableElement(final NodeLocation location, final String name, final Type type) {
     this(Optional.of(location), name, type);
   }
 
-  private TableElement(Optional<NodeLocation> location, String name, Type type) {
+  private TableElement(final Optional<NodeLocation> location, final String name, final Type type) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.type = requireNonNull(type, "type is null");
@@ -51,19 +51,19 @@ public final class TableElement
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTableElement(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    TableElement o = (TableElement) obj;
+    final TableElement o = (TableElement) obj;
     return Objects.equals(this.name, o.name)
            && Objects.equals(this.type, o.type);
   }

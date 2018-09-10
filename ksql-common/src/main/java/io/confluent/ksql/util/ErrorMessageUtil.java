@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ErrorMessageUtil {
+public final class ErrorMessageUtil {
 
   private static final String PREFIX = "Caused by: ";
+
+  private ErrorMessageUtil() {
+  }
 
   /**
    * Build an error message containing the message of each throwable in the chain.
@@ -58,11 +61,12 @@ public class ErrorMessageUtil {
     }
   }
 
-  private static List<Throwable> getThrowables(Throwable e) {
+  private static List<Throwable> getThrowables(final Throwable e) {
     final List<Throwable> list = new ArrayList<>();
-    while (e != null && !list.contains(e)) {
-      list.add(e);
-      e = e.getCause();
+    Throwable cause = e;
+    while (cause != null && !list.contains(cause)) {
+      list.add(cause);
+      cause = cause.getCause();
     }
     return list;
   }

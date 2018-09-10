@@ -1,142 +1,203 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.utils.Bytes;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
-
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
+import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.utils.Bytes;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TopicStreamTest {
 
+  private SchemaRegistryClient schemaRegistryClient;
+
+  @Before
+  public void setUp() {
+    schemaRegistryClient = mock(SchemaRegistryClient.class);
+  }
+
   @Test
   public void shouldMatchAvroFormatter() throws Exception {
+    // Given:
+    final Schema schema = parseAvroSchema(
+        "{\n" +
+        "    \"fields\": [\n" +
+        "        { \"name\": \"str1\", \"type\": \"string\" }\n" +
+        "    ],\n" +
+        "    \"name\": \"myrecord\",\n" +
+        "    \"type\": \"record\"\n" +
+        "}");
 
-    /**
-     * Build an AVRO message
-     */
-    String USER_SCHEMA = "{\n" +
-            "    \"fields\": [\n" +
-            "        { \"name\": \"str1\", \"type\": \"string\" }\n" +
-            "    ],\n" +
-            "    \"name\": \"myrecord\",\n" +
-            "    \"type\": \"record\"\n" +
-            "}";
-    Schema.Parser parser = new Schema.Parser();
-    Schema schema = parser.parse(USER_SCHEMA);
-
-    GenericData.Record avroRecord = new GenericData.Record(schema);
+    final GenericData.Record avroRecord = new GenericData.Record(schema);
     avroRecord.put("str1", "My first string");
 
-    /**
-     * Setup expects
-     */
-    SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     expect(schemaRegistryClient.register(anyString(), anyObject())).andReturn(1);
-    expect(schemaRegistryClient.getById(anyInt())).andReturn(schema);
+    expect(schemaRegistryClient.getById(anyInt())).andReturn(schema).times(2);
 
     replay(schemaRegistryClient);
 
+    final byte[] avroData = serializeAvroRecord(avroRecord);
 
-    Map<String, String> props = new HashMap<>();
+    // When:
+    final Result result = getFormatter(avroData);
+
+    // Then:
+    assertThat(result.format, is(Format.AVRO));
+    assertThat(result.formatted, endsWith(", key, {\"str1\": \"My first string\"}\n"));
+  }
+
+  @Test
+  public void shouldNotMatchAvroFormatter() {
+    // Given:
+    replay(schemaRegistryClient);
+    final String notAvro = "test-data";
+
+    // When:
+    final Result result = getFormatter(notAvro);
+
+    // Then:
+    assertThat(result.format, is(not(Format.AVRO)));
+  }
+
+  @Test
+  public void shouldFormatJson() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    final String json =
+        "{    \"name\": \"myrecord\"," +
+        "    \"type\": \"record\"" +
+        "}";
+
+    // When:
+    final Result result = getFormatter(json);
+
+    // Then:
+    assertThat(result.format, is(Format.JSON));
+    assertThat(result.formatted,
+               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"type\":\"record\"}\n"));
+  }
+
+  @Test
+  public void shouldNotMatchJsonFormatter() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    final String notJson =
+        "{  BAD DATA  \"name\": \"myrecord\"," +
+        "    \"type\": \"record\"" +
+        "}";
+
+    // When:
+    final Result result = getFormatter(notJson);
+
+    // Then:
+    assertThat(result.format, is(not(Format.JSON)));
+  }
+
+  @Test
+  public void shouldFilterNullValues() {
+    replay(schemaRegistryClient);
+
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        "some-topic", 1, 1, "key", null);
+    final RecordFormatter formatter =
+        new RecordFormatter(schemaRegistryClient, "some-topic");
+    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
+        ImmutableMap.of(new TopicPartition("some-topic", 1),
+            ImmutableList.of(record)));
+
+    assertThat(formatter.format(records), empty());
+  }
+
+  @Test
+  public void shouldHandleNullValuesFromSTRINGPrint() throws IOException {
+    final DateFormat dateFormat =
+        SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
+
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        "some-topic", 1, 1, "key", null);
+
+    final String formatted =
+        Format.STRING.maybeGetFormatter(
+            "some-topic", record, null, dateFormat).get().print(record);
+
+    assertThat(formatted, endsWith(", key , NULL\n"));
+  }
+
+  private Result getFormatter(final String data) {
+    return getFormatter(data.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private Result getFormatter(final byte[] data) {
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        "some-topic", 1, 1, "key", new Bytes(data));
+
+    final RecordFormatter formatter =
+        new RecordFormatter(schemaRegistryClient, "some-topic");
+
+    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
+        ImmutableMap.of(new TopicPartition("some-topic", 1),
+                        ImmutableList.of(record)));
+
+    final List<String> formatted = formatter.format(records);
+    assertThat("Only expect one line", formatted, hasSize(1));
+
+    return new Result(formatter.getFormat(), formatted.get(0));
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static Schema parseAvroSchema(final String avroSchema) {
+    final Schema.Parser parser = new Schema.Parser();
+    return parser.parse(avroSchema);
+  }
+
+  private byte[] serializeAvroRecord(final GenericData.Record avroRecord) {
+    final Map<String, String> props = new HashMap<>();
     props.put("schema.registry.url", "localhost:9092");
 
-    KafkaAvroSerializer avroSerializer = new KafkaAvroSerializer(schemaRegistryClient, props);
+    final KafkaAvroSerializer avroSerializer = new KafkaAvroSerializer(schemaRegistryClient, props);
 
-
-    /**
-     * Test data
-     */
-    byte[] testRecordBytes = avroSerializer.serialize("topic", avroRecord);
-    ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(testRecordBytes));
-
-    /** Assert
-     */
-    assertTrue(Format.AVRO.isFormat("topic", record, schemaRegistryClient));
+    return avroSerializer.serialize("topic", avroRecord);
   }
 
-  @Test
-  public void shouldNotMatchAvroFormatter() throws Exception {
+  private static final class Result {
 
-    /**
-     * Setup expects
-     */
-    SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    replay(schemaRegistryClient);
+    private final Format format;
+    private final String formatted;
 
-    /**
-     * Test data
-     */
-    ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes("test-data".getBytes()));
-
-    /** Assert
-     */
-    assertFalse(Format.AVRO.isFormat("topic", record, schemaRegistryClient));
-  }
-
-  @Test
-  public void shouldMatchJsonFormatter() throws Exception {
-
-    SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    replay(schemaRegistryClient);
-
-    /**
-     * Test data
-     */
-    String json = "{    \"name\": \"myrecord\"," +
-            "    \"type\": \"record\"" +
-            "}";
-
-    ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
-
-    assertTrue(Format.JSON.isFormat("topic", record, schemaRegistryClient));
-  }
-
-  @Test
-  public void shouldNotMatchJsonFormatter() throws Exception {
-
-    SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    replay(schemaRegistryClient);
-
-    /**
-     * Test data
-     */
-    String json = "{  BAD DATA  \"name\": \"myrecord\"," +
-            "    \"type\": \"record\"" +
-            "}";
-
-    ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
-    assertFalse(Format.JSON.isFormat("topic", record, schemaRegistryClient));
-  }
-
-  @Test
-  public void shouldHandleNullValues() throws Exception {
-    final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    replay(schemaRegistryClient);
-
-    final ConsumerRecord<String, Bytes> record
-        = new ConsumerRecord<>("topic", 1, 1, "key", null);
-
-    final String[] printedData = Format.STRING.print(record).split(",");
-    assertEquals(3, printedData.length);
-    assertEquals("key", printedData[1].trim());
-    assertEquals("NULL", printedData[2].trim());
-
+    private Result(final Format format, final String formatted) {
+      this.format = format;
+      this.formatted = formatted;
+    }
   }
 }

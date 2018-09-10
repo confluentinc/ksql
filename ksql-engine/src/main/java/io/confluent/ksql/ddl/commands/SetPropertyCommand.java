@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
-
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.SetProperty;
+import java.util.Map;
 
 public class SetPropertyCommand implements DdlCommand {
   private final SetProperty statement;
@@ -30,7 +29,7 @@ public class SetPropertyCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     return new DdlCommandResult(true, "property:"
         + statement.getPropertyName()
         + " set to "

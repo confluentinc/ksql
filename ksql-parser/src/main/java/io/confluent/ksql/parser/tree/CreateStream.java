@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class CreateStream extends AbstractStreamCreateStatement implements DdlStatement {
 
@@ -34,14 +33,17 @@ public class CreateStream extends AbstractStreamCreateStatement implements DdlSt
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public CreateStream(QualifiedName name, List<TableElement> elements, boolean notExists,
-                     Map<String, Expression> properties) {
+  public CreateStream(
+      final QualifiedName name,
+      final List<TableElement> elements,
+      final boolean notExists,
+      final Map<String, Expression> properties) {
     this(Optional.empty(), name, elements, notExists, properties);
   }
 
-  public CreateStream(Optional<NodeLocation> location, QualifiedName name,
-                      List<TableElement> elements, boolean notExists,
-                      Map<String, Expression> properties) {
+  public CreateStream(final Optional<NodeLocation> location, final QualifiedName name,
+                      final List<TableElement> elements, final boolean notExists,
+                      final Map<String, Expression> properties) {
     super(location);
     this.name = requireNonNull(name, "stream is null");
     this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
@@ -58,8 +60,8 @@ public class CreateStream extends AbstractStreamCreateStatement implements DdlSt
   }
 
   @Override
-  public AbstractStreamCreateStatement copyWith(List<TableElement> elements,
-                                                Map<String, Expression> properties) {
+  public AbstractStreamCreateStatement copyWith(final List<TableElement> elements,
+                                                final Map<String, Expression> properties) {
     return new CreateStream(name, elements, notExists, properties);
   }
 
@@ -72,7 +74,7 @@ public class CreateStream extends AbstractStreamCreateStatement implements DdlSt
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateStream(this, context);
   }
 
@@ -82,14 +84,14 @@ public class CreateStream extends AbstractStreamCreateStatement implements DdlSt
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateStream o = (CreateStream) obj;
+    final CreateStream o = (CreateStream) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(elements, o.elements)
            && Objects.equals(notExists, o.notExists)

@@ -19,16 +19,15 @@ package io.confluent.ksql.serde.avro;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.Collections;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Schema;
 
 public class AvroSchemaTranslator extends ConnectSchemaTranslator {
   public static Schema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
-    AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+    final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
     return new AvroSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
   }
 

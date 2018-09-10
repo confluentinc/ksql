@@ -16,13 +16,9 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.connect.data.Schema;
-
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -30,10 +26,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.connect.data.Schema;
 
 public class TopicProducer {
 
@@ -42,7 +40,7 @@ public class TopicProducer {
   private final EmbeddedSingleNodeKafkaCluster cluster;
   private final Properties producerConfig;
 
-  public TopicProducer(EmbeddedSingleNodeKafkaCluster cluster) {
+  public TopicProducer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
 
     this.producerConfig = new Properties();
@@ -61,17 +59,17 @@ public class TopicProducer {
    * @throws TimeoutException
    * @throws ExecutionException
    */
-  public Map<String, RecordMetadata> produceInputData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
+  public Map<String, RecordMetadata> produceInputData(final String topicName, final Map<String, GenericRow> recordsToPublish, final Schema schema)
       throws InterruptedException, TimeoutException, ExecutionException {
 
-    KafkaProducer<String, GenericRow> producer =
+    final KafkaProducer<String, GenericRow> producer =
         new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
-    Map<String, RecordMetadata> result = new HashMap<>();
-    for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
-      String key = recordEntry.getKey();
-      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
-      Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
+    final Map<String, RecordMetadata> result = new HashMap<>();
+    for (final Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
+      final String key = recordEntry.getKey();
+      final ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
+      final Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
     producer.close();
@@ -82,7 +80,7 @@ public class TopicProducer {
   /**
    * Produce input data to the topic named dataProvider.topicName()
    */
-  public Map<String, RecordMetadata> produceInputData(TestDataProvider dataProvider) throws Exception {
+  public Map<String, RecordMetadata> produceInputData(final TestDataProvider dataProvider) throws Exception {
     return produceInputData(dataProvider.topicName(), dataProvider.data(), dataProvider.schema());
   }
 

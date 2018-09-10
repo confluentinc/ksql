@@ -16,23 +16,20 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.util.Arrays;
-import java.util.Collections;
-
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.util.KsqlException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UdfFactoryTest {
 
@@ -41,7 +38,7 @@ public class UdfFactoryTest {
 
   private final String functionName = "TestFunc";
   private final UdfFactory factory = new UdfFactory(TestFunc.class,
-      new UdfMetadata(functionName, "", "", "", "internal"));
+      new UdfMetadata(functionName, "", "", "", "internal", false));
   
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
@@ -128,7 +125,7 @@ public class UdfFactoryTest {
         Collections.<Schema>emptyList(),
         "TestFunc",
         TestFunc.class,
-        () -> null,
+        ksqlConfig -> null,
         "",
         "not the same path"
     ));

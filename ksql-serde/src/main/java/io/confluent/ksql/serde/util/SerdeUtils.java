@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,10 @@ package io.confluent.ksql.serde.util;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
-public class SerdeUtils {
+public final class SerdeUtils {
+  private SerdeUtils() {
+  }
+
   public static boolean toBoolean(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {
@@ -39,7 +42,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Integer.parseInt((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to INT.", e);
       }
 
@@ -58,7 +61,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Long.parseLong((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to BIGINT.", e);
       }
 
@@ -77,7 +80,7 @@ public class SerdeUtils {
     if (object instanceof String) {
       try {
         return Double.parseDouble((String) object);
-      } catch (NumberFormatException e) {
+      } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot convert " + object + " to DOUBLE.", e);
       }
     }

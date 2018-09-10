@@ -14,9 +14,6 @@
 
 package io.confluent.ksql.version.metrics;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import io.confluent.ksql.version.metrics.collector.BasicCollector;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
@@ -24,6 +21,8 @@ import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
@@ -32,12 +31,16 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
-      BaseSupportConfig ksqlVersionCheckerConfig,
-      Runtime serverRuntime,
-      KsqlModuleType moduleType,
-      boolean enableSettlingTime
+      final String threadName,
+      final boolean isDaemon,
+      final BaseSupportConfig ksqlVersionCheckerConfig,
+      final Runtime serverRuntime,
+      final KsqlModuleType moduleType,
+      final boolean enableSettlingTime
   ) {
     super(
+        threadName,
+        isDaemon,
         ksqlVersionCheckerConfig,
         null,
         new KsqlVersionCheckerResponseHandler(),

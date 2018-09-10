@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser.rewrite;
 
-import java.util.Set;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -67,24 +66,25 @@ import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.Pair;
+import java.util.Set;
 
 public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
 
   @Override
-  protected Node visitExtract(Extract node, Node parent) {
+  protected Node visitExtract(final Extract node, final Node parent) {
     node.setParent(parent);
     
     return process(node.getExpression(), node);
   }
 
   @Override
-  protected Node visitCast(Cast node, Node parent) {
+  protected Node visitCast(final Cast node, final Node parent) {
     node.setParent(parent);
     return process(node.getExpression(), node);
   }
 
   @Override
-  protected Node visitArithmeticBinary(ArithmeticBinaryExpression node, Node parent) {
+  protected Node visitArithmeticBinary(final ArithmeticBinaryExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getLeft(), node);
     process(node.getRight(), node);
@@ -93,7 +93,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitBetweenPredicate(BetweenPredicate node, Node parent) {
+  protected Node visitBetweenPredicate(final BetweenPredicate node, final Node parent) {
     node.setParent(parent);
     process(node.getValue(), node);
     process(node.getMin(), node);
@@ -103,7 +103,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSubscriptExpression(SubscriptExpression node, Node parent) {
+  protected Node visitSubscriptExpression(final SubscriptExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getBase(), node);
     process(node.getIndex(), node);
@@ -112,7 +112,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitComparisonExpression(ComparisonExpression node, Node parent) {
+  protected Node visitComparisonExpression(final ComparisonExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getLeft(), node);
     process(node.getRight(), node);
@@ -121,7 +121,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitQuery(Query node, Node parent) {
+  protected Node visitQuery(final Query node, final Node parent) {
     node.setParent(parent);
     process(node.getQueryBody(), node);
     return null;
@@ -129,15 +129,15 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
 
 
   @Override
-  protected Node visitWithQuery(WithQuery node, Node parent) {
+  protected Node visitWithQuery(final WithQuery node, final Node parent) {
     node.setParent(parent);
     return process(node.getQuery(), node);
   }
 
   @Override
-  protected Node visitSelect(Select node, Node parent) {
+  protected Node visitSelect(final Select node, final Node parent) {
     node.setParent(parent);
-    for (SelectItem item : node.getSelectItems()) {
+    for (final SelectItem item : node.getSelectItems()) {
       process(item, node);
     }
 
@@ -145,7 +145,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSingleColumn(SingleColumn node, Node parent) {
+  protected Node visitSingleColumn(final SingleColumn node, final Node parent) {
     node.setParent(parent);
     process(node.getExpression(), node);
 
@@ -153,7 +153,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitWhenClause(WhenClause node, Node parent) {
+  protected Node visitWhenClause(final WhenClause node, final Node parent) {
     node.setParent(parent);
     process(node.getOperand(), node);
     process(node.getResult(), node);
@@ -162,7 +162,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitInPredicate(InPredicate node, Node parent) {
+  protected Node visitInPredicate(final InPredicate node, final Node parent) {
     node.setParent(parent);
     process(node.getValue(), node);
     process(node.getValueList(), node);
@@ -171,9 +171,9 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitFunctionCall(FunctionCall node, Node parent) {
+  protected Node visitFunctionCall(final FunctionCall node, final Node parent) {
     node.setParent(parent);
-    for (Expression argument : node.getArguments()) {
+    for (final Expression argument : node.getArguments()) {
       process(argument, node);
     }
 
@@ -185,14 +185,14 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitDereferenceExpression(DereferenceExpression node, Node parent) {
+  protected Node visitDereferenceExpression(final DereferenceExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getBase(), node);
     return null;
   }
 
   @Override
-  public Node visitWindow(Window node, Node parent) {
+  public Node visitWindow(final Window node, final Node parent) {
     node.setParent(parent);
 
     process(node.getWindowExpression(), node);
@@ -200,7 +200,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  public Node visitWindowFrame(WindowFrame node, Node parent) {
+  public Node visitWindowFrame(final WindowFrame node, final Node parent) {
     node.setParent(parent);
     process(node.getStart(), node);
     if (node.getEnd().isPresent()) {
@@ -211,7 +211,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  public Node visitFrameBound(FrameBound node, Node parent) {
+  public Node visitFrameBound(final FrameBound node, final Node parent) {
     node.setParent(parent);
     if (node.getValue().isPresent()) {
       process(node.getValue().get(), node);
@@ -221,10 +221,10 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSimpleCaseExpression(SimpleCaseExpression node, Node parent) {
+  protected Node visitSimpleCaseExpression(final SimpleCaseExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getOperand(), node);
-    for (WhenClause clause : node.getWhenClauses()) {
+    for (final WhenClause clause : node.getWhenClauses()) {
       process(clause, node);
     }
 
@@ -235,9 +235,9 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitInListExpression(InListExpression node, Node parent) {
+  protected Node visitInListExpression(final InListExpression node, final Node parent) {
     node.setParent(parent);
-    for (Expression value : node.getValues()) {
+    for (final Expression value : node.getValues()) {
       process(value, node);
     }
 
@@ -245,7 +245,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitNullIfExpression(NullIfExpression node, Node parent) {
+  protected Node visitNullIfExpression(final NullIfExpression node, final Node parent) {
     node.setParent(parent);
     process(node.getFirst(), node);
     process(node.getSecond(), node);
@@ -254,21 +254,21 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitArithmeticUnary(ArithmeticUnaryExpression node, Node parent) {
+  protected Node visitArithmeticUnary(final ArithmeticUnaryExpression node, final Node parent) {
     node.setParent(parent);
     return process(node.getValue(), node);
   }
 
   @Override
-  protected Node visitNotExpression(NotExpression node, Node parent) {
+  protected Node visitNotExpression(final NotExpression node, final Node parent) {
     node.setParent(parent);
     return process(node.getValue(), node);
   }
 
   @Override
-  protected Node visitSearchedCaseExpression(SearchedCaseExpression node, Node parent) {
+  protected Node visitSearchedCaseExpression(final SearchedCaseExpression node, final Node parent) {
     node.setParent(parent);
-    for (WhenClause clause : node.getWhenClauses()) {
+    for (final WhenClause clause : node.getWhenClauses()) {
       process(clause, node);
     }
     node.getDefaultValue()
@@ -278,7 +278,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitLikePredicate(LikePredicate node, Node parent) {
+  protected Node visitLikePredicate(final LikePredicate node, final Node parent) {
     node.setParent(parent);
     process(node.getValue(), node);
     process(node.getPattern(), node);
@@ -290,19 +290,21 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitIsNotNullPredicate(IsNotNullPredicate node, Node parent) {
+  protected Node visitIsNotNullPredicate(final IsNotNullPredicate node, final Node parent) {
     node.setParent(parent);
     return process(node.getValue(), node);
   }
 
   @Override
-  protected Node visitIsNullPredicate(IsNullPredicate node, Node parent) {
+  protected Node visitIsNullPredicate(final IsNullPredicate node, final Node parent) {
     node.setParent(parent);
     return process(node.getValue(), node);
   }
 
   @Override
-  protected Node visitLogicalBinaryExpression(LogicalBinaryExpression node, Node parent) {
+  protected Node visitLogicalBinaryExpression(
+      final LogicalBinaryExpression node,
+      final Node parent) {
     node.setParent(parent);
     process(node.getLeft(), node);
     process(node.getRight(), node);
@@ -311,13 +313,13 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSubqueryExpression(SubqueryExpression node, Node parent) {
+  protected Node visitSubqueryExpression(final SubqueryExpression node, final Node parent) {
     node.setParent(parent);
     return process(node.getQuery(), node);
   }
 
   @Override
-  protected Node visitQuerySpecification(QuerySpecification node, Node parent) {
+  protected Node visitQuerySpecification(final QuerySpecification node, final Node parent) {
     node.setParent(parent);
     process(node.getSelect(), node);
 
@@ -335,51 +337,51 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSetOperation(SetOperation node, Node parent) {
+  protected Node visitSetOperation(final SetOperation node, final Node parent) {
     node.setParent(parent);
-    for (Relation relation : node.getRelations()) {
+    for (final Relation relation : node.getRelations()) {
       process(relation, node);
     }
     return null;
   }
 
   @Override
-  protected Node visitValues(Values node, Node parent) {
+  protected Node visitValues(final Values node, final Node parent) {
     node.setParent(parent);
-    for (Expression row : node.getRows()) {
+    for (final Expression row : node.getRows()) {
       process(row, node);
     }
     return null;
   }
 
   @Override
-  protected Node visitStruct(Struct node, Node parent) {
+  protected Node visitStruct(final Struct node, final Node parent) {
     node.setParent(parent);
-    for (Pair<String, Type> structItem : node.getItems()) {
+    for (final Pair<String, Type> structItem : node.getItems()) {
       process(structItem.getRight(), node);
     }
     return null;
   }
 
   @Override
-  protected Node visitTableSubquery(TableSubquery node, Node parent) {
+  protected Node visitTableSubquery(final TableSubquery node, final Node parent) {
     node.setParent(parent);
     return process(node.getQuery(), node);
   }
 
   @Override
-  protected Node visitAliasedRelation(AliasedRelation node, Node parent) {
+  protected Node visitAliasedRelation(final AliasedRelation node, final Node parent) {
     node.setParent(parent);
     return process(node.getRelation(), node);
   }
 
   @Override
-  protected Node visitSampledRelation(SampledRelation node, Node parent) {
+  protected Node visitSampledRelation(final SampledRelation node, final Node parent) {
     node.setParent(parent);
     process(node.getRelation(), node);
     process(node.getSamplePercentage(), node);
     if (node.getColumnsToStratifyOn().isPresent()) {
-      for (Expression expression : node.getColumnsToStratifyOn().get()) {
+      for (final Expression expression : node.getColumnsToStratifyOn().get()) {
         process(expression, node);
       }
     }
@@ -387,7 +389,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitJoin(Join node, Node parent) {
+  protected Node visitJoin(final Join node, final Node parent) {
     node.setParent(parent);
     process(node.getLeft(), node);
     process(node.getRight(), node);
@@ -400,9 +402,9 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitGroupBy(GroupBy node, Node parent) {
+  protected Node visitGroupBy(final GroupBy node, final Node parent) {
     node.setParent(parent);
-    for (GroupingElement groupingElement : node.getGroupingElements()) {
+    for (final GroupingElement groupingElement : node.getGroupingElements()) {
       process(groupingElement, node);
     }
 
@@ -410,10 +412,10 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitGroupingElement(GroupingElement node, Node parent) {
+  protected Node visitGroupingElement(final GroupingElement node, final Node parent) {
     node.setParent(parent);
-    for (Set<Expression> expressions : node.enumerateGroupingSets()) {
-      for (Expression expression : expressions) {
+    for (final Set<Expression> expressions : node.enumerateGroupingSets()) {
+      for (final Expression expression : expressions) {
         process(expression, node);
       }
     }
@@ -421,11 +423,11 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitSimpleGroupBy(SimpleGroupBy node, Node parent) {
+  protected Node visitSimpleGroupBy(final SimpleGroupBy node, final Node parent) {
     node.setParent(parent);
     visitGroupingElement(node, node);
 
-    for (Expression expression : node.getColumnExpressions()) {
+    for (final Expression expression : node.getColumnExpressions()) {
       process(expression, node);
     }
 
@@ -433,7 +435,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitDelete(Delete node, Node parent) {
+  protected Node visitDelete(final Delete node, final Node parent) {
     node.setParent(parent);
     process(node.getTable(), node);
     node.getWhere().ifPresent(where -> process(where, node));
@@ -442,7 +444,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   }
 
   @Override
-  protected Node visitCreateTableAsSelect(CreateTableAsSelect node, Node parent) {
+  protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Node parent) {
     node.setParent(parent);
     process(node.getQuery(), node);
     node.getProperties().values().forEach(expression -> process(expression, node));
@@ -450,7 +452,7 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
     return null;
   }
 
-  protected Node visitCreateStreamAsSelect(CreateStreamAsSelect node, Node parent) {
+  protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Node parent) {
     node.setParent(parent);
     process(node.getQuery(), node);
     node.getProperties().values().forEach(expression -> process(expression, node));

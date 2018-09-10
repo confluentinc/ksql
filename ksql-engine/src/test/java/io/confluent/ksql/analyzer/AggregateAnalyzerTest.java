@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,25 +16,21 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.MetaStoreFixture;
-
 public class AggregateAnalyzerTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
   private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
@@ -43,23 +39,15 @@ public class AggregateAnalyzerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   }
 
-  private Analysis analyze(final String queryStr) {
-    final List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
-
   private AggregateAnalysis analyzeAggregates(final String queryStr) {
     System.out.println("Test query:" + queryStr);
-    Analysis analysis = analyze(queryStr);
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
+    final Analysis analysis = analyzeQuery(queryStr, metaStore);
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
                                                                 functionRegistry);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(
+    final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(
         functionRegistry);
-    for (Expression expression: analysis.getSelectExpressions()) {
+    for (final Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
@@ -84,8 +72,8 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testSimpleAggregateQueryAnalysis() throws Exception {
-    String queryStr = "SELECT col1, count(col1) FROM test1 WHERE col0 > 100 group by col1;";
-    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    final String queryStr = "SELECT col1, count(col1) FROM test1 WHERE col0 > 100 group by col1;";
+    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
     Assert.assertNotNull(aggregateAnalysis);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 1);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
@@ -102,9 +90,9 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testMultipleAggregateQueryAnalysis() throws Exception {
-    String queryStr = "SELECT col1, sum(col3), count(col1) FROM test1 WHERE col0 > 100 group by "
+    final String queryStr = "SELECT col1, sum(col3), count(col1) FROM test1 WHERE col0 > 100 group by "
                       + "col1;";
-    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
@@ -127,13 +115,13 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testExpressionArgAggregateQueryAnalysis() {
-    String queryStr = "SELECT col1, sum(col3*col0), sum(floor(col3)*3.0) FROM test1 window w "
+    final String queryStr = "SELECT col1, sum(col3*col0), sum(floor(col3)*3.0) FROM test1 window w "
                       + "TUMBLING ( size 2 second) WHERE col0 > "
                       + "100 "
                       + "group "
                       + "by "
                       + "col1;";
-    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
@@ -156,14 +144,14 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testAggregateWithExpressionQueryAnalysis() {
-    String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
+    final String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
                       + "window w "
                       + "TUMBLING ( size 2 second) WHERE col0 > "
                       + "100 "
                       + "group "
                       + "by "
                       + "col1;";
-    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 3);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
@@ -191,7 +179,7 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testAggregateWithExpressionHavingQueryAnalysis() {
-    String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
+    final String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
                       + "window w "
                       + "TUMBLING ( size 2 second) WHERE col0 > "
                       + "100 "
@@ -199,7 +187,7 @@ public class AggregateAnalyzerTest {
                       + "by "
                       + "col1 "
                       + "having count(col1) > 10;";
-    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 4);
     Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));

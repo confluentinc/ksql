@@ -18,6 +18,10 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -25,11 +29,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ConnectDataTranslator implements DataTranslator {
   private static final String PATH_SEPARATOR = "->";
@@ -85,11 +84,15 @@ public class ConnectDataTranslator implements DataTranslator {
                               final Schema connectSchema) {
     switch (schema.type()) {
       case BOOLEAN:
-      case STRING:
       case ARRAY:
       case MAP:
       case STRUCT:
         validateType(pathStr, schema, connectSchema, schema.type());
+        break;
+      case STRING:
+        validateType(pathStr, schema, connectSchema,
+            Schema.Type.INT8, Schema.Type.INT16, Schema.Type.INT32, Schema.Type.INT64,
+            Schema.Type.BOOLEAN, Schema.Type.STRING);
         break;
       case INT64:
         validateType(
@@ -158,6 +161,9 @@ public class ConnectDataTranslator implements DataTranslator {
             schema.valueSchema(), connectSchema.valueSchema(), (Map) convertedValue, pathStr);
       case STRUCT:
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
+      case STRING:
+        // use String.valueOf to convert various int types and Boolean to string
+        return String.valueOf(convertedValue);
       default:
         return convertedValue;
     }
@@ -198,7 +204,7 @@ public class ConnectDataTranslator implements DataTranslator {
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, String> caseInsensitiveFieldNameMap
         = getCaseInsensitiveFieldMap(connectStruct.schema());
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema

@@ -16,9 +16,12 @@
 
 package io.confluent.ksql.rest.entity;
 
-public class Versions {
+public final class Versions {
   public static final String KSQL_V1_JSON = "application/vnd.ksql.v1+json";
 
   public static final String KSQL_V1_WS = "1";
   public static final String KSQL_V1_WS_PARAM = "version";
+
+  private Versions() {
+  }
 }

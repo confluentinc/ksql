@@ -25,15 +25,17 @@ public class WhenClause
   private final Expression operand;
   private final Expression result;
 
-  public WhenClause(Expression operand, Expression result) {
+  public WhenClause(final Expression operand, final Expression result) {
     this(Optional.empty(), operand, result);
   }
 
-  public WhenClause(NodeLocation location, Expression operand, Expression result) {
+  public WhenClause(
+      final NodeLocation location, final Expression operand, final Expression result) {
     this(Optional.of(location), operand, result);
   }
 
-  private WhenClause(Optional<NodeLocation> location, Expression operand, Expression result) {
+  private WhenClause(
+      final Optional<NodeLocation> location, final Expression operand, final Expression result) {
     super(location);
     this.operand = operand;
     this.result = result;
@@ -48,12 +50,12 @@ public class WhenClause
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitWhenClause(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -61,7 +63,7 @@ public class WhenClause
       return false;
     }
 
-    WhenClause that = (WhenClause) o;
+    final WhenClause that = (WhenClause) o;
     return Objects.equals(operand, that.operand)
            && Objects.equals(result, that.result);
   }

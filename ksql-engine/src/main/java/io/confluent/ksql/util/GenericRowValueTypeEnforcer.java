@@ -16,10 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.List;
 
 public class GenericRowValueTypeEnforcer {
 
@@ -30,11 +29,11 @@ public class GenericRowValueTypeEnforcer {
   }
 
   public Object enforceFieldType(final int index, final Object value) {
-    Field field = fields.get(index);
+    final Field field = fields.get(index);
     return enforceFieldType(field.schema(), value);
   }
 
-  private Object enforceFieldType(Schema schema, final Object value) {
+  private Object enforceFieldType(final Schema schema, final Object value) {
 
     switch (schema.type()) {
       case INT32:

@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -30,6 +27,8 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CommandFactories implements DdlCommandFactory {
 
@@ -89,7 +88,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   @Override
   public DdlCommand create(
-      String sqlExpression,
+      final String sqlExpression,
       final DdlStatement ddlStatement
   ) {
     if (!factories.containsKey(ddlStatement.getClass())) {

@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.datagen;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
@@ -29,10 +33,6 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class DataGenProducerTest {
 
@@ -57,7 +57,7 @@ public class DataGenProducerTest {
         .field("address", addressSchema)
         .optional().build();
 
-    Pair<String, GenericRow> rowPair = dataGenProducer.generateOneGenericRow(generator, new AvroData(1), generator.schema(), ordersSchema, new SessionManager(), "orderid");
+    final Pair<String, GenericRow> rowPair = dataGenProducer.generateOneGenericRow(generator, new AvroData(1), generator.schema(), ordersSchema, new SessionManager(), "orderid");
     assertThat(rowPair.getLeft(), instanceOf(String.class));
     assertThat(rowPair.getRight().getColumns().size(), equalTo(5));
     assertThat(rowPair.getRight().getColumns().get(4), instanceOf(Struct.class));

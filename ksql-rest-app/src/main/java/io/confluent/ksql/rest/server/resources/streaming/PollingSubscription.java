@@ -19,10 +19,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-
-import org.apache.kafka.connect.data.Schema;
-
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.connect.data.Schema;
 
 public abstract class PollingSubscription<T> implements Flow.Subscription {
 
@@ -39,9 +37,9 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   private volatile ListenableFuture future;
 
   public PollingSubscription(
-      ListeningScheduledExecutorService exec,
-      Flow.Subscriber<T> subscriber,
-      Schema schema
+      final ListeningScheduledExecutorService exec,
+      final Flow.Subscriber<T> subscriber,
+      final Schema schema
   ) {
     this.exec = exec;
     this.subscriber = subscriber;
@@ -57,7 +55,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   }
 
   @Override
-  public void request(long n) {
+  public void request(final long n) {
     Preconditions.checkArgument(n == 1, "number of requested items must be 1");
 
     if (needsSchema) {
@@ -76,7 +74,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
         if (done) {
           draining = true;
         }
-        T item = poll();
+        final T item = poll();
         if (item == null) {
           if (!draining) {
             future = exec.schedule(() -> request(1), BACKOFF_DELAY_MS, TimeUnit.MILLISECONDS);
@@ -97,7 +95,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   }
 
 
-  protected void setError(Throwable e) {
+  protected void setError(final Throwable e) {
     exception = e;
     done = true;
   }

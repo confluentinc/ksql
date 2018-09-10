@@ -16,32 +16,9 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.confluent.ksql.util.KsqlConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.EndpointConfig;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -51,6 +28,24 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.util.KsqlConfig;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
+import javax.websocket.EndpointConfig;
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ServerEndpoint(value = "/query")
 public class WSQueryEndpoint {
@@ -66,11 +61,11 @@ public class WSQueryEndpoint {
   private WebSocketSubscriber subscriber;
 
   public WSQueryEndpoint(
-      KsqlConfig ksqlConfig,
-      ObjectMapper mapper,
-      StatementParser statementParser,
-      KsqlEngine ksqlEngine,
-      ListeningScheduledExecutorService exec
+      final KsqlConfig ksqlConfig,
+      final ObjectMapper mapper,
+      final StatementParser statementParser,
+      final KsqlEngine ksqlEngine,
+      final ListeningScheduledExecutorService exec
   ) {
     this.ksqlConfig = ksqlConfig;
     this.mapper = mapper;
@@ -80,7 +75,7 @@ public class WSQueryEndpoint {
   }
 
   @OnOpen
-  public void onOpen(Session session, EndpointConfig endpointConfig) {
+  public void onOpen(final Session session, final EndpointConfig endpointConfig) {
     log.debug("Opening websocket session {}", session.getId());
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
 
@@ -99,14 +94,14 @@ public class WSQueryEndpoint {
     final String queryString;
     final Statement statement;
     try {
-      String requestParam = Objects.requireNonNull(
+      final String requestParam = Objects.requireNonNull(
           getLast("request", parameters),
           "missing request parameter"
       );
       request = mapper.readValue(requestParam, KsqlRequest.class);
       queryString = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
       statement = statementParser.parseSingleStatement(queryString);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.debug("Unable to parse query", e);
       closeSession(session, new CloseReason(
           CloseCodes.CANNOT_ACCEPT,
@@ -118,17 +113,17 @@ public class WSQueryEndpoint {
 
     try {
       if (statement instanceof Query) {
-        Map<String, Object> clientLocalProperties =
+        final Map<String, Object> clientLocalProperties =
             Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
 
-        WebSocketSubscriber<StreamedRow> streamSubscriber =
+        final WebSocketSubscriber<StreamedRow> streamSubscriber =
             new WebSocketSubscriber<>(session, mapper);
         this.subscriber = streamSubscriber;
 
         new StreamPublisher(ksqlConfig, ksqlEngine, exec, queryString, clientLocalProperties)
             .subscribe(streamSubscriber);
       } else if (statement instanceof PrintTopic) {
-        PrintTopic printTopic = (PrintTopic) statement;
+        final PrintTopic printTopic = (PrintTopic) statement;
         final String topicName = printTopic.getTopic().toString();
 
         if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
@@ -138,7 +133,8 @@ public class WSQueryEndpoint {
           ));
           return;
         }
-        WebSocketSubscriber<String> topicSubscriber = new WebSocketSubscriber<>(session, mapper);
+        final WebSocketSubscriber<String> topicSubscriber =
+            new WebSocketSubscriber<>(session, mapper);
         this.subscriber = topicSubscriber;
 
         new PrintPublisher(
@@ -155,7 +151,7 @@ public class WSQueryEndpoint {
             statement.getClass().getName()
         )));
       }
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Error initializing query in session {}", session.getId(), e);
       closeSession(session, new CloseReason(
           CloseCodes.UNEXPECTED_CONDITION,
@@ -164,21 +160,21 @@ public class WSQueryEndpoint {
     }
   }
 
-  static void closeSession(Session session, CloseReason reason) {
+  static void closeSession(final Session session, final CloseReason reason) {
     try {
       session.close(reason);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("Exception caught closing session {}", session.getId(), e);
     }
   }
 
   @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION")
-  private static String getLast(String name, Map<String, List<String>> parameters) {
+  private static String getLast(final String name, final Map<String, List<String>> parameters) {
     return Iterables.getLast(parameters.get(name), null);
   }
 
   @OnClose
-  public void onClose(Session session, CloseReason closeReason) {
+  public void onClose(final Session session, final CloseReason closeReason) {
     if (subscriber != null) {
       subscriber.close();
     }
@@ -191,7 +187,7 @@ public class WSQueryEndpoint {
   }
 
   @OnError
-  public void onError(Session session, Throwable t) {
+  public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
   }
 

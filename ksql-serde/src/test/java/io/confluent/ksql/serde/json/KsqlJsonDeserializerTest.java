@@ -96,10 +96,10 @@ public class KsqlJsonDeserializerTest {
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(4));
-    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
-    assertThat(((String) genericRow.getColumns().get(2)), equalTo("Item_1"));
-    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+    assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(genericRow.getColumns().get(1), equalTo(1L));
+    assertThat(genericRow.getColumns().get(2), equalTo("Item_1"));
+    assertThat(genericRow.getColumns().get(3), equalTo(10.0));
 
   }
 

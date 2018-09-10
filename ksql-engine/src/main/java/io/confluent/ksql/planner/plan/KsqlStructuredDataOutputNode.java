@@ -36,6 +36,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
+
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -90,7 +92,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KafkaTopicClient kafkaTopicClient,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     final PlanNode source = getSource();
     final SchemaKStream schemaKStream = source.buildStream(
@@ -99,7 +101,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         kafkaTopicClient,
         functionRegistry,
         props,
-        schemaRegistryClient
+        schemaRegistryClientFactory
     );
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
@@ -124,7 +126,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         ksqlConfig,
         functionRegistry,
         outputProperties,
-        schemaRegistryClient
+        schemaRegistryClientFactory
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
@@ -139,7 +141,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
-            .getGenericRowSerde(noRowKey.getSchema(), ksqlConfig, false, schemaRegistryClient),
+            .getGenericRowSerde(
+                noRowKey.getSchema(), ksqlConfig, false, schemaRegistryClientFactory),
         rowkeyIndexes
     );
 
@@ -163,7 +166,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
 
     if (schemaKStream instanceof SchemaKTable) {
@@ -178,7 +181,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClientFactory.get()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {

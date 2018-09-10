@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -46,23 +47,27 @@ public class KsqlContext {
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).create());
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get);
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
+    return create(
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier()
+    );
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final KafkaClientSupplier clientSupplier
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
-    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient cannot be null.");
+    Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClient cannot be null.");
     final AdminClient adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
     final KafkaTopicClient kafkaTopicClient = new
@@ -70,10 +75,11 @@ public class KsqlContext {
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final KsqlEngine engine = new KsqlEngine(
         kafkaTopicClient,
-        schemaRegistryClient,
+        schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        ksqlConfig);
+        ksqlConfig
+    );
 
     return new KsqlContext(ksqlConfig, engine);
   }

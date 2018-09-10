@@ -47,9 +47,7 @@ public class KsqlSchemaRegistryClientFactory {
     this(config,
         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
         new SslFactory(Mode.CLIENT),
-        (service, mapCapacity, clientConfigs) -> new CachedSchemaRegistryClient(service,
-                                                                                mapCapacity,
-                                                                                clientConfigs)
+        CachedSchemaRegistryClient::new
     );
 
     // Force config exception now:
@@ -71,7 +69,7 @@ public class KsqlSchemaRegistryClientFactory {
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
   }
 
-  public SchemaRegistryClient create() {
+  public SchemaRegistryClient get() {
     final RestService restService = serviceSupplier.get();
     final SSLContext sslContext = sslFactory.sslContext();
     if (sslContext != null) {

@@ -232,7 +232,6 @@ public class KsqlEngine implements Closeable {
 
     final List<QueryMetadata> queryMetadataList =
         planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
-    engineMetrics.registerQueries(queryMetadataList);
     return queryMetadataList;
   }
 
@@ -270,7 +269,7 @@ public class KsqlEngine implements Closeable {
       }
       allLiveQueries.add(queryMetadata);
     }
-
+    engineMetrics.registerQueries(runningQueries);
     return runningQueries;
   }
 
@@ -645,7 +644,7 @@ public class KsqlEngine implements Closeable {
         Collections.emptyMap(),
         metaStoreCopy
     );
-    engineMetrics.registerQueries(queryMetadataList);
+
     return queryMetadataList;
   }
 

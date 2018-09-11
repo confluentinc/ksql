@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ public class SqlPredicateTest {
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
                              ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
                                  ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap()),
-                                                   false, schemaRegistryClient
+                                                   false, new MockSchemaRegistryClientFactory()::get
                                                    )));
   }
 

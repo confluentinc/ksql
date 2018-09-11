@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.testutils.secure;
+package io.confluent.ksql.test.util.secure;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -90,6 +90,9 @@ public final class ServerKeyStore {
   private static final String KEYSTORE_PASSWORD = "password";
   private static final String TRUSTSTORE_PASSWORD = "password";
   private static final AtomicReference<Path> keyStorePath = new AtomicReference<>();
+
+  private ServerKeyStore() {
+  }
 
   /**
    * @return props brokers will need to connect to support SSL connections.

@@ -270,7 +270,7 @@ public class ConnectDataTranslatorTest {
     connectStruct.put("OTHER", 123);
 
     final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(rowSchema);
-    final GenericRow row = connectToKsqlTranslator.toKsqlRow(rowSchema, connectStruct);
+    final GenericRow row = connectToKsqlTranslator.toKsqlRow(dataRowSchema, connectStruct);
     assertThat(row.getColumns().size(), equalTo(1));
     assertThat(row.getColumnValue(0), is(nullValue()));
   }

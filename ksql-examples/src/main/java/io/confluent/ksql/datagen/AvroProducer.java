@@ -49,6 +49,7 @@ public class AvroProducer extends DataGenProducer {
       final String topicName
   ) {
     return new KsqlAvroTopicSerDe()
-        .getGenericRowSerde(kafkaSchema, ksqlConfig, false, schemaRegistryClient).serializer();
+        .getGenericRowSerde(kafkaSchema, ksqlConfig, false,
+            () -> schemaRegistryClient).serializer();
   }
 }

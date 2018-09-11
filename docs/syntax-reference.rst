@@ -1,7 +1,7 @@
 .. _ksql_syntax_reference:
 
-Syntax Reference
-================
+KSQL Syntax Reference
+=====================
 
 KSQL has similar semantics to SQL:
 
@@ -1101,11 +1101,14 @@ Scalar functions
 |                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
 |                        |                                                            | ``true``. Though this is not recommended.         |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT millisecond timestamp value into|
-|                        |                                                            | the string representation of the timestamp in     |
+| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS'    | Converts a BIGINT millisecond timestamp value into|
+|                        |    [, TIMEZONE])``                                         | the string representation of the timestamp in     |
 |                        |                                                            | the given format. Single quotes in the            |
 |                        |                                                            | timestamp format can be escaped with '', for      |
 |                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
+|                        |                                                            | TIMEZONE is an optional parameter and it is a     |
+|                        |                                                            | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                            | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |
 |                        |                                                            | a string.                                         |

@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -389,4 +390,38 @@ public class KsqlGenericRowAvroSerializerTest {
     final GenericRow deserializedKsqlRecord = serde.deserializer().deserialize("topic", bytes);
     assertThat(deserializedKsqlRecord, equalTo(ksqlRecord));
   }
+
+    @Test
+    public void shouldUseSchemaNameFromPropertyIfExists() {
+        final String schemaName = "TestSchemaName1";
+        final String schemaNamespace = "com.test.namespace";
+
+        final Schema ksqlSchema = Schema.OPTIONAL_STRING_SCHEMA;
+        final Object ksqlValue = "foobar";
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                       String.join(".", schemaNamespace, schemaName));
+
+        final Schema ksqlRecordSchema = SchemaBuilder.struct()
+            .field("field0", ksqlSchema)
+            .build();
+
+        final GenericRow ksqlRecord = new GenericRow(ImmutableList.of(ksqlValue));
+
+        final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+        final Serde<GenericRow> serde =
+            new KsqlAvroTopicSerDe(properties).getGenericRowSerde(
+                ksqlRecordSchema, new KsqlConfig(Collections.emptyMap()), false,
+                () -> schemaRegistryClient
+            );
+
+        final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);
+
+        final KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+        final GenericRecord avroRecord = (GenericRecord) deserializer.deserialize("topic", bytes);
+
+        assertThat(avroRecord.getSchema().getNamespace(), equalTo(schemaNamespace));
+        assertThat(avroRecord.getSchema().getName(), equalTo(schemaName));
+    }
 }

@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.StringUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,11 +37,16 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema ksqlSchema;
   private final Schema avroCompatibleSchema;
 
+
   public AvroDataTranslator(final Schema ksqlSchema) {
+    this(ksqlSchema, new HashMap<String, String>());
+  }
+
+  public AvroDataTranslator(final Schema ksqlSchema, final Map<String, String> properties) {
     this.ksqlSchema = ksqlSchema;
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         ksqlSchema,
-        new TypeNameGenerator());
+        new TypeNameGenerator(properties));
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 
@@ -80,8 +86,11 @@ public class AvroDataTranslator implements DataTranslator {
 
     private Iterable<String> names;
 
-    TypeNameGenerator() {
-      this(ImmutableList.of(KsqlConstants.AVRO_SCHEMA_FULL_NAME));
+    TypeNameGenerator(final Map<String, String> properties) {
+      final String schemaFullName = properties.get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+      this.names = ImmutableList.of(schemaFullName == null
+                                    ? KsqlConstants.AVRO_SCHEMA_FULL_NAME :
+                                      StringUtil.cleanQuotes(schemaFullName));
     }
 
     private TypeNameGenerator(final Iterable<String> names) {

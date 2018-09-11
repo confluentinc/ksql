@@ -26,6 +26,7 @@ import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
+import java.util.HashMap;
 import java.util.Map;
 
 public class RegisterTopicCommand implements DdlCommand {
@@ -51,16 +52,23 @@ public class RegisterTopicCommand implements DdlCommand {
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     final String serde = StringUtil.cleanQuotes(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(serde);
+    this.topicSerDe = extractTopicSerDe(serde, properties);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(final String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(
+      final String serde, final Map<String, Expression> properties) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        return new KsqlAvroTopicSerDe();
+        final Map<String, String> avroRecordConfig = new HashMap<>();
+        for (Map.Entry<String, Expression> entry : properties.entrySet()) {
+          avroRecordConfig.put(entry.getKey(), entry.getValue() == null
+                               ? null :
+                                 StringUtil.cleanQuotes(entry.getValue().toString()));
+        }
+        return new KsqlAvroTopicSerDe(avroRecordConfig);
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:

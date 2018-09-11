@@ -142,9 +142,9 @@ public class StatementExecutor implements QueuedStatementRegister {
                         final Optional<RegisteredCommandStatus> statusFuture,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
-    if (statusFuture.isPresent()) {
-      statusFuture.get().setCurrentStatus(status);
-    }
+    statusFuture.ifPresent(
+      f -> f.setCurrentStatus(status)
+    );
   }
 
   /**

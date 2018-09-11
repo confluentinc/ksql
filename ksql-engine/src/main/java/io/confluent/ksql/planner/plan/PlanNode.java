@@ -27,6 +27,8 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -74,10 +76,11 @@ public abstract class PlanNode {
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream buildStream(StreamsBuilder builder,
-                                            KsqlConfig ksqlConfig,
-                                            KafkaTopicClient kafkaTopicClient,
-                                            FunctionRegistry functionRegistry,
-                                            Map<String, Object> props,
-                                            SchemaRegistryClient schemaRegistryClient);
+  public abstract SchemaKStream buildStream(
+      StreamsBuilder builder,
+      KsqlConfig ksqlConfig,
+      KafkaTopicClient kafkaTopicClient,
+      FunctionRegistry functionRegistry,
+      Map<String, Object> props,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
 }

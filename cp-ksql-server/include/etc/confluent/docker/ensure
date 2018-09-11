@@ -33,13 +33,13 @@ if [[ -n "${KSQL_SECURITY_PROTOCOL-}" ]] && [[ $KSQL_SECURITY_PROTOCOL != "PLAIN
 then
     cub kafka-ready \
         "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
-        "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
+        "${KSQL_CUB_KAFKA_TIMEOUT:-180}" \
         -b "${BOOTSTRAP_SERVER_CONFIG}" \
         --config /etc/"${COMPONENT}"/"${COMPONENT}".properties
 elif [[ -n "${BOOTSTRAP_SERVER_CONFIG-}" ]]
 then
     cub kafka-ready \
         "${KSQL_CUB_KAFKA_MIN_BROKERS:-1}" \
-        "${KSQL_CUB_KAFKA_TIMEOUT:-40}" \
+        "${KSQL_CUB_KAFKA_TIMEOUT:-180}" \
         -b "${BOOTSTRAP_SERVER_CONFIG}"
 fi

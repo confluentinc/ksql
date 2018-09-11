@@ -35,7 +35,7 @@ Learn More
 
 .. CLI_welcome_start
 
-.. code:: bash
+.. codewithvars:: bash
 
                           ===========================================
                           =        _  __ _____  ____  _             =

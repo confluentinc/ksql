@@ -115,7 +115,7 @@ public class CommandStoreTest {
     final Statement statement = mock(Statement.class);
     final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
     final Future<RecordMetadata> future = mock(Future.class);
-    final CommandStatusFuture statusFuture = mock(CommandStatusFuture.class);
+    final RegisteredCommandStatus statusFuture = mock(RegisteredCommandStatus.class);
     final StatementExecutor statementExecutor = mockMaker.createMock(StatementExecutor.class);
     final Producer<CommandId, Command> commandProducer = mockMaker.createMock(Producer.class);
     final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);

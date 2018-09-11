@@ -93,8 +93,8 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.RegisteredCommandStatus;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
@@ -115,6 +115,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -319,14 +320,13 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides,
       final KsqlConfig ksqlConfig
   ) throws KsqlException {
-    final CommandStatusFuture statusFuture =
-        commandStore.distributeStatement(
-            statementText,
-            statement,
-            ksqlConfig,
-            propertyOverrides);
+    final RegisteredCommandStatus registeredCommandStatus;
     try {
-      statusFuture.get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
+      registeredCommandStatus = commandStore.distributeStatement(
+              statementText,
+              statement,
+              ksqlConfig,
+              propertyOverrides);
     } catch (final Exception e) {
       throw new KsqlException(
           String.format(
@@ -335,10 +335,22 @@ public class KsqlResource {
           e
       );
     }
-    return new CommandStatusEntity(
-        statementText,
-        statusFuture.getCommandId(),
-        statusFuture.getCurrentStatus());
+    try {
+      return new CommandStatusEntity(
+          statementText,
+          registeredCommandStatus.getCommandId(),
+          registeredCommandStatus.getFuture().get(
+              distributedCommandResponseTimeout, TimeUnit.MILLISECONDS)
+      );
+    } catch (final TimeoutException e) {
+      return new CommandStatusEntity(
+          statementText,
+          registeredCommandStatus.getCommandId(),
+          registeredCommandStatus.getCurrentStatus()
+      );
+    } catch (final Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private KafkaTopicsList listTopics(final String statementText) {

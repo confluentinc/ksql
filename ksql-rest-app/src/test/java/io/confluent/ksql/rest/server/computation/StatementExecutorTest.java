@@ -47,10 +47,12 @@ import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -292,13 +294,15 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
         "foo",
         CommandId.Action.CREATE);
-    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
+    final RegisteredCommandStatus registeredCommandStatus =
+        statementExecutor.registerQueuedStatement(commandId);
     statementExecutor.handleStatement(command, commandId);
-    assertThat(statementExecutor.registerQueuedStatement(commandId), not(is(future)));
+    assertThat(
+        statementExecutor.registerQueuedStatement(commandId), not(is(registeredCommandStatus)));
   }
 
   @Test
-  public void shouldCompleteFutureOnSuccess() {
+  public void shouldCompleteFutureOnSuccess() throws InterruptedException, ExecutionException {
     final Command command = new Command(
         "CREATE STREAM foo ("
             + "biz bigint,"
@@ -310,16 +314,17 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
         "foo",
         CommandId.Action.CREATE);
-    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
-    assertThat(future.isDone(), is(false));
-    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.QUEUED));
+    final RegisteredCommandStatus status = statementExecutor.registerQueuedStatement(commandId);
+    assertThat(status.getFuture().isDone(), is(false));
+    assertThat(status.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.QUEUED));
     statementExecutor.handleStatement(command, commandId);
-    assertThat(future.isDone(), is(true));
-    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(status.getFuture().isDone(), is(true));
+    assertThat(status.getFuture().get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(status.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   @Test
-  public void shouldCompleteFutureOnFailure() {
+  public void shouldCompleteFutureOnFailure() throws InterruptedException, ExecutionException {
     final Command command = new Command(
         "CREATE STREAM foo ("
             + "biz bigint,"
@@ -332,10 +337,17 @@ public class StatementExecutorTest extends EasyMockSupport {
         "foo",
         CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
-    final CommandStatusFuture future = statementExecutor.registerQueuedStatement(commandId);
+    final RegisteredCommandStatus registeredCommandStatus =
+        statementExecutor.registerQueuedStatement(commandId);
     statementExecutor.handleStatement(command, commandId);
-    assertThat(future.isDone(), is(true));
-    assertThat(future.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.ERROR));
+    assertThat(
+        registeredCommandStatus.getFuture().isDone(), is(true));
+    assertThat(
+        registeredCommandStatus.getFuture().get().getStatus(),
+        equalTo(CommandStatus.Status.ERROR));
+    assertThat(
+        registeredCommandStatus.getCurrentStatus().getStatus(),
+        equalTo(CommandStatus.Status.ERROR));
   }
 
   @Test

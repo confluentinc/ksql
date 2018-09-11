@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,17 +52,17 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class StatementExecutor {
+public class StatementExecutor implements QueuedStatementRegister {
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
-  private static final CommandStatus initialStatus = new CommandStatus(
+  private static final CommandStatus INITIAL_STATUS = new CommandStatus(
       CommandStatus.Status.QUEUED, "Statement written to command topic");
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
-  private final Map<CommandId, CommandStatusFuture> statusFutures;
+  private final Map<CommandId, RegisteredCommandStatus> statusFutures;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
@@ -73,7 +74,7 @@ public class StatementExecutor {
     this.statementParser = statementParser;
 
     this.statusStore = new ConcurrentHashMap<>();
-    this.statusFutures = new HashMap<>();
+    this.statusFutures = new ConcurrentHashMap<>();
   }
 
   void handleRestoration(final RestoreCommands restoreCommands) {
@@ -108,13 +109,10 @@ public class StatementExecutor {
       final Command command,
       final CommandId commandId
   ) {
-    final CommandStatusFuture statusFuture;
-    synchronized (statusFutures) {
-      // Get a future for the in-flight request that this command may be for
-      // Once we've got a reference to it, we can clean it up from the map.
-      statusFuture = statusFutures.get(commandId);
-      statusFutures.remove(commandId);
-    }
+    final RegisteredCommandStatus statusFuture;
+    // Get a future for the in-flight request that this command may be for
+    // Once we've got a reference to it, we can clean it up from the map.
+    statusFuture = statusFutures.remove(commandId);
     handleStatementWithTerminatedQueries(command,
         commandId,
         Optional.ofNullable(statusFuture),
@@ -140,11 +138,12 @@ public class StatementExecutor {
     return Optional.ofNullable(statusStore.get(statementId));
   }
 
-  public void putStatus(final CommandId commandId, final Optional<CommandStatusFuture> statusFuture,
+  public void putStatus(final CommandId commandId,
+                        final Optional<RegisteredCommandStatus> statusFuture,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
     if (statusFuture.isPresent()) {
-      statusFuture.get().update(status);
+      statusFuture.get().setCurrentStatus(status);
     }
   }
 
@@ -157,26 +156,24 @@ public class StatementExecutor {
    *
    * @param commandId The ID of the statement that has been written to the command topic.
    */
-  public CommandStatusFuture registerQueuedStatement(final CommandId commandId) {
-    synchronized (statusFutures) {
-      if (statusFutures.containsKey(commandId)) {
-        // We should fail registration if a future is already registered, to prevent
-        // a caller from receiving a future for a different statement.
+  public RegisteredCommandStatus registerQueuedStatement(final CommandId commandId) {
+    final RegisteredCommandStatus result
+        = new RegisteredCommandStatus(commandId, INITIAL_STATUS);
+    statusFutures.compute(
+        commandId,
+        (k, v) -> {
+          if (v == null) {
+            return result;
+          }
+          // We should fail registration if a future is already registered, to prevent
+          // a caller from receiving a future for a different statement.
 
-        // TODO(rohan): this problem can still happen across servers - a request from a
-        // different server can slide into the command topic before this one, and the executor
-        // thread will wind up completing this future on the basis of processing that statement,
-        // which is clearly wrong. However, to solve that we would need to put something in the
-        // command message to reference back to the future the server thread is waiting on.
-
-        throw new IllegalStateException("Concurrent command with id: " + commandId);
-      } else {
-        final CommandStatusFuture result
-            = new CommandStatusFuture(commandId, initialStatus);
-        statusFutures.put(commandId, result);
-        return result;
-      }
-    }
+          // TODO(rohan): this problem can still happen across servers
+          // (see https://github.com/confluentinc/ksql/issues/1860)
+          throw new IllegalStateException("Concurrent command with id: " + commandId);
+        }
+    );
+    return result;
   }
 
   /**
@@ -191,7 +188,7 @@ public class StatementExecutor {
   private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatusFuture,
+      final Optional<RegisteredCommandStatus> commandStatusFuture,
       final Map<QueryId, CommandId> terminatedQueries,
       final boolean wasDropped
   ) {
@@ -218,9 +215,9 @@ public class StatementExecutor {
           ExceptionUtil.stackTraceToString(exception)
       );
       putStatus(commandId, commandStatusFuture, errorStatus);
-      if (commandStatusFuture.isPresent()) {
-        commandStatusFuture.get().complete();
-      }
+      commandStatusFuture.ifPresent(
+          f -> f.getFuture().complete(errorStatus)
+      );
     }
   }
 
@@ -228,7 +225,7 @@ public class StatementExecutor {
       final Statement statement,
       final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatusFuture,
+      final Optional<RegisteredCommandStatus> commandStatusFuture,
       final Map<QueryId, CommandId> terminatedQueries,
       final boolean wasDropped
   ) throws Exception {
@@ -283,9 +280,9 @@ public class StatementExecutor {
         result != null ? result.getMessage() : successMessage
     );
     putStatus(commandId, commandStatusFuture, successStatus);
-    if (commandStatusFuture.isPresent()) {
-      commandStatusFuture.get().complete();
-    }
+    commandStatusFuture.ifPresent(
+        f -> f.getFuture().complete(successStatus)
+    );
   }
 
   private void handleRunScript(final Command command) {
@@ -318,7 +315,7 @@ public class StatementExecutor {
       final CreateAsSelect statement,
       final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatusFuture,
+      final Optional<RegisteredCommandStatus> commandStatusFuture,
       final Map<QueryId, CommandId> terminatedQueries,
       final String statementStr,
       final boolean wasDropped
@@ -352,7 +349,7 @@ public class StatementExecutor {
   private String handleInsertInto(final InsertInto statement,
                                       final Command command,
                                       final CommandId commandId,
-                                      final Optional<CommandStatusFuture> commandStatusFuture,
+                                      final Optional<RegisteredCommandStatus> commandStatusFuture,
                                       final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr,
                                       final boolean wasDropped) throws Exception {
@@ -384,7 +381,7 @@ public class StatementExecutor {
       final String queryString,
       final Query query,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatusFuture,
+      final Optional<RegisteredCommandStatus> commandStatusFuture,
       final Map<QueryId, CommandId> terminatedQueries,
       final Command command,
       final boolean wasDropped

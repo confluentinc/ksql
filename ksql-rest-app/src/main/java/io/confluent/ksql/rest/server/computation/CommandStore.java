@@ -53,20 +53,20 @@ public class CommandStore implements Closeable {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final AtomicBoolean closed;
-  private final StatementExecutor statementExecutor;
+  private final QueuedStatementRegister statementRegister;
 
   public CommandStore(
       final String commandTopic,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer,
       final CommandIdAssigner commandIdAssigner,
-      final StatementExecutor statementExecutor
+      final QueuedStatementRegister statementRegister
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
-    this.statementExecutor = statementExecutor;
+    this.statementRegister = statementRegister;
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
 
@@ -93,7 +93,7 @@ public class CommandStore implements Closeable {
    * @param overwriteProperties Any command-specific Streams properties to use.
    * @return The ID assigned to the statement
    */
-  public CommandStatusFuture distributeStatement(
+  public RegisteredCommandStatus distributeStatement(
       final String statementString,
       final Statement statement,
       final KsqlConfig ksqlConfig,
@@ -104,7 +104,8 @@ public class CommandStore implements Closeable {
         statementString,
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandStatusFuture statusFuture = statementExecutor.registerQueuedStatement(commandId);
+    final RegisteredCommandStatus statusFuture =
+        statementRegister.registerQueuedStatement(commandId);
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (final Exception e) {

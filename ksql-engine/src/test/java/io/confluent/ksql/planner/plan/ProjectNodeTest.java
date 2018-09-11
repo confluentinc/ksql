@@ -23,6 +23,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -32,6 +36,8 @@ import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.function.Supplier;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -74,7 +80,7 @@ public class ProjectNodeTest {
         ksqlConfig,
         kafkaTopicClient,
         functionRegistry,
-        props, new MockSchemaRegistryClient());
+        props, new MockSchemaRegistryClientFactory()::get);
   }
 
   @Test
@@ -101,18 +107,19 @@ public class ProjectNodeTest {
         ksqlConfig,
         kafkaTopicClient,
         functionRegistry,
-        props, new MockSchemaRegistryClient());
+        props, new MockSchemaRegistryClientFactory()::get);
 
     EasyMock.verify(stream);
   }
 
+  @SuppressWarnings("unchecked")
   private void mockSourceNode() {
     EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
     EasyMock.expect(source.buildStream(anyObject(StreamsBuilder.class),
         anyObject(KsqlConfig.class),
         anyObject(KafkaTopicClient.class),
         anyObject(InternalFunctionRegistry.class),
-        eq(props), anyObject(SchemaRegistryClient.class))).andReturn(stream);
+        eq(props), anyObject(Supplier.class))).andReturn(stream);
   }
 
 

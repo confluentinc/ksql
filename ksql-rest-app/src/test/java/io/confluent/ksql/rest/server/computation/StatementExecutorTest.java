@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -36,6 +35,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -69,7 +69,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory()::get);
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 

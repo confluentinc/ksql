@@ -40,7 +40,7 @@ public class GeoDistanceKudfTest {
   }
 
   /*
-   * Compute distance between Cape Town and Sidney
+   * Compute distance between Cape Town and Sydney
    */
   @Test
   public void shouldComputeDistanceSouthHemisphere() {

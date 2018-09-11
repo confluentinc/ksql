@@ -72,6 +72,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -80,6 +81,7 @@ import org.junit.rules.RuleChain;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
+@Ignore
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();

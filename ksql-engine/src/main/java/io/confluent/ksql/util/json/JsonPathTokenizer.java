@@ -32,7 +32,9 @@ public class JsonPathTokenizer
   private static final char DOT = '.';
   private static final char OPEN_BRACKET = '[';
   private static final char CLOSE_BRACKET = ']';
+  // CHECKSTYLE_RULES.OFF: AvoidEscapedUnicodeCharacters
   private static final char UNICODE_CARET = '\u2038';
+  // CHECKSTYLE_RULES.ON: AvoidEscapedUnicodeCharacters
 
   private final String path;
   private int index;

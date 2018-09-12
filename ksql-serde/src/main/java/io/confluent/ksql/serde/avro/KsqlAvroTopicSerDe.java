@@ -45,7 +45,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   private final Map<String, String> properties;
 
-  static final String AVRO_SCHEMA_FULL_NAME = "AVRO_SCHEMA_FULL_NAME";
+  public static final String AVRO_SCHEMA_FULL_NAME = "AVRO_SCHEMA_FULL_NAME";
 
   public KsqlAvroTopicSerDe() {
     this(new HashMap<String, String>());

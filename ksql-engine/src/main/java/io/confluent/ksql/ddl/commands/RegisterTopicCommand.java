@@ -28,12 +28,16 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RegisterTopicCommand implements DdlCommand {
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe topicSerDe;
   private final boolean notExists;
+
+  private static final Logger log = LoggerFactory.getLogger(RegisterTopicCommand.class);
 
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
     // TODO: find a way to merge overriddenProperties
@@ -60,6 +64,10 @@ public class RegisterTopicCommand implements DdlCommand {
       final String serde, final Map<String, Expression> properties) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
+    if (serde.toUpperCase() != DataSource.AVRO_SERDE_NAME
+        && properties.containsKey(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME)) {
+      log.warn("AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics. Ignoring...");
+    }
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
         final Map<String, String> avroRecordConfig = new HashMap<>();

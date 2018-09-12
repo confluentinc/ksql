@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.testutils.secure;
+package io.confluent.ksql.schema.registry;
 
-import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
-/**
- * Stores username & password.
- */
-@Immutable
-public final class Credentials {
-
-  public final String username;
-  public final String password;
-
-  public Credentials(final String username, final String password) {
-    this.username = Objects.requireNonNull(username, "username");
-    this.password = Objects.requireNonNull(password, "password");
+public class MockSchemaRegistryClientFactory {
+  public SchemaRegistryClient get() {
+    return new MockSchemaRegistryClient();
   }
 }

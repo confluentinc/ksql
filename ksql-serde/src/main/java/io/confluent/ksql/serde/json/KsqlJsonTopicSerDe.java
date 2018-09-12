@@ -23,6 +23,8 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -39,7 +41,7 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
   @Override
   public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
       final boolean isInternal,
-      final SchemaRegistryClient schemaRegistryClient) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 

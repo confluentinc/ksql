@@ -191,7 +191,8 @@ public class KsqlGenericRowAvroDeserializerTest {
 
     final Deserializer<GenericRow> deserializer =
         new KsqlAvroTopicSerDe().getGenericRowSerde(
-            schema, ksqlConfig, false, schemaRegistryClient).deserializer();
+            schema, ksqlConfig, false,
+            () -> schemaRegistryClient).deserializer();
 
     return deserializer.deserialize(topicName, bytes);
   }
@@ -489,7 +490,8 @@ public class KsqlGenericRowAvroDeserializerTest {
 
     final Deserializer<GenericRow> deserializer =
         new KsqlAvroTopicSerDe().getGenericRowSerde(
-            ksqlRecordSchema, ksqlConfig, false, schemaRegistryClient).deserializer();
+            ksqlRecordSchema, ksqlConfig, false,
+            () -> schemaRegistryClient).deserializer();
 
     final GenericRow row = deserializer.deserialize("topic", bytes);
 

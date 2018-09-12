@@ -39,6 +39,7 @@
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
         <module>ksql-package</module>
+        <module>ksql-test-util</module>
         <module>cp-ksql-cli</module>
         <module>cp-ksql-server</module>
     </modules>
@@ -88,6 +89,7 @@
         <generext.version>1.0.2</generext.version>
         <hamcrest.version>1.3</hamcrest.version>
         <avro.random.generator.version>0.2.1</avro.random.generator.version>
+        <apache.curator.version>2.9.0</apache.curator.version>
     </properties>
 
     <dependencyManagement>
@@ -323,7 +325,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                     <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
                 </configuration>
             </plugin>

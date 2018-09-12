@@ -55,6 +55,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
   public SourceDescription(
       @JsonProperty("name") final String name,
@@ -72,6 +73,7 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = name;
     this.readQueries = Collections.unmodifiableList(readQueries);
     this.writeQueries = Collections.unmodifiableList(writeQueries);

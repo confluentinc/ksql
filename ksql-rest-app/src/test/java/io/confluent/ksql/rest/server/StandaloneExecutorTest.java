@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
@@ -36,6 +37,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -51,6 +53,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -88,7 +91,7 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("Ignoring statements: DROP\n"
         + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject()))
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean()))
         .andReturn(ImmutableList.of(new PreparedStatement("CS",
             new CreateStream(qualifiedName, Collections.emptyList(), false, Collections.emptyMap())),
             new PreparedStatement("DROP",
@@ -105,7 +108,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCsStatement() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject()))
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean()))
         .andReturn(ImmutableList.of(new PreparedStatement("CS",
             new CreateStream(qualifiedName, Collections.emptyList(), false, Collections.emptyMap()))));
 
@@ -121,7 +124,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCtStatement() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject()))
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean()))
         .andReturn(ImmutableList.of(new PreparedStatement("CT",
             new CreateTable(qualifiedName, Collections.emptyList(), false, Collections.emptyMap()))));
 
@@ -136,7 +139,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunSetStatements() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(ImmutableList.of(
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
         new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
     ));
 
@@ -151,7 +154,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunUnSetStatements() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(ImmutableList.of(
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
         new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value")),
         new PreparedStatement("UNSET", new UnsetProperty(Optional.empty(), "name"))
     ));
@@ -168,10 +171,10 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunCsasStatements() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(ImmutableList.of(
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
         new PreparedStatement("CSAS1", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))
     ));
-
+    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
     EasyMock.expect(engine.buildMultipleQueries(eq("CSAS1"), anyObject(KsqlConfig.class), anyObject(Map.class)))
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
@@ -187,7 +190,7 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunInsertIntoStatements() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(ImmutableList.of(
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
         new PreparedStatement("InsertInto", new InsertInto(qualifiedName, query, Optional.empty()))
     ));
 
@@ -205,11 +208,48 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() throws IOException {
 
-    EasyMock.expect(engine.parseStatements(anyString(), anyObject())).andReturn(ImmutableList.of(
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
         new PreparedStatement("CTAS", new CreateTableAsSelect(qualifiedName, query, false, Collections.emptyMap()))
     ));
-
+    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KTABLE);
     EasyMock.expect(engine.buildMultipleQueries(eq("CTAS"), anyObject(KsqlConfig.class), anyObject(Map.class)))
+        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
+    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
+        .andReturn(persistentQueryMetadata).once();
+
+    EasyMock.replay(query, persistentQueryMetadata, engine);
+    standaloneExecutor.start();
+    EasyMock.verify(query, persistentQueryMetadata, engine);
+  }
+
+  @Test(expected = KsqlException.class)
+  @SuppressWarnings("unchecked")
+  public void shouldFailInvalidCsasStatements() throws IOException {
+
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
+        new PreparedStatement("CSAS2", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))
+    ));
+    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KTABLE);
+    EasyMock.expect(engine.buildMultipleQueries(eq("CSAS2"), anyObject(KsqlConfig.class), anyObject(Map.class)))
+        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
+    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
+        .andReturn(persistentQueryMetadata).once();
+
+    EasyMock.replay(query, persistentQueryMetadata, engine);
+    standaloneExecutor.start();
+    EasyMock.verify(query, persistentQueryMetadata, engine);
+
+  }
+
+  @Test(expected = KsqlException.class)
+  @SuppressWarnings("unchecked")
+  public void shouldFailInvalidCtasStatements() throws IOException {
+
+    EasyMock.expect(engine.parseStatements(anyString(), anyObject(), anyBoolean())).andReturn(ImmutableList.of(
+        new PreparedStatement("CTAS1", new CreateTableAsSelect(qualifiedName, query, false, Collections.emptyMap()))
+    ));
+    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
+    EasyMock.expect(engine.buildMultipleQueries(eq("CTAS1"), anyObject(KsqlConfig.class), anyObject(Map.class)))
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
         .andReturn(persistentQueryMetadata).once();

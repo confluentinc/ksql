@@ -59,7 +59,7 @@ public class QueryEngineTest {
         new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
-          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
+          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {
@@ -74,7 +74,7 @@ public class QueryEngineTest {
         new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
-          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone());
+          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {

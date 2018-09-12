@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -122,7 +123,13 @@ public class StandaloneExecutor implements Executable {
   private void handleCreateStreamAsSelect(
       final String queryString,
       final CreateStreamAsSelect statement) {
-    handlePersistentQuery(statement,
+    final Query query = getQueryFromStatement(queryString, statement);
+    final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+    if (queryMetadata.getDataSourceType() != DataSourceType.KSTREAM) {
+      throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
+          + "use CREATE STREAM AS SELECT statement instead. Query: " + queryString);
+    }
+    handlePersistentQuery(query,
         queryString,
         configProperties);
   }
@@ -131,14 +138,22 @@ public class StandaloneExecutor implements Executable {
   private void handleCreateTableAsSelect(
       final String queryString,
       final CreateTableAsSelect statement) {
-    handlePersistentQuery(statement,
+    final Query query = getQueryFromStatement(queryString, statement);
+    final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+    if (queryMetadata.getDataSourceType() != DataSourceType.KTABLE) {
+      throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
+          + "use CREATE TABLE AS SELECT statement instead. Query: " + queryString);
+    }
+    handlePersistentQuery(query,
         queryString,
         configProperties);
   }
 
   @SuppressWarnings("unused")
   private void handleInsertInto(final String queryString, final InsertInto statement) {
-    handlePersistentQuery(statement,
+    final Query query = getQueryFromStatement(queryString, statement);
+    ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+    handlePersistentQuery(query,
         queryString,
         configProperties);
   }
@@ -220,7 +235,7 @@ public class StandaloneExecutor implements Executable {
 
   private void executeStatements(final String queries) {
     final List<PreparedStatement> preparedStatements =
-        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone());
+        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone(), false);
     for (final PreparedStatement preparedStatement: preparedStatements) {
       final Statement statement = preparedStatement.getStatement();
       HANDLERS
@@ -230,11 +245,10 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void handlePersistentQuery(
-      final Statement statement,
+      final Query query,
       final String statementString,
       final Map<String, Object> configProperties) {
-    final Query query = getQueryFromStatement(statementString, statement);
-    ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
     if (queryMetadataList.size() != 1

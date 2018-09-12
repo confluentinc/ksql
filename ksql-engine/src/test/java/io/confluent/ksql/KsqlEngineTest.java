@@ -212,7 +212,7 @@ public class KsqlEngineTest {
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
     final List<PreparedStatement> parsedStatements = ksqlEngine.parseStatements(
-        runScriptContent.toString(), metaStore.clone());
+        runScriptContent.toString(), metaStore.clone(), true);
     assertThat(parsedStatements.size(), equalTo(3));
 
   }
@@ -409,7 +409,7 @@ public class KsqlEngineTest {
 
     final MetaStore emptyMetaStore = new MetaStoreImpl(new TestFunctionRegistry());
     final List<PreparedStatement> parsedStatements =
-        ksqlEngine.parseStatements(statementsString, emptyMetaStore);
+        ksqlEngine.parseStatements(statementsString, emptyMetaStore, true);
     final List<Statement> statements = parsedStatements.stream().map(
         PreparedStatement::getStatement).collect(Collectors.toList());
     assertThat(statements, Matchers.contains(

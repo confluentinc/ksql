@@ -226,7 +226,8 @@ public class KsqlEngine implements Closeable {
     // Build query AST from the query string
     final List<PreparedStatement> queries = parseStatements(
         queriesString,
-        tempMetaStore
+        tempMetaStore,
+        true
     );
 
     return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
@@ -292,7 +293,8 @@ public class KsqlEngine implements Closeable {
 
   public List<PreparedStatement> parseStatements(
       final String queriesString,
-      final MetaStore tempMetaStore
+      final MetaStore tempMetaStore,
+      final boolean convertStatementToQuery
   ) {
     try {
       final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
@@ -303,7 +305,11 @@ public class KsqlEngine implements Closeable {
           queriesString,
           tempMetaStoreForParser,
           stmt -> buildSingleQueryAst(
-              stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
+              stmt.getStatement(),
+              stmt.getStatementText(),
+              tempMetaStore,
+              tempMetaStoreForParser,
+              convertStatementToQuery));
 
       return statements
           .stream()
@@ -318,7 +324,8 @@ public class KsqlEngine implements Closeable {
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,
-      final MetaStore tempMetaStoreForParser
+      final MetaStore tempMetaStoreForParser,
+      final boolean convertStatementToQuery
   ) {
 
     log.info("Building AST for {}.", statementString);
@@ -342,7 +349,12 @@ public class KsqlEngine implements Closeable {
               querySpecification.getSelect(),
               createAsSelect.getName().getSuffix()
           ).cloneWithTimeKeyColumns());
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
+
     } else if (statement instanceof InsertInto) {
       final InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
@@ -370,7 +382,11 @@ public class KsqlEngine implements Closeable {
           false
       );
 
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
     } else  if (statement instanceof DdlStatement) {
       return buildSingleDdlStatement(statement,
                                      statementString,
@@ -619,7 +635,8 @@ public class KsqlEngine implements Closeable {
     return planQueries(
         parseStatements(
             queries,
-            metaStoreCopy
+            metaStoreCopy,
+            true
         ),
         ksqlConfig,
         Collections.emptyMap(),

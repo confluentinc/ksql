@@ -448,6 +448,12 @@ public class CliTest {
   }
 
   @Test
+  public void testContinuation() throws Exception{
+    localCli.runNonInteractively("SHOW\\\nTABLES;");
+    localCli.runNonInteractively("SHOW\\TABLES;");
+  }
+
+  @Test
   public void testExitCommand() throws Exception {
     localCli.runNonInteractively("exit");
     localCli.runNonInteractively("\nexit\n\n\n");

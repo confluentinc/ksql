@@ -62,6 +62,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -308,7 +309,8 @@ public class KsqlResource {
 
 
   private boolean isExecutableDdlStatement(final Statement statement) {
-    return statement instanceof DdlStatement && !(statement instanceof SetProperty);
+    return statement instanceof DdlStatement
+        && !((statement instanceof SetProperty) || (statement instanceof UnsetProperty));
   }
 
   private CommandStatusEntity distributeStatement(

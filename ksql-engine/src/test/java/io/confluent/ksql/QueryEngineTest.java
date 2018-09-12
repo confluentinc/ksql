@@ -56,10 +56,10 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient, true));
+        new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
     try {
-      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
-          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
+      final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
+          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {
@@ -71,10 +71,10 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateStream() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient, true));
+        new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
     try {
-      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
-          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone());
+      final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
+          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {

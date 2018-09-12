@@ -340,7 +340,7 @@ public class IntegrationTestHarness {
 
 
   public void start(final Map<String, Object> callerConfigMap) throws Exception {
-    embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
+    embeddedKafkaCluster = EmbeddedSingleNodeKafkaCluster.build();
     embeddedKafkaCluster.start();
     final Map<String, Object> configMap = new HashMap<>();
 

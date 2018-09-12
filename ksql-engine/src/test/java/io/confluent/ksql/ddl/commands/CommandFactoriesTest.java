@@ -51,7 +51,8 @@ public class CommandFactoriesTest {
   private final CommandFactories commandFactories = new CommandFactories(
       topicClient,
       EasyMock.createMock(SchemaRegistryClient.class),
-      true);
+      true,
+      Collections.emptyMap());
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";
 

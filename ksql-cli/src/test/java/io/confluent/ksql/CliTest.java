@@ -84,7 +84,7 @@ import org.junit.rules.RuleChain;
 @Ignore
 public class CliTest {
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(CLUSTER::bootstrapServers)

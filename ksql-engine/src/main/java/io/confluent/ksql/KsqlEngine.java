@@ -315,7 +315,7 @@ public class KsqlEngine implements Closeable {
           .stream()
           .filter(Objects::nonNull)
           .collect(Collectors.toList());
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new ParseFailedException("Exception while processing statement: " + e.getMessage(), e);
     }
   }

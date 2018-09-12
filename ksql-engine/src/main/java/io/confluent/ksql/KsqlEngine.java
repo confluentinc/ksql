@@ -87,8 +87,10 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlEngine implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 

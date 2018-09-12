@@ -39,7 +39,9 @@ import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class StandaloneExecutor implements Executable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 

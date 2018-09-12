@@ -19,32 +19,47 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.rest.entity.CommandStatus;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class RegisteredCommandStatus {
+  private static final CommandStatus INITIAL_STATUS = new CommandStatus(
+      CommandStatus.Status.QUEUED, "Statement written to command topic");
+
   private final CommandId commandId;
   private volatile CommandStatus commandStatus;
   private final CompletableFuture<CommandStatus> future;
 
-  public RegisteredCommandStatus(
-      final CommandId commandId, final CommandStatus initialStatus) {
+  public RegisteredCommandStatus(final CommandId commandId) {
     this.commandId = commandId;
-    this.commandStatus = initialStatus;
+    this.commandStatus = INITIAL_STATUS;
     this.future = new CompletableFuture<>();
-  }
-
-  public CommandStatus getCurrentStatus() {
-    return commandStatus;
-  }
-
-  public void setCurrentStatus(final CommandStatus status) {
-    this.commandStatus = status;
   }
 
   public CommandId getCommandId() {
     return commandId;
   }
 
-  public CompletableFuture<CommandStatus> getFuture() {
-    return future;
+  public CommandStatus getStatus() {
+    return commandStatus;
+  }
+
+  public CommandStatus waitForFinalStatus(final long timeout, final TimeUnit timeUnit)
+      throws InterruptedException, ExecutionException {
+    try {
+      return future.get(timeout, timeUnit);
+    } catch (final TimeoutException e) {
+      return commandStatus;
+    }
+  }
+
+  public void setStatus(final CommandStatus status) {
+    this.commandStatus = status;
+  }
+
+  public void setFinalStatus(final CommandStatus status) {
+    setStatus(status);
+    future.complete(status);
   }
 }

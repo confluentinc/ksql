@@ -78,7 +78,6 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -652,12 +651,11 @@ public class KsqlResourceTest {
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
     final RegisteredCommandStatus registeredCommandStatus
-        = new RegisteredCommandStatus(
-            commandId, new CommandStatus(CommandStatus.Status.QUEUED, "queued"));
+        = new RegisteredCommandStatus(commandId);
     final CommandStatus successStatus
         = new CommandStatus(CommandStatus.Status.SUCCESS, "success");
     registeredCommandStatus.getFuture().complete(successStatus);
-    registeredCommandStatus.setCurrentStatus(successStatus);
+    registeredCommandStatus.setStatus(successStatus);
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
     EasyMock.expect(commandStore.distributeStatement(
         EasyMock.eq(ksqlString), EasyMock.anyObject(Statement.class),
@@ -692,11 +690,10 @@ public class KsqlResourceTest {
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
     final RegisteredCommandStatus registeredCommandStatus
-        = new RegisteredCommandStatus(
-            commandId, new CommandStatus(CommandStatus.Status.QUEUED, ""));
+        = new RegisteredCommandStatus(commandId);
     final CommandStatus successStatus =
         new CommandStatus(CommandStatus.Status.SUCCESS, "success");
-    registeredCommandStatus.setCurrentStatus(successStatus);
+    registeredCommandStatus.setStatus(successStatus);
     registeredCommandStatus.getFuture().complete(successStatus);
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
     EasyMock.expect(commandStore.distributeStatement(

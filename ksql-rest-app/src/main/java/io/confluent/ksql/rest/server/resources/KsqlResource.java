@@ -115,7 +115,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -339,14 +338,8 @@ public class KsqlResource {
       return new CommandStatusEntity(
           statementText,
           registeredCommandStatus.getCommandId(),
-          registeredCommandStatus.getFuture().get(
+          registeredCommandStatus.waitForFinalStatus(
               distributedCommandResponseTimeout, TimeUnit.MILLISECONDS)
-      );
-    } catch (final TimeoutException e) {
-      return new CommandStatusEntity(
-          statementText,
-          registeredCommandStatus.getCommandId(),
-          registeredCommandStatus.getCurrentStatus()
       );
     } catch (final Exception e) {
       throw new RuntimeException(e);

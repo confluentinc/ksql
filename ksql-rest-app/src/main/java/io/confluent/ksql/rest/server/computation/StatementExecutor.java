@@ -55,9 +55,6 @@ import org.slf4j.LoggerFactory;
 public class StatementExecutor implements QueuedStatementRegister {
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
-  private static final CommandStatus INITIAL_STATUS = new CommandStatus(
-      CommandStatus.Status.QUEUED, "Statement written to command topic");
-
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
@@ -110,8 +107,6 @@ public class StatementExecutor implements QueuedStatementRegister {
       final CommandId commandId
   ) {
     final RegisteredCommandStatus statusFuture;
-    // Get a future for the in-flight request that this command may be for
-    // Once we've got a reference to it, we can clean it up from the map.
     statusFuture = statusFutures.remove(commandId);
     handleStatementWithTerminatedQueries(command,
         commandId,
@@ -139,11 +134,20 @@ public class StatementExecutor implements QueuedStatementRegister {
   }
 
   public void putStatus(final CommandId commandId,
-                        final Optional<RegisteredCommandStatus> statusFuture,
+                        final Optional<RegisteredCommandStatus> registeredCommandStatus,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
-    statusFuture.ifPresent(
-      f -> f.setCurrentStatus(status)
+    registeredCommandStatus.ifPresent(
+        s -> s.setStatus(status)
+    );
+  }
+
+  public void putFinalStatus(final CommandId commandId,
+                             final Optional<RegisteredCommandStatus> registeredCommandStatus,
+                             final CommandStatus status) {
+    statusStore.put(commandId, status);
+    registeredCommandStatus.ifPresent(
+        s -> s.setFinalStatus(status)
     );
   }
 
@@ -157,8 +161,7 @@ public class StatementExecutor implements QueuedStatementRegister {
    * @param commandId The ID of the statement that has been written to the command topic.
    */
   public RegisteredCommandStatus registerQueuedStatement(final CommandId commandId) {
-    final RegisteredCommandStatus result
-        = new RegisteredCommandStatus(commandId, INITIAL_STATUS);
+    final RegisteredCommandStatus result = new RegisteredCommandStatus(commandId);
     statusFutures.compute(
         commandId,
         (k, v) -> {
@@ -167,9 +170,6 @@ public class StatementExecutor implements QueuedStatementRegister {
           }
           // We should fail registration if a future is already registered, to prevent
           // a caller from receiving a future for a different statement.
-
-          // TODO(rohan): this problem can still happen across servers
-          // (see https://github.com/confluentinc/ksql/issues/1860)
           throw new IllegalStateException("Concurrent command with id: " + commandId);
         }
     );
@@ -214,10 +214,7 @@ public class StatementExecutor implements QueuedStatementRegister {
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
       );
-      putStatus(commandId, commandStatusFuture, errorStatus);
-      commandStatusFuture.ifPresent(
-          f -> f.getFuture().complete(errorStatus)
-      );
+      putFinalStatus(commandId, commandStatusFuture, errorStatus);
     }
   }
 
@@ -279,10 +276,7 @@ public class StatementExecutor implements QueuedStatementRegister {
         CommandStatus.Status.SUCCESS,
         result != null ? result.getMessage() : successMessage
     );
-    putStatus(commandId, commandStatusFuture, successStatus);
-    commandStatusFuture.ifPresent(
-        f -> f.getFuture().complete(successStatus)
-    );
+    putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
   private void handleRunScript(final Command command) {

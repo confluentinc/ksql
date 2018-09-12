@@ -302,7 +302,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldCompleteFutureOnSuccess() throws InterruptedException, ExecutionException {
+  public void shouldCompleteFutureOnSuccess() {
     final Command command = new Command(
         "CREATE STREAM foo ("
             + "biz bigint,"
@@ -315,16 +315,13 @@ public class StatementExecutorTest extends EasyMockSupport {
         "foo",
         CommandId.Action.CREATE);
     final RegisteredCommandStatus status = statementExecutor.registerQueuedStatement(commandId);
-    assertThat(status.getFuture().isDone(), is(false));
-    assertThat(status.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.QUEUED));
+    assertThat(status.getStatus().getStatus(), equalTo(CommandStatus.Status.QUEUED));
     statementExecutor.handleStatement(command, commandId);
-    assertThat(status.getFuture().isDone(), is(true));
-    assertThat(status.getFuture().get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
-    assertThat(status.getCurrentStatus().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(status.getStatus().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   @Test
-  public void shouldCompleteFutureOnFailure() throws InterruptedException, ExecutionException {
+  public void shouldCompleteFutureOnFailure() {
     final Command command = new Command(
         "CREATE STREAM foo ("
             + "biz bigint,"
@@ -341,12 +338,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         statementExecutor.registerQueuedStatement(commandId);
     statementExecutor.handleStatement(command, commandId);
     assertThat(
-        registeredCommandStatus.getFuture().isDone(), is(true));
-    assertThat(
-        registeredCommandStatus.getFuture().get().getStatus(),
-        equalTo(CommandStatus.Status.ERROR));
-    assertThat(
-        registeredCommandStatus.getCurrentStatus().getStatus(),
+        registeredCommandStatus.getStatus().getStatus(),
         equalTo(CommandStatus.Status.ERROR));
   }
 

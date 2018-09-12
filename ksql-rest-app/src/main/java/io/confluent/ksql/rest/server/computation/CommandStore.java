@@ -104,7 +104,7 @@ public class CommandStore implements Closeable {
         statementString,
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final RegisteredCommandStatus statusFuture =
+    final RegisteredCommandStatus status =
         statementRegister.registerQueuedStatement(commandId);
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
@@ -118,7 +118,7 @@ public class CommandStore implements Closeable {
           e
       );
     }
-    return statusFuture;
+    return status;
   }
 
   /**

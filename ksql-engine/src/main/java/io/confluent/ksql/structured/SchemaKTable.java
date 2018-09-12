@@ -40,7 +40,9 @@ import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable extends SchemaKStream {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<?, GenericRow> ktable;
   private final boolean isWindowed;
 

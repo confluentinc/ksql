@@ -78,7 +78,9 @@ import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public abstract class Console implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
@@ -285,16 +287,16 @@ public abstract class Console implements Closeable {
     flush();
   }
 
-  private void printAsTable(final KsqlEntity ksqlEntity) {
-    final Handler<KsqlEntity, Console> defaultHandler = (console, entity) -> {
+  private void printAsTable(final KsqlEntity entity) {
+    final Handler<KsqlEntity, Console> handler = PRINT_HANDLERS.get(entity.getClass());
+    
+    if (handler == null) {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'", entity.getClass().getCanonicalName()
       ));
-    };
-
-    PRINT_HANDLERS
-        .getOrDefault(ksqlEntity.getClass(), defaultHandler)
-        .handle(this, ksqlEntity);
+    }
+    
+    handler.handle(this, entity);
   }
 
   private String schemaToTypeString(final SchemaInfo schema) {

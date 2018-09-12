@@ -51,7 +51,9 @@ import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class InternalFunctionRegistry implements FunctionRegistry {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Map<String, UdfFactory> ksqlFunctionMap ;
   private final Map<String, AggregateFunctionFactory> aggregateFunctionMap;

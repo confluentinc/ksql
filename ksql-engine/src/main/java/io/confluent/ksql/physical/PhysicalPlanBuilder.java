@@ -364,7 +364,9 @@ public class PhysicalPlanBuilder {
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (sinkKeyField == null && resultKeyField == null) {
       return;
     } else if (sinkKeyField != null && resultKeyField != null) {

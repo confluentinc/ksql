@@ -60,7 +60,7 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
 
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;

@@ -36,6 +36,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.security.auth.login.Configuration;
 import kafka.security.auth.Acl;
 import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
@@ -64,7 +65,7 @@ import scala.collection.JavaConversions;
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
+public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
@@ -76,24 +77,16 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
-  private ZooKeeperEmbedded zookeeper;
-  private KafkaEmbedded broker;
+  private final String jassConfigFile;
+  private final String previousJassConfig;
   private final Map<String, Object> brokerConfig = new HashMap<>();
   private final Map<String, Object> clientConfig = new HashMap<>();
   private final TemporaryFolder tmpFolder = new TemporaryFolder();
   private final SimpleAclAuthorizer authorizer = new SimpleAclAuthorizer();
   private final Set<kafka.security.auth.Resource> addedAcls = new HashSet<>();
 
-  static {
-    createServerJaasConfig();
-  }
-
-  /**
-   * Creates and starts a Kafka cluster.
-   */
-  public EmbeddedSingleNodeKafkaCluster() {
-    this(Collections.emptyMap(), Collections.emptyMap());
-  }
+  private ZooKeeperEmbedded zookeeper;
+  private KafkaEmbedded broker;
 
   /**
    * Creates and starts a Kafka cluster.
@@ -101,10 +94,15 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param brokerConfig Additional broker configuration settings.
    * @param clientConfig Additional client configuration settings.
    */
-  public EmbeddedSingleNodeKafkaCluster(final Map<String, Object> brokerConfig,
-                                        final Map<String, Object> clientConfig) {
+  private EmbeddedSingleNodeKafkaCluster(
+      final Map<String, Object> brokerConfig,
+      final Map<String, Object> clientConfig,
+      final String additionalJaasConfig) {
     this.brokerConfig.putAll(brokerConfig);
     this.clientConfig.putAll(clientConfig);
+
+    this.previousJassConfig = System.getProperty("java.security.auth.login.config");
+    this.jassConfigFile = createServerJaasConfig(additionalJaasConfig);
   }
 
   /**
@@ -113,6 +111,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   public void start() throws Exception {
     log.debug("Initiating embedded Kafka cluster startup");
 
+    installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
     brokerConfig.put("group.initial.rebalance.delay.ms", 0);
@@ -148,6 +147,8 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     } catch (final IOException e) {
       throw new RuntimeException(e);
     }
+
+    resetJaasConfig();
   }
 
   /**
@@ -272,30 +273,38 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return new Builder();
   }
 
+  public static EmbeddedSingleNodeKafkaCluster build() {
+    return newBuilder().build();
+  }
+
   private Properties effectiveBrokerConfigFrom() {
     final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.LogCleanerDedupeBufferSizeProp(), 2 * 1024 * 1024L);
+    effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
     effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
     return effectiveConfig;
   }
 
-  private static void createServerJaasConfig() {
+  @SuppressWarnings("unused") // Part of Public API
+  public String getJaasConfigPath() {
+    return jassConfigFile;
+  }
+
+  private String createServerJaasConfig(final String additionalJaasConfig) {
     try {
-      final String jaasConfigContent = createJaasConfigContent();
+      final String jaasConfigContent = createJaasConfigContent() + additionalJaasConfig;
       final File jaasConfig = TestUtils.tempFile();
       Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
-
-      System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jaasConfig.getAbsolutePath());
-      System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
+      return jaasConfig.getAbsolutePath();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static String createJaasConfigContent() {
+  private String createJaasConfigContent() {
     final String prefix = "KafkaServer {\n  " + PlainLoginModule.class.getName() + " required\n"
                           + "  username=\"broker\"\n"
                           + "  password=\"brokerPassword\"\n"
@@ -306,10 +315,26 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         .collect(Collectors.joining("\n", prefix, ";\n};\n"));
   }
 
+  private void installJaasConfig() {
+    System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jassConfigFile);
+    System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
+    Configuration.setConfiguration(null);
+  }
+
+  private void resetJaasConfig() {
+    if (previousJassConfig != null) {
+      System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, previousJassConfig);
+    } else {
+      System.clearProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM);
+    }
+    Configuration.setConfiguration(null);
+  }
+
   public static final class Builder {
 
     private final Map<String, Object> brokerConfig = new HashMap<>();
     private final Map<String, Object> clientConfig = new HashMap<>();
+    private final StringBuilder additionalJaasConfig = new StringBuilder();
 
     Builder() {
       brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), SimpleAclAuthorizer.class.getName());
@@ -351,8 +376,21 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return this;
     }
 
+    /**
+     * Provide additional content to be included in the JVMs JAAS config file
+     *
+     * @param config the additional content
+     * @return self.
+     */
+    @SuppressWarnings({"unused"}) // Part of Public API.
+    public Builder withAdditionalJaasConfig(final String config) {
+      additionalJaasConfig.append(config);
+      return this;
+    }
+
     public EmbeddedSingleNodeKafkaCluster build() {
-      return new EmbeddedSingleNodeKafkaCluster(brokerConfig, clientConfig);
+      return new EmbeddedSingleNodeKafkaCluster(
+          brokerConfig, clientConfig, additionalJaasConfig.toString());
     }
 
     private void addListenersProp(final String listenerType) {

@@ -78,7 +78,8 @@ public class KsqlContext {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        ksqlConfig
+        ksqlConfig,
+        adminClient
     );
 
     return new KsqlContext(ksqlConfig, engine);

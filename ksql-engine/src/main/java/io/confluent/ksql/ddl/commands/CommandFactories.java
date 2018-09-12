@@ -24,20 +24,23 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Map;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
-
   private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient schemaRegistryClient,
-      final boolean enforceTopicExistence
+      final boolean enforceTopicExistence,
+      final Map<String, Object> properties
   ) {
     factories.put(
         RegisterTopic.class,
@@ -84,6 +87,12 @@ public class CommandFactories implements DdlCommandFactory {
     factories.put(
         DropTopic.class, (sqlExpression, ddlStatement) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));
+    factories.put(
+        SetProperty.class, (sqlExpression, ddlStatement) ->
+            new SetPropertyCommand(((SetProperty) ddlStatement), properties));
+    factories.put(
+        UnsetProperty.class, (sqlExpression, ddlStatement) ->
+            new UnsetPropertyCommand(((UnsetProperty) ddlStatement), properties));
   }
 
   @Override

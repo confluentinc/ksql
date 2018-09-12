@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server;
 
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;

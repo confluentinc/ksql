@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
 import java.util.function.Supplier;
@@ -466,8 +467,8 @@ final class EndToEndEngineTestUtil {
        this.persistedProperties = persistedProperties;
     }
 
-    public Map<String, String> persistedProperties() {
-      return persistedProperties;
+    public Optional<Map<String, String>> persistedProperties() {
+      return Optional.ofNullable(persistedProperties);
     }
 
     public Map<String, Object> properties() {
@@ -592,8 +593,9 @@ final class EndToEndEngineTestUtil {
                                                                    final KsqlConfig ksqlConfig,
                                                                    final Properties streamsProperties) {
 
-    final KsqlConfig maybeUpdatedConfigs = query.persistedProperties ()== null ? ksqlConfig :
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(query.persistedProperties());
+    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+    final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
     final Topology topology = getStreamsTopology(query, ksqlEngine, maybeUpdatedConfigs);
     if (query.expectedTopology != null) {
@@ -754,8 +756,11 @@ final class EndToEndEngineTestUtil {
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
     final KsqlConfig currentConfigs = new KsqlConfig(config);
-    final KsqlConfig ksqlConfig = query.persistedProperties() !=null ?
-        currentConfigs.overrideBreakingConfigsWithOriginalValues(query.persistedProperties()) : currentConfigs;
+
+    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+
+    final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
+        currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
 
     try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient, ksqlConfig)) {

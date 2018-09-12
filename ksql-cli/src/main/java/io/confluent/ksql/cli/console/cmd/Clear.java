@@ -18,7 +18,6 @@ package io.confluent.ksql.cli.console.cmd;
 
 import io.confluent.ksql.cli.console.Console;
 import java.util.Objects;
-import org.jline.utils.InfoCmp;
 
 class Clear implements CliSpecificCommand {
 
@@ -41,7 +40,7 @@ class Clear implements CliSpecificCommand {
 
   @Override
   public void execute(final String commandStrippedLine) {
-    console.puts(InfoCmp.Capability.clear_screen);
+    console.clearScreen();
     console.flush();
   }
 }

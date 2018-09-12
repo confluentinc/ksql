@@ -73,25 +73,23 @@ import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public abstract class Console implements Closeable {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
   private static final HandlerMap<KsqlEntity, Console> PRINT_HANDLERS =
       HandlerMap.<KsqlEntity, Console>builder()
           .put(CommandStatusEntity.class,
-              tablePrinter(CommandStatusTableBuilder.class, CommandStatusEntity.class))
+              tablePrinter(CommandStatusEntity.class, CommandStatusTableBuilder::new))
           .put(PropertiesList.class,
-              tablePrinter(PropertiesListTableBuilder.class, PropertiesList.class))
+              tablePrinter(PropertiesList.class, PropertiesListTableBuilder::new))
           .put(Queries.class,
-              tablePrinter(QueriesTableBuilder.class, Queries.class))
+              tablePrinter(Queries.class, QueriesTableBuilder::new))
           .put(SourceDescriptionEntity.class,
               (console, entity) -> console.printSourceDescription(entity.getSourceDescription()))
           .put(SourceDescriptionList.class,
@@ -101,29 +99,29 @@ public abstract class Console implements Closeable {
           .put(QueryDescriptionList.class,
               Console::printQueryDescriptionList)
           .put(TopicDescription.class,
-              tablePrinter(TopicDescriptionTableBuilder.class, TopicDescription.class))
+              tablePrinter(TopicDescription.class, TopicDescriptionTableBuilder::new))
           .put(StreamsList.class,
-              tablePrinter(StreamsListTableBuilder.class, StreamsList.class))
+              tablePrinter(StreamsList.class, StreamsListTableBuilder::new))
           .put(TablesList.class,
-              tablePrinter(TablesListTableBuilder.class, TablesList.class))
+              tablePrinter(TablesList.class, TablesListTableBuilder::new))
           .put(KsqlTopicsList.class,
-              tablePrinter(KsqlTopicsListTableBuilder.class, KsqlTopicsList.class))
+              tablePrinter(KsqlTopicsList.class, KsqlTopicsListTableBuilder::new))
           .put(KafkaTopicsList.class,
-              tablePrinter(KafkaTopicsListTableBuilder.class, KafkaTopicsList.class))
+              tablePrinter(KafkaTopicsList.class, KafkaTopicsListTableBuilder::new))
           .put(ExecutionPlan.class,
-              tablePrinter(ExecutionPlanTableBuilder.class, ExecutionPlan.class))
+              tablePrinter(ExecutionPlan.class, ExecutionPlanTableBuilder::new))
           .put(FunctionNameList.class,
-              tablePrinter(FunctionNameListTableBuilder.class, FunctionNameList.class))
+              tablePrinter(FunctionNameList.class, FunctionNameListTableBuilder::new))
           .put(FunctionDescriptionList.class,
               Console::printFunctionDescription)
           .build();
 
   private static <T extends KsqlEntity> Handler<KsqlEntity, Console> tablePrinter(
-      final Class<? extends TableBuilder<T>> tableBuilderType,
-      final Class<T> entityType) {
+      final Class<T> entityType,
+      final Supplier<? extends TableBuilder<T>> tableBuilderType) {
 
     try {
-      final TableBuilder<T> tableBuilder = tableBuilderType.newInstance();
+      final TableBuilder<T> tableBuilder = tableBuilderType.get();
 
       return (console, type) -> {
         final Table table = tableBuilder.buildTable(entityType.cast(type));
@@ -168,12 +166,9 @@ public abstract class Console implements Closeable {
 
   protected abstract LineReader buildLineReader();
 
-  public abstract void puts(InfoCmp.Capability capability);
+  public abstract void clearScreen();
 
-  public abstract Terminal.SignalHandler handle(
-      Terminal.Signal signal,
-      Terminal.SignalHandler signalHandler
-  );
+  public abstract void handle(Signal signal, SignalHandler signalHandler);
 
   /* public */
 
@@ -194,6 +189,12 @@ public abstract class Console implements Closeable {
       lineReader = buildLineReader();
     }
     return lineReader;
+  }
+
+  public void printHistory() {
+    for (final org.jline.reader.History.Entry historyEntry : getLineReader().getHistory()) {
+      writer().printf("%4d: %s%n", historyEntry.index() + 1, historyEntry.line());
+    }
   }
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) throws IOException {
@@ -289,7 +290,7 @@ public abstract class Console implements Closeable {
 
   private void printAsTable(final KsqlEntity entity) {
     final Handler<KsqlEntity, Console> handler = PRINT_HANDLERS.get(entity.getClass());
-    
+
     if (handler == null) {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'", entity.getClass().getCanonicalName()
@@ -299,6 +300,7 @@ public abstract class Console implements Closeable {
     handler.handle(this, entity);
   }
 
+  @SuppressWarnings("ConstantConditions")
   private String schemaToTypeString(final SchemaInfo schema) {
     // For now just dump the whole type out into 1 string.
     // In the future we should consider a more readable format

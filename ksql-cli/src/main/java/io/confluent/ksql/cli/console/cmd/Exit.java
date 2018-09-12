@@ -36,9 +36,7 @@ class Exit implements CliSpecificCommand {
   @Override
   public void printHelp() {
     console.writer().println("exit:");
-    console.writer().println(
-        "\tExit the CLI."
-    );
+    console.writer().println("\tExit the CLI.");
   }
 
   @Override

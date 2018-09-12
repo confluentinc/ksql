@@ -44,9 +44,7 @@ class History implements CliSpecificCommand {
 
   @Override
   public void execute(final String commandStrippedLine) {
-    for (final org.jline.reader.History.Entry historyEntry : console.getLineReader().getHistory()) {
-      console.writer().printf("%4d: %s%n", historyEntry.index() + 1, historyEntry.line());
-    }
+    console.printHistory();
     console.flush();
   }
 }

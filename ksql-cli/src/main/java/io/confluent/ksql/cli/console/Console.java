@@ -71,7 +71,9 @@ import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public abstract class Console implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
   private static final List<String> PROPERTIES_COLUMN_HEADERS = Arrays.asList("Property", "Value");
@@ -376,7 +378,9 @@ public abstract class Console implements Closeable {
     flush();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|JavaNCSS
   private void printAsTable(final KsqlEntity ksqlEntity) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity|JavaNCSS
     final Table.Builder tableBuilder = new Table.Builder();
 
     if (ksqlEntity instanceof CommandStatusEntity) {

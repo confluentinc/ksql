@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ public class JsonPathTokenizer
   private static final char DOT = '.';
   private static final char OPEN_BRACKET = '[';
   private static final char CLOSE_BRACKET = ']';
-  private static final char UNICODE_CARET = '\u2038';
+  private static final char UNICODE_CARET = '‸';
 
   private final String path;
   private int index;

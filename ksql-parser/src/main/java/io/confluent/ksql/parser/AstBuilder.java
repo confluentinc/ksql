@@ -143,8 +143,9 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class AstBuilder extends SqlBaseBaseVisitor<Node> {
-
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private int selectItemIndex = 0;
 

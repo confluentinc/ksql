@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.testutils.secure;
+package io.confluent.ksql.test.util.secure;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;

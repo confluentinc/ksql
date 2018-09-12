@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Map;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
   private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
 

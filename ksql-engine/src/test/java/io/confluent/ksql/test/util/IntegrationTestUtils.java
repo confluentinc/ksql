@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.testutils;
+package io.confluent.ksql.test.util;
 
 import java.io.File;
 import java.io.IOException;

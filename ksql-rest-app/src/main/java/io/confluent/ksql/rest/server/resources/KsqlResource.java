@@ -125,10 +125,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
@@ -188,9 +190,11 @@ public class KsqlResource {
     return Response.ok(result).build();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,
       final Map<String, Object> streamsProperties) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (statement == null) {
       throw new KsqlRestException(
           Errors.badStatement(
@@ -242,10 +246,12 @@ public class KsqlResource {
     return ksqlEngine;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private KsqlEntity executeStatement(
       final String statementText,
       final Statement statement,
       final Map<String, Object> streamsProperties) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (statement instanceof ListTopics) {
       return listTopics(statementText);
     } else if (statement instanceof ListRegisteredTopics) {
@@ -601,7 +607,9 @@ public class KsqlResource {
 
   private final Map<Class, KsqlStatementTask> ksqlStatementTasks = new HashMap<>();
 
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   private void registerKsqlStatementTasks() {
+    // CHECKSTYLE_RULES.OFF: JavaNCSS
     ksqlStatementTasks.put(Query.class,
         (statement, statementText, properties) ->
             ksqlEngine.getQueryExecutionPlan((Query)statement, ksqlConfig)

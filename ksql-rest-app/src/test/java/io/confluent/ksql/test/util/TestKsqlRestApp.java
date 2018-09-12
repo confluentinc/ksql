@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.test.util;
 
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.net.URL;
 import java.util.ArrayList;
@@ -64,8 +64,26 @@ public class TestKsqlRestApp extends ExternalResource {
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
   }
 
+  public List<URL> getListeners() {
+    return this.listeners;
+  }
+
+  public Map<String, ?> getBaseConfig() {
+    return Collections.unmodifiableMap(this.baseConfig);
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public void start() {
+    this.before();
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public void stop() {
+    this.after();
+  }
+
   @Override
-  protected void before() throws Exception {
+  protected void before() {
     if (restServer != null) {
       after();
     }
@@ -78,8 +96,12 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException("Failed to initialise", e);
     }
 
-    restServer.start();
-    listeners.addAll(restServer.getListeners());
+    try {
+      restServer.start();
+      listeners.addAll(restServer.getListeners());
+    } catch (Exception var2) {
+      throw new RuntimeException("Failed to start Ksql rest server", var2);
+    }
   }
 
   @Override
@@ -91,14 +113,6 @@ public class TestKsqlRestApp extends ExternalResource {
     listeners.clear();
     restServer.stop();
     restServer = null;
-  }
-
-  public List<URL> getListeners() {
-    return listeners;
-  }
-
-  public Map<String, ?> getBaseConfig() {
-    return Collections.unmodifiableMap(baseConfig);
   }
 
   public static Builder builder(final Supplier<String> bootstrapServers) {
@@ -136,11 +150,13 @@ public class TestKsqlRestApp extends ExternalResource {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
     }
 
+    @SuppressWarnings("unused") // Part of public API
     public Builder withProperty(final String name, final Object value) {
       additionalProps.put(name, value);
       return this;
     }
 
+    @SuppressWarnings("unused") // Part of public API
     public Builder withProperties(final Map<String, ?> props) {
       additionalProps.putAll(props);
       return this;

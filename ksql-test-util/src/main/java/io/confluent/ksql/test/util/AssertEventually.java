@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.testutils;
+package io.confluent.ksql.test.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -23,10 +23,9 @@ import java.util.function.Supplier;
 import org.hamcrest.Matcher;
 
 /**
- * @author andy
- * created 3/28/18
+ * Hamcrest async assert with timeout.
  */
-public class AssertEventually {
+public final class AssertEventually {
   private static final long DEFAULT_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(30);
   private static final long MAX_PAUSE_PERIOD_MS = TimeUnit.SECONDS.toMillis(1);
 
@@ -38,7 +37,8 @@ public class AssertEventually {
   public static <T> T assertThatEventually(final String message,
                                            final Supplier<? extends T> actualSupplier,
                                            final Matcher<? super T> expected) {
-    return assertThatEventually(message, actualSupplier, expected, DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+    return assertThatEventually(
+        message, actualSupplier, expected, DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
   }
 
   public static <T> T assertThatEventually(final String message,

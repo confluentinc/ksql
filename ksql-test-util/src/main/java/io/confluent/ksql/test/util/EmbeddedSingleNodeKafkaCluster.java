@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,18 +12,16 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.testutils;
-
-import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
+package io.confluent.ksql.test.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.testutils.secure.ClientTrustStore;
-import io.confluent.ksql.testutils.secure.Credentials;
-import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
-import io.confluent.ksql.testutils.secure.ServerKeyStore;
+import io.confluent.ksql.test.util.secure.ClientTrustStore;
+import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -65,13 +63,18 @@ import scala.collection.JavaConversions;
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
 
-  public static Credentials VALID_USER1 = new Credentials("valid_user_1", "some-password");
-  public static Credentials VALID_USER2 = new Credentials("valid_user_2", "some-password");
-  private static List<Credentials> ALL_VALID_USERS = ImmutableList.of(VALID_USER1, VALID_USER2);
+  public static final Credentials VALID_USER1 =
+      new Credentials("valid_user_1", "some-password");
+  public static final Credentials VALID_USER2 =
+      new Credentials("valid_user_2", "some-password");
+  private static final List<Credentials> ALL_VALID_USERS =
+      ImmutableList.of(VALID_USER1, VALID_USER2);
 
   private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
@@ -150,7 +153,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    */
   public String bootstrapServers() {
     return broker.brokerList();
@@ -159,7 +162,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    * @param securityProtocol the security protocol to select.
    */
   public String bootstrapServers(final SecurityProtocol securityProtocol) {
@@ -169,7 +172,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Common properties that clients will need to connect to the cluster.
    *
-   * This includes any SASL / SSL related settings.
+   * <p>This includes any SASL / SSL related settings.
    *
    * @return the properties that should be added to client props.
    */
@@ -181,8 +184,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * This cluster's ZK connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
    * Example: `127.0.0.1:2181`.
    *
-   * You can use this to e.g. tell Kafka consumers how to connect to this cluster.
+   * <p>You can use this to e.g. tell Kafka consumers how to connect to this cluster.
    */
+  @SuppressWarnings("WeakerAccess") // Part of public API
   public String zookeeperConnect() {
     return zookeeper.connectString();
   }
@@ -193,7 +197,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param topic The name of the topic.
    */
   public void createTopic(final String topic) {
-    createTopic(topic, 1, 1, new Properties());
+    broker.createTopic(topic, 1, 1);
   }
 
   /**
@@ -204,7 +208,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (the partitions of) this topic.
    */
   public void createTopic(final String topic, final int partitions, final int replication) {
-    createTopic(topic, partitions, replication, new Properties());
+    broker.createTopic(topic, partitions, replication);
   }
 
   /**
@@ -218,7 +222,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   public void createTopic(final String topic,
                           final int partitions,
                           final int replication,
-                          final Properties topicConfig) {
+                          final Map<String, String> topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
@@ -321,7 +325,8 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder withSaslSslListeners() {
       addListenersProp("SASL_SSL");
       brokerConfig.put(KafkaConfig.SaslEnabledMechanismsProp(), "PLAIN");
-      brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(), SASL_SSL.name());
+      brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(),
+          SecurityProtocol.SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
       brokerConfig.putAll(ServerKeyStore.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");

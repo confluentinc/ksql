@@ -35,6 +35,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final Set<String> sinkNames;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(final String statementString,
                                  final KafkaStreams kafkaStreams,
                                  final OutputNode outputNode,
@@ -47,6 +48,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KsqlTopic resultTopic,
                                  final Topology topology,
                                  final Map<String, Object> overriddenProperties) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.id = id;

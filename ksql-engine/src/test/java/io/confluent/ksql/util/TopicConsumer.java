@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

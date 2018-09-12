@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import org.junit.Test;
 public class JsonPathTokenizerTest {
 
   @Test
-  public void testJsonPathTokenizer() throws IOException {
+  public void testJsonPathTokenizer() {
     final JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
     final ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
     final List<String> tokenList = tokens.asList();
@@ -40,4 +40,9 @@ public class JsonPathTokenizerTest {
     assertThat(tokenList.get(3), is(equalTo("region")));
   }
 
+  @Test
+  public void shouldToStringWithCarrot() {
+    assertThat(new JsonPathTokenizer("$.logs[0].cloud.region").toString(),
+        is("$‸.logs[0].cloud.region"));
+  }
 }

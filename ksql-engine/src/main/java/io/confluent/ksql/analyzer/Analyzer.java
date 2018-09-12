@@ -66,7 +66,9 @@ import java.util.Set;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final String sqlExpression;
   private final Analysis analysis;

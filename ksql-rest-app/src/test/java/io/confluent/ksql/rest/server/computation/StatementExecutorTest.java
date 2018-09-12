@@ -82,7 +82,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   @Test
   public void shouldHandleCorrectDDLStatement() {

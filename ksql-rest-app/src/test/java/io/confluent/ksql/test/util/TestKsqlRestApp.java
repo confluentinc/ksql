@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,9 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.easymock.EasyMock;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -89,8 +90,9 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     try {
-      restServer = KsqlRestApplication.buildApplication(buildConfig(),
-          EasyMock.mock(VersionCheckerAgent.class)
+      restServer = KsqlRestApplication.buildApplication(
+          buildConfig(),
+          new NoOpVersionCheckerAgent()
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -164,6 +166,12 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public TestKsqlRestApp build() {
       return new TestKsqlRestApp(bootstrapServers, additionalProps);
+    }
+  }
+
+  private static class NoOpVersionCheckerAgent implements VersionCheckerAgent {
+    @Override
+    public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
     }
   }
 }

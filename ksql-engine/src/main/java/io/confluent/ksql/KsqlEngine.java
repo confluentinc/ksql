@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
@@ -179,7 +180,10 @@ public class KsqlEngine implements Closeable {
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, schemaRegistryClient, true));
+        new CommandFactories(topicClient,
+            schemaRegistryClient,
+            true,
+            initializationKsqlConfig.getKsqlStreamConfigProps()));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -220,9 +224,10 @@ public class KsqlEngine implements Closeable {
     final MetaStore tempMetaStore = metaStore.clone();
 
     // Build query AST from the query string
-    final List<PreparedStatement> queries = parseQueries(
+    final List<PreparedStatement> queries = parseStatements(
         queriesString,
-        tempMetaStore
+        tempMetaStore,
+        true
     );
 
     return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
@@ -286,10 +291,10 @@ public class KsqlEngine implements Closeable {
     return runningQueries.get(0);
   }
 
-  // Visible for Testing
-  List<PreparedStatement> parseQueries(
+  public List<PreparedStatement> parseStatements(
       final String queriesString,
-      final MetaStore tempMetaStore
+      final MetaStore tempMetaStore,
+      final boolean convertStatementToQuery
   ) {
     try {
       final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
@@ -300,15 +305,18 @@ public class KsqlEngine implements Closeable {
           queriesString,
           tempMetaStoreForParser,
           stmt -> buildSingleQueryAst(
-              stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
+              stmt.getStatement(),
+              stmt.getStatementText(),
+              tempMetaStore,
+              tempMetaStoreForParser,
+              convertStatementToQuery));
 
       return statements
           .stream()
           .filter(Objects::nonNull)
           .collect(Collectors.toList());
-
     } catch (final Exception e) {
-      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
+      throw new ParseFailedException("Exception while processing statement: " + e.getMessage(), e);
     }
   }
 
@@ -316,7 +324,8 @@ public class KsqlEngine implements Closeable {
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,
-      final MetaStore tempMetaStoreForParser
+      final MetaStore tempMetaStoreForParser,
+      final boolean convertStatementToQuery
   ) {
 
     log.info("Building AST for {}.", statementString);
@@ -340,12 +349,18 @@ public class KsqlEngine implements Closeable {
               querySpecification.getSelect(),
               createAsSelect.getName().getSuffix()
           ).cloneWithTimeKeyColumns());
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
+
     } else if (statement instanceof InsertInto) {
       final InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
-        throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
-                                              + "statement.", insertInto.getTarget().getSuffix()));
+        throw new KsqlException(String.format("%s. Error: Sink, "
+                + "%s, does not exist for the INSERT INTO statement.",
+            statementString, insertInto.getTarget().getSuffix()));
       }
 
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()
@@ -367,7 +382,11 @@ public class KsqlEngine implements Closeable {
           false
       );
 
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
     } else  if (statement instanceof DdlStatement) {
       return buildSingleDdlStatement(statement,
                                      statementString,
@@ -477,7 +496,7 @@ public class KsqlEngine implements Closeable {
           tempMetaStoreForParser
       );
       return new PreparedStatement(statementString, statement);
-    } else if (statement instanceof SetProperty) {
+    } else if (statement instanceof SetProperty || statement instanceof UnsetProperty) {
       return new PreparedStatement(statementString, statement);
     }
     return null;
@@ -614,9 +633,10 @@ public class KsqlEngine implements Closeable {
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
     final MetaStore metaStoreCopy = metaStore.clone();
     return planQueries(
-        parseQueries(
+        parseStatements(
             queries,
-            metaStoreCopy
+            metaStoreCopy,
+            true
         ),
         ksqlConfig,
         Collections.emptyMap(),

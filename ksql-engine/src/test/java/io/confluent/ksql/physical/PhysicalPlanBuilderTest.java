@@ -232,8 +232,9 @@ public class PhysicalPlanBuilderTest {
           ksqlConfig,
           Collections.emptyMap());
     } catch (final KsqlException ksqlException) {
-      assertThat(ksqlException.getMessage(), equalTo("Exception while processing statements "
-          + ":Sink, S1, does not exist for the INSERT INTO statement."));
+      assertThat(ksqlException.getMessage(), equalTo("Exception while processing statement: "
+          + "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;. "
+          + "Error: Sink, S1, does not exist for the INSERT INTO statement."));
       return;
     }
     Assert.fail();

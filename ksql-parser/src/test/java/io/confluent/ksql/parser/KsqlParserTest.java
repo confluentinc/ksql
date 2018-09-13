@@ -17,6 +17,7 @@
 package io.confluent.ksql.parser;
 
 import static java.lang.String.format;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -72,15 +73,22 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 
 public class KsqlParserTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   private MetaStore metaStore;
+
 
   @Before
   public void init() {
@@ -1150,5 +1158,32 @@ public class KsqlParserTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(), equalTo("ITEMID.ITEMID ITEMID_ITEMID"));
+  }
+
+  @Test
+  public void testSelectWithOnlyColumns() {
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("line 1:21: extraneous input ';' expecting {',', 'FROM', 'INTO'}");
+
+    final String simpleQuery = "SELECT ONLY, COLUMNS;";
+    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+  }
+
+  @Test
+  public void testSelectWithMissingComma() {
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage(containsString("line 1:12: extraneous input 'C' expecting"));
+
+    final String simpleQuery = "SELECT A B C FROM address;";
+    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+  }
+
+  @Test
+  public void testSelectWithMultipleFroms() {
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage(containsString("line 1:22: mismatched input ',' expecting"));
+
+    final String simpleQuery = "SELECT * FROM address, itemid;";
+    KSQL_PARSER.buildAst(simpleQuery, metaStore);
   }
 }

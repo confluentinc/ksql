@@ -39,8 +39,9 @@ import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
-
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlParser {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   public static final class ParsedStatement {
     private final String statementText;

@@ -84,7 +84,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).create();
+                                            schemaRegistryClientFactory).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -105,7 +105,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).create();
+                                            schemaRegistryClientFactory).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -126,7 +126,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).create();
+                                            schemaRegistryClientFactory).get();
 
 
     // Then:
@@ -167,7 +167,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
         new KsqlSchemaRegistryClientFactory(config,
                                             restServiceSupplier,
                                             sslFactory,
-                                            clientFactory).create();
+                                            clientFactory).get();
 
     // Then:
     EasyMock.verify(clientFactory);

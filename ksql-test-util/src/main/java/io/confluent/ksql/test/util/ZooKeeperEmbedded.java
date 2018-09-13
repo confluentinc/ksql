@@ -12,9 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.testutils;
+package io.confluent.ksql.test.util;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -25,9 +25,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Runs an in-memory, "embedded" instance of a ZooKeeper server.
  *
- * The ZooKeeper server instance is automatically started when you create a new instance of this class.
+ * <p>The ZooKeeper server instance is automatically started when you create a new instance of this
+ * class.
  */
-public class ZooKeeperEmbedded {
+class ZooKeeperEmbedded {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperEmbedded.class);
 
@@ -36,14 +37,14 @@ public class ZooKeeperEmbedded {
   /**
    * Creates and starts a ZooKeeper instance.
    */
-  public ZooKeeperEmbedded() throws Exception {
+  ZooKeeperEmbedded() throws Exception {
     log.debug("Starting embedded ZooKeeper server...");
     this.server = createTestingServer();
     log.debug("Embedded ZooKeeper server at {} uses the temp directory at {}",
         server.getConnectString(), server.getTempDirectory());
   }
 
-  public void stop() throws IOException {
+  void stop() throws IOException {
     log.debug("Shutting down embedded ZooKeeper server at {} ...", server.getConnectString());
     server.close();
     log.debug("Shutdown of embedded ZooKeeper server at {} completed", server.getConnectString());
@@ -53,18 +54,10 @@ public class ZooKeeperEmbedded {
    * The ZooKeeper connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
    * Example: `127.0.0.1:2181`.
    *
-   * You can use this to e.g. tell Kafka brokers how to connect to this instance.
+   * <p>You can use this to e.g. tell Kafka brokers how to connect to this instance.
    */
-  public String connectString() {
+  String connectString() {
     return server.getConnectString();
-  }
-
-  /**
-   * The hostname of the ZooKeeper instance.  Example: `127.0.0.1`
-   */
-  public String hostname() {
-    // "server:1:2:3" -> "server:1:2"
-    return connectString().substring(0, connectString().lastIndexOf(':'));
   }
 
   private static TestingServer createTestingServer() throws Exception {

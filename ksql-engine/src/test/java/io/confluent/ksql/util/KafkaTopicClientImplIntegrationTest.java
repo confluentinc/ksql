@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +67,7 @@ public class KafkaTopicClientImplIntegrationTest {
 
   @After
   public void tearDown() {
-    client.close();
+    adminClient.close();
   }
 
   @Test

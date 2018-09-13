@@ -35,6 +35,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -69,7 +71,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
 
-class EndToEndEngineTestUtil {
+final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   static {
@@ -78,6 +80,8 @@ class EndToEndEngineTestUtil {
     // test
     UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
   }
+
+  private EndToEndEngineTestUtil(){}
 
   private static class ValueSpec {
     private final Object spec;
@@ -111,6 +115,7 @@ class EndToEndEngineTestUtil {
       }
     }
 
+    @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"}) // Hack to make work with OutputVerifier.
     @Override
     public boolean equals(final Object o) {
       compare(spec, o, "VALUE-SPEC");
@@ -151,7 +156,7 @@ class EndToEndEngineTestUtil {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroDeserializer avroDeserializer;
 
-    public ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    private ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     }
@@ -186,7 +191,7 @@ class EndToEndEngineTestUtil {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
 
-    public ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
+    private ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroSerializer = new KafkaAvroSerializer(schemaRegistryClient);
     }
@@ -303,15 +308,15 @@ class EndToEndEngineTestUtil {
       return schema;
     }
 
-    public SerdeSupplier getSerdeSupplier() {
+    SerdeSupplier getSerdeSupplier() {
       return serdeSupplier;
     }
 
-    public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+    private Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getSerializer(schemaRegistryClient);
     }
 
-    public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    private Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getDeserializer(schemaRegistryClient);
     }
   }
@@ -320,7 +325,7 @@ class EndToEndEngineTestUtil {
     private final long start;
     private final long end;
 
-    public Window(final long start, final long end) {
+    Window(final long start, final long end) {
       this.start = start;
       this.end = end;
     }
@@ -350,7 +355,7 @@ class EndToEndEngineTestUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public Deserializer keyDeserializer() {
+    private Deserializer keyDeserializer() {
       if (window == null) {
         return Serdes.String().deserializer();
       }
@@ -554,22 +559,25 @@ class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final Query query) {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
 
-    final Map<String, Object> config = new HashMap<String, Object>() {{
-      put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
-      put("application.id", "KSQL-TEST");
-      put("commit.interval.ms", 0);
-      put("cache.max.bytes.buffering", 0);
-      put("auto.offset.reset", "earliest");
-      put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
-    }};
+    final Map<String, Object> config = ImmutableMap.<String, Object>builder()
+        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
+        .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
+        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
+        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+        .build();
+
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
     final KsqlConfig ksqlConfig = new KsqlConfig(config);
 
     try (final KsqlEngine ksqlEngine = new KsqlEngine(
         new FakeKafkaTopicClient(),
-        schemaRegistryClient,
+        schemaRegistryClientFactory,
         metaStore,
         ksqlConfig
     )) {
@@ -585,7 +593,7 @@ class EndToEndEngineTestUtil {
   }
 
   @SuppressWarnings("unchecked")
-  static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
+  private static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
     if (spec == null) {
       return null;
     }

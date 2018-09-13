@@ -72,9 +72,9 @@ public class GeoDistanceKudf implements Kudf {
 
   private void validateLatLonValues(
       final double lat1, final double lon1, final double lat2, final double lon2) {
-    if (lat1 < 0 || lat2 < 0 || lat1 > 90 || lat2 > 90) {
+    if (lat1 < -90 || lat2 < -90 || lat1 > 90 || lat2 > 90) {
       throw new KsqlFunctionException(
-          "valid latitude values for GeoDistance function are in the range of 0 to 90"
+          "valid latitude values for GeoDistance function are in the range of -90 to 90"
               + " decimal degrees");
     }
     if (lon1 < -180 || lon2 < -180 || lon1 > 180 || lon2 > 180) {

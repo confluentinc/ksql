@@ -561,11 +561,15 @@ final class EndToEndEngineTestUtil {
 
     final Random randomPort = new Random();
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
+    final MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> mockSchemaRegistryClient;
     queryList.forEach(query -> {
-      final Map<String, Object> config = getConfigs(null);
-      config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
+      final Map<String, Object> tempConfigs = new HashMap<String, Object>(){{
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
+      }};
+      final Map<String, Object> config = getConfigs(tempConfigs);
       final KsqlConfig ksqlConfig = new KsqlConfig(config);
-      final KsqlEngine ksqlEngine = getKsqlEngine(new MockSchemaRegistryClient(), ksqlConfig);
+      final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig);
       final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
       final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
       writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
@@ -709,48 +713,38 @@ final class EndToEndEngineTestUtil {
   }
 
 
-  private static KsqlEngine getKsqlEngine(final SchemaRegistryClient client,
+  private static KsqlEngine getKsqlEngine(final Supplier<SchemaRegistryClient> clientSupplier,
                                           final KsqlConfig ksqlConfig) {
       final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
      return new KsqlEngine(
           new FakeKafkaTopicClient(),
-          client,
+          clientSupplier,
           metaStore,
           ksqlConfig);
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
-      final Map<String, Object> config = new HashMap<String, Object>() {{
-          put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
-          put("application.id", "KSQL-TEST");
-          put("commit.interval.ms", 0);
-          put("cache.max.bytes.buffering", 0);
-          put("auto.offset.reset", "earliest");
-          put("topology.optimization", "all");
-          put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
-      }};
-      if(additionalConfigs != null){
-          config.putAll(additionalConfigs);
-      }
-      return config;
 
-  }
-
-  static void shouldBuildAndExecuteQuery(final Query query) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
-
-    final Map<String, Object> config = ImmutableMap.<String, Object>builder()
+    ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
         .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
         .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
         .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
-        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-        .build();
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id");
 
+      if(additionalConfigs != null){
+          mapBuilder.putAll(additionalConfigs);
+      }
+      return mapBuilder.build();
+
+  }
+
+  static void shouldBuildAndExecuteQuery(final Query query) {
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
 
     final Map<String, Object> config = getConfigs(new HashMap<>());
     final Properties streamsProperties = new Properties();
@@ -763,7 +757,7 @@ final class EndToEndEngineTestUtil {
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
 
-    try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClient, ksqlConfig)) {
+    try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig)) {
       query.initializeTopics(ksqlEngine);
       final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
       assertEquals(query.expectedTopology, query.generatedTopology);

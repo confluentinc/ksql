@@ -156,7 +156,8 @@ class QueryEngine {
         }
         handleDdlStatement(
             statementPlanPair.getLeft(),
-            (DdlStatement) statement
+            (DdlStatement) statement,
+            overriddenProperties
         );
       } else {
         buildQueryPhysicalPlan(
@@ -197,7 +198,9 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(String sqlExpression, DdlStatement statement) {
+  DdlCommandResult handleDdlStatement(String sqlExpression,
+      DdlStatement statement,
+      final Map<String, Object> overriddenProperties) {
 
     if (statement instanceof AbstractStreamCreateStatement) {
       final AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
@@ -208,7 +211,8 @@ class QueryEngine {
       statement = (DdlStatement) statementWithSchema.getStatement();
       sqlExpression = statementWithSchema.getStatementText();
     }
-    final DdlCommand command = ddlCommandFactory.create(sqlExpression, statement);
+    final DdlCommand command =
+        ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 

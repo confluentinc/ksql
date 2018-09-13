@@ -53,8 +53,9 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
-  private static final String CURRENT_TOPOLOGY_CHECKS_DIR = "expected_topology/5_0";
-  private static final String PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP = "topology.dir";
+  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
+  private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
+  private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final Query query;
 
@@ -74,7 +75,8 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
-    final String topologyDirectory = System.getProperty(PREVIOUS_TOPOLOGY_CHECKS_DIR_PROP, CURRENT_TOPOLOGY_CHECKS_DIR);
+    final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
+    final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
     final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
     return buildQueryList().stream()
           .peek(q -> {

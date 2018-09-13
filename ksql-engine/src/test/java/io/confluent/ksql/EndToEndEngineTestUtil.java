@@ -564,11 +564,12 @@ final class EndToEndEngineTestUtil {
     final MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient();
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> mockSchemaRegistryClient;
     queryList.forEach(query -> {
-      final Map<String, Object> tempConfigs = new HashMap<String, Object>(){{
-        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
-      }};
-      final Map<String, Object> config = getConfigs(tempConfigs);
-      final KsqlConfig ksqlConfig = new KsqlConfig(config);
+      final Map<String, Object> originalConfigs = getConfigs(null);
+      final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
+      // need to overwrite the bootstrap servers for generating file
+      updatedConfigs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
+
+      final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
       final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig);
       final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
       final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();

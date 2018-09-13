@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   }
 
-  public JLineReader(final Terminal terminal, final Path historyFilePath) {
+  JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
@@ -72,7 +72,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     this.lineReader = LineReaderBuilder.builder()
         .appName("KSQL")
         .expander(expander)
-        .parser(parser)
+        .parser(new TrimmingParser(parser))
         .terminal(terminal)
         .build();
 
@@ -107,5 +107,4 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     history.save();
     return line;
   }
-
 }

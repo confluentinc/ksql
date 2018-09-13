@@ -34,6 +34,8 @@ import java.util.Map;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
 
   public CommandFactories(

@@ -17,6 +17,7 @@
 package io.confluent.ksql;
 
 import static junit.framework.TestCase.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.cli.Cli;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.test.TestUtils;
+import org.hamcrest.Matchers;
 
 public final class TestRunner {
   private final Cli localCli;
@@ -60,8 +62,7 @@ public final class TestRunner {
         return actualResult.data.containsAll(expectedResult.data);
       }, 30000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
     } catch (final AssertionError e) {
-      throw new AssertionError(
-          "CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults, e);
+      assertThat(finalResults, Matchers.hasItems(expectedResult.toDataArray()));
     } catch (final InterruptedException e) {
       fail("Test got interrutped when waiting for result " + expectedResult.toString());
     }

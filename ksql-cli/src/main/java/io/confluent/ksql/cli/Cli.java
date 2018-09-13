@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,10 @@
 
 package io.confluent.ksql.cli;
 
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -29,14 +28,11 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,7 +60,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -106,49 +101,13 @@ public class Cli implements Closeable, AutoCloseable {
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
-    terminal.registerCliSpecificCommand(new RemoteServerSpecificCommand(
-        restClient,
-        terminal.writer()
-    ));
-  }
-
-  private static void validateClient(
-      final PrintWriter writer,
-      final KsqlRestClient restClient
-  ) {
-    try {
-      final RestResponse restResponse = restClient.makeRootRequest();
-      if (restResponse.isErroneous()) {
-        final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
-        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
-          writer.format("This CLI version no longer supported: %s%n%n", ksqlError);
-          return;
-        }
-        writer.format(
-            "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
-      }
-    } catch (final IllegalArgumentException exception) {
-      writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
-    } catch (final KsqlRestClientException exception) {
-      if (exception.getCause() instanceof ProcessingException) {
-        writer.println();
-        writer.println("**************** ERROR ********************");
-        writer.println("Remote server address may not be valid.");
-        writer.println("Address: " + restClient.getServerAddress());
-        writer.println(ErrorMessageUtil.buildErrorMessage(exception));
-        writer.println("*******************************************");
-        writer.println();
-      } else {
-        throw exception;
-      }
-    } finally {
-      writer.flush();
-    }
+    terminal
+        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
   }
 
   public void runInteractively() {
     displayWelcomeMessage();
-    validateClient(terminal.writer(), restClient);
+    RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     boolean eof = false;
     while (!eof) {
       try {
@@ -638,47 +597,6 @@ public class Cli implements Closeable, AutoCloseable {
       // uhhh...
       // TODO
       return null;
-    }
-  }
-
-  public static class RemoteServerSpecificCommand implements CliSpecificCommand {
-
-    private final KsqlRestClient restClient;
-    private final PrintWriter writer;
-
-    RemoteServerSpecificCommand(
-        final KsqlRestClient restClient,
-        final PrintWriter writer
-    ) {
-      this.writer = writer;
-      this.restClient = restClient;
-    }
-
-    @Override
-    public String getName() {
-      return "server";
-    }
-
-    @Override
-    public void printHelp() {
-      writer.println("server:");
-      writer.println("\tShow the current server");
-      writer.println("\nserver <server>:");
-      writer.println("\tChange the current server to <server>");
-      writer.println("\t example: \"server http://my.awesome.server.com:9098\"");
-    }
-
-    @Override
-    public void execute(final String commandStrippedLine) {
-      if (commandStrippedLine.isEmpty()) {
-        writer.println(restClient.getServerAddress());
-      } else {
-        final String serverAddress = commandStrippedLine.trim();
-        restClient.setServerAddress(serverAddress);
-        writer.write("Server now: " + commandStrippedLine);
-      }
-
-      validateClient(writer, restClient);
     }
   }
 }

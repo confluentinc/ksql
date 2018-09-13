@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.cli;
+package io.confluent.ksql.cli.console.cmd;
 
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
@@ -53,13 +52,14 @@ public class RemoteCliSpecificCommandTest {
 
   @Mock(MockType.NICE)
   private KsqlRestClient restClient;
-  private Cli.RemoteServerSpecificCommand command;
+  @Mock(MockType.NICE)
+  private RemoteServerSpecificCommand command;
   private StringWriter out;
 
   @Before
   public void setUp() {
     out = new StringWriter();
-    command = new Cli.RemoteServerSpecificCommand(restClient, new PrintWriter(out));
+    command = new RemoteServerSpecificCommand(restClient, new PrintWriter(out));
   }
 
   @Test
@@ -120,7 +120,7 @@ public class RemoteCliSpecificCommandTest {
 
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
-    final Cli.RemoteServerSpecificCommand command = new Cli.RemoteServerSpecificCommand(
+    final RemoteServerSpecificCommand command = new RemoteServerSpecificCommand(
         new KsqlRestClient(INITIAL_SERVER_ADDRESS, Collections.emptyMap()) {
           @Override
           public RestResponse<ServerInfo> getServerInfo() {

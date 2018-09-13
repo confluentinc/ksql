@@ -48,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -171,21 +172,23 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
+  @SuppressWarnings("RedundantStringOperation") // Incorrect warning. Operation is not redundant
   private List<String> getLogicalLines(final String input) {
-    // TODO: Convert the input string into an InputStream, then feed it to the terminal via
-    // TerminalBuilder.streams(InputStream, OutputStream)
     final List<String> result = new ArrayList<>();
-    StringBuilder logicalLine = new StringBuilder();
-    for (final String physicalLine : input.split("\n")) {
-      if (!physicalLine.trim().isEmpty()) {
-        if (physicalLine.endsWith("\\")) {
-          logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
-        } else {
-          result.add(logicalLine.append(physicalLine).toString().trim());
-          logicalLine = new StringBuilder();
-        }
-      }
-    }
+    final StringBuilder logicalLine = new StringBuilder();
+
+    Arrays.stream(input.split("\n"))
+        .map(String::trim)
+        .filter(line -> !line.isEmpty())
+        .forEach(physicalLine -> {
+          if (physicalLine.endsWith("\\")) {
+            logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
+          } else {
+            result.add(logicalLine.append(physicalLine).toString().trim());
+            logicalLine.setLength(0);
+          }
+        });
+
     return result;
   }
 

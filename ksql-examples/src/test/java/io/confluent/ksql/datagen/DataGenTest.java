@@ -16,10 +16,16 @@
 
 package io.confluent.ksql.datagen;
 
+import static org.hamcrest.Matchers.containsString;
+
 import java.io.IOException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class DataGenTest {
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void shouldThrowOnUnknownFormat() throws Exception {
@@ -30,8 +36,11 @@ public class DataGenTest {
         "key=id");
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void shouldThrowIfSchemaFileDoesNotExist() throws Exception {
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage(containsString("File not found: you/won't/find/me/right?"));
+
     DataGen.run(
         "schema=you/won't/find/me/right?",
         "format=avro",

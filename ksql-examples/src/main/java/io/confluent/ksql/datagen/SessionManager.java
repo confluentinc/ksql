@@ -14,18 +14,24 @@
 
 package io.confluent.ksql.datagen;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class SessionManager {
 
-  private int maxSessionDurationSeconds = 30;
+  private Duration maxSessionDuration = Duration.ofSeconds(30);
   private int maxSessions = 5;
 
   public void setMaxSessionDurationSeconds(final int maxSessionDurationSeconds) {
-    this.maxSessionDurationSeconds = maxSessionDurationSeconds;
+    this.maxSessionDuration = Duration.ofSeconds(maxSessionDurationSeconds);
+  }
+
+  public void setMaxSessionDuration(final Duration duration) {
+    this.maxSessionDuration = Objects.requireNonNull(duration, "duration");
   }
 
   public void setMaxSessions(final int maxSessions) {
@@ -63,7 +69,7 @@ public class SessionManager {
     if (activeSessions.containsKey(sessionToken)) {
       throw new RuntimeException("Session" + sessionToken + " already exists");
     }
-    activeSessions.putIfAbsent(sessionToken, new SessionObject(maxSessionDurationSeconds));
+    activeSessions.putIfAbsent(sessionToken, new SessionObject(maxSessionDuration));
   }
 
   public boolean isExpiredSession(final String sessionId) {
@@ -137,15 +143,19 @@ public class SessionManager {
 
   public static class SessionObject {
 
-    public SessionObject(final int duration) {
-      this.sessionDurationSecs = duration;
+    private final long created = System.currentTimeMillis();
+    private final Duration sessionDuration;
+
+    public SessionObject(final Duration duration) {
+      this.sessionDuration = duration;
     }
 
-    long created = System.currentTimeMillis();
-    private long sessionDurationSecs = 300;
-
     public boolean isExpired() {
-      return (System.currentTimeMillis() - created) / 1000 > sessionDurationSecs;
+      return age().toMillis() > sessionDuration.toMillis();
+    }
+
+    private Duration age() {
+      return Duration.ofMillis(System.currentTimeMillis() - created);
     }
 
     @Override

@@ -464,6 +464,12 @@ public class CliTest {
   }
 
   @Test
+  public void testCommandsOverMultipleLines() throws Exception {
+    localCli.runNonInteractively("he\\\nlp");
+    localCli.runNonInteractively("he\\ \nlp");
+  }
+
+  @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
   }

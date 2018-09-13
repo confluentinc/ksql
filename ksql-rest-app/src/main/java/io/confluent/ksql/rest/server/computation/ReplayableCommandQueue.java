@@ -16,6 +16,21 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-public interface QueuedStatementRegister {
-  RegisteredCommandStatus registerQueuedStatement(CommandId commandId);
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlConfig;
+
+import java.util.List;
+import java.util.Map;
+
+public interface ReplayableCommandQueue {
+  QueuedCommandStatus enqueueCommand(
+      String statementString,
+      Statement statement,
+      KsqlConfig ksqlConfig,
+      Map<String, Object> overwriteProperties
+  );
+
+  List<QueuedCommand> getNewCommands();
+
+  RestoreCommands getRestoreCommands();
 }

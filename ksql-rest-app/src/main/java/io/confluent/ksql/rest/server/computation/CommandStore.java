@@ -21,12 +21,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -42,7 +44,10 @@ import org.slf4j.LoggerFactory;
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
-public class CommandStore implements Closeable {
+
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+public class CommandStore implements ReplayableCommandQueue, Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
@@ -53,20 +58,19 @@ public class CommandStore implements Closeable {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final AtomicBoolean closed;
-  private final QueuedStatementRegister statementRegister;
+  private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
   public CommandStore(
       final String commandTopic,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer,
-      final CommandIdAssigner commandIdAssigner,
-      final QueuedStatementRegister statementRegister
+      final CommandIdAssigner commandIdAssigner
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
-    this.statementRegister = statementRegister;
+    this.commandStatusMap = new ConcurrentHashMap<>();
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
 
@@ -91,21 +95,31 @@ public class CommandStore implements Closeable {
    * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
    * @param overwriteProperties Any command-specific Streams properties to use.
-   * @return The ID assigned to the statement
+   * @return The status of the enqueued command
    */
-  public RegisteredCommandStatus distributeStatement(
+  @Override
+  public QueuedCommandStatus enqueueCommand(
       final String statementString,
       final Statement statement,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overwriteProperties
-  ) throws KsqlException {
+      final Map<String, Object> overwriteProperties) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement);
     final Command command = new Command(
         statementString,
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final RegisteredCommandStatus status =
-        statementRegister.registerQueuedStatement(commandId);
+    final QueuedCommandStatus status = new QueuedCommandStatus(commandId);
+    this.commandStatusMap.compute(
+        commandId,
+        (k, v) -> {
+          if (v == null) {
+            return status;
+          }
+          // We should fail registration if a future is already registered, to prevent
+          // a caller from receiving a future for a different statement.
+          throw new IllegalStateException("Concurrent command with id: " + commandId);
+        }
+    );
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (final Exception e) {
@@ -126,11 +140,21 @@ public class CommandStore implements Closeable {
    *
    * @return The commands that have been polled from the command topic
    */
-  public ConsumerRecords<CommandId, Command> getNewCommands() {
-    return commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+  public List<QueuedCommand> getNewCommands() {
+    final List<QueuedCommand> queuedCommands = new ArrayList<>();
+    commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
+        c -> queuedCommands.add(
+            new QueuedCommand(
+                c.key(),
+                c.value(),
+                commandStatusMap.remove(c.key())
+            )
+        )
+    );
+    return queuedCommands;
   }
 
-  RestoreCommands getRestoreCommands() {
+  public RestoreCommands getRestoreCommands() {
     final RestoreCommands restoreCommands = new RestoreCommands();
 
     final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);

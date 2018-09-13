@@ -52,14 +52,13 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class StatementExecutor implements QueuedStatementRegister {
+public class StatementExecutor {
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
-  private final Map<CommandId, RegisteredCommandStatus> statusFutures;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
@@ -71,7 +70,6 @@ public class StatementExecutor implements QueuedStatementRegister {
     this.statementParser = statementParser;
 
     this.statusStore = new ConcurrentHashMap<>();
-    this.statusFutures = new ConcurrentHashMap<>();
   }
 
   void handleRestoration(final RestoreCommands restoreCommands) {
@@ -104,13 +102,12 @@ public class StatementExecutor implements QueuedStatementRegister {
    */
   void handleStatement(
       final Command command,
-      final CommandId commandId
+      final CommandId commandId,
+      final Optional<QueuedCommandStatus> status
   ) {
-    final RegisteredCommandStatus statusFuture;
-    statusFuture = statusFutures.remove(commandId);
     handleStatementWithTerminatedQueries(command,
         commandId,
-        Optional.ofNullable(statusFuture),
+        status,
         null,
         false);
   }
@@ -134,46 +131,21 @@ public class StatementExecutor implements QueuedStatementRegister {
   }
 
   public void putStatus(final CommandId commandId,
-                        final Optional<RegisteredCommandStatus> registeredCommandStatus,
+                        final Optional<QueuedCommandStatus> queuedCommandStatus,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
-    registeredCommandStatus.ifPresent(
+    queuedCommandStatus.ifPresent(
         s -> s.setStatus(status)
     );
   }
 
   public void putFinalStatus(final CommandId commandId,
-                             final Optional<RegisteredCommandStatus> registeredCommandStatus,
+                             final Optional<QueuedCommandStatus> queuedCommandStatus,
                              final CommandStatus status) {
     statusStore.put(commandId, status);
-    registeredCommandStatus.ifPresent(
+    queuedCommandStatus.ifPresent(
         s -> s.setFinalStatus(status)
     );
-  }
-
-  /**
-   * Register the existence of a new statement that has been written to the command topic. All other
-   * statement status information is updated exclusively by the current {@link StatementExecutor}
-   * instance, but in the (unlikely but possible) event that a statement is written to the command
-   * topic but never picked up by this instance, it should be possible to know that it was at least
-   * written to the topic in the first place.
-   *
-   * @param commandId The ID of the statement that has been written to the command topic.
-   */
-  public RegisteredCommandStatus registerQueuedStatement(final CommandId commandId) {
-    final RegisteredCommandStatus result = new RegisteredCommandStatus(commandId);
-    statusFutures.compute(
-        commandId,
-        (k, v) -> {
-          if (v == null) {
-            return result;
-          }
-          // We should fail registration if a future is already registered, to prevent
-          // a caller from receiving a future for a different statement.
-          throw new IllegalStateException("Concurrent command with id: " + commandId);
-        }
-    );
-    return result;
   }
 
   /**
@@ -188,7 +160,7 @@ public class StatementExecutor implements QueuedStatementRegister {
   private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
-      final Optional<RegisteredCommandStatus> commandStatusFuture,
+      final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Map<QueryId, CommandId> terminatedQueries,
       final boolean wasDropped
   ) {
@@ -196,16 +168,16 @@ public class StatementExecutor implements QueuedStatementRegister {
       final String statementString = command.getStatement();
       putStatus(
           commandId,
-          commandStatusFuture,
+          queuedCommandStatus,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
       final Statement statement = statementParser.parseSingleStatement(statementString);
       putStatus(
           commandId,
-          commandStatusFuture,
+          queuedCommandStatus,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, commandStatusFuture, terminatedQueries, wasDropped);
+          statement, command, commandId, queuedCommandStatus, terminatedQueries, wasDropped);
     } catch (final WakeupException exception) {
       throw exception;
     } catch (final Exception exception) {
@@ -214,7 +186,7 @@ public class StatementExecutor implements QueuedStatementRegister {
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
       );
-      putFinalStatus(commandId, commandStatusFuture, errorStatus);
+      putFinalStatus(commandId, queuedCommandStatus, errorStatus);
     }
   }
 
@@ -222,7 +194,7 @@ public class StatementExecutor implements QueuedStatementRegister {
       final Statement statement,
       final Command command,
       final CommandId commandId,
-      final Optional<RegisteredCommandStatus> commandStatusFuture,
+      final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Map<QueryId, CommandId> terminatedQueries,
       final boolean wasDropped
   ) throws Exception {
@@ -241,7 +213,7 @@ public class StatementExecutor implements QueuedStatementRegister {
               statement,
           command,
           commandId,
-          commandStatusFuture,
+          queuedCommandStatus,
           terminatedQueries,
           statementStr,
           wasDropped);
@@ -252,7 +224,7 @@ public class StatementExecutor implements QueuedStatementRegister {
       successMessage = handleInsertInto((InsertInto) statement,
                        command,
                        commandId,
-                       commandStatusFuture,
+                       queuedCommandStatus,
                        terminatedQueries,
                        statementStr,
                        false
@@ -276,7 +248,7 @@ public class StatementExecutor implements QueuedStatementRegister {
         CommandStatus.Status.SUCCESS,
         result != null ? result.getMessage() : successMessage
     );
-    putFinalStatus(commandId, commandStatusFuture, successStatus);
+    putFinalStatus(commandId, queuedCommandStatus, successStatus);
   }
 
   private void handleRunScript(final Command command) {
@@ -309,7 +281,7 @@ public class StatementExecutor implements QueuedStatementRegister {
       final CreateAsSelect statement,
       final Command command,
       final CommandId commandId,
-      final Optional<RegisteredCommandStatus> commandStatusFuture,
+      final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Map<QueryId, CommandId> terminatedQueries,
       final String statementStr,
       final boolean wasDropped
@@ -328,7 +300,7 @@ public class StatementExecutor implements QueuedStatementRegister {
         statementStr,
         query,
         commandId,
-        commandStatusFuture,
+        queuedCommandStatus,
         terminatedQueries,
         command,
         wasDropped)) {
@@ -343,7 +315,7 @@ public class StatementExecutor implements QueuedStatementRegister {
   private String handleInsertInto(final InsertInto statement,
                                       final Command command,
                                       final CommandId commandId,
-                                      final Optional<RegisteredCommandStatus> commandStatusFuture,
+                                      final Optional<QueuedCommandStatus> queuedCommandStatus,
                                       final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr,
                                       final boolean wasDropped) throws Exception {
@@ -361,7 +333,7 @@ public class StatementExecutor implements QueuedStatementRegister {
         statementStr,
         query,
         commandId,
-        commandStatusFuture,
+        queuedCommandStatus,
         terminatedQueries,
         command,
         wasDropped)) {
@@ -375,7 +347,7 @@ public class StatementExecutor implements QueuedStatementRegister {
       final String queryString,
       final Query query,
       final CommandId commandId,
-      final Optional<RegisteredCommandStatus> commandStatusFuture,
+      final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Map<QueryId, CommandId> terminatedQueries,
       final Command command,
       final boolean wasDropped
@@ -413,7 +385,7 @@ public class StatementExecutor implements QueuedStatementRegister {
         );
         putStatus(
             commandId,
-            commandStatusFuture,
+            queuedCommandStatus,
             new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
         );
         ksqlEngine.terminateQuery(queryId, false);

@@ -93,9 +93,8 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.RegisteredCommandStatus;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -137,21 +136,18 @@ public class KsqlResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final CommandStore commandStore;
-  private final StatementExecutor statementExecutor;
+  private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final CommandStore commandStore,
-      final StatementExecutor statementExecutor,
+      final ReplayableCommandQueue replayableCommandQueue,
       final long distributedCommandResponseTimeout
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
-    this.commandStore = commandStore;
-    this.statementExecutor = statementExecutor;
+    this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
   }
@@ -319,9 +315,9 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides,
       final KsqlConfig ksqlConfig
   ) throws KsqlException {
-    final RegisteredCommandStatus registeredCommandStatus;
+    final QueuedCommandStatus queuedCommandStatus;
     try {
-      registeredCommandStatus = commandStore.distributeStatement(
+      queuedCommandStatus = replayableCommandQueue.enqueueCommand(
               statementText,
               statement,
               ksqlConfig,
@@ -337,8 +333,8 @@ public class KsqlResource {
     try {
       return new CommandStatusEntity(
           statementText,
-          registeredCommandStatus.getCommandId(),
-          registeredCommandStatus.waitForFinalStatus(
+          queuedCommandStatus.getCommandId(),
+          queuedCommandStatus.waitForFinalStatus(
               distributedCommandResponseTimeout, TimeUnit.MILLISECONDS)
       );
     } catch (final Exception e) {

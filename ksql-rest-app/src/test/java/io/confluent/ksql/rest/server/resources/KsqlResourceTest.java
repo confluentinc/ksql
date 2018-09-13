@@ -73,7 +73,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
-import io.confluent.ksql.rest.server.computation.RegisteredCommandStatus;
+import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -179,20 +179,16 @@ public class KsqlResourceTest {
           getJsonSerializer(false)
       );
 
-      final StatementExecutor statementExecutor = new StatementExecutor(
-          ksqlConfig, ksqlEngine, new StatementParser(ksqlEngine));
       final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()),
-          statementExecutor);
-      return get(ksqlConfig, ksqlEngine, commandStore, statementExecutor);
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+      return get(ksqlConfig, ksqlEngine, commandStore);
     }
 
     public static KsqlResource get(final KsqlConfig ksqlConfig,
                                    final KsqlEngine ksqlEngine,
-                                   final CommandStore commandStore,
-                                   final StatementExecutor statementExecutor) {
+                                   final CommandStore commandStore) {
       addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
-      return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+      return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
 
     private static Properties getDefaultKsqlConfig() {
@@ -650,25 +646,20 @@ public class KsqlResourceTest {
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
-    final RegisteredCommandStatus registeredCommandStatus
-        = new RegisteredCommandStatus(commandId);
+    final QueuedCommandStatus queuedCommandStatus
+        = new QueuedCommandStatus(commandId);
     final CommandStatus successStatus
         = new CommandStatus(CommandStatus.Status.SUCCESS, "success");
-    registeredCommandStatus.getFuture().complete(successStatus);
-    registeredCommandStatus.setStatus(successStatus);
+    queuedCommandStatus.setFinalStatus(successStatus);
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
-    EasyMock.expect(commandStore.distributeStatement(
+    EasyMock.expect(commandStore.enqueueCommand(
         EasyMock.eq(ksqlString), EasyMock.anyObject(Statement.class),
         EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
-        .andReturn(registeredCommandStatus);
-    final StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
-    EasyMock.expect(
-        statementExecutor
-            .registerQueuedStatement(commandId)).andReturn(registeredCommandStatus);
-    EasyMock.replay(commandStore, statementExecutor);
+        .andReturn(queuedCommandStatus);
+    EasyMock.replay(commandStore);
 
     final KsqlResource testResource = TestKsqlResourceUtil.get(
-        ksqlConfig, ksqlEngine, commandStore, statementExecutor);
+        ksqlConfig, ksqlEngine, commandStore);
 
     handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
@@ -689,22 +680,21 @@ public class KsqlResourceTest {
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
     final CommandId commandId = new CommandId("TABLE", "orders", "CREATE");
-    final RegisteredCommandStatus registeredCommandStatus
-        = new RegisteredCommandStatus(commandId);
+    final QueuedCommandStatus queuedCommandStatus
+        = new QueuedCommandStatus(commandId);
     final CommandStatus successStatus =
         new CommandStatus(CommandStatus.Status.SUCCESS, "success");
-    registeredCommandStatus.setStatus(successStatus);
-    registeredCommandStatus.getFuture().complete(successStatus);
+    queuedCommandStatus.setFinalStatus(successStatus);
     final CommandStore commandStore = EasyMock.mock(CommandStore.class);
-    EasyMock.expect(commandStore.distributeStatement(
+    EasyMock.expect(commandStore.enqueueCommand(
         EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
         EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
-        .andReturn(registeredCommandStatus);
+        .andReturn(queuedCommandStatus);
     final StatementExecutor statementExecutor = EasyMock.mock(StatementExecutor.class);
     EasyMock.replay(commandStore, statementExecutor);
 
     final KsqlResource testResource = TestKsqlResourceUtil.get(
-        ksqlConfig, ksqlEngine, commandStore, statementExecutor);
+        ksqlConfig, ksqlEngine, commandStore);
 
     final Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));

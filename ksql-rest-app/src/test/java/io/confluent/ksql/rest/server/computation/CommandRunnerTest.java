@@ -21,42 +21,40 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.Pair;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
+import java.util.stream.Collectors;
+
 import org.junit.Test;
 
 public class CommandRunnerTest {
 
-  private Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> getRecordMap() {
+  private List<QueuedCommand> getQueuedCommands() {
     final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
-    final List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
-    for (final Pair commandPair: commandList) {
-      recordList.add(new ConsumerRecord<>("T", 1, 1, (CommandId) commandPair
-          .getLeft(), (Command) commandPair.getRight()));
-    }
-    final Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
-    recordMap.put(new TopicPartition("T", 1), recordList);
-    return recordMap;
+    return commandList.stream()
+        .map(c -> new QueuedCommand(c.getLeft(), c.getRight(), null))
+        .collect(Collectors.toList());
   }
 
   @Test
-  public void shouldFetchAndRunNewCommandsFromCommandTopic() throws Exception {
+  public void shouldFetchAndRunNewCommandsFromCommandTopic() {
     final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    statementExecutor.handleStatement(anyObject(), anyObject());
-    expectLastCall().times(4);
+    final List<QueuedCommand> commands = getQueuedCommands();
+    commands.forEach(
+        c -> {
+          statementExecutor.handleStatement(
+              same(c.getCommand().get()), same(c.getCommandId()), same(c.getStatus()));
+          expectLastCall();
+        }
+    );
     replay(statementExecutor);
 
     final CommandStore commandStore = mock(CommandStore.class);
-    expect(commandStore.getNewCommands()).andReturn(new ConsumerRecords<>(getRecordMap()));
+    expect(commandStore.getNewCommands()).andReturn(commands);
     replay(commandStore);
     final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
     commandRunner.fetchAndRunCommands();
@@ -64,7 +62,7 @@ public class CommandRunnerTest {
   }
 
   @Test
-  public void shouldFetchAndRunPriorCommandsFromCommandTopic() throws Exception {
+  public void shouldFetchAndRunPriorCommandsFromCommandTopic() {
     final StatementExecutor statementExecutor = mock(StatementExecutor.class);
     statementExecutor.handleRestoration(anyObject());
     expectLastCall();

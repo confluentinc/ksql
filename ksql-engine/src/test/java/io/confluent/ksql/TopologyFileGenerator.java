@@ -26,12 +26,16 @@ import javax.xml.parsers.ParserConfigurationException;
  *
  * The steps to generate topology files:
  *
- * 1. Run this class BEFORE you update the pom with a new version.  This class will generate expected topology files
- * for the version about to be released in ksql-engine/src/test/resources/VERSION_NUM_expected_topology directory.  Where
+ * 1. Run this class BEFORE you update the pom with a new version.
+ *
+ * 2. This class will generate expected topology files
+ * for the version specified in the pom file.  The program writes the files to
+ * ksql-engine/src/test/resources/expected_topology/VERSION_NUM directory.  Where
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
- * 2. Update the CURRENT_TOPOLOGY_CHECKS_DIR variable in the {@link QueryTranslationTest} class with the newly generated directory name
- * so all tests run against the newly written topology files by default.
+ * 3. Update the CURRENT_TOPOLOGY_VERSION variable in the {@link QueryTranslationTest}
+ * class with the version number for the
+ * newly generated directory name so all tests run against the newly written topology files by default.
  *
  */
 public class TopologyFileGenerator {

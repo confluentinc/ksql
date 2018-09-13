@@ -49,6 +49,39 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+/**
+ *  This test also validates the generated topology matches the
+ *  expected topology. The expected topology files, and the configuration
+ *  used to generated them are found in src/test/resources/expected_topology/&lt;Version Number&gt;
+ *
+ *  By default this test will compare the
+ *  current generated topology against the previous released version
+ *  identified by the CURRENT_TOPOLOGY_VERSION variable.
+ *
+ *  To run this test against previously released versions there are three options
+ *
+ *  1. Just manually change CURRENT_TOPOLOGY_VERSION to a valid version number found under
+ *  the src/test/resources/expected_topology directory.
+ *
+ *  2. This test checks for a system property "topology.version" on test startup. If that
+ *  property is set, that is the version used for the test.
+ *
+ *  3. There are two options for setting the system property.
+ *     a. Within Intellij
+ *        i. Click Run/Edit configurations
+ *        ii. Select the QueryTranslationTest
+ *        iii. Enter -Dtopology.version=X  in the "VM options:" form entry
+ *             where X is the desired previously released version number.
+ *
+ *     b. From the command line
+ *        i. run mvn clean package -DskipTests=true from the base of the KSQL project
+ *        ii. Then run "mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine"
+ *            (without the quotes).  Again X is the version you want to run the tests against.
+ *
+ *   Note that for both options above the version must exist
+ *   under the src/test/resources/expected_topology directory.
+ */
+
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();

@@ -733,7 +733,8 @@ final class EndToEndEngineTestUtil {
         .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
-        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id");
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
 
       if(additionalConfigs != null){
           mapBuilder.putAll(additionalConfigs);

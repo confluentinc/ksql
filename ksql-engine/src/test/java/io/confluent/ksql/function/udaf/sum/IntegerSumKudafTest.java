@@ -9,7 +9,7 @@ import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 
 public class IntegerSumKudafTest extends BaseSumKudafTest<Integer, IntegerSumKudaf>{
-  protected TGenerator<Integer> getTGenerator() {
+  protected TGenerator<Integer> getNumberGenerator() {
     return Integer::valueOf;
   }
 

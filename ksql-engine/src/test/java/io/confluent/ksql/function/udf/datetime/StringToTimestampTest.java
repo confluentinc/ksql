@@ -37,7 +37,7 @@ public class StringToTimestampTest {
   }
 
   @Test
-  public void shouldCovertStringToTimestamp() throws ParseException {
+  public void shouldConvertStringToTimestamp() throws ParseException {
     // When:
     final Object result = udf.evaluate("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS");
 
@@ -80,7 +80,7 @@ public class StringToTimestampTest {
 
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowOnEmptyString() {
-    udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+    udf.evaluate("", "yyyy-MM-dd'T'HH:mm:ss.SSS");
   }
 
   @Test
@@ -89,7 +89,7 @@ public class StringToTimestampTest {
         .parallel()
         .forEach(idx -> {
           try {
-            shouldCovertStringToTimestamp();
+            shouldConvertStringToTimestamp();
           } catch (final ParseException e) {
             Assert.fail(e.getMessage());
           }

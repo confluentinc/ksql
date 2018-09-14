@@ -41,7 +41,7 @@ public class TimestampToStringTest {
   }
 
   @Test
-  public void shouldCovertTimestampToString() {
+  public void shouldConvertTimestampToString() {
     // When:
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS");
 
@@ -128,14 +128,14 @@ public class TimestampToStringTest {
   public void shouldThrowIfFormatInvalid() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Unknown pattern letter: i");
-    udf.evaluate("2021-12-01 12:10:11.123", "invalid");
+    udf.evaluate(1638360611123L, "invalid");
   }
 
   @Test
   public void shouldThrowIfNotTimestamp() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("java.lang.String cannot be cast to java.lang.Long");
-    udf.evaluate("invalid", "2021-12-01 12:10:11.123");
+    udf.evaluate("invalid", "yyyy-MM-dd HH:mm:ss.SSS");
   }
 
   @Test
@@ -143,7 +143,7 @@ public class TimestampToStringTest {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> {
-          shouldCovertTimestampToString();
+          shouldConvertTimestampToString();
           udf.evaluate(1538361611123L, "yyyy-MM-dd HH:mm:ss.SSS");
         });
   }

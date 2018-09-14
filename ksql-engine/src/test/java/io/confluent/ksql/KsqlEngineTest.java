@@ -387,8 +387,6 @@ public class KsqlEngineTest {
         = ksqlEngine.buildMultipleQueries(
         "SET 'auto.offset.reset' = 'earliest'; ",
         ksqlConfig, overriddenProperties);
-
-    Assert.assertTrue(overriddenProperties.containsKey("auto.offset.reset"));
     assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
 
   }

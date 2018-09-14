@@ -661,17 +661,37 @@ public class CliTest {
   @Test
   public void shouldDescribeScalarFunction() throws Exception {
     final String expectedOutput =
-        "Name        : TIMESTAMPTOSTRING\n" +
-        "Author      : confluent\n" +
-        "Type        : scalar\n" +
-        "Jar         : internal\n" +
-        "Variations  : \n" +
-        "\n" +
-        "\tVariation   : TIMESTAMPTOSTRING(BIGINT, VARCHAR)\n" +
-        "\tReturns     : VARCHAR\n";
+        "Name        : TIMESTAMPTOSTRING\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
+            + " representation of the \n"
+            + "              timestamp in the given format.\n"
+            + "Type        : scalar\n"
+            + "Jar         : internal\n"
+            + "Variations  :";
 
     localCli.handleLine("describe function timestamptostring;");
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+    final String outputString = terminal.getOutputString();
+    assertThat(outputString, containsString(expectedOutput));
+
+    // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
+    final String expectedVariation =
+        "\tVariation   : TIMESTAMPTOSTRING(epochMilli BIGINT, formatPattern VARCHAR)\n" +
+                "\tReturns     : VARCHAR\n" +
+                "\tDescription : Converts a BIGINT millisecond timestamp value into the string" +
+                " representation of the \n" +
+                "                timestamp in the given format. Single quotes in the timestamp" +
+                " format can be escaped \n" +
+                "                with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX' The system" +
+                " default time zone is \n" +
+                "                used when no time zone is explicitly provided. The format" +
+                " pattern should be in the \n" +
+                "                format expected by java.time.format.DateTimeFormatter\n" +
+                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
+                "\tformatPattern: The format pattern should be in the format expected by \n" +
+                "                 java.time.format.DateTimeFormatter.";
+    
+    assertThat(outputString, containsString(expectedVariation));
   }
 
   @Test

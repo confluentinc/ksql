@@ -24,8 +24,6 @@ import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
-import io.confluent.ksql.function.udf.datetime.TimestampToString;
 import io.confluent.ksql.function.udf.geo.GeoDistanceKudf;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
@@ -75,7 +73,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
   private void init() {
     addStringFunctions();
     addMathFunctions();
-    addDateTimeFunctions();
     addGeoFunctions();
     addJsonFunctions();
     addStructFieldFetcher();
@@ -246,25 +243,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "RANDOM", RandomKudf.class);
     addFunction(random);
 
-
-  }
-
-
-  private void addDateTimeFunctions() {
-
-    final KsqlFunction timestampToString = new KsqlFunction(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        "TIMESTAMPTOSTRING",
-        TimestampToString.class);
-    addFunction(timestampToString);
-
-    final KsqlFunction stringToTimestamp = new KsqlFunction(
-        Schema.OPTIONAL_INT64_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        "STRINGTOTIMESTAMP",
-        StringToTimestamp.class);
-    addFunction(stringToTimestamp);
 
   }
 

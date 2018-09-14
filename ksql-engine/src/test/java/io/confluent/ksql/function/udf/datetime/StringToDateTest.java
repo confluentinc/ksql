@@ -18,86 +18,68 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.format.DateTimeParseException;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 import java.util.stream.IntStream;
-import org.apache.kafka.connect.errors.DataException;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class StringToDateTest {
 
-  private static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
-  private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-
   private StringToDate udf;
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Before
-  public void setUp(){
+  public void setUp() {
     udf = new StringToDate();
   }
 
   @Test
-  public void shouldConvertStringToDate() throws ParseException {
+  public void shouldConvertStringToDate() {
     // When:
     final int result = udf.stringToDate("2021-12-01", "yyyy-MM-dd");
 
     // Then:
-    final int expectedResult = expectedResult("2021-12-01", "yyyy-MM-dd");
-    assertThat(result, is(expectedResult));
+    assertThat(result, is(18962));
   }
 
   @Test
-  public void shouldSupportEmbeddedChars() throws ParseException {
+  public void shouldSupportEmbeddedChars() {
     // When:
     final Object result = udf.stringToDate("2021-12-01Fred", "yyyy-MM-dd'Fred'");
 
     // Then:
-    final int expectedResult = expectedResult("2021-12-01Fred", "yyyy-MM-dd'Fred'");
-    assertThat(result, is(expectedResult));
+    assertThat(result, is(18962));
   }
 
-  @Test(expected = UncheckedExecutionException.class)
+  @Test
   public void shouldThrowIfFormatInvalid() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Failed to parse date '2021-12-01' with formatter 'invalid'");
     udf.stringToDate("2021-12-01", "invalid");
   }
 
-  @Test(expected = DateTimeParseException.class)
+  @Test
   public void shouldThrowIfParseFails() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Failed to parse date 'invalid' with formatter 'yyyy-MM-dd'");
     udf.stringToDate("invalid", "yyyy-MM-dd");
   }
 
-  @Test(expected = DateTimeParseException.class)
+  @Test
   public void shouldThrowOnEmptyString() {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Failed to parse date '' with formatter 'yyyy-MM-dd'");
     udf.stringToDate("", "yyyy-MM-dd");
   }
 
   @Test
-  public void shouldBeThreadSafe() {
-    IntStream.range(0, 10_000)
-        .parallel()
-        .forEach(idx -> {
-          try {
-            shouldConvertStringToDate();
-          } catch (final Exception e) {
-            Assert.fail(e.getMessage());
-          }
-          udf.stringToDate("1988-01-12", "yyyy-MM-dd");
-        });
-  }
-
-  @Test
-  public void shouldWorkWithManyDifferentFormatters() {
+  public void shouldBeThreadSafeAndWorkWithManyDifferentFormatters() {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> {
@@ -105,26 +87,12 @@ public class StringToDateTest {
             final String sourceDate = "2021-12-01X" + idx;
             final String pattern = "yyyy-MM-dd'X" + idx + "'";
             final int result = udf.stringToDate(sourceDate, pattern);
-            final int expectedResult = expectedResult(sourceDate, pattern);
-            assertThat(result, is(expectedResult));
+            assertThat(result, is(18962));
           } catch (final Exception e) {
             Assert.fail(e.getMessage());
           }
         });
   }
 
-
-  private int expectedResult(final String formattedDate, final String formatPattern) throws ParseException {
-    SimpleDateFormat dateFormat = new SimpleDateFormat(formatPattern);
-    dateFormat.setCalendar(Calendar.getInstance(UTC));
-    Date parsedDate = dateFormat.parse(formattedDate);
-    Calendar calendar = Calendar.getInstance(UTC);
-    calendar.setTime(parsedDate);
-    if (calendar.get(Calendar.HOUR_OF_DAY) != 0 || calendar.get(Calendar.MINUTE) != 0 ||
-        calendar.get(Calendar.SECOND) != 0 || calendar.get(Calendar.MILLISECOND) != 0) {
-      fail("Date should not have any time fields set to non-zero values.");
-    }
-    return (int)(calendar.getTimeInMillis() / MILLIS_PER_DAY);
-  }
 
 }

@@ -1,12 +1,4 @@
 {
-  "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
-  ],
   "tests": [
     {
       "name": "string to date",
@@ -15,7 +7,7 @@
         "CREATE STREAM TS AS select id, stringtodate(date, format) as ts from test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,2018-05-11,yyyy-MM-dd", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2018-05-11Lit,yyyy-MM-dd'Lit'", "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": "1,zero,11/05/2019,dd/MM/yyyy", "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": "2,zero,01-Jan-2022,dd-MMM-yyyy", "timestamp": 0},
         {"topic": "test_topic", "key": 3, "value": "3,yyy,01-01-1970,dd-MM-yyyy", "timestamp": 0}

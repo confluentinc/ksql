@@ -1,12 +1,4 @@
 {
-  "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
-  ],
   "tests": [
     {
       "name": "date to string",

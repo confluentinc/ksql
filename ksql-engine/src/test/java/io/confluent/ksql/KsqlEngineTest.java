@@ -53,7 +53,9 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.avro.Schema;
@@ -376,5 +378,18 @@ public class KsqlEngineTest {
     ksqlEngine.createQueries("create table bar as select * from test2;", ksqlConfig);
 
     verify(mockKsqlSerde);
+  }
+
+  @Test
+  public void shouldSetPropertyInRunScript() {
+    final Map<String, Object> overriddenProperties = new HashMap<>();
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "SET 'auto.offset.reset' = 'earliest'; ",
+        ksqlConfig, overriddenProperties);
+
+    Assert.assertTrue(overriddenProperties.containsKey("auto.offset.reset"));
+    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
+
   }
 }

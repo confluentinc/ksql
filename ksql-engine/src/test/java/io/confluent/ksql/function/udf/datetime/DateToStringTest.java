@@ -18,15 +18,8 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.confluent.ksql.function.KsqlFunctionException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,16 +29,13 @@ import org.junit.rules.ExpectedException;
 
 public class DateToStringTest {
 
-  private static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
-  private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-
   private DateToString udf;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
-  public void setUp(){
+  public void setUp() {
     udf = new DateToString();
   }
 
@@ -55,8 +45,7 @@ public class DateToStringTest {
     final String result = udf.dateToString(16383, "yyyy-MM-dd");
 
     // Then:
-    final String expectedResult = expectedResult(16383, "yyyy-MM-dd");
-    assertThat(result, is(expectedResult));
+    assertThat(result, is("2014-11-09"));
   }
 
   @Test
@@ -67,9 +56,6 @@ public class DateToStringTest {
         .parallel()
         .forEach(idx -> {
           final String result = udf.dateToString(idx, format);
-          final String expectedResult = expectedResult(idx, format);
-          assertThat(result, is(expectedResult));
-
           final int daysSinceEpoch = stringToDate.stringToDate(result, format);
           assertThat(daysSinceEpoch, is(idx));
         });
@@ -81,47 +67,29 @@ public class DateToStringTest {
     final Object result = udf.dateToString(12345, "yyyy-dd-MM'Fred'");
 
     // Then:
-    final String expectedResult = expectedResult(12345, "yyyy-dd-MM'Fred'");
-    assertThat(result, is(expectedResult));
+    assertThat(result, is("2003-20-10Fred"));
   }
 
   @Test
   public void shouldThrowIfFormatInvalid() {
-    expectedException.expect(UncheckedExecutionException.class);
-    expectedException.expectMessage("Unknown pattern letter: i");
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Failed to format date 44444 with formatter 'invalid'");
     udf.dateToString(44444, "invalid");
   }
 
   @Test
-  public void shouldBeThreadSafe() {
-    IntStream.range(0, 10_000)
-        .parallel()
-        .forEach(idx -> {
-          shouldConvertDateToString();
-          udf.dateToString(55555, "yyyy-MM-dd");
-        });
-  }
-
-  @Test
-  public void shouldWorkWithManyDifferentFormatters() {
+  public void shouldByThreadSafeAndWorkWithManyDifferentFormatters() {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> {
           try {
             final String pattern = "yyyy-MM-dd'X" + idx + "'";
-            final String result = udf.dateToString(idx, pattern);
-            final String expectedResult = expectedResult(idx, pattern);
-            assertThat(result, is(expectedResult));
+            final String result = udf.dateToString(18765, pattern);
+            assertThat(result, is("2021-05-18X" + idx));
           } catch (final Exception e) {
             Assert.fail(e.getMessage());
           }
         });
-  }
-
-  private String expectedResult(final int daysSinceEpoch, final String formatPattern) {
-    SimpleDateFormat dateFormat = new SimpleDateFormat(formatPattern);
-    dateFormat.setCalendar(Calendar.getInstance(UTC));
-    return dateFormat.format(new java.util.Date(daysSinceEpoch * MILLIS_PER_DAY));
   }
 
 }

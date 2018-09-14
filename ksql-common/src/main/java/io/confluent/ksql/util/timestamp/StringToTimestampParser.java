@@ -40,6 +40,10 @@ public class StringToTimestampParser {
   }
 
   public long parse(final String text) {
+    return parse(text, ZoneId.systemDefault());
+  }
+
+  public long parse(final String text, final ZoneId zoneId) {
     TemporalAccessor parsed = formatter.parseBest(
         text,
         ZonedDateTime::from,
@@ -51,13 +55,13 @@ public class StringToTimestampParser {
           +  "cannot be parsed into a timestamp");
     }
 
-    if (parsed instanceof ZonedDateTime) {
-      parsed = ((ZonedDateTime) parsed)
-          .withZoneSameInstant(ZoneId.systemDefault())
-          .toLocalDateTime();
+    if (parsed instanceof LocalDateTime) {
+      parsed = ((LocalDateTime) parsed).atZone(zoneId);
     }
 
-    final LocalDateTime dateTime = (LocalDateTime) parsed;
+    final LocalDateTime dateTime = ((ZonedDateTime) parsed)
+        .withZoneSameInstant(ZoneId.systemDefault())
+        .toLocalDateTime();
     return Timestamp.valueOf(dateTime).getTime();
   }
 

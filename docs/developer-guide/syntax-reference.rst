@@ -1095,7 +1095,7 @@ The explanation for each operator includes a supporting example based on the fol
 Scalar functions
 ================
 
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                                   | Description                                       |
 +========================+===========================================================================+===================================================+
 | ABS                    |  ``ABS(col1)``                                                            | The absolute value of a value                     |
@@ -1106,14 +1106,14 @@ Scalar functions
 | CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                | Converts an INT date value into                   |
-|                        |                                                            | the string representation of the date in          |
-|                        |                                                            | the given format. Single quotes in the            |
-|                        |                                                            | timestamp format can be escaped with '', for      |
-|                        |                                                            | example: 'yyyy-MM-dd''T'''.                       |
-|                        |                                                            | The integer represents days since epoch           |
-|                        |                                                            | matching the encoding used by Kafka Connect dates.|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
+|                        |                                                                           | a string representing the date in                 |
+|                        |                                                                           | the given format. Single quotes in the            |
+|                        |                                                                           | timestamp format can be escaped with '', for      |
+|                        |                                                                           | example: 'yyyy-MM-dd''T'''.                       |
+|                        |                                                                           | The integer represents days since epoch           |
+|                        |                                                                           | matching the encoding used by Kafka Connect dates.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
 |                        |                                                                           | the field that matches.                           |
@@ -1183,18 +1183,21 @@ Scalar functions
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                      | Converts a string value in the given              |
-|                        |                                                            | format into the INT value                         |
-|                        |                                                            | that represents days since epoch. Single          |
-|                        |                                                            | quotes in the timestamp format can be escaped with|
-|                        |                                                            | '', for example: 'yyyy-MM-dd''T'''.               |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``                   | Converts a string value in the given              |
+| STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
+|                        |                                                                           | given format into an integer representing days    |
+|                        |                                                                           | since epoch. Single quotes in the timestamp       |
+|                        |                                                                           | format can be escaped with '', for example:       |
+|                        |                                                                           | 'yyyy-MM-dd''T'''.                                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``      | Converts a string value in the given              |
 |                        |                                                                           | format into the BIGINT value                      |
 |                        |                                                                           | that represents the millisecond timestamp. Single |
 |                        |                                                                           | quotes in the timestamp format can be escaped with|
 |                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
+|                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
 |                        |                                                                           | Return a substring of ``str`` that starts at      |

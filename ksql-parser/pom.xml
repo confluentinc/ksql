@@ -88,9 +88,13 @@
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>${antlr.version}</version>
                 <configuration>
-                    <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
-                    <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
+                    <sourceDirectory>src/main/antlr4/io/confluent/ksql/parser</sourceDirectory>
+                    <outputDirectory>src/main/java/io/confluent/ksql/parser</outputDirectory>
                     <visitor>true</visitor>
+                    <arguments>
+                        <argument>-package</argument>
+                        <argument>io.confluent.ksql.parser</argument>
+                    </arguments>
                 </configuration>
                 <executions>
                     <execution>

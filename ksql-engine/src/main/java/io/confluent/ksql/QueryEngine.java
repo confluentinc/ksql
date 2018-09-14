@@ -179,7 +179,7 @@ class QueryEngine {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: "
                                   + statement.getClass());
         }
-        handleDdlStatement(node.getStatementText(), (DdlStatement) statement);
+        handleDdlStatement(node.getStatementText(), (DdlStatement) statement, overriddenProperties);
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, node, ksqlConfig,
@@ -219,7 +219,10 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(final String sqlExpression, final DdlStatement statement) {
+  DdlCommandResult handleDdlStatement(
+      final String sqlExpression,
+          final DdlStatement statement,
+          final Map<String, Object> overriddenProperties) {
 
     final String resultingSqlExpression;
     final DdlStatement resultingStatement;
@@ -242,7 +245,10 @@ class QueryEngine {
       resultingStatement = statement;
     }
 
-    final DdlCommand command = ddlCommandFactory.create(resultingSqlExpression, resultingStatement);
+    final DdlCommand command = ddlCommandFactory.create(
+        resultingSqlExpression,
+        resultingStatement,
+        overriddenProperties);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 

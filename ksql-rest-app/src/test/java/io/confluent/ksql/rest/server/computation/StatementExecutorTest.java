@@ -141,7 +141,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final StatementParser realParser = new StatementParser(ksqlEngine);
     final DdlStatement ddlStatement = (DdlStatement) realParser.parseSingleStatement(ddlText);
-    ksqlEngine.executeDdlStatement(ddlText, ddlStatement);
+    ksqlEngine.executeDdlStatement(ddlText, ddlStatement, Collections.emptyMap());
     final CreateStreamAsSelect csasStatement =
         (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
 

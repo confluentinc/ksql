@@ -38,6 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -464,6 +465,12 @@ public class CliTest {
   }
 
   @Test
+  public void testCommandsOverMultipleLines() throws Exception {
+    localCli.runNonInteractively("he\\\nlp");
+    localCli.runNonInteractively("he\\ \nlp");
+  }
+
+  @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
   }
@@ -488,7 +495,7 @@ public class CliTest {
   public void shouldRegisterRemoteCommand() {
     new Cli(1L, 1L, createRestClient(), terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
-        instanceOf(Cli.RemoteServerSpecificCommand.class));
+        instanceOf(RemoteServerSpecificCommand.class));
   }
 
   @Test

@@ -182,8 +182,8 @@ public class KsqlEngine implements Closeable {
         this,
         new CommandFactories(topicClient,
             schemaRegistryClient,
-            true,
-            initializationKsqlConfig.getKsqlStreamConfigProps()));
+            true
+        ));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -614,8 +614,9 @@ public class KsqlEngine implements Closeable {
 
   public DdlCommandResult executeDdlStatement(
       final String sqlExpression,
-      final DdlStatement statement) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement);
+      final DdlStatement statement,
+      final Map<String, Object> overriddenProperties) {
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {

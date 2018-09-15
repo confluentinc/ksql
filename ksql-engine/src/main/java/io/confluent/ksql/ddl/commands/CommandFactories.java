@@ -34,21 +34,22 @@ import java.util.Map;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient schemaRegistryClient,
-      final boolean enforceTopicExistence,
-      final Map<String, Object> properties
+      final boolean enforceTopicExistence
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement) ->
+        (sqlExpression, ddlStatement, properties) ->
             new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
-        (sqlExpression, ddlStatement) -> new CreateStreamCommand(
+        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
             topicClient,
@@ -57,7 +58,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         CreateTable.class,
-        (sqlExpression, ddlStatement) -> new CreateTableCommand(
+        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
             topicClient,
@@ -66,7 +67,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropStream.class,
-        (sqlExpression, ddlStatement) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
             (DropStream) ddlStatement,
             DataSource.DataSourceType.KSTREAM,
             topicClient,
@@ -76,7 +77,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropTable.class,
-        (sqlExpression, ddlStatement) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
             (DropTable) ddlStatement,
             DataSource.DataSourceType.KTABLE,
             topicClient,
@@ -85,20 +86,21 @@ public class CommandFactories implements DdlCommandFactory {
         )
     );
     factories.put(
-        DropTopic.class, (sqlExpression, ddlStatement) ->
+        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(
-        SetProperty.class, (sqlExpression, ddlStatement) ->
+        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
             new SetPropertyCommand(((SetProperty) ddlStatement), properties));
     factories.put(
-        UnsetProperty.class, (sqlExpression, ddlStatement) ->
+        UnsetProperty.class, (sqlExpression, ddlStatement, properties) ->
             new UnsetPropertyCommand(((UnsetProperty) ddlStatement), properties));
   }
 
   @Override
   public DdlCommand create(
       final String sqlExpression,
-      final DdlStatement ddlStatement
+      final DdlStatement ddlStatement,
+      final Map<String, Object> properties
   ) {
     if (!factories.containsKey(ddlStatement.getClass())) {
       throw new KsqlException(
@@ -108,6 +110,6 @@ public class CommandFactories implements DdlCommandFactory {
           + factories.keySet()
       );
     }
-    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement);
+    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement, properties);
   }
 }

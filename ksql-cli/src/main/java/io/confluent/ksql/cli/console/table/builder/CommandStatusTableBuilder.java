@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,16 +12,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.cli.console;
+package io.confluent.ksql.cli.console.table.builder;
 
-import java.io.IOException;
+import io.confluent.ksql.cli.console.table.Table;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 
-public interface CliSpecificCommand {
-  String getName();
+public class CommandStatusTableBuilder implements TableBuilder<CommandStatusEntity> {
 
-  void printHelp();
-
-  void execute(String commandStrippedLine) throws IOException;
+  @Override
+  public Table buildTable(final CommandStatusEntity entity) {
+    return new Table.Builder()
+        .withColumnHeaders("Message")
+        .withRow(entity.getCommandStatus().getMessage().split("\n", 2)[0])
+        .build();
+  }
 }

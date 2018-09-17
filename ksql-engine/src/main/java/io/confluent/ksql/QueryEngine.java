@@ -223,7 +223,9 @@ class QueryEngine {
       final String sqlExpression,
       final DdlStatement statement,
       final Map<String, Object> overriddenProperties) {
-    final DdlCommand command = createDdlCommand(sqlExpression, statement, overriddenProperties, true);
+    final DdlCommand command =
+        createDdlCommand(sqlExpression, statement, overriddenProperties, true);
+
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 
@@ -253,8 +255,8 @@ class QueryEngine {
       resultingStatement = statement;
     }
 
-    return ddlCommandFactory
-        .create(resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
+    return ddlCommandFactory.create(
+        resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {

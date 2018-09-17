@@ -47,6 +47,8 @@ import org.junit.Test;
 
 public class CommandFactoriesTest {
 
+  private static final java.util.Map<String, Object> NO_PROPS = Collections.emptyMap();
+
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final CommandFactories commandFactories = new CommandFactories(
       topicClient,
@@ -66,8 +68,8 @@ public class CommandFactoriesTest {
   public void shouldCreateDDLCommandForRegisterTopic() {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new RegisterTopic(QualifiedName.of("blah"),
-            true, properties), Collections.emptyMap(), true
-    );
+            true, properties), NO_PROPS, true);
+
     assertThat(result, instanceOf(RegisterTopicCommand.class));
   }
 
@@ -76,8 +78,7 @@ public class CommandFactoriesTest {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new CreateStream(QualifiedName.of("foo"),
             Collections.emptyList(), true, properties),
-        Collections.emptyMap(), true
-    );
+        NO_PROPS, true);
 
     assertThat(result, instanceOf(CreateStreamCommand.class));
   }
@@ -88,7 +89,7 @@ public class CommandFactoriesTest {
 
     final DdlCommand result = commandFactories
         .create(sqlExpression, createTable(tableProperties),
-            Collections.emptyMap(), true);
+            NO_PROPS, true);
 
     assertThat(result, instanceOf(CreateTableCommand.class));
   }
@@ -99,8 +100,8 @@ public class CommandFactoriesTest {
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
 
     try {
-      commandFactories.create(sqlExpression, createTable(tableProperties),
-          Collections.emptyMap(), true);
+      commandFactories
+          .create(sqlExpression, createTable(tableProperties), NO_PROPS, true);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
@@ -115,8 +116,8 @@ public class CommandFactoriesTest {
     tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
 
     try {
-      commandFactories.create(sqlExpression, createTable(tableProperties),
-          Collections.emptyMap(), true);
+      commandFactories
+          .create(sqlExpression, createTable(tableProperties), NO_PROPS, true);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
@@ -130,7 +131,7 @@ public class CommandFactoriesTest {
 
     try {
       commandFactories.create(sqlExpression, createTable(properties),
-          Collections.emptyMap(), true);
+          NO_PROPS, true);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
@@ -141,13 +142,11 @@ public class CommandFactoriesTest {
   public void shouldFailCreateTableIfTopicNotExist() {
     final HashMap<String, Expression> tableProperties = validTableProps();
 
-    EasyMock.reset(topicClient);
-    EasyMock.expect(topicClient.isTopicExists(anyString())).andReturn(false);
-    EasyMock.replay(topicClient);
+    givenTopicsDoNotExist();
 
     try {
       commandFactories.create(sqlExpression, createTable(tableProperties),
-          Collections.emptyMap(), true);
+          NO_PROPS, true);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("Kafka topic does not exist: topic"));
@@ -158,19 +157,17 @@ public class CommandFactoriesTest {
   public void shouldNotFailCreateTableIfTopicNotExistButExistenceNotRequired() {
     final HashMap<String, Expression> tableProperties = validTableProps();
 
-    EasyMock.reset(topicClient);
-    EasyMock.expect(topicClient.isTopicExists(anyString())).andReturn(false);
-    EasyMock.replay(topicClient);
+    givenTopicsDoNotExist();
 
-    commandFactories.create(sqlExpression, createTable(tableProperties),
-        Collections.emptyMap(), true);
+    commandFactories
+        .create(sqlExpression, createTable(tableProperties), NO_PROPS, false);
   }
 
   @Test
   public void shouldCreateCommandForDropStream() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropStream(QualifiedName.of("foo"), true, true),
-        Collections.emptyMap(), true
+        NO_PROPS, true
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
   }
@@ -179,7 +176,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTable() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTable(QualifiedName.of("foo"), true, true),
-        Collections.emptyMap(), true
+        NO_PROPS, true
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
   }
@@ -188,7 +185,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTopic() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTopic(QualifiedName.of("foo"), true),
-        Collections.emptyMap(), true
+        NO_PROPS, true
     );
     assertThat(result, instanceOf(DropTopicCommand.class));
   }
@@ -196,7 +193,7 @@ public class CommandFactoriesTest {
   @Test(expected = KsqlException.class)
   public void shouldThowKsqlExceptionIfCommandFactoryNotFound() {
     commandFactories.create(sqlExpression, new DdlStatement() {},
-        Collections.emptyMap(), true
+        NO_PROPS, true);
   }
 
   private HashMap<String, Expression> validTableProps() {
@@ -211,5 +208,11 @@ public class CommandFactoriesTest {
             new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)),
             new TableElement("COL2", new PrimitiveType(Type.KsqlType.STRING))),
         true, tableProperties);
+  }
+
+  private void givenTopicsDoNotExist() {
+    EasyMock.reset(topicClient);
+    EasyMock.expect(topicClient.isTopicExists(anyString())).andReturn(false);
+    EasyMock.replay(topicClient);
   }
 }

@@ -40,9 +40,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final SchemaRegistryClient schemaRegistryClient,
-      final Map<String, Object> properties,
-      final boolean enforceTopicExistence
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     factories.put(
         RegisterTopic.class,

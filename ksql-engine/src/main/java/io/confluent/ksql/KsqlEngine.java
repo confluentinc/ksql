@@ -444,8 +444,8 @@ public class KsqlEngine implements Closeable {
     }
 
     if (statement instanceof DdlStatement) {
-      final DdlCommand ddlCmd = queryEngine
-          .createDdlCommand(statementString, (DdlStatement) statement, false);
+      final DdlCommand ddlCmd = queryEngine.createDdlCommand(
+          statementString, (DdlStatement) statement, Collections.emptyMap(), false);
 
       ddlCommandExec.tryExecute(ddlCmd, tempMetaStoreForParser);
       ddlCommandExec.tryExecute(ddlCmd, tempMetaStore);

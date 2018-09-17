@@ -8,7 +8,7 @@ import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 
 public class DoubleSumKudafTest extends BaseSumKudafTest<Double, DoubleSumKudaf> {
-  protected TGenerator<Double> getTGenerator() {
+  protected TGenerator<Double> getNumberGenerator() {
     return Double::valueOf;
   }
 

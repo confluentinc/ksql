@@ -66,7 +66,9 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -435,5 +437,16 @@ public class KsqlEngineTest {
     final QuerySpecification specification3 = (QuerySpecification) csas3.getQueryBody();
     final Table table3 = (Table) specification3.getInto();
     assertThat(table3.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE_LIKE_89"));
+  }
+
+  @Test
+  public void shouldSetPropertyInRunScript() {
+    final Map<String, Object> overriddenProperties = new HashMap<>();
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "SET 'auto.offset.reset' = 'earliest'; ",
+        ksqlConfig, overriddenProperties);
+    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
+
   }
 }

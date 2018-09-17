@@ -41,15 +41,17 @@ public class CommandFactories implements DdlCommandFactory {
   public CommandFactories(
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient schemaRegistryClient,
-      final Map<String, Object> properties
+      final Map<String, Object> properties,
+      final boolean enforceTopicExistence
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement, enforceTopicExistence) ->
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
-        (sqlExpression, ddlStatement, enforceTopicExistence) -> new CreateStreamCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
             topicClient,
@@ -58,7 +60,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         CreateTable.class,
-        (sqlExpression, ddlStatement, enforceTopicExistence) -> new CreateTableCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
             topicClient,
@@ -67,7 +70,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropStream.class,
-        (sqlExpression, ddlStatement, enforceTopicExistence) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new DropSourceCommand(
             (DropStream) ddlStatement,
             DataSource.DataSourceType.KSTREAM,
             topicClient,
@@ -77,7 +81,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropTable.class,
-        (sqlExpression, ddlStatement, enforceTopicExistence) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new DropSourceCommand(
             (DropTable) ddlStatement,
             DataSource.DataSourceType.KTABLE,
             topicClient,
@@ -86,13 +91,13 @@ public class CommandFactories implements DdlCommandFactory {
         )
     );
     factories.put(
-        DropTopic.class, (sqlExpression, ddlStatement, enforceTopicExistence) ->
+        DropTopic.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(
-        SetProperty.class, (sqlExpression, ddlStatement, enforceTopicExistence) ->
+        SetProperty.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new SetPropertyCommand(((SetProperty) ddlStatement), properties));
     factories.put(
-        UnsetProperty.class, (sqlExpression, ddlStatement, enforceTopicExistence) ->
+        UnsetProperty.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new UnsetPropertyCommand(((UnsetProperty) ddlStatement), properties));
   }
 
@@ -100,7 +105,9 @@ public class CommandFactories implements DdlCommandFactory {
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
-      final boolean enforceTopicExistence) {
+      final Map<String, Object> properties,
+      final boolean enforceTopicExistence
+  ) {
     final DdlCommandFactory factory = factories.get(ddlStatement.getClass());
     if (factory == null) {
       throw new KsqlException(
@@ -111,7 +118,6 @@ public class CommandFactories implements DdlCommandFactory {
       );
     }
 
-    return factory
-        .create(sqlExpression, ddlStatement, enforceTopicExistence);
+    return factory.create(sqlExpression, ddlStatement, properties, enforceTopicExistence);
   }
 }

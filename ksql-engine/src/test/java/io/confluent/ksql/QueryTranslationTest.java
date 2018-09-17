@@ -10,11 +10,14 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplie
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
 import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
+import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -46,10 +49,46 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+/**
+ *  This test also validates the generated topology matches the
+ *  expected topology. The expected topology files, and the configuration
+ *  used to generated them are found in src/test/resources/expected_topology/&lt;Version Number&gt;
+ *
+ *  By default this test will compare the
+ *  current generated topology against the previous released version
+ *  identified by the CURRENT_TOPOLOGY_VERSION variable.
+ *
+ *  To run this test against previously released versions there are three options
+ *
+ *  1. Just manually change CURRENT_TOPOLOGY_VERSION to a valid version number found under
+ *  the src/test/resources/expected_topology directory.
+ *
+ *  2. This test checks for a system property "topology.version" on test startup. If that
+ *  property is set, that is the version used for the test.
+ *
+ *  3. There are two options for setting the system property.
+ *     a. Within Intellij
+ *        i. Click Run/Edit configurations
+ *        ii. Select the QueryTranslationTest
+ *        iii. Enter -Dtopology.version=X  in the "VM options:" form entry
+ *             where X is the desired previously released version number.
+ *
+ *     b. From the command line
+ *        i. run mvn clean package -DskipTests=true from the base of the KSQL project
+ *        ii. Then run "mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine"
+ *            (without the quotes).  Again X is the version you want to run the tests against.
+ *
+ *   Note that for both options above the version must exist
+ *   under the src/test/resources/expected_topology directory.
+ */
+
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
+  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
+  private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
+  private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final Query query;
 
@@ -69,7 +108,25 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
+    final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
+    final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
+    final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
+    return buildQueryList().stream()
+          .peek(q -> {
+            final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
+            // could be null if the query has expected errors, no topology or configs saved
+            if (topologyAndConfigs !=null) {
+              q.setExpectedTopology(topologyAndConfigs.topology);
+              q.setPersistedProperties(topologyAndConfigs.configs);
+            }
+          })
+          .map(query -> new Object[]{query.getName(), query})
+          .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  static List<Query> buildQueryList()  throws IOException {
     final List<String> testFiles = findTests(QUERY_VALIDATION_TEST_DIR);
+
     return testFiles.stream().flatMap(test -> {
       final String testPath = QUERY_VALIDATION_TEST_DIR + "/" + test;
       final JsonNode tests;
@@ -82,17 +139,16 @@ public class QueryTranslationTest {
       }
       final List<Query> queries = new ArrayList<>();
       tests.findValue("tests").elements().forEachRemaining(query -> {
-          final JsonNode formats = query.get("format");
-          if (formats == null) {
-            queries.add(createTest(testPath, query, ""));
-          } else {
-            formats.iterator().forEachRemaining(
-                format -> queries.add(createTest(testPath, query, format.asText())));
-          }
+        final JsonNode formats = query.get("format");
+        if (formats == null) {
+          queries.add(createTest(testPath, query, ""));
+        } else {
+          formats.iterator().forEachRemaining(
+              format -> queries.add(createTest(testPath, query, format.asText())));
+        }
       });
-      return queries.stream()
-          .map(query -> new Object[]{query.getName(), query});
-    }).collect(Collectors.toCollection(ArrayList::new));
+      return queries.stream();
+    }).collect(Collectors.toList());
   }
 
   private static Query createTest(final String testPath, final JsonNode query, final String format) {

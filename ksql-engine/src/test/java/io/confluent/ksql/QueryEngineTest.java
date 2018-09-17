@@ -54,7 +54,7 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient, ksqlConfig.getKsqlStreamConfigProps()));
+        new CommandFactories(topicClient, schemaRegistryClient));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
           "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
@@ -69,7 +69,7 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateStream() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient,  ksqlConfig.getKsqlStreamConfigProps()));
+        new CommandFactories(topicClient, schemaRegistryClient));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
           "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);

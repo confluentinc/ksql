@@ -1,0 +1,69 @@
+{
+  "ksql.extension.dir" : "ext",
+  "ksql.streams.cache.max.bytes.buffering" : "0",
+  "ksql.transient.prefix" : "transient_",
+  "ksql.schema.registry.url" : "http://localhost:8081",
+  "ssl.secure.random.implementation" : null,
+  "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+  "ksql.output.topic.name.prefix" : "",
+  "ksql.streams.auto.offset.reset" : "earliest",
+  "ksql.sink.partitions" : "4",
+  "ssl.keystore.type" : "JKS",
+  "ssl.trustmanager.algorithm" : "PKIX",
+  "ksql.statestore.suffix" : "_ksql_statestore",
+  "ssl.key.password" : null,
+  "ksql.service.id" : "default_",
+  "ssl.truststore.password" : null,
+  "ksql.streams.state.dir" : "/var/folders/w1/b43btl2d1_31z2fmjswspw9r0000gp/T/kafka-804018278617670369",
+  "ssl.endpoint.identification.algorithm" : "https",
+  "ksql.streams.bootstrap.servers" : "localhost:850",
+  "ssl.protocol" : "TLS",
+  "ksql.streams.commit.interval.ms" : "0",
+  "ksql.sink.replicas" : "1",
+  "ssl.provider" : null,
+  "ssl.enabled.protocols" : "TLSv1.2,TLSv1.1,TLSv1",
+  "ksql.streams.topology.optimization" : "all",
+  "ssl.keystore.location" : null,
+  "ksql.streams.num.stream.threads" : "4",
+  "ssl.cipher.suites" : null,
+  "ssl.truststore.type" : "JKS",
+  "ksql.udfs.enabled" : "true",
+  "ssl.truststore.location" : null,
+  "ksql.udf.enable.security.manager" : "true",
+  "ssl.keystore.password" : null,
+  "ssl.keymanager.algorithm" : "SunX509",
+  "ksql.functions.substring.legacy.args" : "false",
+  "ksql.streams.application.id" : "KSQL-TEST",
+  "ksql.sink.window.change.log.additional.retention" : "1000000",
+  "ksql.udf.collect.metrics" : "false",
+  "ksql.persistent.prefix" : "query_"
+}
+CONFIGS_END
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-MAPVALUES-0000000001
+    Processor: KSTREAM-MAPVALUES-0000000001 (stores: [])
+      --> KSTREAM-TRANSFORMVALUES-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-TRANSFORMVALUES-0000000002 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000003
+      <-- KSTREAM-MAPVALUES-0000000001
+    Processor: KSTREAM-MAPVALUES-0000000003 (stores: [])
+      --> KSTREAM-AGGREGATE-0000000005
+      <-- KSTREAM-TRANSFORMVALUES-0000000002
+    Processor: KSTREAM-AGGREGATE-0000000005 (stores: [KSTREAM-AGGREGATE-STATE-STORE-0000000004])
+      --> KTABLE-MAPVALUES-0000000006
+      <-- KSTREAM-MAPVALUES-0000000003
+    Processor: KTABLE-MAPVALUES-0000000006 (stores: [])
+      --> KTABLE-TOSTREAM-0000000007
+      <-- KSTREAM-AGGREGATE-0000000005
+    Processor: KTABLE-TOSTREAM-0000000007 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000008
+      <-- KTABLE-MAPVALUES-0000000006
+    Processor: KSTREAM-MAPVALUES-0000000008 (stores: [])
+      --> KSTREAM-SINK-0000000009
+      <-- KTABLE-TOSTREAM-0000000007
+    Sink: KSTREAM-SINK-0000000009 (topic: T1)
+      <-- KSTREAM-MAPVALUES-0000000008
+

@@ -178,7 +178,7 @@ class QueryEngine {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: "
                                   + statement.getClass());
         }
-        handleDdlStatement(node.getStatementText(), (DdlStatement) statement);
+        handleDdlStatement(node.getStatementText(), (DdlStatement) statement, overriddenProperties);
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, node, ksqlConfig,
@@ -219,14 +219,18 @@ class QueryEngine {
   }
 
 
-  DdlCommandResult handleDdlStatement(final String sqlExpression, final DdlStatement statement) {
-    final DdlCommand command = createDdlCommand(sqlExpression, statement, true);
+  DdlCommandResult handleDdlStatement(
+      final String sqlExpression,
+      final DdlStatement statement,
+      final Map<String, Object> overriddenProperties) {
+    final DdlCommand command = createDdlCommand(sqlExpression, statement, overriddenProperties, true);
     return ksqlEngine.getDdlCommandExec().execute(command, false);
   }
 
   DdlCommand createDdlCommand(
       final String sqlExpression,
       final DdlStatement statement,
+      final Map<String, Object> overriddenProperties,
       final boolean enforceTopicExistence) {
     final String resultingSqlExpression;
     final DdlStatement resultingStatement;
@@ -250,7 +254,7 @@ class QueryEngine {
     }
 
     return ddlCommandFactory
-        .create(resultingSqlExpression, resultingStatement, enforceTopicExistence);
+        .create(resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {

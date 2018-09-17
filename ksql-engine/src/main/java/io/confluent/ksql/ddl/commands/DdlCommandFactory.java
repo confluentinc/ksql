@@ -17,8 +17,13 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.parser.tree.DdlStatement;
+import java.util.Map;
 
 public interface DdlCommandFactory {
-
-  DdlCommand create(String sqlExpression, DdlStatement ddlStatement, boolean enforceTopicExistence);
+  DdlCommand create(
+      String sqlExpression,
+      DdlStatement ddlStatement,
+      Map<String, Object> properties,
+      boolean enforceTopicExistence
+  );
 }

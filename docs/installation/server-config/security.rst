@@ -3,8 +3,11 @@
 Configuring Security for KSQL
 =============================
 
-KSQL supports many of the security features of both Apache Kafka and the |sr|.
+KSQL supports authentication on its http endpoints and also supports many of the security features
+of the other services it communicates withof both Apache Kafka and the |sr|.
 
+- KSQL supports BASIC http authentication on its RESTful and Websocket HTTP endpoints, i.e. the
+  endpoints can be protected by a username and password.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
@@ -21,6 +24,83 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
 .. contents:: Table of Contents
     :local:
+
+Configuring KSQL for BASIC HTTP Authentication
+----------------------------------------------
+KSQL can be configured to require users to authenticate using a username and password via the BASIC
+HTTP authentication mechanism.
+
+NOTE: If using BASIC authentication it is highly recommended that you configure the KSQL server to
+use SSL to secure communication, as the BASIC protocol passes credentials in plain text.
+
+Use the following to configure the KSQL server to require authentication:
+
+.. code:: bash
+
+    authentication.method=BASIC
+    authentication.roles=some-ksql-cluster-id
+    authentication.realm=KsqlServer-Props
+    java.security.auth.login.config=/path/to/the/jaas_config.file
+
+The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
+to use the KSQL server an authenticated user must belong to at least one of these roles.
+
+The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which will
+define how the server will authenticate users:
+
+.. code:: bash
+
+    KsqlServer-Props {
+      org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+      file="/path/to/password-file"
+      debug="false";
+    };
+
+The example ``jaas_config.file`` above uses the Jetty ``PropertyFileLoginModule``, which itself
+authenticates users by checking for their credentials in a password file.
+
+You can also use other implementations of the standard Java ``LoginModule`` interface, e.g.
+``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
+
+The file parameter is the location of the properties file, The format is:
+
+.. code:: bash
+
+    <username>: <password-hash>[,<rolename> ...]
+
+Here’s an example:
+
+.. code:: bash
+
+    fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+    harry: changeme,user,developer
+    tom: MD5:164c88b302622e17050af52c89945d44,user
+    dick: CRYPT:adpexzg3FUZAk,admin,ksq-user
+
+The password hash for a user can be obtained by using the ``org.eclipse.jetty.util.security.Password``
+utility, e.g.
+
+.. code:: bash
+
+    > bin/ksql-run-class org.eclipse.jetty.util.security.Password fred letmein
+    letmein
+    OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x
+    MD5:0d107d09f5bbe40cade3de5c71e9e9b7
+    CRYPT:frd5btY/mvXo6
+
+The output from the command is the password encrypted using different mechanisms, starting with
+plain text.
+
+-------------------
+Configuring the Cli
+-------------------
+If the KSQL server is configured to use BASIC authentication Cli instances will need to be
+configured with suitable valid credentials.  Credentials can be passed when starting the Cli using
+the ``--user`` and ``--password`` commandline arguments e.g.
+
+.. code:: bash
+
+    <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 
 Configuring KSQL for |ccloud|
 -----------------------------
@@ -39,7 +119,7 @@ For example, a trustStore is required if the Schema Registry's SSL certificates 
 the JVM by default; a keyStore is required if the Schema Registry requires mutual authentication.
 
 SSL configuration for communication with the Schema Registry can be supplied using none-prefixed,
-e.g. `ssl.truststore.location`, or prefixed e.g. `ksql.schema.registry.ssl.truststore.location`,
+e.g. ``ssl.truststore.location``, or prefixed e.g. ``ksql.schema.registry.ssl.truststore.location``,
 names. Non-prefixed names are used for settings that are shared with other communication
 channels, i.e. where the same settings are required to configure SSL communication
 with both Kafka and Schema Registry. Prefixed names only affects communication with Schema registry

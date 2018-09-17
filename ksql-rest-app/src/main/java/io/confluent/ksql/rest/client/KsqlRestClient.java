@@ -65,8 +65,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private final Map<String, Object> localProperties;
 
-  private boolean hasUserCredentials = false;
-
   public KsqlRestClient(final String serverAddress) {
     this(serverAddress, Collections.emptyMap());
   }
@@ -95,12 +93,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         Objects.requireNonNull(password)
     );
     client.register(feature);
-    hasUserCredentials = true;
-  }
-
-  // Visible for testing
-  public boolean hasUserCredentials() {
-    return hasUserCredentials;
   }
 
   public URI getServerAddress() {

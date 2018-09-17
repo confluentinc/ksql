@@ -37,6 +37,9 @@ public class DoubleSumKudaf
 
   @Override
   public Double aggregate(final Double currentValue, final Double aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
+    }
     return currentValue + aggregateValue;
   }
 

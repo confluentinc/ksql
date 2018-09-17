@@ -141,7 +141,7 @@ public class KsqlParser {
       throw e;
     } catch (final Exception e) {
       throw new ParseFailedException(
-          "Failed to prepare statement", parsedStatement.statementText, e);
+          "Failed to prepare statement: " + e.getMessage(), parsedStatement.statementText, e);
     }
   }
 

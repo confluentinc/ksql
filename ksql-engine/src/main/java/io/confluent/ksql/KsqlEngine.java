@@ -455,10 +455,6 @@ public class KsqlEngine implements Closeable {
     return null;
   }
 
-  public List<PreparedStatement> getStatements(final String sqlString) {
-    return new KsqlParser().buildAst(sqlString, metaStore);
-  }
-
   public Query addInto(
       final QuerySpecification querySpecification,
       final String intoName,

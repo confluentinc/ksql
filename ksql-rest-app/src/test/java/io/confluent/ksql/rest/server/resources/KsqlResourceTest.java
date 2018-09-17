@@ -851,7 +851,7 @@ public class KsqlResourceTest {
 
     EasyMock.reset(mockEngine);
     EasyMock.expect(
-        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.getStatements(ksqlString));
+        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.parseStatements(ksqlString));
     EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
         .andThrow(new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);

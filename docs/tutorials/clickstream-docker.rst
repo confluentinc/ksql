@@ -5,23 +5,17 @@ Clickstream Data Analysis Pipeline Using KSQL (Docker)
 
 These steps will guide you through how to setup your environment and run the clickstream analysis tutorial from a Docker container.
 
-**Prerequisites**
-
--  Docker must be installed and configured with at least 8 GB of memory.
-
-   -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
-   -  `All platforms <https://docs.docker.com/engine/installation/>`__
+.. include:: ../includes/ksql-docker-includes.rst
+    :start-after: docker_prereqs_start
+    :end-before: docker_prereqs_end
 
 - If you are using Linux as your host, for the Elasticsearch container to start successfully you must first run: 
 
-   .. codewithvars:: bash
+.. codewithvars:: bash
 
       $ sudo sysctl -w vm.max_map_count=262144
       
    The background to this requirement can be `found here <https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html>`__
-
--  `Git <https://git-scm.com/downloads>`__
-
 
 -----------------------------
 Download and run the tutorial

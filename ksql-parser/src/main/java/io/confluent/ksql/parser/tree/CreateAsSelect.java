@@ -19,7 +19,7 @@ package io.confluent.ksql.parser.tree;
 import java.util.Map;
 import java.util.Optional;
 
-public interface CreateAsSelect {
+public interface CreateAsSelect extends QueryContainer {
 
   Query getQuery();
 

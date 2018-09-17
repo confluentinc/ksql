@@ -35,6 +35,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -55,6 +56,7 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -159,16 +161,18 @@ public class KsqlResource {
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
     final List<PreparedStatement> parsedStatements;
+    final KsqlEntityList result = new KsqlEntityList();
 
     try {
-      parsedStatements = ksqlEngine.getStatements(request.getKsql());
+      parsedStatements = ksqlEngine.parseStatements(request.getKsql());
+    } catch (final ParseFailedException e) {
+      return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
     } catch (final KsqlException e) {
       return Errors.badRequest(e);
     }
 
     final Map<String, Object> streamsProperties = request.getStreamsProperties();
 
-    final KsqlEntityList result = new KsqlEntityList();
     for (final PreparedStatement parsedStatement : parsedStatements) {
       final String statementText = parsedStatement.getStatementText();
       final Statement statement = parsedStatement.getStatement();
@@ -182,6 +186,7 @@ public class KsqlResource {
       } catch (final Exception e) {
         return Errors.serverErrorForStatement(e, statementText, result);
       }
+
       try {
         result.add(executeStatement(statementText, statement, streamsProperties));
       } catch (final Exception e) {
@@ -225,8 +230,7 @@ public class KsqlResource {
     } else if (statement instanceof Explain) {
       explainQuery((Explain) statement, statementText);
     } else if (isExecutableDdlStatement(statement)
-        || statement instanceof CreateAsSelect
-        || statement instanceof InsertInto
+        || statement instanceof QueryContainer
         || statement instanceof TerminateQuery) {
       final StatementWithSchema statementWithSchema
           = StatementWithSchema.forStatement(

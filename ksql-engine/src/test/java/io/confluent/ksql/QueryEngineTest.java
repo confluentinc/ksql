@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,9 @@
 
 package io.confluent.ksql;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -23,21 +26,16 @@ import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
 import java.util.List;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class QueryEngineTest {
 
@@ -56,7 +54,7 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
+        new CommandFactories(topicClient, schemaRegistryClient, ksqlConfig.getKsqlStreamConfigProps()));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
           "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
@@ -71,7 +69,7 @@ public class QueryEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateStream() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
-        new CommandFactories(topicClient, schemaRegistryClient, true, ksqlConfig.getKsqlStreamConfigProps()));
+        new CommandFactories(topicClient, schemaRegistryClient,  ksqlConfig.getKsqlStreamConfigProps()));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
           "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
@@ -82,5 +80,4 @@ public class QueryEngineTest {
     }
 
   }
-
 }

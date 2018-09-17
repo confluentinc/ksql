@@ -305,9 +305,9 @@ public class StatementExecutor {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
-        statement.getQuery(),
         querySpecification,
         statement.getName().getSuffix(),
+        statement.getQuery().getLimit(),
         statement.getProperties(),
         statement.getPartitionByColumn(),
         true
@@ -330,9 +330,9 @@ public class StatementExecutor {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
-        statement.getQuery(),
         querySpecification,
         statement.getTarget().getSuffix(),
+        statement.getQuery().getLimit(),
         new HashMap<>(),
         Optional.empty(),
         false

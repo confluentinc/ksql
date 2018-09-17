@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ import java.util.Optional;
 public class Table
     extends QueryBody {
 
-  public final boolean isStdOut;
+  private final boolean isStdOut;
   private final Map<String, Expression> properties  = new HashMap<>();
   private final QualifiedName name;
 

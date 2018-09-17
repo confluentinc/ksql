@@ -82,15 +82,13 @@ class QueryEngine {
       final KsqlConfig config) {
 
     final List<LogicalPlanNode> logicalPlansList = new ArrayList<>();
-    // TODO: the purpose of tempMetaStore here
-    final MetaStore tempMetaStore = metaStore.clone();
 
     for (final PreparedStatement statement : statementList) {
       if (statement.getStatement() instanceof Query) {
         final PlanNode logicalPlan = buildQueryLogicalPlan(
             statement.getStatementText(),
             (Query) statement.getStatement(),
-            tempMetaStore, config
+            metaStore, config
         );
         logicalPlansList.add(new LogicalPlanNode(statement.getStatementText(), logicalPlan));
       } else {
@@ -165,6 +163,7 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
+      final MetaStore metaStore,
       final boolean updateMetastore
   ) {
 
@@ -183,7 +182,7 @@ class QueryEngine {
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, node, ksqlConfig,
-            overriddenProperties, clientSupplier, updateMetastore
+            overriddenProperties, clientSupplier, metaStore, updateMetastore
         );
       }
 
@@ -197,6 +196,7 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
+      final MetaStore metaStore,
       final boolean updateMetastore
   ) {
 
@@ -210,7 +210,7 @@ class QueryEngine {
         ksqlEngine.getFunctionRegistry(),
         overriddenProperties,
         updateMetastore,
-        ksqlEngine.getMetaStore(),
+        metaStore,
         ksqlEngine.getSchemaRegistryClientFactory(),
         ksqlEngine.getQueryIdGenerator(),
         new KafkaStreamsBuilderImpl(clientSupplier)
@@ -220,7 +220,14 @@ class QueryEngine {
 
 
   DdlCommandResult handleDdlStatement(final String sqlExpression, final DdlStatement statement) {
+    final DdlCommand command = createDdlCommand(sqlExpression, statement, true);
+    return ksqlEngine.getDdlCommandExec().execute(command, false);
+  }
 
+  DdlCommand createDdlCommand(
+      final String sqlExpression,
+      final DdlStatement statement,
+      final boolean enforceTopicExistence) {
     final String resultingSqlExpression;
     final DdlStatement resultingStatement;
 
@@ -242,8 +249,8 @@ class QueryEngine {
       resultingStatement = statement;
     }
 
-    final DdlCommand command = ddlCommandFactory.create(resultingSqlExpression, resultingStatement);
-    return ksqlEngine.getDdlCommandExec().execute(command, false);
+    return ddlCommandFactory
+        .create(resultingSqlExpression, resultingStatement, enforceTopicExistence);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {

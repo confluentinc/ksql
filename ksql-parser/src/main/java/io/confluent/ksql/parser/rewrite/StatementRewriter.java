@@ -724,12 +724,12 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(location ->
             new Table(node.getLocation().get(),
                 node.getName(),
-                node.isStdOut,
+                node.isStdOut(),
                 properties)
         )
         .orElse(
             new Table(node.getName(),
-                node.isStdOut,
+                node.isStdOut(),
                 properties)
         );
   }

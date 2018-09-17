@@ -23,7 +23,11 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -32,6 +36,7 @@ import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -170,9 +175,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(statementParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(
         mockEngine.addInto(
-            csasStatement.getQuery(),
             (QuerySpecification)csasStatement.getQuery().getQueryBody(),
             csasStatement.getName().getSuffix(),
+            csasStatement.getQuery().getLimit(),
             csasStatement.getProperties(),
             csasStatement.getPartitionByColumn(),
             true))
@@ -243,21 +248,27 @@ public class StatementExecutorTest extends EasyMockSupport {
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    final CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId terminateCmdId =  new CommandId(CommandId.Type.TABLE,
                                                   "_TerminateGen",
                                                   CommandId.Action.CREATE);
-    statementExecutor.handleStatement(terminateCommand, terminateCommandId);
+    final CommandId terminateQueryCmdId =  new CommandId(CommandId.Type.STREAM,
+        "USER1PV",
+        CommandId.Action.CREATE);
+    statementExecutor.handleStatement(terminateCommand, terminateCmdId);
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    assertThat(statusStore.size(), equalTo(6));
+    assertThat(statusStore, is(notNullValue()));
+    assertThat(statusStore.keySet(),
+        hasItems(topicCommandId, csCommandId, csasCommandId, ctasCommandId, terminateCmdId));
+
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
-    assertThat(statusStore.get(terminateCommandId).getStatus(),
-               equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
+    assertThat(statusStore.keySet(), hasItem(terminateQueryCmdId));
+    assertThat(statusStore.get(terminateQueryCmdId).getStatus(), equalTo(Status.TERMINATED));
   }
 
   @Test

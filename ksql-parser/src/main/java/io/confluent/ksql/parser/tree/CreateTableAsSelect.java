@@ -55,10 +55,12 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
         .copyOf(requireNonNull(properties, "properties is null"));
   }
 
+  @Override
   public QualifiedName getName() {
     return name;
   }
 
+  @Override
   public Query getQuery() {
     return query;
   }
@@ -67,6 +69,7 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
     return notExists;
   }
 
+  @Override
   public Map<String, Expression> getProperties() {
     return properties;
   }

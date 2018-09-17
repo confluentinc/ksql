@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -76,7 +77,6 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -95,7 +95,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -116,7 +115,6 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class KsqlResourceTest {
   private KsqlConfig ksqlConfig;
-  private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine ksqlEngine;
 
@@ -124,7 +122,8 @@ public class KsqlResourceTest {
   public void setUp() throws IOException, RestClientException {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
-    ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(
+        TestKsqlResourceUtil.getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
     ksqlEngine = TestUtils.createKsqlEngine(
@@ -218,7 +217,7 @@ public class KsqlResourceTest {
       kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
     }
 
-    public static void addSource(
+    private static void addSource(
         final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient, final DataSource.DataSourceType type, final String sourceName,
         final String topicName, final String ksqlTopicName, final Schema schema) {
       final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
@@ -560,7 +559,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCSASStatementResultType() {
+  public void shouldFailForIncorrectCSASStatementResultType1() {
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
@@ -576,6 +575,11 @@ public class KsqlResourceTest {
             "Invalid result type. Your SELECT query produces a TABLE. " +
                 "Please use CREATE TABLE AS SELECT statement instead."));
 
+  }
+
+  @Test
+  public void shouldFailForIncorrectCSASStatementResultType2() {
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
                          + "s2_f1;";
 
@@ -699,6 +703,7 @@ public class KsqlResourceTest {
 
     final Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
+    assertThat(response.getEntity(), is(instanceOf(KsqlEntityList.class)));
     final KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Incorrect response.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(CommandStatusEntity.class));
@@ -818,7 +823,7 @@ public class KsqlResourceTest {
     EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
     EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
     EasyMock.expect(
-        mockEngine.getStatements(ksqlString)).andThrow(
+        mockEngine.parseStatements(ksqlString)).andThrow(
             new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);
 
@@ -846,7 +851,7 @@ public class KsqlResourceTest {
 
     EasyMock.reset(mockEngine);
     EasyMock.expect(
-        mockEngine.getStatements(ksqlString)).andReturn(ksqlEngine.getStatements(ksqlString));
+        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.getStatements(ksqlString));
     EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
         .andThrow(new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);
@@ -883,8 +888,6 @@ public class KsqlResourceTest {
         propertiesList.getOverwrittenProperties(),
         hasItem(equalTo("ksql.streams.auto.offset.reset")));
   }
-
-
 
   @Test
   public void shouldListPropertiesWithNoOverrides() {

@@ -15,12 +15,14 @@ Supported functionality
 
 KSQL currently supports Avro data in the Kafka message values.
 
-The following functionality is not supported yet:
+Avro schemas with nested fields are supported. Starting in KSQL 5.0 and higher, you can read nested data, in Avro and JSON
+formats, by using the STRUCT type. You can’t create new nested STRUCT data as the result of a query, but you can copy existing
+STRUCT fields as-is. For more info, see the :ref:`ksql_syntax_reference`.
+
+The following functionality is not supported:
 
 -  Message keys in Avro format are not supported. Message keys in KSQL are always interpreted as STRING format, which means
-   KSQL will ignore Avro schemas that have been registered for message keys and the key will be read using StringDeserializer.
--  Avro schemas with nested fields are not supported yet. This is because KSQL does not yet support nested columns. This
-   functionality is coming soon.
+   KSQL will ignore Avro schemas that have been registered for message keys and the key will be read using ``StringDeserializer``.
 
 Configuring KSQL for Avro
 ^^^^^^^^^^^^^^^^^^^^^^^^^

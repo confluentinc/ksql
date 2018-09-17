@@ -11,30 +11,26 @@ do
     table_name=$i
     TABLE_NAME=`echo $table_name | tr '[a-z]' '[A-Z]'`
 
-    echo "==================================================================" 
-    echo "Charting " $TABLE_NAME  
+    echo -e "\n\n==================================================================" 
+    echo -e "Charting " $TABLE_NAME  
 
     ## Cleanup existing data
 
-    echo 
-    echo "Remove any existing Elastic search config"  
-    curl -X "DELETE" "http://elasticsearch:9200/""$table_name"  2>&1
+    echo -e "\t-> Remove any existing Elastic search config"  
+    curl -s -X "DELETE" "http://elasticsearch:9200/""$table_name"  >>/tmp/log.txt 2>&1
 
-    echo 
-    echo "Remove any existing Connect config"  
-    curl -X "DELETE" "http://localhost:8083/connectors/es_sink_""$TABLE_NAME"  2>&1
+    echo -e "\t-> Remove any existing Connect config"  
+    curl -s -X "DELETE" "http://localhost:8083/connectors/es_sink_""$TABLE_NAME"  >>/tmp/log.txt 2>&1
 
-    echo 
-    echo "Remove any existing Grafana config"  
-    curl -X "DELETE" "http://grafana:3000/api/datasources/name/""$table_name"   --user admin:admin  2>&1
+    echo -e "\t-> Remove any existing Grafana config"  
+    curl -s -X "DELETE" "http://grafana:3000/api/datasources/name/""$table_name"   --user admin:admin  >>/tmp/log.txt 2>&1
 
     # Wire in the new connection path
-    echo 
-    echo "Connecting KSQL->Elastic->Grafana " "$table_name"  2>&1
+    echo -e "\t-> Connecting KSQL->Elastic->Grafana " "$table_name"  2>&1
     /scripts/ksql-connect-es-grafana.sh "$table_name"  2>&1
 done
 
-echo "Done"
+echo -e "\n\nDone!"
 
 # ========================
 #   REST API Notes

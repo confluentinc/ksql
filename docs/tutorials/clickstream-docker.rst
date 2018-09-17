@@ -335,25 +335,18 @@ Send the KSQL tables to Elasticsearch and Grafana.
    .. code:: bash
 
         Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+
+
         ==================================================================
         Charting  CLICK_USER_SESSIONS
-        Charting  CLICK_USER_SESSIONS
+                -> Remove any existing Elastic search config
+                -> Remove any existing Connect config
+                -> Remove any existing Grafana config
+                -> Connecting KSQL->Elastic->Grafana  click_user_sessions
+                -> Connecting: click_user_sessions
+                        -> Adding Kafka Connect Elastic Source es_sink_CLICK_USER_SESSIONS
+                        ->Adding Grafana Source
 
-        Remove any existing Elastic search config
-        {"error":{"root_cause":[{"type":"index_not_found_exception","reason":"no such index","resource.type":"index_or_alias","resource.id":"click_user_sessions","index_uuid":"_na_","index":"click_user_sessions"}],"type":"index_not_found_exception","reason":"no such index","resource.type":"index_or_alias","resource.id":"click_user_sessions","index_uuid":"_na_","index":"click_user_sessions"},"status":404}
-        Remove any existing Connect config
-        {"error_code":404,"message":"Connector es_sink_CLICK_USER_SESSIONS not found"}
-        Remove any existing Grafana config
-        {"message":"Failed to delete datasource"}
-        Connecting KSQL->Elastic->Grafana  click_user_sessions
-        Connecting: click_user_sessions
-        Adding Kafka Connect Elastic Source es_sink_CLICK_USER_SESSIONS:
-
-
-        {"name":"es_sink_CLICK_USER_SESSIONS","config":{"schema.ignore":"true","topics":"CLICK_USER_SESSIONS","key.converter":"org.apache.kafka.connect.storage.StringConverter","value.converter.schemas.enable":"false","connector.class":"io.confluent.connect.elasticsearch.ElasticsearchSinkConnector","key.ignore":"true","value.converter":"org.apache.kafka.connect.json.JsonConverter","type.name":"type.name=kafkaconnect","topic.index.map":"CLICK_USER_SESSIONS:click_user_sessions","connection.url":"http://elasticsearch:9200","transforms":"FilterNulls,ExtractTimestamp","transforms.FilterNulls.type":"io.confluent.transforms.NullFilter","transforms.ExtractTimestamp.type":"org.apache.kafka.connect.transforms.InsertField$Value","transforms.ExtractTimestamp.timestamp.field":"EVENT_TS","name":"es_sink_CLICK_USER_SESSIONS"},"tasks":[],"type":null}
-
-        Adding Grafana Source
-        {"datasource":{"id":1,"orgId":1,"name":"click_user_sessions","type":"elasticsearch","typeLogoUrl":"","access":"proxy","url":"http://elasticsearch:9200","password":"","user":"","database":"click_user_sessions","basicAuth":false,"basicAuthUser":"","basicAuthPassword":"","withCredentials":false,"isDefault":false,"jsonData":{"timeField":"EVENT_TS"},"secureJsonFields":{},"version":1,"readOnly":false},"id":1,"message":"Datasource added","name":"click_user_sessions"}==================================================================
         [...]
 
 4. Load the dashboard into Grafana.

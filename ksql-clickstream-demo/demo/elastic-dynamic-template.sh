@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-echo -e "\n-> Removing kafkaconnect index (if it doesn't exist, this just throws 404)\n"
+echo -e "\n-> Removing kafkaconnect template if it exists already."
 
-curl -XDELETE "http://localhost:9200/_template/kafkaconnect/"
+curl -XDELETE "http://localhost:9200/_template/kafkaconnect/" > /tmp/log.txt 2>&1
 
 echo -e "\n\n-> Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp\n\n"
 

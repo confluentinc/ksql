@@ -3,18 +3,12 @@
 Writing Streaming Queries Against Kafka Using KSQL (Local)
 ==========================================================
 
-Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
-
-.. raw:: html
-
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/EzVZOUt9JsU" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
-    </div>
-
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 
 To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
 this Kafka cluster. KSQL is installed in the |cp| by default.
+
+Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
 
 **Prerequisites:**
 

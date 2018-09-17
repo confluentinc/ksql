@@ -33,6 +33,7 @@ import io.confluent.ksql.util.Pair;
 import java.util.List;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,6 +53,10 @@ public class QueryEngineTest {
       metaStore,
       ksqlConfig);
 
+  @After
+  public void closeEngine() {
+    ksqlEngine.close();
+  }
 
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {

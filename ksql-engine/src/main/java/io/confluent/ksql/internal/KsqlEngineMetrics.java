@@ -19,10 +19,15 @@ package io.confluent.ksql.internal;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -31,12 +36,14 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 
 public class KsqlEngineMetrics implements Closeable {
 
   private final List<Sensor> sensors;
+  private final List<CountMetric> countMetrics;
   private final String metricGroupName;
-  private final Sensor numActiveQueries;
   private final Sensor messagesIn;
   private final Sensor totalMessagesIn;
   private final Sensor totalBytesIn;
@@ -49,16 +56,23 @@ public class KsqlEngineMetrics implements Closeable {
 
 
   private final KsqlEngine ksqlEngine;
+  private final Metrics metrics;
 
   public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
+    this(metricGroupPrefix, ksqlEngine, MetricCollectors.getMetrics());
+  }
+
+  KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine,
+      final Metrics metrics) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
+    this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
-    final Metrics metrics = MetricCollectors.getMetrics();
+    this.metrics = metrics;
 
-    this.numActiveQueries = configureNumActiveQueries(metrics);
+    configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
     this.totalMessagesIn = configureTotalMessagesIn(metrics);
     this.totalBytesIn = configureTotalBytesIn(metrics);
@@ -66,12 +80,14 @@ public class KsqlEngineMetrics implements Closeable {
     this.numIdleQueries = configureIdleQueriesSensor(metrics);
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
     this.errorRate = configureErrorRate(metrics);
+    Arrays.stream(State.values())
+        .forEach(state -> configureNumActiveQueriesForGivenState(metrics, state));
   }
 
   @Override
   public void close() {
-    final Metrics metrics = MetricCollectors.getMetrics();
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
+    countMetrics.forEach(countMetric -> metrics.removeMetric(countMetric.getMetricName()));
   }
 
   public void updateMetrics() {
@@ -83,9 +99,23 @@ public class KsqlEngineMetrics implements Closeable {
     recordErrorRate(MetricCollectors.currentErrorRate());
   }
 
+  public Metrics getMetrics() {
+    return metrics;
+  }
+
   // Visible for testing
   List<Sensor> registeredSensors() {
     return sensors;
+  }
+
+  public void registerQueries(final List<QueryMetadata> queryMetadataList) {
+    queryMetadataList.forEach(queryMetadata -> queryMetadata.registerQueryStateListener(
+        new QueryStateListener(
+            metrics,
+            queryMetadata.getKafkaStreams(),
+            queryMetadata.getQueryApplicationId()
+        )
+    ));
   }
 
   private void recordMessageConsumptionByQueryStats(
@@ -165,7 +195,7 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureNumActiveQueries(final Metrics metrics) {
+  private void configureNumActiveQueries(final Metrics metrics) {
     final Sensor sensor = createSensor(metrics, metricGroupName + "-active-queries");
     sensor.add(
         metrics.metricName(ksqlServiceId + "num-active-queries", this.metricGroupName,
@@ -197,8 +227,6 @@ public class KsqlEngineMetrics implements Closeable {
           }
         }
     );
-    return sensor;
-
   }
 
   private Sensor configureIdleQueriesSensor(final Metrics metrics) {
@@ -231,4 +259,41 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
+
+  private CountMetric configureNumActiveQueriesForGivenState(final Metrics metrics,
+      final KafkaStreams.State state) {
+    final String gaugeName = ksqlServiceId + metricGroupName + "-" + state + "-queries";
+    final Gauge<Long> gauge = (metricConfig, l) -> ksqlEngine.getPersistentQueries()
+        .stream()
+        .filter(queryMetadata -> queryMetadata.getKafkaStreams().state() == state)
+        .count();
+
+    final MetricName metricName = metrics.metricName(gaugeName,
+        metricGroupName,
+        String.format("Count of queries in %s state.", state.toString()));
+    final CountMetric countMetric = new CountMetric(metricName, gauge);
+    metrics.addMetric(metricName, gauge);
+    countMetrics.add(countMetric);
+    return countMetric;
+  }
+
+  private static class CountMetric {
+    private final Gauge<Long> count;
+    private final MetricName metricName;
+
+    CountMetric(final MetricName metricName, final Gauge<Long> count) {
+      Objects.requireNonNull(metricName, "Metric name cannot be null.");
+      Objects.requireNonNull(count, "Count gauge cannot be null.");
+      this.metricName = metricName;
+      this.count = count;
+    }
+
+    MetricName getMetricName() {
+      return metricName;
+    }
+
+    public Gauge<Long> getCount() {
+      return count;
+    }
+  }
 }

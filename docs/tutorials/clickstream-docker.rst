@@ -15,7 +15,6 @@ These steps will guide you through how to setup your environment and run the cli
 
       $ sudo sysctl -w vm.max_map_count=262144
       
-   The background to this requirement can be `found here <https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html>`__
 
 -----------------------------
 Download and run the tutorial

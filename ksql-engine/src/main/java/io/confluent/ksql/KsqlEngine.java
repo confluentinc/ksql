@@ -20,9 +20,11 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
+
 import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -35,6 +37,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -49,6 +53,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -70,6 +75,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -91,6 +97,10 @@ public class KsqlEngine implements Closeable {
       .add(KsqlConfig.KSQL_EXT_DIR)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
+
+  private final AtomicBoolean clusterTerminated = new AtomicBoolean(false);
+
+
 
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
@@ -572,6 +582,40 @@ public class KsqlEngine implements Closeable {
       final DdlStatement statement,
       final Map<String, Object> overriddenProperties) {
     return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
+  }
+
+
+  public void terminateCluster(
+      final List<String> keepTopics,
+      final List<String> deleteTopics
+  ) {
+    this.clusterTerminated.set(true);
+    // Terminate all queries
+    persistentQueries.forEach(
+        (queryId, persistentQueryMetadata) -> terminateQuery(queryId, true)
+    );
+    // Delete all the generated topics.
+    metaStore.getAllStructuredDataSources().forEach((s, structuredDataSource) ->
+    {
+      DdlCommand ddlCommand = new DropSourceCommand(
+          new DropStream(QualifiedName.of(s), false, true),
+          structuredDataSource.getDataSourceType(),
+          this.topicClient,
+          this.schemaRegistryClient,
+          true
+      );
+
+      if (structuredDataSource.getDataSourceType() == DataSourceType.KTABLE) {
+        ddlCommand = new DropSourceCommand(
+            new DropTable(QualifiedName.of(s), false, true),
+            structuredDataSource.getDataSourceType(),
+            this.topicClient,
+            this.schemaRegistryClient,
+            true
+        );
+      }
+      ddlCommandExec.execute(ddlCommand, false);
+    });
   }
 
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {

@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +65,8 @@ public class CommandIdAssigner {
         command -> getDropTableCommandId((DropTable) command));
     suppliers.put(RunScript.class,
         command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
+    suppliers.put(TerminateCluster.class,
+        command -> new CommandId(CommandId.Type.STREAM, "TerminateCluster", CommandId.Action.EXECUTE));
   }
 
   public CommandId getCommandId(final Statement command) {

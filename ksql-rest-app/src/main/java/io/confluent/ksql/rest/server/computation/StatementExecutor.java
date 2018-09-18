@@ -32,18 +32,22 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,11 +109,31 @@ public class StatementExecutor {
       final CommandId commandId,
       final Optional<QueuedCommandStatus> status
   ) {
-    handleStatementWithTerminatedQueries(command,
-        commandId,
-        status,
-        null,
-        false);
+    final String statementText = command.getStatement();
+    if (statementText.equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+      final List<String> keepTopics = command
+          .getOverwriteProperties().containsKey("KEEP_SOURCES")
+          ? ((List<String>) command.getOverwriteProperties().get("KEEP_SOURCES"))
+          .stream()
+          .map(String::toUpperCase).collect(Collectors.toList())
+          : Collections.emptyList();
+      final List<String> deleteTopics = command
+          .getOverwriteProperties().containsKey("DELETE_SOURCES")
+          ? ((List<String>) command.getOverwriteProperties().get("DELETE_SOURCES"))
+          .stream().map(String::toUpperCase).collect(Collectors.toList())
+          : Collections.emptyList();
+      ksqlEngine.terminateCluster(keepTopics, deleteTopics);
+      // Delete the command topic
+      final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+      final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
+      ksqlEngine.getTopicClient().deleteTopics(Collections.singletonList(commandTopic));
+    } else {
+      handleStatementWithTerminatedQueries(command,
+          commandId,
+          status,
+          null,
+          false);
+    }
   }
 
   /**

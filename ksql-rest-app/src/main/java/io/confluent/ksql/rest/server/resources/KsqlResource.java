@@ -97,6 +97,10 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -152,6 +156,43 @@ public class KsqlResource {
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
+  }
+
+  @POST
+  @Path("/terminate")
+  public Response terminateCluster(final KsqlRequest request) {
+    final String terminateClusterString = "TERMINATE CLUSTER;";
+    final KsqlEntityList result = new KsqlEntityList();
+    try {
+      final List<String> keepTopics = request
+          .getStreamsProperties().containsKey("KEEP_SOURCES")
+          ? ((List<String>) request.getStreamsProperties().get("KEEP_SOURCES"))
+          .stream()
+          .map(String::toUpperCase).collect(Collectors.toList())
+          : Collections.emptyList();
+      final List<String> deleteTopics = request
+          .getStreamsProperties().containsKey("DELETE_SOURCES")
+          ? ((List<String>) request.getStreamsProperties().get("DELETE_SOURCES"))
+          .stream().map(String::toUpperCase).collect(Collectors.toList())
+          : Collections.emptyList();
+      if (!keepTopics.isEmpty() && !deleteTopics.isEmpty()) {
+        return Errors.serverErrorForStatement(
+            new KsqlException("You cannot path both KEEP_SOURCES and DELETE_SOURCES lists at "
+                + "the same time.")
+            , terminateClusterString, result);
+      }
+
+      final TerminateCluster terminateCluster = new TerminateCluster(keepTopics, deleteTopics);
+      distributeStatement(
+          terminateClusterString,
+          terminateCluster,
+          request.getStreamsProperties(),
+          ksqlConfig
+      );
+    } catch (final Exception e) {
+      return Errors.serverErrorForStatement(e, terminateClusterString, result);
+    }
+    return Response.ok(result).build();
   }
 
   @POST
@@ -313,7 +354,7 @@ public class KsqlResource {
         && !((statement instanceof SetProperty) || (statement instanceof UnsetProperty));
   }
 
-  private CommandStatusEntity distributeStatement(
+  private synchronized CommandStatusEntity distributeStatement(
       final String statementText,
       final Statement statement,
       final Map<String, Object> propertyOverrides,

@@ -45,26 +45,41 @@ STRUCT
 ------
 
 In KSQL 5.0 and higher, you can read nested data, in Avro and JSON formats,
-by using the STRUCT type in CREATE STREAM and CREATE TABLE statements. Use the
-following syntax to declare nested data: 
+by using the ``STRUCT`` type in CREATE STREAM and CREATE TABLE statements.
+You can use the ``STRUCT`` type in these KSQL statements: 
+
+- CREATE STREAM/TABLE (from a topic)
+- CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
+- SELECT (non-persistent query)
+
+Use the following syntax to declare nested data: 
 
 .. code:: sql
 
    STRUCT<FieldName FieldType, ...>
 
-The STRUCT type requires you to specify a list of fields. For each field, you
+The ``STRUCT`` type requires you to specify a list of fields. For each field, you
 specify the field name and field type. The field type can be any of the
 supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
-``STRUCT``.
+``STRUCT``. Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
+encapsulate a street address and a postal code:
 
-Access the fields in a ``STRUCT`` by using the struct dereference operator
-(``->``). For more info, see :ref:`operators`.
+.. code:: sql
 
-You can’t create new nested STRUCT data as the result of a query, but you can copy
-existing STRUCT fields as-is.
+   CREATE STREAM orders (
+     orderId BIGINT,
+     address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 
-:ref:`struct_overview`
+Access the fields in a ``STRUCT`` by using the dereference operator (``->``):
 
+.. code:: sql
+
+   SELECT address->city, address->zip FROM orders;
+
+For more info, see :ref:`operators`.
+
+.. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
+   but you can copy existing ``STRUCT`` fields as-is.
 
 =================
 KSQL CLI Commands

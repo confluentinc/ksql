@@ -443,7 +443,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 .. __struct_support_01_start
 
 Using Nested Schemas (STRUCT) in KSQL
-=====================================
+-------------------------------------
 
 Struct support enables the modeling and access of nested data in Kafka
 topics, from both JSON and Avro.

@@ -764,7 +764,7 @@ final class EndToEndEngineTestUtil {
       assertEquals(query.expectedTopology, query.generatedTopology);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);
-
+      ksqlEngine.close();
     } catch (final RuntimeException e) {
       query.handleException(e);
     }

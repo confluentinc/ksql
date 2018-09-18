@@ -262,7 +262,7 @@ public class JsonFormatTest {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 

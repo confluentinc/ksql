@@ -197,12 +197,6 @@ Aggregating, windowing, and sessionization
 
 Watch the `screencast of Aggregations in KSQL <https://www.youtube.com/embed/db5SsmNvej4>`_ on YouTube.
 
-.. raw:: html
-
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/db5SsmNvej4" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
-    </div>
-
 Now assume that you want to count the number of pageviews per region.
 Here is the query that would perform this count:
 

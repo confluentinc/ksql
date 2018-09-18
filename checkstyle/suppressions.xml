@@ -8,7 +8,6 @@
 
   <!--
       DO NOT USE THIS SUPPRESSION FILE
-
       If you really MUST suppress a rule, rather than just fixing / refactoring the code, then
       use inline code comments.
 
@@ -33,5 +32,4 @@
       The reason code comments are preferred is that they work better with IDE plugins such as
       IDEA CheckStyle.
   -->
-
 </suppressions>

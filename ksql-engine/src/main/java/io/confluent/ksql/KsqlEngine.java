@@ -182,8 +182,8 @@ public class KsqlEngine implements Closeable {
         this,
         new CommandFactories(topicClient,
             schemaRegistryClient,
-            true,
-            initializationKsqlConfig.getKsqlStreamConfigProps()));
+            true
+        ));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -230,7 +230,9 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    final List<QueryMetadata> queryMetadataList =
+        planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    return queryMetadataList;
   }
 
   private List<QueryMetadata> planQueries(
@@ -267,7 +269,7 @@ public class KsqlEngine implements Closeable {
       }
       allLiveQueries.add(queryMetadata);
     }
-
+    engineMetrics.registerQueries(runningQueries);
     return runningQueries;
   }
 
@@ -599,8 +601,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
-    for (final QueryMetadata queryMetadata : queriesToClose) {
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     adminClient.close();
@@ -614,8 +615,9 @@ public class KsqlEngine implements Closeable {
 
   public DdlCommandResult executeDdlStatement(
       final String sqlExpression,
-      final DdlStatement statement) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement);
+      final DdlStatement statement,
+      final Map<String, Object> overriddenProperties) {
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
@@ -631,17 +633,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
-    final MetaStore metaStoreCopy = metaStore.clone();
-    return planQueries(
-        parseStatements(
-            queries,
-            metaStoreCopy,
-            true
-        ),
-        ksqlConfig,
-        Collections.emptyMap(),
-        metaStoreCopy
-    );
+    return buildMultipleQueries(queries, ksqlConfig, Collections.emptyMap());
   }
 
   public List<UdfFactory> listScalarFunctions() {

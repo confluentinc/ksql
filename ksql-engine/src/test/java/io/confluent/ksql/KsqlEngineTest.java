@@ -40,11 +40,9 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -60,16 +58,16 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -356,7 +354,8 @@ public class KsqlEngineTest {
     adminClient.close();
     expectLastCall();
     replay(adminClient);
-    final KsqlEngine ksqlEngine
+    ksqlEngine.close();
+    final KsqlEngine localKsqlEngine
         = new KsqlEngine(
             new FakeKafkaTopicClient(),
             schemaRegistryClientFactory,
@@ -366,7 +365,7 @@ public class KsqlEngineTest {
           adminClient);
 
     // When:
-    ksqlEngine.close();
+    localKsqlEngine.close();
 
     // Then:
     verify(adminClient);
@@ -375,6 +374,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldUseSerdeSupplierToBuildQueries() {
     final KsqlTopicSerDe mockKsqlSerde = mock(KsqlTopicSerDe.class);
+    this.ksqlEngine.close();
     final MetaStore metaStore =
         MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
     final KsqlEngine ksqlEngine = new KsqlEngine(
@@ -399,6 +399,7 @@ public class KsqlEngineTest {
     ksqlEngine.createQueries("create table bar as select * from test2;", ksqlConfig);
 
     verify(mockKsqlSerde);
+    ksqlEngine.close();
   }
 
   @Test
@@ -438,4 +439,13 @@ public class KsqlEngineTest {
 
   }
 
+  public void shouldSetPropertyInRunScript() {
+    final Map<String, Object> overriddenProperties = new HashMap<>();
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "SET 'auto.offset.reset' = 'earliest'; ",
+        ksqlConfig, overriddenProperties);
+    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
+
+  }
 }

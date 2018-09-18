@@ -71,13 +71,13 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder()
         .appName("KSQL")
+        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
+        .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
+        .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
         .expander(expander)
         .parser(new TrimmingParser(parser))
         .terminal(terminal)
         .build();
-
-    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
     if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);

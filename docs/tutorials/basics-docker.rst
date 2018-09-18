@@ -9,9 +9,7 @@ environment.
 To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
 this Kafka cluster. KSQL is installed in the |cp| by default.
 
-.. include:: ../includes/ksql-docker-includes.rst
-    :start-after: docker_prereqs_start
-    :end-before: docker_prereqs_end
+.. include:: ../../../quickstart/includes/docker-prereqs.rst
 
 ------------------------------------
 Download the Tutorial and Start KSQL

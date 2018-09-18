@@ -66,7 +66,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
     final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     subscriber.onSubscribe(subscription);
   }

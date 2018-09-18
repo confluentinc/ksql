@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
@@ -61,8 +62,10 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Test;
 
@@ -165,13 +168,11 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING);
+    expect(mockKafkaStreams.state()).andReturn(State.RUNNING).once();
+    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
     mockKafkaStreams.close();
     expectLastCall();
-    mockKafkaStreams.cleanUp();
-    expectLastCall();
-    mockKafkaStreams.setStateListener(anyObject());
-    expectLastCall();
+
 
     final OutputNode mockOutputNode = niceMock(OutputNode.class);
     expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))

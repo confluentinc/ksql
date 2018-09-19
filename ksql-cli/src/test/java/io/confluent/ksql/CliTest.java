@@ -111,10 +111,11 @@ public class CliTest {
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
   private static TestRunner testRunner;
+  private static KsqlRestClient restClient;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    final KsqlRestClient restClient = createRestClient();
+    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();
@@ -179,6 +180,7 @@ public class CliTest {
 
     localCli.close();
     terminal.close();
+    restClient.close();
   }
 
   private static Map<String, Object> validStartUpConfigs() {
@@ -493,7 +495,7 @@ public class CliTest {
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, createRestClient(), terminal);
+    new Cli(1L, 1L, restClient, terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
   }
@@ -510,7 +512,7 @@ public class CliTest {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, createRestClient());
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -606,9 +608,5 @@ public class CliTest {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
-  }
-
-  private static KsqlRestClient createRestClient() {
-    return new KsqlRestClient(REST_APP.getHttpListener().toString());
   }
 }

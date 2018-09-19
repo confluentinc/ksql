@@ -19,6 +19,9 @@ package io.confluent.ksql.rest.server;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -40,12 +43,16 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -207,7 +214,6 @@ public class StandaloneExecutorTest {
     EasyMock.replay(query, persistentQueryMetadata, engine);
     standaloneExecutor.start();
     EasyMock.verify(query, persistentQueryMetadata, engine);
-
   }
 
   @Test

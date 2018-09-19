@@ -354,7 +354,8 @@ public class KsqlEngineTest {
     adminClient.close();
     expectLastCall();
     replay(adminClient);
-    final KsqlEngine ksqlEngine
+    ksqlEngine.close();
+    final KsqlEngine localKsqlEngine
         = new KsqlEngine(
             new FakeKafkaTopicClient(),
             schemaRegistryClientFactory,
@@ -364,7 +365,7 @@ public class KsqlEngineTest {
           adminClient);
 
     // When:
-    ksqlEngine.close();
+    localKsqlEngine.close();
 
     // Then:
     verify(adminClient);
@@ -373,6 +374,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldUseSerdeSupplierToBuildQueries() {
     final KsqlTopicSerDe mockKsqlSerde = mock(KsqlTopicSerDe.class);
+    this.ksqlEngine.close();
     final MetaStore metaStore =
         MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
     final KsqlEngine ksqlEngine = new KsqlEngine(
@@ -398,6 +400,7 @@ public class KsqlEngineTest {
         .buildMultipleQueries("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
 
     verify(mockKsqlSerde);
+    ksqlEngine.close();
   }
 
   @Test

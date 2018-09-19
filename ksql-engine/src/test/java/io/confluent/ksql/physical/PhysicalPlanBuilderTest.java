@@ -214,6 +214,8 @@ public class PhysicalPlanBuilderTest {
         queryMetadataList.get(1).getOutputNode();
     assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
+    closeQueries(queryMetadataList);
+    ksqlEngine.close();
   }
 
   @Test
@@ -236,6 +238,8 @@ public class PhysicalPlanBuilderTest {
           + "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;. "
           + "Error: Sink, S1, does not exist for the INSERT INTO statement."));
       return;
+    } finally {
+      ksqlEngine.close();
     }
     Assert.fail();
 
@@ -267,6 +271,8 @@ public class PhysicalPlanBuilderTest {
           equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
               + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
       return;
+    } finally {
+      ksqlEngine.close();
     }
     Assert.fail();
   }
@@ -302,6 +308,8 @@ public class PhysicalPlanBuilderTest {
         equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
             + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
             + "DOUBLE]."));
+    closeQueries(queryMetadataList);
+    ksqlEngine.close();
   }
 
   @Test
@@ -335,6 +343,8 @@ public class PhysicalPlanBuilderTest {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible data sink and query result. "
           + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
       return;
+    } finally {
+      ksqlEngine.close();
     }
     Assert.fail();
   }
@@ -367,6 +377,8 @@ public class PhysicalPlanBuilderTest {
         + ": DOUBLE]."));
     assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR"
         + ", COL2 : DOUBLE]."));
+    closeQueries(queryMetadataList);
+    ksqlEngine.close();
   }
 
   @Test
@@ -393,6 +405,8 @@ public class PhysicalPlanBuilderTest {
           + "results. Sink key field is COL0 (type: "
           + "Schema{INT64}) while result key field is null (type: null)"));
       return;
+    } finally {
+      ksqlEngine.close();
     }
     Assert.fail();
   }
@@ -605,5 +619,11 @@ public class PhysicalPlanBuilderTest {
     resultSchema.fields().stream().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
+    closeQueries(queryMetadataList);
+    ksqlEngine.close();
+  }
+
+  private void closeQueries(final List<QueryMetadata> queryMetadataList) {
+    queryMetadataList.forEach(QueryMetadata::close);
   }
 }

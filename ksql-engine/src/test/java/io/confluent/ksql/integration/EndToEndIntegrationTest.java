@@ -299,7 +299,7 @@ public class EndToEndIntegrationTest {
     final List<QueryMetadata> queries =
         ksqlEngine.buildMultipleQueries(formatted, ksqlConfig, Collections.emptyMap());
 
-    queries.forEach(QueryMetadata::start);
+    queries.forEach(queryMetadata -> queryMetadata.start());
 
     return queries.isEmpty() ? null : queries.get(0);
   }

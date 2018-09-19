@@ -218,7 +218,9 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    final List<QueryMetadata> queryMetadataList =
+        planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    return queryMetadataList;
   }
 
   private List<QueryMetadata> planQueries(
@@ -266,7 +268,7 @@ public class KsqlEngine implements Closeable {
       }
       allLiveQueries.add(queryMetadata);
     }
-
+    engineMetrics.registerQueries(runningQueries);
     return runningQueries;
   }
 
@@ -552,8 +554,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
-    for (final QueryMetadata queryMetadata : queriesToClose) {
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     adminClient.close();

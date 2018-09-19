@@ -16,11 +16,18 @@
 
 package io.confluent.ksql.test.util;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +37,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Supplier;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.eclipse.jetty.websocket.api.util.WSURI;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -81,6 +91,39 @@ public class TestKsqlRestApp extends ExternalResource {
   @SuppressWarnings("unused") // Part of public API
   public void stop() {
     this.after();
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public URI getHttpListener() {
+    final URL url = getListeners().stream()
+        .filter(l -> l.getProtocol().equals("http"))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("No HTTP Listener found: "));
+
+    try {
+      return url.toURI();
+    } catch (final Exception e) {
+      throw new RuntimeException("Invalid REST listener", e);
+    }
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public URI getWsListener() {
+    try {
+      return WSURI.toWebsocket(getHttpListener());
+    } catch (URISyntaxException e) {
+      throw new RuntimeException("Invalid WS listener", e);
+    }
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public static Client buildClient() {
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
+    objectMapper.registerModule(new Jdk8Module());
+    final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
   @Override

@@ -115,7 +115,7 @@ public class CliTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    restClient = new KsqlRestClient(REST_APP.getListeners().get(0).toString());
+    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();

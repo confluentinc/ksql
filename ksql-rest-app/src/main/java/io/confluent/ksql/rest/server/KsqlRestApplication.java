@@ -433,8 +433,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         );
       }
       if (replicationFactor < 2) {
-        log.warn("Creating topic {} with replication factor of %d which is less than 2. "
-                 + "This is not advisable in a production environment. ", replicationFactor);
+        log.warn("Creating topic {} with replication factor of {} which is less than 2. "
+                 + "This is not advisable in a production environment. ",
+                commandTopic, replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we

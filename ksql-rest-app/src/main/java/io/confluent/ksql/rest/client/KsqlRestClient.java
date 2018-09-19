@@ -58,7 +58,7 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlRestClient implements Closeable, AutoCloseable {
+public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final KsqlErrorMessage UNAUTHORIZED_ERROR_MESSAGE = new KsqlErrorMessage(
@@ -221,7 +221,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error.");
   }
 
-  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;

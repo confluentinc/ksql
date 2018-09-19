@@ -39,11 +39,9 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -381,13 +379,5 @@ public class KsqlRestClient implements Closeable {
     objectMapper.registerModule(new Jdk8Module());
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
-  }
-
-  public static void main(final String[] args) {
-    List<String> keepList = Arrays.asList("FOO", "BAR");
-    final Map<String, Object> requestProps = Collections.singletonMap("KEEP_SOURCES", keepList);
-    RestResponse restResponse = new KsqlRestClient("http://localhost:8088", requestProps)
-        .makeTerminateQlusterRequest();
-    System.out.println();
   }
 }

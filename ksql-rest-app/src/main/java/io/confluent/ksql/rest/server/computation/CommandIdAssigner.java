@@ -66,7 +66,8 @@ public class CommandIdAssigner {
     suppliers.put(RunScript.class,
         command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
     suppliers.put(TerminateCluster.class,
-        command -> new CommandId(CommandId.Type.STREAM, "TerminateCluster", CommandId.Action.EXECUTE));
+        command ->
+            new CommandId(CommandId.Type.STREAM, "TerminateCluster", CommandId.Action.EXECUTE));
   }
 
   public CommandId getCommandId(final Statement command) {

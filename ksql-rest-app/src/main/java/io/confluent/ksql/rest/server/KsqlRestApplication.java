@@ -344,7 +344,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,
         ksqlEngine,
-        statementParser
+        statementParser,
+        commandConsumer,
+        commandProducer
     );
 
     final CommandStore commandStore = new CommandStore(

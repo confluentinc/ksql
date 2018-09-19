@@ -16,7 +16,9 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -29,8 +31,16 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -39,17 +49,26 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
+import java.util.Set;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -67,6 +86,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private KsqlConfig ksqlConfig;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     final Map<String, Object> props = new HashMap<>();
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
@@ -79,7 +99,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
+    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser, mock(Consumer.class), mock(Producer.class));
   }
 
   @After
@@ -134,6 +154,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldBuildQueriesWithPersistedConfig() {
     final KsqlConfig originalConfig = new KsqlConfig(
         Collections.singletonMap(
@@ -162,7 +183,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser);
+        ksqlConfig, mockEngine, statementParser, mock(Consumer.class), mock(Producer.class));
 
     final Command csasCommand = new Command(
         statementText,
@@ -420,6 +441,114 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(dropStreamCommandStatus3.get().getStatus(),
                CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
 
+  }
+
+  @Test
+  public void shouldTerminateClusterAndKeepList() throws IOException {
+    final List<String> keepSources = Collections.singletonList("FOO");
+    final Command command = new Command(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+        Collections.singletonMap("KEEP_SOURCES", keepSources),
+        Collections.emptyMap());
+    testTerminateClusterForCommand(command, keepSources, Collections.emptyList(), 2);
+  }
+
+  @Test
+  public void shouldTerminateClusterAndDeleteList() throws IOException {
+    final List<String> deleteSources = Collections.singletonList("FOO");
+    final Command command = new Command(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+        Collections.singletonMap("DELETE_SOURCES", deleteSources),
+        Collections.emptyMap());
+    testTerminateClusterForCommand(command, deleteSources, Collections.emptyList(), 1);
+  }
+
+  @Test
+  public void shouldTerminateCluster() throws IOException {
+    final Command command = new Command(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+        Collections.emptyMap(),
+        Collections.emptyMap());
+    testTerminateClusterForCommand(command, Collections.emptyList(), Collections.emptyList(), 3);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void testTerminateClusterForCommand(final Command command, final List<String> keepTopics, final List<String> deleteTopics, final int deleteCount) throws IOException {
+    final CommandId commandId = mock(CommandId.class);
+    final KsqlEngine ksqlEngine = niceMock(KsqlEngine.class);
+    final KafkaTopicClient kafkaTopicClient = niceMock(KafkaTopicClient.class);
+    kafkaTopicClient.deleteTopics(anyObject());
+    expectLastCall().anyTimes();
+    final SchemaRegistryClient schemaRegistryClient = niceMock(SchemaRegistryClient.class);
+    expect(ksqlEngine.getTopicClient()).andReturn(kafkaTopicClient).anyTimes();
+    expect(ksqlEngine.getSchemaRegistryClient()).andReturn(schemaRegistryClient).anyTimes();
+
+    final Consumer consumer = niceMock(Consumer.class);
+    final Producer producer = niceMock(Producer.class);
+    final PersistentQueryMetadata persistentQueryMetadata = niceMock(PersistentQueryMetadata.class);
+    final QueuedQueryMetadata queuedQueryMetadata = niceMock(QueuedQueryMetadata.class);
+    final Set<QueryMetadata> queryMetadata = new HashSet<>();
+    queryMetadata.add(persistentQueryMetadata);
+    queryMetadata.add(queuedQueryMetadata);
+    expect(ksqlEngine.getAllLiveQueries()).andReturn(queryMetadata);
+
+    final QueryId queryId = new QueryId("q1");
+    expect(persistentQueryMetadata.getQueryId()).andReturn(queryId);
+    expect(ksqlEngine.terminateQuery(eq(queryId), eq(true))).andReturn(true);
+    queuedQueryMetadata.close();
+    expectLastCall();
+
+    final StructuredDataSource structuredDataSource1 = new KsqlStream(
+        "",
+        "FOO",
+        niceMock(Schema.class),
+        null,
+        null,
+        null
+    );
+
+    final StructuredDataSource structuredDataSource2 = new KsqlTable(
+        "",
+        "BAR",
+        niceMock(Schema.class),
+        null,
+        null,
+        null,
+        "",
+        false
+    );
+    final StructuredDataSource structuredDataSource3 = new KsqlStream(
+        "",
+        "TAB",
+        niceMock(Schema.class),
+        null,
+        null,
+        null
+    );
+
+    final MetaStore metaStore = new MetaStoreImpl(niceMock(FunctionRegistry.class));
+    metaStore.putSource(structuredDataSource1);
+    metaStore.putSource(structuredDataSource2);
+    metaStore.putSource(structuredDataSource3);
+
+    expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
+
+    final DdlCommandResult ddlCommandResult = niceMock(DdlCommandResult.class);
+    final DdlCommandExec ddlCommandExec = niceMock(DdlCommandExec.class);
+    expect(ddlCommandExec.execute(anyObject(), anyBoolean())).andReturn(ddlCommandResult).times(deleteCount);
+    expect(ksqlEngine.getDdlCommandExec()).andReturn(ddlCommandExec).times(deleteCount);
+
+
+    final StatementExecutor statementExecutor = new StatementExecutor(
+        new KsqlConfig(Collections.emptyMap()),
+        ksqlEngine,
+        mock(StatementParser.class),
+        consumer,
+        producer
+    );
+    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, consumer, producer, ddlCommandExec);
+    statementExecutor.handleStatement(command, commandId, Optional.empty());
+    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, consumer, producer, ddlCommandExec);
   }
 
   private void createStreamsAndTables() {

@@ -23,33 +23,44 @@ import java.util.Optional;
 
 public class TerminateCluster extends Statement {
 
-  public final static String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
+  private final List<String> keepSources;
+  private final List<String> deleteSources;
 
-  private final List<String> keepTopics;
-  private final List<String> deleteTopics;
+  public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
 
-  public TerminateCluster(final List<String> keepTopics, final List<String> deleteTopics) {
+  public TerminateCluster(final List<String> keepSources, final List<String> deleteSources) {
     super(Optional.empty());
-    this.keepTopics = keepTopics;
-    this.deleteTopics = deleteTopics;
+    Objects.requireNonNull(keepSources, "KEEP_SOURCES cannot be null.");
+    Objects.requireNonNull(deleteSources, "DELETE_SOURCES cannot be null.");
+    this.keepSources = keepSources;
+    this.deleteSources = deleteSources;
   }
 
-  public List<String> getKeepTopics() {
-    return keepTopics;
+
+  public List<String> getKeepSources() {
+    return keepSources;
   }
 
-  public List<String> getDeleteTopics() {
-    return deleteTopics;
+  public List<String> getDeleteSources() {
+    return deleteSources;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, keepTopics, deleteTopics);
+    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, keepSources, deleteSources);
   }
 
   @Override
   public boolean equals(final Object obj) {
-    return false;
+    if (this == obj) {
+      return true;
+    }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    final TerminateCluster terminateCluster = (TerminateCluster) obj;
+    return keepSources.equals(terminateCluster.getKeepSources())
+        && deleteSources.equals(terminateCluster.getDeleteSources());
   }
 
   @Override

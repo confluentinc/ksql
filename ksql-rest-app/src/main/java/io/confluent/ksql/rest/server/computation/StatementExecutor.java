@@ -17,12 +17,20 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.commands.DdlCommand;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -35,6 +43,9 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -42,12 +53,16 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,22 +71,33 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class StatementExecutor {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
+
+  private final AtomicBoolean clusterTerminated = new AtomicBoolean(false);
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
+  private final Consumer<CommandId, Command> commandConsumer;
+  private final Producer<CommandId, Command> commandProducer;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final StatementParser statementParser
+      final StatementParser statementParser,
+      final Consumer<CommandId, Command> commandConsumer,
+      final Producer<CommandId, Command> commandProducer
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
+    this.commandConsumer = commandConsumer;
+    this.commandProducer = commandProducer;
 
     this.statusStore = new ConcurrentHashMap<>();
   }
@@ -104,6 +130,7 @@ public class StatementExecutor {
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
    */
+  @SuppressWarnings("unchecked")
   void handleStatement(
       final Command command,
       final CommandId commandId,
@@ -111,6 +138,7 @@ public class StatementExecutor {
   ) {
     final String statementText = command.getStatement();
     if (statementText.equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+      this.clusterTerminated.set(true);
       final List<String> keepTopics = command
           .getOverwriteProperties().containsKey("KEEP_SOURCES")
           ? ((List<String>) command.getOverwriteProperties().get("KEEP_SOURCES"))
@@ -122,12 +150,10 @@ public class StatementExecutor {
           ? ((List<String>) command.getOverwriteProperties().get("DELETE_SOURCES"))
           .stream().map(String::toUpperCase).collect(Collectors.toList())
           : Collections.emptyList();
-      ksqlEngine.terminateCluster(keepTopics, deleteTopics);
+      terminateCluster(keepTopics, deleteTopics);
       // Delete the command topic
-      final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-      final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-      ksqlEngine.getTopicClient().deleteTopics(Collections.singletonList(commandTopic));
-    } else {
+      deleteCommandTopic();
+    } else if (!clusterTerminated.get()) {
       handleStatementWithTerminatedQueries(command,
           commandId,
           status,
@@ -431,6 +457,85 @@ public class StatementExecutor {
     final QueryId queryId = terminateQuery.getQueryId();
     if (!ksqlEngine.terminateQuery(queryId, true)) {
       throw new Exception(String.format("No running query with id %s was found", queryId));
+    }
+  }
+
+  private void terminateCluster(
+      final List<String> keepSources,
+      final List<String> deleteSources
+  ) {
+    this.clusterTerminated.set(true);
+    // Terminate all queries
+    final Iterator<QueryMetadata> iterator = ksqlEngine.getAllLiveQueries().iterator();
+    while (iterator.hasNext()) {
+      final QueryMetadata queryMetadata = iterator.next();
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        final PersistentQueryMetadata persistentQueryMetadata
+            = (PersistentQueryMetadata) queryMetadata;
+        ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
+      }  else {
+        queryMetadata.close();
+      }
+    }
+
+    // if we have the explicit list of stream/table to delete.
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
+    if (!deleteSources.isEmpty()) {
+      deleteSources
+          .forEach(sourceName -> deleteSource(sourceName, metaStore.getSource(sourceName)));
+    } else if (!keepSources.isEmpty()) {
+      metaStore.getAllStructuredDataSources().forEach(
+          (sourceName, structuredDataSource) -> {
+            if (!keepSources.contains(sourceName)) {
+              deleteSource(sourceName, structuredDataSource);
+            }
+          }
+      );
+    } else {
+      metaStore.getAllStructuredDataSources().forEach(this::deleteSource);
+    }
+  }
+
+  private void deleteSource(
+      final String sourceName,
+      final StructuredDataSource structuredDataSource) {
+    final DdlCommand ddlCommand;
+    if (structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM) {
+      ddlCommand = new DropSourceCommand(
+          new DropStream(QualifiedName.of(sourceName), false, true),
+          structuredDataSource.getDataSourceType(),
+          ksqlEngine.getTopicClient(),
+          ksqlEngine.getSchemaRegistryClient(),
+          true
+      );
+    } else  {
+      ddlCommand = new DropSourceCommand(
+          new DropTable(QualifiedName.of(sourceName), false, true),
+          structuredDataSource.getDataSourceType(),
+          ksqlEngine.getTopicClient(),
+          ksqlEngine.getSchemaRegistryClient(),
+          true
+      );
+    }
+    final DdlCommandExec ddlCommandExec = ksqlEngine.getDdlCommandExec();
+    ddlCommandExec.execute(ddlCommand, false);
+  }
+
+  private void deleteCommandTopic() {
+    // Delete the command topic
+    commandConsumer.close();
+    commandProducer.close();
+    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
+    final KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> kafkaTopicClient.deleteTopics(
+              Collections.singletonList(commandTopic)),
+          ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final Exception e) {
+      throw new KsqlException("Could not delete the command topic: "
+          + commandTopic, e);
     }
   }
 }

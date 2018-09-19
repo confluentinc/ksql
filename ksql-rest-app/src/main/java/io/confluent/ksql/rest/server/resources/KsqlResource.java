@@ -160,26 +160,28 @@ public class KsqlResource {
 
   @POST
   @Path("/terminate")
+  @SuppressWarnings("unchecked")
   public Response terminateCluster(final KsqlRequest request) {
     final String terminateClusterString = "TERMINATE CLUSTER;";
     final KsqlEntityList result = new KsqlEntityList();
     try {
       final List<String> keepTopics = request
           .getStreamsProperties().containsKey("KEEP_SOURCES")
+          && request.getStreamsProperties().get("KEEP_SOURCES") instanceof List
           ? ((List<String>) request.getStreamsProperties().get("KEEP_SOURCES"))
           .stream()
           .map(String::toUpperCase).collect(Collectors.toList())
           : Collections.emptyList();
       final List<String> deleteTopics = request
           .getStreamsProperties().containsKey("DELETE_SOURCES")
+          && request.getStreamsProperties().get("DELETE_SOURCES") instanceof List
           ? ((List<String>) request.getStreamsProperties().get("DELETE_SOURCES"))
           .stream().map(String::toUpperCase).collect(Collectors.toList())
           : Collections.emptyList();
       if (!keepTopics.isEmpty() && !deleteTopics.isEmpty()) {
         return Errors.serverErrorForStatement(
             new KsqlException("You cannot path both KEEP_SOURCES and DELETE_SOURCES lists at "
-                + "the same time.")
-            , terminateClusterString, result);
+                + "the same time."), terminateClusterString, result);
       }
 
       final TerminateCluster terminateCluster = new TerminateCluster(keepTopics, deleteTopics);

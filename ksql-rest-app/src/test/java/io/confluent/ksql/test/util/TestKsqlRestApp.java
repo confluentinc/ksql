@@ -117,7 +117,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   @SuppressWarnings("unused") // Part of public API
-  public Client buildClient() {
+  public static Client buildClient() {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);

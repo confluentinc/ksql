@@ -5,9 +5,7 @@ Clickstream Data Analysis Pipeline Using KSQL (Docker)
 
 These steps will guide you through how to setup your environment and run the clickstream analysis tutorial from a Docker container.
 
-.. include:: ../includes/ksql-docker-includes.rst
-    :start-after: docker_prereqs_start
-    :end-before: docker_prereqs_end
+.. include:: ../../../quickstart/includes/docker-prereqs.rst
 
 ---------------------
 Download the Tutorial

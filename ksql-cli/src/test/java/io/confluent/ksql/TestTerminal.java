@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
 
 public class TestTerminal extends Console {
 
@@ -88,13 +87,12 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  protected void puts(final InfoCmp.Capability capability) {
+  public void clearScreen() {
     // Ignore
   }
 
   @Override
-  public Terminal.SignalHandler handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
+  public void handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
     // Ignore
-    return null;
   }
 }

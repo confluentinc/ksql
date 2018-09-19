@@ -20,11 +20,14 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -42,13 +45,21 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Random;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -58,6 +69,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -69,8 +81,9 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
 
-class EndToEndEngineTestUtil {
+final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -78,6 +91,8 @@ class EndToEndEngineTestUtil {
     // test
     UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
   }
+
+  private EndToEndEngineTestUtil(){}
 
   private static class ValueSpec {
     private final Object spec;
@@ -111,6 +126,7 @@ class EndToEndEngineTestUtil {
       }
     }
 
+    @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"}) // Hack to make work with OutputVerifier.
     @Override
     public boolean equals(final Object o) {
       compare(spec, o, "VALUE-SPEC");
@@ -151,7 +167,7 @@ class EndToEndEngineTestUtil {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroDeserializer avroDeserializer;
 
-    public ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    private ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     }
@@ -186,7 +202,7 @@ class EndToEndEngineTestUtil {
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
 
-    public ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
+    private ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
       this.avroSerializer = new KafkaAvroSerializer(schemaRegistryClient);
     }
@@ -303,15 +319,15 @@ class EndToEndEngineTestUtil {
       return schema;
     }
 
-    public SerdeSupplier getSerdeSupplier() {
+    SerdeSupplier getSerdeSupplier() {
       return serdeSupplier;
     }
 
-    public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+    private Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getSerializer(schemaRegistryClient);
     }
 
-    public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    private Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       return serdeSupplier.getDeserializer(schemaRegistryClient);
     }
   }
@@ -320,7 +336,7 @@ class EndToEndEngineTestUtil {
     private final long start;
     private final long end;
 
-    public Window(final long start, final long end) {
+    Window(final long start, final long end) {
       this.start = start;
       this.end = end;
     }
@@ -350,7 +366,7 @@ class EndToEndEngineTestUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public Deserializer keyDeserializer() {
+    private Deserializer keyDeserializer() {
       if (window == null) {
         return Serdes.String().deserializer();
       }
@@ -411,6 +427,9 @@ class EndToEndEngineTestUtil {
     private final List<Record> outputRecords;
     private final List<String> statements;
     private final ExpectedException expectedException;
+    private String generatedTopology;
+    private String expectedTopology;
+    private Map<String, String> persistedProperties;
 
     public String getName() {
       return name;
@@ -433,6 +452,22 @@ class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+    }
+
+    void setGeneratedTopology(final String generatedTopology) {
+      this.generatedTopology = generatedTopology;
+    }
+
+    void setExpectedTopology(final String expectedTopology) {
+      this.expectedTopology = expectedTopology;
+    }
+
+    void setPersistedProperties(final Map<String, String> persistedProperties) {
+       this.persistedProperties = persistedProperties;
+    }
+
+    public Optional<Map<String, String>> persistedProperties() {
+      return Optional.ofNullable(persistedProperties);
     }
 
     public Map<String, Object> properties() {
@@ -501,7 +536,7 @@ class EndToEndEngineTestUtil {
       }
     }
 
-    private boolean isAnyExceptionExpected() {
+    boolean isAnyExceptionExpected() {
       return !expectedException.matchers.isEmpty();
     }
 
@@ -520,18 +555,144 @@ class EndToEndEngineTestUtil {
     }
   }
 
-  private static TopologyTestDriver buildStreamsTopology(final Query query,
-                                                         final KsqlEngine ksqlEngine,
-                                                         final KsqlConfig ksqlConfig,
-                                                         final Properties streamsProperties) {
-    final List<QueryMetadata> queries = new ArrayList<>();
-    query.statements().forEach(
-        q -> queries.addAll(
-            ksqlEngine.buildMultipleQueries(q, ksqlConfig, query.properties()))
-    );
-    return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),
+
+  static void writeExpectedTopologyFiles(final String topologyDir, List<Query> queryList) {
+
+    final Random randomPort = new Random();
+    final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
+    final MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> mockSchemaRegistryClient;
+    queryList.forEach(query -> {
+      final Map<String, Object> originalConfigs = getConfigs(null);
+      final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
+      // need to overwrite the bootstrap servers for generating file
+      updatedConfigs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + randomPort.nextInt(4000));
+
+      final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
+      final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig);
+      final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
+      final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+      writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
+    });
+  }
+
+
+
+  private static Topology getStreamsTopology(final Query query,
+                                             final KsqlEngine ksqlEngine,
+                                             final KsqlConfig ksqlConfig) {
+
+      final List<QueryMetadata> queries = new ArrayList<>();
+      query.initializeTopics(ksqlEngine);
+      query.statements().forEach(
+          q -> queries.addAll(
+              ksqlEngine.buildMultipleQueries(q, ksqlConfig, query.properties()))
+      );
+
+     return queries.get(queries.size() - 1).getTopology();
+  }
+
+  private static TopologyTestDriver buildStreamsTopologyTestDriver(final Query query,
+                                                                   final KsqlEngine ksqlEngine,
+                                                                   final KsqlConfig ksqlConfig,
+                                                                   final Properties streamsProperties) {
+
+    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+    final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+
+    final Topology topology = getStreamsTopology(query, ksqlEngine, maybeUpdatedConfigs);
+    if (query.expectedTopology != null) {
+      query.setGeneratedTopology(topology.describe().toString());
+    }
+    return new TopologyTestDriver(topology,
         streamsProperties,
         0);
+  }
+
+    private static void writeExpectedTopologyFile(final String queryName,
+                                                  final Topology topology,
+                                                  final Map<String, String> configs,
+                                                  final ObjectWriter objectWriter,
+                                                  final String topologyDir) {
+
+        final Path newTopologyDataPath = Paths.get(topologyDir);
+        try {
+            final String updatedQueryName = formatQueryName(queryName);
+            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+            final String configString = objectWriter.writeValueAsString(configs);
+            final String topologyString = topology.describe().toString();
+            final StringBuilder builder = new StringBuilder();
+            builder.append(configString).append("\n").append(CONFIG_END_MARKER).append("\n").append(topologyString);
+
+            final byte[] topologyBytes = builder.toString().getBytes(StandardCharsets.UTF_8);
+
+            Files.write(topologyFile,
+                        topologyBytes,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
+
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+  static String formatQueryName(final String originalQueryName) {
+    return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
+  }
+
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
+         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+         topologyFiles.forEach(fileName -> {
+             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+         });
+      return expectedTopologyAndConfigs;
+  }
+
+  private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
+    try (final BufferedReader reader =
+        new BufferedReader((
+            new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
+                getResourceAsStream(file))))) {
+      final StringBuilder topologyFileBuilder = new StringBuilder();
+
+      String topologyAndConfigLine;
+      Map<String, String> persistedConfigs = null;
+
+      while ((topologyAndConfigLine = reader.readLine()) != null) {
+           if (topologyAndConfigLine.contains(CONFIG_END_MARKER)) {
+               persistedConfigs = objectReader.readValue(topologyFileBuilder.toString());
+               topologyFileBuilder.setLength(0);
+           } else {
+             topologyFileBuilder.append(topologyAndConfigLine).append("\n");
+           }
+      }
+
+      return new TopologyAndConfigs(topologyFileBuilder.toString(), persistedConfigs);
+
+    } catch (IOException e) {
+      throw new RuntimeException(String.format("Couldn't read topology file %s %s", file, e));
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
+       final List<String> topologyFiles = new ArrayList<>();
+    try (final BufferedReader reader =
+        new BufferedReader(
+            new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
+                getResourceAsStream(dir)))) {
+
+      String topology;
+      while ((topology = reader.readLine()) != null) {
+          topologyFiles.add(topology);
+      }
+    }
+    return topologyFiles;
   }
 
   static List<String> findTests(final String dir) throws IOException {
@@ -551,41 +712,66 @@ class EndToEndEngineTestUtil {
     return tests;
   }
 
-  static void shouldBuildAndExecuteQuery(final Query query) {
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-    final Map<String, Object> config = new HashMap<String, Object>() {{
-      put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0");
-      put("application.id", "KSQL-TEST");
-      put("commit.interval.ms", 0);
-      put("cache.max.bytes.buffering", 0);
-      put("auto.offset.reset", "earliest");
-      put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
-    }};
+  private static KsqlEngine getKsqlEngine(final Supplier<SchemaRegistryClient> clientSupplier,
+                                          final KsqlConfig ksqlConfig) {
+      final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+
+     return new KsqlEngine(
+          new FakeKafkaTopicClient(),
+          clientSupplier,
+          metaStore,
+          ksqlConfig);
+  }
+
+  private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
+
+    ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
+        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
+        .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
+        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
+        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
+
+      if(additionalConfigs != null){
+          mapBuilder.putAll(additionalConfigs);
+      }
+      return mapBuilder.build();
+
+  }
+
+  static void shouldBuildAndExecuteQuery(final Query query) {
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
+
+    final Map<String, Object> config = getConfigs(new HashMap<>());
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
-    final KsqlConfig ksqlConfig = new KsqlConfig(config);
+    final KsqlConfig currentConfigs = new KsqlConfig(config);
 
-    try (final KsqlEngine ksqlEngine = new KsqlEngine(
-        new FakeKafkaTopicClient(),
-        schemaRegistryClient,
-        metaStore,
-        ksqlConfig
-    )) {
+    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+
+    final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
+        currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+
+
+    try (final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig)) {
       query.initializeTopics(ksqlEngine);
-      final TopologyTestDriver testDriver
-          = buildStreamsTopology(query, ksqlEngine, ksqlConfig, streamsProperties);
+      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
+      assertEquals(query.expectedTopology, query.generatedTopology);
       query.processInput(testDriver, schemaRegistryClient);
       query.verifyOutput(testDriver, schemaRegistryClient);
-
+      ksqlEngine.close();
     } catch (final RuntimeException e) {
       query.handleException(e);
     }
   }
 
   @SuppressWarnings("unchecked")
-  static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
+  private static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
     if (spec == null) {
       return null;
     }
@@ -695,6 +881,17 @@ class EndToEndEngineTestUtil {
         return avroToValueSpec(avro, schema.getTypes().get(pos), toUpper);
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
+    }
+  }
+
+  static class TopologyAndConfigs {
+      public final String topology;
+      public final Map<String, String> configs;
+
+    public TopologyAndConfigs(final String topology,
+                              final Map<String, String> configs) {
+      this.topology = topology;
+      this.configs = configs;
     }
   }
 }

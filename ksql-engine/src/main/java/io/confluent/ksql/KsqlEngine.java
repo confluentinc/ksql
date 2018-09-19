@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
@@ -78,6 +79,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -86,8 +88,10 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlEngine implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
@@ -105,6 +109,7 @@ public class KsqlEngine implements Closeable {
   private final Set<QueryMetadata> allLiveQueries;
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaClientSupplier clientSupplier;
@@ -116,8 +121,9 @@ public class KsqlEngine implements Closeable {
     final DefaultKafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
     final AdminClient adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
-    return new KsqlEngine(new KafkaTopicClientImpl(adminClient),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).create(),
+    return new KsqlEngine(
+        new KafkaTopicClientImpl(adminClient),
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get,
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ksqlConfig,
@@ -126,13 +132,12 @@ public class KsqlEngine implements Closeable {
 
   // called externally by tests only
   public KsqlEngine(final KafkaTopicClient topicClient,
-                    final SchemaRegistryClient schemaRegistryClient,
+                    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                     final MetaStore metaStore,
-                    final KsqlConfig initializationKsqlConfig
-  ) {
+                    final KsqlConfig initializationKsqlConfig) {
     this(
         topicClient,
-        schemaRegistryClient,
+        schemaRegistryClientFactory,
         new DefaultKafkaClientSupplier(),
         metaStore,
         initializationKsqlConfig
@@ -140,12 +145,12 @@ public class KsqlEngine implements Closeable {
   }
 
   KsqlEngine(final KafkaTopicClient kafkaTopicClient,
-             final SchemaRegistryClient schemaRegistryClient,
+             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final KafkaClientSupplier kafkaClientSupplier,
              final MetaStore metaStore,
              final KsqlConfig initializationKsqlConfig) {
     this(kafkaTopicClient,
-        schemaRegistryClient,
+        schemaRegistryClientFactory,
         kafkaClientSupplier,
         metaStore,
         initializationKsqlConfig,
@@ -156,7 +161,7 @@ public class KsqlEngine implements Closeable {
 
   // called externally by tests only
   KsqlEngine(final KafkaTopicClient topicClient,
-             final SchemaRegistryClient schemaRegistryClient,
+             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore,
              final KsqlConfig initializationKsqlConfig,
@@ -164,14 +169,21 @@ public class KsqlEngine implements Closeable {
   ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
+    this.schemaRegistryClientFactory =
+        Objects.requireNonNull(
+            schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null");
     this.schemaRegistryClient =
-        Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
+        Objects.requireNonNull(
+            this.schemaRegistryClientFactory.get(), "Schema registry can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.serviceId = initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, schemaRegistryClient, true));
+        new CommandFactories(topicClient,
+            schemaRegistryClient,
+            true
+        ));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -212,12 +224,15 @@ public class KsqlEngine implements Closeable {
     final MetaStore tempMetaStore = metaStore.clone();
 
     // Build query AST from the query string
-    final List<PreparedStatement> queries = parseQueries(
+    final List<PreparedStatement> queries = parseStatements(
         queriesString,
-        tempMetaStore
+        tempMetaStore,
+        true
     );
 
-    return planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    final List<QueryMetadata> queryMetadataList =
+        planQueries(queries, ksqlConfig, overriddenProperties, tempMetaStore);
+    return queryMetadataList;
   }
 
   private List<QueryMetadata> planQueries(
@@ -254,7 +269,7 @@ public class KsqlEngine implements Closeable {
       }
       allLiveQueries.add(queryMetadata);
     }
-
+    engineMetrics.registerQueries(runningQueries);
     return runningQueries;
   }
 
@@ -278,10 +293,10 @@ public class KsqlEngine implements Closeable {
     return runningQueries.get(0);
   }
 
-  // Visible for Testing
-  List<PreparedStatement> parseQueries(
+  public List<PreparedStatement> parseStatements(
       final String queriesString,
-      final MetaStore tempMetaStore
+      final MetaStore tempMetaStore,
+      final boolean convertStatementToQuery
   ) {
     try {
       final MetaStore tempMetaStoreForParser = tempMetaStore.clone();
@@ -292,15 +307,18 @@ public class KsqlEngine implements Closeable {
           queriesString,
           tempMetaStoreForParser,
           stmt -> buildSingleQueryAst(
-              stmt.getStatement(), stmt.getStatementText(), tempMetaStore, tempMetaStoreForParser));
+              stmt.getStatement(),
+              stmt.getStatementText(),
+              tempMetaStore,
+              tempMetaStoreForParser,
+              convertStatementToQuery));
 
       return statements
           .stream()
           .filter(Objects::nonNull)
           .collect(Collectors.toList());
-
     } catch (final Exception e) {
-      throw new ParseFailedException("Exception while processing statements :" + e.getMessage(), e);
+      throw new ParseFailedException("Exception while processing statement: " + e.getMessage(), e);
     }
   }
 
@@ -308,7 +326,8 @@ public class KsqlEngine implements Closeable {
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,
-      final MetaStore tempMetaStoreForParser
+      final MetaStore tempMetaStoreForParser,
+      final boolean convertStatementToQuery
   ) {
 
     log.info("Building AST for {}.", statementString);
@@ -332,12 +351,18 @@ public class KsqlEngine implements Closeable {
               querySpecification.getSelect(),
               createAsSelect.getName().getSuffix()
           ).cloneWithTimeKeyColumns());
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
+
     } else if (statement instanceof InsertInto) {
       final InsertInto insertInto = (InsertInto) statement;
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
-        throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
-                                              + "statement.", insertInto.getTarget().getSuffix()));
+        throw new KsqlException(String.format("%s. Error: Sink, "
+                + "%s, does not exist for the INSERT INTO statement.",
+            statementString, insertInto.getTarget().getSuffix()));
       }
 
       if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()
@@ -359,7 +384,11 @@ public class KsqlEngine implements Closeable {
           false
       );
 
-      return new PreparedStatement(statementString, query);
+      if (convertStatementToQuery) {
+        return new PreparedStatement(statementString, query);
+      } else {
+        return new PreparedStatement(statementString, statement);
+      }
     } else  if (statement instanceof DdlStatement) {
       return buildSingleDdlStatement(statement,
                                      statementString,
@@ -469,7 +498,7 @@ public class KsqlEngine implements Closeable {
           tempMetaStoreForParser
       );
       return new PreparedStatement(statementString, statement);
-    } else if (statement instanceof SetProperty) {
+    } else if (statement instanceof SetProperty || statement instanceof UnsetProperty) {
       return new PreparedStatement(statementString, statement);
     }
     return null;
@@ -572,8 +601,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    final Set<QueryMetadata> queriesToClose = new HashSet<>(allLiveQueries);
-    for (final QueryMetadata queryMetadata : queriesToClose) {
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
       queryMetadata.close();
     }
     adminClient.close();
@@ -587,15 +615,17 @@ public class KsqlEngine implements Closeable {
 
   public DdlCommandResult executeDdlStatement(
       final String sqlExpression,
-      final DdlStatement statement) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement);
+      final DdlStatement statement,
+      final Map<String, Object> overriddenProperties) {
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
+  }
+
+  public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
+    return schemaRegistryClientFactory;
   }
 
   public SchemaRegistryClient getSchemaRegistryClient() {
-    if (schemaRegistryClient != null) {
-      return schemaRegistryClient;
-    }
-    throw new KsqlException("Cannot access the Schema Registry. Schema Registry client is null.");
+    return schemaRegistryClient;
   }
 
   public QueryIdGenerator getQueryIdGenerator() {
@@ -603,16 +633,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public List<QueryMetadata> createQueries(final String queries, final KsqlConfig ksqlConfig) {
-    final MetaStore metaStoreCopy = metaStore.clone();
-    return planQueries(
-        parseQueries(
-            queries,
-            metaStoreCopy
-        ),
-        ksqlConfig,
-        Collections.emptyMap(),
-        metaStoreCopy
-    );
+    return buildMultipleQueries(queries, ksqlConfig, Collections.emptyMap());
   }
 
   public List<UdfFactory> listScalarFunctions() {

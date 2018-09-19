@@ -35,6 +35,9 @@ public class LongSumKudaf
 
   @Override
   public Long aggregate(final Long currentValue, final Long aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
+    }
     return currentValue + aggregateValue;
   }
 

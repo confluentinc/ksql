@@ -5,14 +5,7 @@ Clickstream Data Analysis Pipeline Using KSQL (Docker)
 
 These steps will guide you through how to setup your environment and run the clickstream analysis tutorial from a Docker container.
 
-**Prerequisites**
-
--  Docker must be installed and configured with at least 4 GB of memory.
-
-   -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
-   -  `All platforms <https://docs.docker.com/engine/installation/>`__
-
--  `Git <https://git-scm.com/downloads>`__
+.. include:: ../../../quickstart/includes/docker-prereqs.rst
 
 ---------------------
 Download the Tutorial
@@ -175,8 +168,8 @@ Load the Streaming Data to KSQL
        You should now be in the KSQL CLI.
 
        .. include:: ../includes/ksql-includes.rst
-            :start-line: 19
-            :end-line: 40
+            :start-after: CLI_welcome_start
+            :end-before: CLI_welcome_end
 
 #.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
 

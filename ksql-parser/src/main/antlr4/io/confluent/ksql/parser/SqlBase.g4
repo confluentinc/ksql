@@ -106,9 +106,9 @@ queryPrimary
     ;
 
 querySpecification
-    : SELECT STREAM? selectItem (',' selectItem)*
+    : SELECT selectItem (',' selectItem)*
       (INTO into=relationPrimary)?
-      (FROM from=relation (',' relation)*)?
+      FROM from=relation
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?

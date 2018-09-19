@@ -1,34 +1,35 @@
 <?xml version="1.0"?>
 
 <!DOCTYPE suppressions PUBLIC
-        "-//Puppy Crawl//DTD Suppressions 1.1//EN"
-        "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+  "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+  "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
 
-    <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
-    <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
+  <!--
+      DO NOT USE THIS SUPPRESSION FILE
+      If you really MUST suppress a rule, rather than just fixing / refactoring the code, then
+      use inline code comments.
 
-    <!-- TODO: Fix Me!-->
-    <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
-    <suppress files="(PersistentQueryMetadata|SourceDescription|JoinNode).java"
-              checks="ParameterNumber"/>
-    <suppress files="(Console|Main|Generator|KsqlResource).java" checks="JavaNCSSCheck"/>
-    <suppress files="Generator.java" checks="NPathComplexity"/>
-    <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser|SchemaKTable).java"
-              checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress
-            files="(QueryEngine|LogicalPlanner|FunctionRegistry|KsqlEngine|SchemaKStream|Analyzer|AggregateNode).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(KafkaConsumerGroupClientImpl|UdfLoader).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(KsqlResource|KsqlRestApplication|StandaloneExecutor|KsqlRestClient).java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="Console.java" checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="(DataGenProducer|DataGen|Generator|PhysicalPlanBuilder|StatementRewriter).java"
-              checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress
-            files="(ExpressionTypeManager|KsqlResource|Console|KsqlEngine|PhysicalPlanBuilder|DropSourceCommand|AstBuilder|ConnectSchemaTranslator).java"
-              checks="CyclomaticComplexityCheck"/>
+      There are two formats for the code comments:
 
-    <!-- EXAMPLES! -->
-    <suppress files="(DataGenProducer|DataGen|Main|Generator).java" checks="CyclomaticComplexityCheck"/>
+      Turning off all rules CHECKSTYLE:OFF and CHECKSTYLE:ON, e.g.
 
+      // CHECKSTYLE:OFF
+      private void someBadFunction {
+         // CHECKSTYLE:ON
+          ... you code here.
+      }
+
+      Or turning off specific rules. Run names are separated by the pipe character '|'. e.g.
+
+      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|JavaNCSS
+      private void someBadFunction {
+         // CHECKSTYLE_RULES.ON: CyclomaticComplexity|JavaNCSS
+          ... you code here.
+      }
+
+      The reason code comments are preferred is that they work better with IDE plugins such as
+      IDEA CheckStyle.
+  -->
 </suppressions>

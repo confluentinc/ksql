@@ -3,26 +3,13 @@
 Writing Streaming Queries Against Kafka Using KSQL (Docker)
 ===========================================================
 
-Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
-
-.. raw:: html
-
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/EzVZOUt9JsU" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
-    </div>
-
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka in a Docker
 environment.
 
 To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
 this Kafka cluster. KSQL is installed in the |cp| by default.
 
-**Prerequisites:**
-
-- Docker
-    - `macOS <https://docs.docker.com/docker-for-mac/install/>`__
-    - `All platforms <https://docs.docker.com/engine/installation/>`__
-- `Git <https://git-scm.com/downloads>`__
+.. include:: ../../../quickstart/includes/docker-prereqs.rst
 
 ------------------------------------
 Download the Tutorial and Start KSQL
@@ -54,8 +41,8 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-pageviews \
-            368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-            ksql-datagen \ 
+            confluentinc/ksql-examples:5.0.0 \
+            ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=pageviews \
                 format=delimited \
@@ -65,8 +52,8 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-users \
-            368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-            ksql-datagen \ 
+            confluentinc/ksql-examples:5.0.0 \
+            ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=users \
                 format=json \
@@ -77,8 +64,8 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ docker run --network tutorials_default --interactive --tty \
-            confluentinc/cp-ksql-cli:latest \
+       $ docker run --network tutorials_default --rm --interactive --tty \
+            confluentinc/cp-ksql-cli:5.0.0 \
             http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
@@ -98,7 +85,7 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
+        confluentinc/ksql-examples:5.0.0 \
         ksql-datagen \
             quickstart=orders \
             format=avro \
@@ -190,8 +177,8 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  --name datagen-orders-local \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-        ksql-datagen \ 
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
             quickstart=orders \
             format=avro \
             topic=orders_local \
@@ -201,8 +188,8 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-        368821881613.dkr.ecr.us-west-2.amazonaws.com/confluentinc/ksql-examples:dev-5.0.x-116 \
-        ksql-datagen \ 
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
             quickstart=orders \
             format=avro \
             topic=orders_3rdparty \

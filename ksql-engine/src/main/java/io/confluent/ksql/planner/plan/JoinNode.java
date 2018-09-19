@@ -64,6 +64,7 @@ public class JoinNode extends PlanNode {
   private final DataSource.DataSourceType leftType;
   private final DataSource.DataSourceType rightType;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public JoinNode(@JsonProperty("id") final PlanNodeId id,
                   @JsonProperty("type") final JoinType joinType,
                   @JsonProperty("left") final PlanNode left,
@@ -75,7 +76,7 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("within") final WithinExpression withinExpression,
                   @JsonProperty("leftType") final DataSource.DataSourceType leftType,
                   @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
-
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     // TODO: Type should be derived.
     super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
         ? DataSourceType.KTABLE
@@ -166,12 +167,13 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public SchemaKStream buildStream(final StreamsBuilder builder,
-                                   final KsqlConfig ksqlConfig,
-                                   final KafkaTopicClient kafkaTopicClient,
-                                   final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props,
-                                   final SchemaRegistryClient schemaRegistryClient) {
+  public SchemaKStream buildStream(
+      final StreamsBuilder builder,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final FunctionRegistry functionRegistry,
+      final Map<String, Object> props,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
 
     ensureMatchingPartitionCounts(kafkaTopicClient);
 
@@ -180,7 +182,7 @@ public class JoinNode extends PlanNode {
                                                     kafkaTopicClient,
                                                     functionRegistry,
                                                     props,
-                                                    schemaRegistryClient,
+                                                    schemaRegistryClientFactory,
                                                     this);
 
     return joinerFactory.getJoiner(leftType, rightType).join();
@@ -223,18 +225,18 @@ public class JoinNode extends PlanNode {
                   final KafkaTopicClient kafkaTopicClient,
                   final FunctionRegistry functionRegistry,
                   final Map<String, Object> props,
-                  final SchemaRegistryClient schemaRegistryClient,
+                  final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                   final JoinNode joinNode) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
           () -> new StreamToStreamJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                         props, schemaRegistryClient, joinNode),
+                                         props, schemaRegistryClientFactory, joinNode),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
           () -> new StreamToTableJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                        props, schemaRegistryClient, joinNode),
+                                        props, schemaRegistryClientFactory, joinNode),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
           () -> new TableToTableJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                       props, schemaRegistryClient, joinNode)
+                                       props, schemaRegistryClientFactory, joinNode)
       );
     }
 
@@ -254,7 +256,7 @@ public class JoinNode extends PlanNode {
     protected final KafkaTopicClient kafkaTopicClient;
     protected final FunctionRegistry functionRegistry;
     protected final Map<String, Object> props;
-    protected final SchemaRegistryClient schemaRegistryClient;
+    protected final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
     protected final JoinNode joinNode;
 
     protected Joiner(final StreamsBuilder builder,
@@ -262,7 +264,7 @@ public class JoinNode extends PlanNode {
                final KafkaTopicClient kafkaTopicClient,
                final FunctionRegistry functionRegistry,
                final Map<String, Object> props,
-               final SchemaRegistryClient schemaRegistryClient,
+               final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                final JoinNode joinNode) {
 
       this.builder = builder;
@@ -270,7 +272,7 @@ public class JoinNode extends PlanNode {
       this.kafkaTopicClient = kafkaTopicClient;
       this.functionRegistry = functionRegistry;
       this.props = props;
-      this.schemaRegistryClient = schemaRegistryClient;
+      this.schemaRegistryClientFactory = schemaRegistryClientFactory;
       this.joinNode = joinNode;
     }
 
@@ -280,7 +282,7 @@ public class JoinNode extends PlanNode {
 
       return maybeRePartitionByKey(node.buildStream(builder, ksqlConfig, kafkaTopicClient,
                                                     functionRegistry, props,
-                                                    schemaRegistryClient),
+                                                    schemaRegistryClientFactory),
                                    keyFieldName);
     }
 
@@ -297,7 +299,7 @@ public class JoinNode extends PlanNode {
           ksqlConfig,
           kafkaTopicClient,
           functionRegistry,
-          joinTableProps, schemaRegistryClient);
+          joinTableProps, schemaRegistryClientFactory);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
@@ -344,7 +346,8 @@ public class JoinNode extends PlanNode {
           .getStructuredDataSource()
           .getKsqlTopic()
           .getKsqlTopicSerDe()
-          .getGenericRowSerde(dataSourceNode.getSchema(), ksqlConfig, false, schemaRegistryClient);
+          .getGenericRowSerde(
+              dataSourceNode.getSchema(), ksqlConfig, false, schemaRegistryClientFactory);
     }
 
     protected Field getJoinKey(final String alias, final String keyFieldName) {
@@ -360,10 +363,10 @@ public class JoinNode extends PlanNode {
                          final KafkaTopicClient kafkaTopicClient,
                          final FunctionRegistry functionRegistry,
                          final Map<String, Object> props,
-                         final SchemaRegistryClient schemaRegistryClient,
+                         final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                          final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
-            joinNode);
+      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
+            schemaRegistryClientFactory, joinNode);
     }
 
     @Override
@@ -419,10 +422,10 @@ public class JoinNode extends PlanNode {
                         final KafkaTopicClient kafkaTopicClient,
                         final FunctionRegistry functionRegistry,
                         final Map<String, Object> props,
-                        final SchemaRegistryClient schemaRegistryClient,
+                        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                         final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
-            joinNode);
+      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
+            schemaRegistryClientFactory, joinNode);
     }
 
     @Override
@@ -470,10 +473,10 @@ public class JoinNode extends PlanNode {
                         final KafkaTopicClient kafkaTopicClient,
                         final FunctionRegistry functionRegistry,
                         final Map<String, Object> props,
-                        final SchemaRegistryClient schemaRegistryClient,
+                        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
                         final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props, schemaRegistryClient,
-            joinNode);
+      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
+            schemaRegistryClientFactory, joinNode);
     }
 
     @Override

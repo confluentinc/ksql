@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,10 @@ public class Pair<T1, T2> {
 
   public final T1 left;
   public final T2 right;
+
+  public static <L, R> Pair<L, R> of(final L left, final R right) {
+    return new Pair<>(left, right);
+  }
 
   public Pair(final T1 left, final T2 right) {
     this.left = left;

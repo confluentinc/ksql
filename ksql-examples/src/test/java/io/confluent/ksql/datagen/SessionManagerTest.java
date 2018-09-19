@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,23 +56,23 @@ public class SessionManagerTest {
 
         final SessionManager sm = new SessionManager();
 
-        sm.setMaxSessionDurationSeconds(1);
+        sm.setMaxSessionDuration(Duration.ofMillis(10));
         sm.setMaxSessions(5);
 
-        /**
+        /*
          * FillActiveSessions
          */
         for (int i = 0; i < 5; i ++) {
             sm.newSession(Integer.toString(i));
         }
 
-        /**
+        /*
          * Expire them all
          */
-        Thread.sleep(2 * 1000);
+        Thread.sleep(11);
 
 
-        /**
+        /*
          *  reuse tokens
          */
         for (int i = 0; i < 5; i ++) {
@@ -100,22 +101,18 @@ public class SessionManagerTest {
     public void isReturningOldestExpiredSession() throws InterruptedException {
 
         final SessionManager sm = new SessionManager();
-        sm.setMaxSessionDurationSeconds(1);
+        sm.setMaxSessionDuration(Duration.ofMillis(10));
         sm.newSession("1");
-        Thread.sleep(200);
+        Thread.sleep(2);
         sm.newSession("2");
-        Thread.sleep(2500);
+        Thread.sleep(11);
 
         sm.isActiveAndExpire("1");
         sm.isActiveAndExpire("2");
 
 
         assertEquals("1", sm.recycleOldestExpired());
-
     }
-
-
-
 
     @Test
     public void isActiveThenAddSession() throws InterruptedException {
@@ -132,12 +129,12 @@ public class SessionManagerTest {
     public void doesSessionExpire() throws InterruptedException {
 
         final SessionManager sm = new SessionManager();
-        sm.setMaxSessionDurationSeconds(1);
+        sm.setMaxSessionDuration(Duration.ofMillis(10));
         final String sessionToken = "active";
         sm.newSession(sessionToken);
         assertTrue(sm.isActiveAndExpire(sessionToken));
 
-        Thread.sleep(2 * 1000);
+        Thread.sleep(11);
 
         assertFalse(sm.isActiveAndExpire(sessionToken));
     }

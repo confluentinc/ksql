@@ -18,7 +18,6 @@ package io.confluent.ksql.datagen;
 
 import static org.hamcrest.Matchers.containsString;
 
-import java.io.IOException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

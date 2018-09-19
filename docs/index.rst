@@ -39,7 +39,14 @@ Sensor data and IoT
 Customer 360-view
     Achieve a comprehensive understanding of your customers across every interaction through a variety of channels, where new information is continuously incorporated in real-time.
 
-Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
+KSQL Resources
+--------------
+
+- Browse the `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+  to see a spectrum of pre-built stream processing sequences that you can
+  lift and use to get off the ground faster with KSQL.
+- Check out :ref:`ksql_tutorials` to learn stream processing with KSQL.
+- Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
 
 What Are the Components?
 ------------------------

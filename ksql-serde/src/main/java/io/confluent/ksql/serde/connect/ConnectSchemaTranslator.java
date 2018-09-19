@@ -44,7 +44,9 @@ public class ConnectSchemaTranslator {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   protected Schema toKsqlFieldSchema(final Schema schema) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     switch (schema.type()) {
       case INT8:
       case INT16:

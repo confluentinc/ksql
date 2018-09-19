@@ -77,16 +77,15 @@ public class JLineTerminal extends Console {
   }
 
   @Override
-  public void puts(final InfoCmp.Capability capability) {
-    terminal.puts(capability);
+  public void clearScreen() {
+    terminal.puts(InfoCmp.Capability.clear_screen);
   }
 
   @Override
-  public Terminal.SignalHandler handle(
+  public void handle(
       final Terminal.Signal signal,
       final Terminal.SignalHandler signalHandler
   ) {
-    return terminal.handle(signal, signalHandler);
+    terminal.handle(signal, signalHandler);
   }
-
 }

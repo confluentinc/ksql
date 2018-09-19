@@ -55,7 +55,9 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.compress.utils.IOUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlRestClient implements Closeable, AutoCloseable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Client client;
 

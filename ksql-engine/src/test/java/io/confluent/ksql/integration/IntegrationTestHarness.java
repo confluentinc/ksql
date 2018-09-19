@@ -9,7 +9,7 @@ import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -30,6 +30,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -66,6 +68,7 @@ public class IntegrationTestHarness {
   public KsqlConfig ksqlConfig;
   private KafkaTopicClientImpl topicClient;
 
+  public Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   public SchemaRegistryClient schemaRegistryClient;
 
   private final AtomicInteger consumedCount;
@@ -81,6 +84,7 @@ public class IntegrationTestHarness {
     THIS = this;
     consumedCount = new AtomicInteger(0);
     producedCount = new AtomicInteger(0);
+    this.schemaRegistryClientFactory = () -> this.schemaRegistryClient;
   }
 
   public KafkaTopicClient topicClient() {
@@ -336,12 +340,11 @@ public class IntegrationTestHarness {
 
 
   public void start(final Map<String, Object> callerConfigMap) throws Exception {
-    embeddedKafkaCluster = new EmbeddedSingleNodeKafkaCluster();
+    embeddedKafkaCluster = EmbeddedSingleNodeKafkaCluster.build();
     embeddedKafkaCluster.start();
     final Map<String, Object> configMap = new HashMap<>();
 
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaCluster.bootstrapServers());
-    configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
@@ -397,7 +400,8 @@ public class IntegrationTestHarness {
         return new KsqlJsonSerializer(schema);
       case AVRO:
         return new KsqlAvroTopicSerDe().getGenericRowSerde(
-            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+            schema, new KsqlConfig(Collections.emptyMap()), false,
+            () -> this.schemaRegistryClient
         ).serializer();
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
@@ -413,7 +417,8 @@ public class IntegrationTestHarness {
         return new KsqlJsonDeserializer(schema, false);
       case AVRO:
         return new KsqlAvroTopicSerDe().getGenericRowSerde(
-            schema, new KsqlConfig(Collections.emptyMap()), false, this.schemaRegistryClient
+            schema, new KsqlConfig(Collections.emptyMap()), false,
+            () -> this.schemaRegistryClient
         ).deserializer();
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);

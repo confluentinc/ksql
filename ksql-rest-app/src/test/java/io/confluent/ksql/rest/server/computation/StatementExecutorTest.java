@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,10 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -36,8 +37,10 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -45,7 +48,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.easymock.EasyMockSupport;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -63,14 +69,13 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Before
   public void setUp() {
     final Map<String, Object> props = new HashMap<>();
-    props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
     ksqlConfig = new KsqlConfig(props);
     ksqlEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         new MockKafkaTopicClient(),
-        new MockSchemaRegistryClient());
+        new MockSchemaRegistryClientFactory()::get);
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -83,10 +88,10 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   @Test
-  public void shouldHandleCorrectDDLStatement() throws Exception {
+  public void shouldHandleCorrectDDLStatement() {
     final Command command = new Command("REGISTER TOPIC users_topic "
                                   + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
                                   Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
@@ -102,7 +107,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandleIncorrectDDLStatement() throws Exception {
+  public void shouldHandleIncorrectDDLStatement() {
     final Command command = new Command("REGIST ER TOPIC users_topic "
                                   + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
                                   Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
@@ -142,7 +147,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final StatementParser realParser = new StatementParser(ksqlEngine);
     final DdlStatement ddlStatement = (DdlStatement) realParser.parseSingleStatement(ddlText);
-    ksqlEngine.executeDdlStatement(ddlText, ddlStatement);
+    ksqlEngine.executeDdlStatement(ddlText, ddlStatement, Collections.emptyMap());
     final CreateStreamAsSelect csasStatement =
         (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
 
@@ -150,7 +155,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     final MetaStore mockMetaStore = mock(MetaStore.class);
     final PersistentQueryMetadata mockQueryMetadata = mock(PersistentQueryMetadata.class);
-    final KafkaStreams mockStream = mock(KafkaStreams.class);
+    expect(mockQueryMetadata.getQueryId()).andReturn(mock(QueryId.class));
 
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
@@ -182,9 +187,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
-    expect(mockQueryMetadata.getQueryId()).andReturn(new QueryId("foo"));
-    expect(mockQueryMetadata.getKafkaStreams()).andReturn(mockStream);
-    mockStream.start();
+    mockQueryMetadata.start();
     expectLastCall();
 
     replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);
@@ -195,7 +198,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandleCSAS_CTASStatement() throws Exception {
+  public void shouldHandleCSAS_CTASStatement() {
 
     final Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
         + "(value_format = 'json', "
@@ -262,7 +265,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandlePriorStatement() throws Exception {
+  public void shouldHandlePriorStatement() {
     final TestUtils testUtils = new TestUtils();
     final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
     final RestoreCommands restoreCommands = new RestoreCommands();
@@ -294,7 +297,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
 
   @Test
-  public void shouldEnforceReferentialIntegrity() throws Exception {
+  public void shouldEnforceReferentialIntegrity() {
 
     // First create streams/tables and start queries
     createStrreamsAndTables();
@@ -338,7 +341,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   }
 
-  private void createStrreamsAndTables() throws Exception {
+  private void createStrreamsAndTables() {
     final Command csCommand = new Command(
         "CREATE STREAM pageview ("
             + "viewtime bigint,"
@@ -380,7 +383,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
   }
 
-  private void tryDropThatViolatesReferentialIntegrity() throws Exception {
+  private void tryDropThatViolatesReferentialIntegrity() {
     final Command dropStreamCommand1 = new Command(
         "drop stream pageview;",
         Collections.emptyMap(),
@@ -491,7 +494,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   }
 
-  private void terminateQueries() throws Exception {
+  private void terminateQueries() {
     final Command terminateCommand1 = new Command(
         "TERMINATE CSAS_USER1PV_0;",
         Collections.emptyMap(),

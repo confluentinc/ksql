@@ -17,12 +17,14 @@
 package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -43,6 +45,8 @@ public class QueryMetadata {
   private final Topology topoplogy;
   private final Map<String, Object> overriddenProperties;
   private final Set<String> sourceNames;
+
+  private Optional<QueryStateListener> queryStateListener = Optional.empty();
 
   protected QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,
@@ -65,6 +69,10 @@ public class QueryMetadata {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     this.sourceNames = visitor.getSourceNames();
+  }
+
+  public void registerQueryStateListener(final QueryStateListener queryStateListener) {
+    this.queryStateListener = Optional.of(queryStateListener);
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -117,6 +125,7 @@ public class QueryMetadata {
       log.error("Could not clean up the query with application id: {}. Query status is: {}",
                 queryApplicationId, kafkaStreams.state());
     }
+    queryStateListener.ifPresent(QueryStateListener::close);
   }
 
   private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {
@@ -170,6 +179,7 @@ public class QueryMetadata {
 
   public void start() {
     log.info("Starting query with application id: {}", queryApplicationId);
+    queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }
 

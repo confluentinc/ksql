@@ -76,9 +76,8 @@ JMX Metrics
 -----------
 
 .. include:: ../../includes/ksql-includes.rst
-    :start-line: 328
-    :end-line: 335
-
+    :start-after: enable_JMX_metrics_start
+    :end-before: enable_JMX_metrics_end
 
 .. _restrict-ksql-interactive:
 

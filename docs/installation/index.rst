@@ -9,4 +9,5 @@ Installation and Configuration
     installing
     server-config/index
     cli-config
+    ../../../cloud/connect/ksql-cloud-config
     upgrading

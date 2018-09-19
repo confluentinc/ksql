@@ -62,6 +62,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -125,10 +126,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
@@ -188,9 +191,11 @@ public class KsqlResource {
     return Response.ok(result).build();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,
       final Map<String, Object> streamsProperties) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (statement == null) {
       throw new KsqlRestException(
           Errors.badStatement(
@@ -242,10 +247,12 @@ public class KsqlResource {
     return ksqlEngine;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private KsqlEntity executeStatement(
       final String statementText,
       final Statement statement,
       final Map<String, Object> streamsProperties) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (statement instanceof ListTopics) {
       return listTopics(statementText);
     } else if (statement instanceof ListRegisteredTopics) {
@@ -302,7 +309,8 @@ public class KsqlResource {
 
 
   private boolean isExecutableDdlStatement(final Statement statement) {
-    return statement instanceof DdlStatement && !(statement instanceof SetProperty);
+    return statement instanceof DdlStatement
+        && !((statement instanceof SetProperty) || (statement instanceof UnsetProperty));
   }
 
   private CommandStatusEntity distributeStatement(
@@ -601,7 +609,9 @@ public class KsqlResource {
 
   private final Map<Class, KsqlStatementTask> ksqlStatementTasks = new HashMap<>();
 
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   private void registerKsqlStatementTasks() {
+    // CHECKSTYLE_RULES.OFF: JavaNCSS
     ksqlStatementTasks.put(Query.class,
         (statement, statementText, properties) ->
             ksqlEngine.getQueryExecutionPlan((Query)statement, ksqlConfig)

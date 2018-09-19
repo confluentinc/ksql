@@ -76,6 +76,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -94,6 +95,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -125,7 +127,10 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    ksqlEngine = TestUtils.createKsqlEngine(ksqlConfig, kafkaTopicClient, schemaRegistryClient);
+    ksqlEngine = TestUtils.createKsqlEngine(
+        ksqlConfig,
+        kafkaTopicClient,
+        () -> schemaRegistryClient);
   }
 
   @After
@@ -189,7 +194,6 @@ public class KsqlResourceTest {
     private static Properties getDefaultKsqlConfig() {
       final Map<String, Object> configMap = new HashMap<>();
       configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-      configMap.put("application.id", "KsqlResourceTest");
       configMap.put("commit.interval.ms", 0);
       configMap.put("cache.max.bytes.buffering", 0);
       configMap.put("auto.offset.reset", "earliest");

@@ -39,6 +39,11 @@ public abstract class TestResult {
     sealed = model.sealed;
   }
 
+  @SuppressWarnings("unchecked")
+  public List<String>[] toDataArray() {
+    return data.toArray((List<String>[]) new List[0]);
+  }
+
   static class OrderedResult extends TestResult {
     private OrderedResult() {
       data = new ArrayList<>();

@@ -33,6 +33,7 @@ import io.confluent.ksql.util.Pair;
 import java.util.List;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -48,18 +49,22 @@ public class QueryEngineTest {
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
-      schemaRegistryClient,
+      () -> schemaRegistryClient,
       metaStore,
       ksqlConfig);
 
+  @After
+  public void closeEngine() {
+    ksqlEngine.close();
+  }
 
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
         new CommandFactories(topicClient, schemaRegistryClient, true));
     try {
-      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
-          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone());
+      final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
+          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {
@@ -73,8 +78,8 @@ public class QueryEngineTest {
     final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
         new CommandFactories(topicClient, schemaRegistryClient, true));
     try {
-      final List<PreparedStatement> statementList = ksqlEngine.parseQueries(
-          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone());
+      final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
+          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {

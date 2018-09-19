@@ -609,6 +609,6 @@ public class CliTest {
   }
 
   private static KsqlRestClient createRestClient() {
-    return new KsqlRestClient(REST_APP.getListeners().get(0).toString());
+    return new KsqlRestClient(REST_APP.getHttpListener().toString());
   }
 }

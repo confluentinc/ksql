@@ -18,9 +18,11 @@ package io.confluent.ksql.rest.client;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -34,6 +36,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import java.net.URI;
 import java.util.Collections;
@@ -48,9 +51,9 @@ import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,20 +61,18 @@ import org.junit.Test;
 
 public class KsqlRestClientTest {
 
-  MockApplication mockApplication;
-  KsqlRestConfig ksqlRestConfig;
-  KsqlRestClient ksqlRestClient;
-  private String serverAddress;
+  private MockApplication mockApplication;
+  private KsqlRestClient ksqlRestClient;
 
   @Before
   public void init() throws Exception {
     final int port = TestUtils.randomFreeLocalPort();
     final Map<String, Object> props = new HashMap<>();
-    serverAddress = "http://localhost:" + port;
+    final String serverAddress = "http://localhost:" + port;
     props.put(KsqlRestConfig.LISTENERS_CONFIG, serverAddress);
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    ksqlRestConfig = new KsqlRestConfig(props);
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(props);
     mockApplication = new MockApplication(ksqlRestConfig);
     mockApplication.start();
 
@@ -177,24 +178,29 @@ public class KsqlRestClientTest {
 
   @Test
   public void testStatus() {
-    final RestResponse<CommandStatuses> commandStatusesRestResponse = ksqlRestClient.makeStatusRequest();
-    Assert.assertNotNull(commandStatusesRestResponse);
-    Assert.assertTrue(commandStatusesRestResponse.isSuccessful());
-    final CommandStatuses commandStatuses = commandStatusesRestResponse.getResponse();
-    Assert.assertTrue(commandStatuses.size() == 2);
-    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c1", CommandId.Action.CREATE)) == CommandStatus.Status.SUCCESS);
-    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c2", CommandId.Action.CREATE)) ==
-                      CommandStatus.Status.ERROR);
+    // When:
+    final RestResponse<CommandStatuses> response = ksqlRestClient.makeStatusRequest();
 
+    // Then:
+    assertThat(response, is(notNullValue()));
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse(), is(new CommandStatuses(ImmutableMap.of(
+        new CommandId(CommandId.Type.TOPIC, "c1", CommandId.Action.CREATE),
+        CommandStatus.Status.SUCCESS,
+        new CommandId(CommandId.Type.TOPIC, "c2", CommandId.Action.CREATE),
+        CommandStatus.Status.ERROR
+    ))));
   }
 
   @Test
   public void shouldReturnStatusForSpecificCommand() {
-    final RestResponse<CommandStatus> commandStatusRestResponse = ksqlRestClient.makeStatusRequest("TOPIC/c1/CREATE");
-    Assert.assertThat(commandStatusRestResponse, CoreMatchers.notNullValue());
-    Assert.assertThat(commandStatusRestResponse.isSuccessful(), CoreMatchers.equalTo(true));
-    final CommandStatus commandStatus = commandStatusRestResponse.getResponse();
-    Assert.assertThat(commandStatus.getStatus(), CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
+    // When:
+    final RestResponse<CommandStatus> response = ksqlRestClient.makeStatusRequest("TOPIC/c1/CREATE");
+
+    // Then:
+    assertThat(response, is(notNullValue()));
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse().getStatus(), is(CommandStatus.Status.SUCCESS));
   }
 
   @Test(expected = KsqlRestClientException.class)
@@ -202,79 +208,210 @@ public class KsqlRestClientTest {
     new KsqlRestClient("not-valid-address", Collections.emptyMap());
   }
 
-  private <T> Client mockClientExpectingGetRequestAndReturningStatusWithEntity(
-      final String server, final String path, final Response.Status status, final Optional<T> entity, final Class<T> clazz)
-      throws Exception {
-    final Client client = EasyMock.createNiceMock(Client.class);
-    final WebTarget target = EasyMock.createNiceMock(WebTarget.class);
-
-    EasyMock.expect(client.target(new URI(server))).andReturn(target);
-    EasyMock.expect(target.path(path)).andReturn(target);
-    final Invocation.Builder builder = EasyMock.createNiceMock(Invocation.Builder.class);
-    EasyMock.expect(target.request(MediaType.APPLICATION_JSON_TYPE)).andReturn(builder);
-    final Response response = EasyMock.createNiceMock(Response.class);
-    EasyMock.expect(builder.get()).andReturn(response);
-    EasyMock.expect(response.getStatus()).andReturn(status.getStatusCode()).anyTimes();
-    if (entity.isPresent()) {
-      EasyMock.expect(response.readEntity(clazz)).andReturn(entity.get()).anyTimes();
-    }
-    EasyMock.replay(client, target, builder, response);
-
-    return client;
-  }
-
-  private Client mockClientExpectingGetRequestAndReturningStatus(
-      final String server, final String path, final Response.Status status) throws Exception {
-    return mockClientExpectingGetRequestAndReturningStatusWithEntity(
-        server, path, status, Optional.empty(), Object.class);
-  }
-
   @Test
-  public void shouldRaiseAuthenticationExceptionOn401Response() throws Exception {
-    final String serverAddress = "http://foobar";
-    final Client client = mockClientExpectingGetRequestAndReturningStatus(
-        serverAddress, "/info", Response.Status.UNAUTHORIZED);
-    final KsqlRestClient restClient = new KsqlRestClient(client, serverAddress, Collections.emptyMap());
-    final RestResponse restResponse = restClient.getServerInfo();
-    assertTrue(restResponse.isErroneous());
-  }
+  public void shouldHandleNotFoundOnGetRequests() {
+    // Given:
+    givenServerWillReturn(Status.NOT_FOUND);
 
-  @Test
-  public void shouldReturnSuccessfulResponseWhenAuthenticationSucceeds() throws Exception {
-    final String serverAddress = "http://foobar";
-    final Client client = mockClientExpectingGetRequestAndReturningStatus(
-        serverAddress, "/info", Response.Status.OK);
-    final KsqlRestClient restClient = new KsqlRestClient(client, serverAddress, Collections.emptyMap());
-    final RestResponse restResponse = restClient.getServerInfo();
-    assertTrue(restResponse.isSuccessful());
-  }
+    // When:
+    final RestResponse<?> response = ksqlRestClient.getServerInfo();
 
-  @Test
-  public void shouldReturnErroneousResponseOnError() throws Exception {
-    final String serverAddress = "http://foobar";
-    final KsqlErrorMessage ksqlError = new KsqlErrorMessage(500001, "badbadnotgood");
-    final Client mockClient = mockClientExpectingGetRequestAndReturningStatusWithEntity(
-        serverAddress, "/info", Response.Status.INTERNAL_SERVER_ERROR,
-        Optional.of(ksqlError), KsqlErrorMessage.class);
-    final KsqlRestClient ksqlRestClient = new KsqlRestClient(mockClient, serverAddress, Collections.emptyMap());
-    final RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
-    assertThat(restResponse.isErroneous(), CoreMatchers.equalTo(true));
-    assertThat(restResponse.getErrorMessage(), CoreMatchers.equalTo(ksqlError));
-  }
-
-  @Test
-  public void shouldReturnGoodErrorMessageIfCantFindKsqlInfoPath() throws Exception {
-    final String serverAddress = "http://not-ksql-server";
-    final Client mockClient = mockClientExpectingGetRequestAndReturningStatusWithEntity(
-        serverAddress, "/info", Response.Status.NOT_FOUND,
-        Optional.empty(), KsqlErrorMessage.class);
-    final KsqlRestClient ksqlRestClient = new KsqlRestClient(mockClient,
-        serverAddress,
-        Collections.emptyMap());
-    final RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
-    assertThat(restResponse.isErroneous(), is(true));
-    assertThat(restResponse.getErrorMessage().getMessage(),
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(404));
+    assertThat(response.getErrorMessage().getMessage(),
         containsString("Path not found. Path='/info'. "
             + "Check your ksql http url to make sure you are connecting to a ksql server."));
+  }
+
+  @Test
+  public void shouldHandleNotFoundOnPostRequests() {
+    // Given:
+    givenServerWillReturn(Status.NOT_FOUND);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(404));
+    assertThat(response.getErrorMessage().getMessage(),
+        containsString("Path not found. Path='ksql'. "
+            + "Check your ksql http url to make sure you are connecting to a ksql server."));
+  }
+
+  @Test
+  public void shouldHandleUnauthorizedOnGetRequests() {
+    // Given:
+    givenServerWillReturn(Status.UNAUTHORIZED);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.getServerInfo();
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_UNAUTHORIZED));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("Could not authenticate successfully with the supplied credentials."));
+  }
+
+  @Test
+  public void shouldHandleUnauthorizedOnPostRequests() {
+    // Given:
+    givenServerWillReturn(Status.UNAUTHORIZED);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_UNAUTHORIZED));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("Could not authenticate successfully with the supplied credentials."));
+  }
+
+  @Test
+  public void shouldHandleForbiddendOnGetRequests() {
+    // Given:
+    givenServerWillReturn(Status.FORBIDDEN);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.getServerInfo();
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("You are forbidden from using this cluster."));
+  }
+
+  @Test
+  public void shouldHandleForbiddenOnPostRequests() {
+    // Given:
+    givenServerWillReturn(Status.FORBIDDEN);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("You are forbidden from using this cluster."));
+  }
+
+  @Test
+  public void shouldHandleErrorMessageOnGetRequests() {
+    // Given:
+    givenServerWillReturn(new KsqlErrorMessage(12300, "ouch", ImmutableList.of("s1", "s2")));
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.getServerInfo();
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(12300));
+    assertThat(response.getErrorMessage().getMessage(), is("ouch"));
+    assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
+  }
+
+  @Test
+  public void shouldHandleErrorMessageOnPostRequests() {
+    // Given:
+    givenServerWillReturn(new KsqlErrorMessage(12300, "ouch", ImmutableList.of("s1", "s2")));
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(), is(12300));
+    assertThat(response.getErrorMessage().getMessage(), is("ouch"));
+    assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
+  }
+
+  @Test
+  public void shouldHandleArbitraryErrorsOnGetRequests() {
+    // Given:
+    givenServerWillReturn(Status.EXPECTATION_FAILED);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.getServerInfo();
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(),
+        is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("The server returned an unexpected error."));
+  }
+
+  @Test
+  public void shouldHandleArbitraryErrorsOnPostRequests() {
+    // Given:
+    givenServerWillReturn(Status.EXPECTATION_FAILED);
+
+    // When:
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+
+    // Then:
+    assertThat(response.getErrorMessage().getErrorCode(),
+        is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
+    assertThat(response.getErrorMessage().getMessage(),
+        is("The server returned an unexpected error."));
+  }
+
+  @Test
+  public void shouldHandleSuccessOnGetRequests() {
+    // Given:
+    final ServerInfo expectedEntity = new ServerInfo("1", "cid", "sid");
+    givenServerWillReturn(expectedEntity);
+
+    // When:
+    final RestResponse<ServerInfo> response = ksqlRestClient.getServerInfo();
+
+    // Then:
+    assertThat(response.get(), is(expectedEntity));
+  }
+
+  @Test
+  public void shouldHandleSuccessOnPostRequests() {
+    // Given:
+    final KsqlEntityList expectedEntity = new KsqlEntityList();
+    givenServerWillReturn(expectedEntity);
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("foo");
+
+    // Then:
+    assertThat(response.get(), is(expectedEntity));
+  }
+
+  private void givenServerWillReturn(final KsqlErrorMessage errorMessage) {
+    final int statusCode = Errors.toStatusCode(errorMessage.getErrorCode());
+    givenServerWillReturn(statusCode, Optional.of(errorMessage));
+  }
+
+  private void givenServerWillReturn(final Status statusCode) {
+    givenServerWillReturn(statusCode.getStatusCode(), Optional.empty());
+  }
+
+  private void givenServerWillReturn(final Object entity) {
+    givenServerWillReturn(Status.OK.getStatusCode(), Optional.of(entity));
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> void givenServerWillReturn(final int statusCode, final Optional<T> entity) {
+
+    final Response response = EasyMock.createNiceMock(Response.class);
+    EasyMock.expect(response.getStatus()).andReturn(statusCode).anyTimes();
+    entity.ifPresent(e ->
+        EasyMock.expect(response.readEntity((Class<T>)e.getClass())).andReturn(e).once());
+
+    final Invocation.Builder builder = EasyMock.createNiceMock(Invocation.Builder.class);
+    EasyMock.expect(builder.get()).andReturn(response);
+    EasyMock.expect(builder.post(EasyMock.anyObject())).andReturn(response);
+
+    final WebTarget target = EasyMock.createNiceMock(WebTarget.class);
+    EasyMock.expect(target.path(EasyMock.anyString())).andReturn(target);
+    EasyMock.expect(target.request(MediaType.APPLICATION_JSON_TYPE)).andReturn(builder);
+
+    final Client client = EasyMock.createNiceMock(Client.class);
+    EasyMock.expect(client.target(EasyMock.anyObject(URI.class))).andReturn(target);
+
+    EasyMock.replay(client, target, builder, response);
+
+    ksqlRestClient = new KsqlRestClient(client, "http://0.0.0.0", Collections.emptyMap());
   }
 }

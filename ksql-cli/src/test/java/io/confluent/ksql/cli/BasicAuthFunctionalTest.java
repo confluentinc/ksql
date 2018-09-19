@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.rest.server.resources.Errors.ERROR_CODE_FORBIDDEN;
+import static io.confluent.ksql.rest.server.resources.Errors.ERROR_CODE_UNAUTHORIZED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -43,7 +45,6 @@ import org.eclipse.jetty.http.HttpStatus.Code;
 import org.eclipse.jetty.jaas.spi.PropertyFileLoginModule;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeException;
-import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
@@ -70,13 +71,13 @@ public class BasicAuthFunctionalTest {
   private static final String KSQL_CLUSTER_ID = "ksql-11";
   private static final String USER_WITH_ACCESS = "harry";
   private static final String USER_WITH_ACCESS_PWD = "changeme";
-  private static final String USER_WITHOUT_ACCESS = "tom";
-  private static final String USER_WITHOUT_ACCESS_PWD = "changeme";
+  private static final String USER_NO_ACCESS = "tom";
+  private static final String USER_NO_ACCESS_PWD = "changeme";
 
   private static final String BASIC_PASSWORDS_FILE_CONTENT =
       "# Each line generated using org.eclipse.jetty.util.security.Password\n"
-          + USER_WITH_ACCESS + ": changeme,user,developer," + KSQL_CLUSTER_ID + "\n"
-          + USER_WITHOUT_ACCESS + ": MD5:0d107d09f5bbe40cade3de5c71e9e9b7,user,ksql-12\n";
+          + USER_WITH_ACCESS + ": " + USER_WITH_ACCESS_PWD + "," + KSQL_CLUSTER_ID + "\n"
+          + USER_NO_ACCESS + ": " + USER_NO_ACCESS_PWD + ",ksql-other\n";
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster
       .newBuilder()
@@ -100,18 +101,8 @@ public class BasicAuthFunctionalTest {
   }
 
   @Test
-  public void shouldBeAbleToUseCliWithValidCreds() throws Exception {
-    assertThat(canMakeCliRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(true));
-  }
-
-  @Test
-  public void shouldBeAbleToUseWsWithValidCreds() throws Exception {
-    assertThat(makeWsRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(HttpStatus.Code.OK));
-  }
-
-  @Test
-  public void shouldNotBeAbleToUseCliWithInvalidPassword() throws Exception {
-    assertThat(canMakeCliRequest(USER_WITH_ACCESS, "wrong pwd"), is(false));
+  public void shouldNotBeAbleToUseCliWithInvalidPassword() {
+    assertThat(canMakeCliRequest(USER_WITH_ACCESS, "wrong pwd"), is(ERROR_CODE_UNAUTHORIZED));
   }
 
   @Test
@@ -120,8 +111,8 @@ public class BasicAuthFunctionalTest {
   }
 
   @Test
-  public void shouldNotBeAbleToUseCliWithUnknownUser() throws Exception {
-    assertThat(canMakeCliRequest("Unknown-user", "some password"), is(false));
+  public void shouldNotBeAbleToUseCliWithUnknownUser() {
+    assertThat(canMakeCliRequest("Unknown-user", "some password"), is(ERROR_CODE_UNAUTHORIZED));
   }
 
   @Test
@@ -131,15 +122,25 @@ public class BasicAuthFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseCliWithValidCredsIfUserHasNoAccessToThisCluster() {
-    assertThat(canMakeCliRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD), is(false));
+    assertThat(canMakeCliRequest(USER_NO_ACCESS, USER_NO_ACCESS_PWD), is(ERROR_CODE_FORBIDDEN));
   }
 
   @Test
   public void shouldNotBeAbleToUseWsWithValidCredsIfUserHasNoAccessToThisCluster() throws Exception {
-    assertThat(makeWsRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD), is(Code.UNAUTHORIZED));
+    assertThat(makeWsRequest(USER_NO_ACCESS, USER_NO_ACCESS_PWD), is(Code.FORBIDDEN));
   }
 
-  private boolean canMakeCliRequest(final String username, final String password) {
+  @Test
+  public void shouldBeAbleToUseCliWithValidCreds() {
+    assertThat(canMakeCliRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(Code.OK.getCode()));
+  }
+
+  @Test
+  public void shouldBeAbleToUseWsWithValidCreds() throws Exception {
+    assertThat(makeWsRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(Code.OK));
+  }
+
+  private int canMakeCliRequest(final String username, final String password) {
     try (KsqlRestClient restClient = new KsqlRestClient(findHttpListener().toString())) {
 
       if (!username.isEmpty()) {
@@ -147,11 +148,15 @@ public class BasicAuthFunctionalTest {
       }
 
       final RestResponse<ServerInfo> response = restClient.getServerInfo();
-      return response.isSuccessful();
+      if (response.isSuccessful()) {
+        return Code.OK.getCode();
+      }
+
+      return response.getErrorMessage().getErrorCode();
     }
   }
 
-  private HttpStatus.Code makeWsRequest(final String username, final String password) throws Exception {
+  private Code makeWsRequest(final String username, final String password) throws Exception {
     final WebSocketClient wsClient = new WebSocketClient();
     wsClient.start();
 
@@ -177,7 +182,7 @@ public class BasicAuthFunctionalTest {
     }
   }
 
-  private static HttpStatus.Code extractStatusCode(final Throwable message) {
+  private static Code extractStatusCode(final Throwable message) {
     assertThat(message, is(instanceOf(UpgradeException.class)));
     return HttpStatus.getCode(((UpgradeException) message).getResponseStatusCode());
   }

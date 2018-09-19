@@ -56,7 +56,7 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlRestClient implements Closeable, AutoCloseable {
+public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Client client;
@@ -217,7 +217,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;

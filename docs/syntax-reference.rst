@@ -39,6 +39,47 @@ means new facts can be inserted to the table, and existing facts can be updated 
 Kafka topic or derived from existing streams and tables. In both cases, a table’s underlying data is durably stored (persisted)
 within a Kafka topic on the Kafka brokers.
 
+.. _struct_overview:
+
+STRUCT
+------
+
+In KSQL 5.0 and higher, you can read nested data, in Avro and JSON formats,
+by using the ``STRUCT`` type in CREATE STREAM and CREATE TABLE statements.
+You can use the ``STRUCT`` type in these KSQL statements: 
+
+- CREATE STREAM/TABLE (from a topic)
+- CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
+- SELECT (non-persistent query)
+
+Use the following syntax to declare nested data: 
+
+.. code:: sql
+
+   STRUCT<FieldName FieldType, ...>
+
+The ``STRUCT`` type requires you to specify a list of fields. For each field, you
+specify the field name and field type. The field type can be any of the
+supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
+``STRUCT``. Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
+encapsulate a street address and a postal code:
+
+.. code:: sql
+
+   CREATE STREAM orders (
+     orderId BIGINT,
+     address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
+
+Access the fields in a ``STRUCT`` by using the dereference operator (``->``):
+
+.. code:: sql
+
+   SELECT address->city, address->zip FROM orders;
+
+For more info, see :ref:`operators`.
+
+.. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
+   but you can copy existing ``STRUCT`` fields as-is.
 
 =================
 KSQL CLI Commands
@@ -978,7 +1019,7 @@ they are explicitly terminated.
 Operators
 =========
 
-KSQL supports the following operators in value expressions:
+KSQL supports the following operators in value expressions.
 
 The explanation for each operator includes a supporting example based on the following table:
 
@@ -1018,6 +1059,24 @@ The explanation for each operator includes a supporting example based on the fol
 .. code:: sql
 
   SELECT NICKNAMES[0] FROM USERS;
+
+- STRUCT dereference (``->``) Access nested data by declaring a STRUCT and using
+  the dereference operator to access its fields:
+
+.. code:: sql
+
+   CREATE STREAM orders (
+     orderId BIGINT,
+     address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
+
+   SELECT address->city, address->zip FROM orders;
+
+- Combine `->` with `.` when using aliases:
+
+.. code:: sql
+
+   SELECT orders.address->city, o.address->zip FROM orders o;
+
 
 .. _functions:
 

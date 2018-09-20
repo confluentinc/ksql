@@ -66,7 +66,6 @@ import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RenameColumn;
-import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -94,7 +93,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -786,35 +785,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
             new AliasedRelation((Relation) process(node.getRelation(), context),
                 node.getAlias(),
                 node.getColumnNames())
-        );
-  }
-
-  protected Node visitSampledRelation(final SampledRelation node, final Object context) {
-
-    final Optional<List<Expression>> columnsToStratifyOn = node.getColumnsToStratifyOn().isPresent()
-        ? Optional.ofNullable(
-        node.getColumnsToStratifyOn().get()
-            .stream()
-            .map(expression -> (Expression) process(expression, context))
-            .collect(Collectors.toList()))
-        : Optional.empty();
-    return node.getLocation()
-        .map(location ->
-            new SampledRelation(node.getLocation().get(),
-                (Relation) process(node.getRelation(), context),
-                node.getType(),
-                (Expression) process(node.getSamplePercentage(), context),
-                node.isRescaled(),
-                columnsToStratifyOn
-            )
-        )
-        .orElse(
-            new SampledRelation((Relation) process(node.getRelation(), context),
-                node.getType(),
-                (Expression) process(node.getSamplePercentage(), context),
-                node.isRescaled(),
-                columnsToStratifyOn
-            )
         );
   }
 

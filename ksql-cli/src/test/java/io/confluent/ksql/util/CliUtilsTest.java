@@ -47,28 +47,53 @@ public class CliUtilsTest {
   }
 
   @Test
-  public void shouldUpdateOverwrittenPropertiesCorrectly() {
+  public void shouldUpdateClientOverwrittenPropertiesCorrectly() {
+    // Given:
     final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-    final PropertiesList serverPropertiesList = new PropertiesList(
-        "list properties;",
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
         ImmutableMap.of(key, "earliest"),
-        ImmutableList.of(key)
+        ImmutableList.of(key),
+        Collections.emptyList()
     );
+
+    // When:
     final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
 
-    assertThat(properties, hasKey(key + " (LOCAL OVERRIDE)"));
+    // Then:
     assertThat(properties.get(key + " (LOCAL OVERRIDE)"), equalTo("earliest"));
   }
 
   @Test
-  public void shouldNotChangeUnwrittenProperty() {
+  public void shouldNotChangeServerOverwrittenProperties() {
+    // Given:
     final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-    final PropertiesList serverPropertiesList = new PropertiesList(
-        "list properties;",
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
         ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
         Collections.emptyList()
     );
+
+    // When:
     final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
     assertThat(properties.get(key), equalTo("earliest"));
+  }
+
+  @Test
+  public void shouldUpdateDefaultPropertiesCorrectly() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
+        ImmutableList.of(key)
+    );
+
+    // When:
+    final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties.get(key + " (DEFAULT)"), equalTo("earliest"));
   }
 }

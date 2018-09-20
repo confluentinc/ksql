@@ -28,7 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
@@ -78,22 +80,23 @@ public class CliUtils {
     }
   }
 
-  public static Map<String, Object> propertiesListWithOverrides(
-      final PropertiesList propertiesList) {
-    return propertiesList.getProperties().entrySet()
-        .stream()
-        .collect(
-            Collectors.toMap(
-              e ->
-                  propertiesList.getOverwrittenProperties().contains(e.getKey())
-                      ? e.getKey() + " (LOCAL OVERRIDE)" : e.getKey(),
-              e -> e.getValue() == null ? "null" : e.getValue()
-            )
-        );
-  }
+  public static Map<String, Object> propertiesListWithOverrides(final PropertiesList properties) {
 
-  public static String getLocalServerAddress(final int portNumber) {
-    return String.format("http://localhost:%d", portNumber);
+    final Function<Entry<String, ?>, String> keyMapper = e -> {
+      if (properties.getOverwrittenProperties().contains(e.getKey())) {
+        return e.getKey() + " (LOCAL OVERRIDE)";
+      }
+
+      if (properties.getDefaultProperties().contains(e.getKey())) {
+        return e.getKey() + " (DEFAULT)";
+      }
+
+      return e.getKey();
+    };
+
+    return properties.getProperties().entrySet()
+        .stream()
+        .collect(Collectors.toMap(keyMapper, e -> e.getValue() == null ? "NULL" : e.getValue()));
   }
 
   public static boolean createFile(final Path path) {

@@ -112,6 +112,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -463,16 +464,28 @@ public class KsqlResource {
 
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
+    final Map<String, Object> originals = ksqlConfig.originals();
+
     final Map<String, String> engineProperties
         = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+
     final Map<String, String> mergedProperties
         = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties)
-            .getAllConfigPropsWithSecretsObfuscated();
-    final List<String> overwritten = mergedProperties.keySet()
+        .getAllConfigPropsWithSecretsObfuscated();
+
+    final List<String> overwritten = mergedProperties.entrySet()
         .stream()
-        .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))
+        .filter(e -> !Objects.equals(engineProperties.get(e.getKey()), e.getValue()))
+        .map(Entry::getKey)
         .collect(Collectors.toList());
-    return new PropertiesList(statementText, mergedProperties, overwritten);
+
+    final List<String> defaultProps = mergedProperties.entrySet()
+        .stream()
+        .filter(e -> !Objects.equals(originals.get(e.getKey()), e.getValue()))
+        .map(Entry::getKey)
+        .collect(Collectors.toList());
+
+    return new PropertiesList(statementText, mergedProperties, overwritten, defaultProps);
   }
 
   private KsqlEntity listStreams(final String statementText, final boolean showDescriptions) {

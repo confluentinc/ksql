@@ -60,6 +60,29 @@ All API endpoints use a standard error message format for any requests that retu
        "message": <Error Message>
    }
 
+Get the Status of a KSQL Server
+-------------------------------
+
+The ``/info`` resource gives you information about the status of a KSQL
+server, which can be useful for health checks and troubleshooting. You can
+use the ``curl`` command to query the ``/info`` endpoint:
+
+.. code:: bash
+
+   curl -sX GET "http://localhost:8088/info" | jq '.'
+
+Your output should resemble:
+
+.. code:: json
+
+   {
+     "KsqlServerInfo": {
+       "version": "5.0.0",
+       "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
+       "ksqlServiceId": "default_"
+     }
+   }
+
 Run a KSQL Statement
 --------------------
 

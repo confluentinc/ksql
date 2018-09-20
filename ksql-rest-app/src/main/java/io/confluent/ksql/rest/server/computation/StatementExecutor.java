@@ -54,13 +54,11 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
@@ -464,9 +462,7 @@ public class StatementExecutor {
       final List<String> deleteSources
   ) {
     // Terminate all queries
-    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
-    queryMetadataList.addAll(ksqlEngine.getAllLiveQueries());
-    queryMetadataList.forEach(
+    getListForSet(ksqlEngine.getAllLiveQueries()).forEach(
         queryMetadata -> {
           if (queryMetadata instanceof PersistentQueryMetadata) {
             final PersistentQueryMetadata persistentQueryMetadata
@@ -494,6 +490,13 @@ public class StatementExecutor {
     } else {
       metaStore.getAllStructuredDataSources().forEach(this::deleteSource);
     }
+  }
+
+  // This is needed because the checkstyle complains if we create this in place.
+  List<QueryMetadata> getListForSet(final Set<QueryMetadata> queryMetadataSet) {
+    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
+    queryMetadataList.addAll(ksqlEngine.getAllLiveQueries());
+    return queryMetadataList;
   }
 
   private void deleteSource(

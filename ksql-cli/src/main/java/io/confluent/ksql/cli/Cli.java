@@ -34,7 +34,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -470,8 +469,7 @@ public class Cli implements Closeable {
     final Object priorValue = restClient.setProperty(property, value);
 
     if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
-        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)
-        || property.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
+        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
 
       // Don't output.
       return;

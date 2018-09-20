@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.client.properties;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -33,6 +34,7 @@ import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.streams.StreamsConfig;
 
 @SuppressWarnings("OptionalAssignedToNull")
+@SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "Tri-state use")
 class LocalPropertyParser implements PropertyParser {
 
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);

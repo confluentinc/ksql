@@ -71,7 +71,6 @@ public class ServerInfo {
 
   @Override
   public int hashCode() {
-
-    return Objects.hash(version, kafkaClusterId);
+    return Objects.hash(version, kafkaClusterId, ksqlServiceId);
   }
 }

@@ -71,7 +71,7 @@ import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cli implements Closeable, AutoCloseable {
+public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 

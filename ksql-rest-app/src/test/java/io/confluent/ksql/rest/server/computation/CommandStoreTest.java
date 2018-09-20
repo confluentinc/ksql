@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 import java.time.Duration;
@@ -69,6 +70,9 @@ import org.junit.runner.RunWith;
 public class CommandStoreTest {
 
   private static final String COMMAND_TOPIC = "command";
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
+  private static final Map<String, Object> OVERRIDE_PROPERTIES = Collections.emptyMap();
+
   private Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
   private Producer<CommandId, Command> commandProducer = mock(Producer.class);
 
@@ -103,55 +107,18 @@ public class CommandStoreTest {
         new Pair<>(createId, latestCommand))));
   }
 
-  @Test
-  public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
-    final Map<String, Object> overrideProperties = Collections.singletonMap(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
+  private CommandIdAssigner buildSameIdAssigner() {
     final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
-    final Future<RecordMetadata> future = niceMock(Future.class);
-
-    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
-    expect(commandIdAssigner.getCommandId(statement)).andStubReturn(commandId);
-    expect(commandProducer.send(anyObject())).andReturn(future);
-    replay(commandIdAssigner, commandProducer, future);
-
-    final CommandStore commandStore = createCommandStore(commandIdAssigner);
-    commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
-    try {
-      commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
-      fail("Second enqueue call should throw IllegalStateException");
-    } catch (final IllegalStateException e) {
-    }
+    expect(commandIdAssigner.getCommandId(anyObject())).andStubAnswer(
+        () -> new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE)
+    );
+    replay(commandIdAssigner);
+    return commandIdAssigner;
   }
 
-  @Test
-  public void shouldEnqueueNewAfterHandlingExistingCommand() throws InterruptedException, ExecutionException {
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
-    final Map<String, Object> overrideProperties = Collections.singletonMap(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
-    final Future<RecordMetadata> future = mock(Future.class);
-    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
-    final Command command = new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
-
-    final CommandStore commandStore = new CommandStore(
-        COMMAND_TOPIC,
-        commandConsumer,
-        commandProducer,
-        commandIdAssigner);
-
+  private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
     reset(commandConsumer);
-    expect(commandIdAssigner.getCommandId(statement)).andStubReturn(commandId);
-    expect(commandConsumer.poll(anyObject())).andReturn(
+    expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
         new ConsumerRecords<>(
             Collections.singletonMap(
                 new TopicPartition("command-topic", 0),
@@ -161,6 +128,77 @@ public class CommandStoreTest {
                 ))
         )
     ).times(1);
+    replay(commandConsumer);
+  }
+
+  @Test
+  public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
+    final String statementText = "test-statement";
+
+    final Statement statement = mock(Statement.class);
+    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
+    final Future<RecordMetadata> future = niceMock(Future.class);
+    final CommandStore commandStore = createCommandStore(commandIdAssigner);
+
+    // Given:
+    expect(commandProducer.send(anyObject())).andReturn(future);
+    replay(commandProducer);
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    try {
+      // When:
+      commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+      // Then:
+      fail("Second enqueue call should throw IllegalStateException");
+    } catch (final IllegalStateException e) {
+    }
+  }
+
+  @Test
+  public void shouldCleanupCommandStatusOnProduceError() {
+    final String statementText = "test-statement";
+
+    final Statement statement = mock(Statement.class);
+    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
+    final Future<RecordMetadata> future = niceMock(Future.class);
+    final CommandStore commandStore = createCommandStore(commandIdAssigner);
+
+    // Given:
+    expect(commandProducer.send(anyObject())).andThrow(new RuntimeException("oops")).times(1);
+    expect(commandProducer.send(anyObject())).andReturn(future).times(1);
+    replay(commandProducer);
+    try {
+      commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+      fail("enqueueCommand should have raised an exception");
+    } catch (final KsqlException e) {
+    }
+
+    // When:
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    // Then:
+    // main condition being verified is that the above call doesn't throw
+    verify(commandProducer);
+  }
+
+  @Test
+  public void shouldEnqueueNewAfterHandlingExistingCommand() throws InterruptedException, ExecutionException {
+    final String statementText = "test-statement";
+
+    final Statement statement = mock(Statement.class);
+    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
+    final Future<RecordMetadata> future = mock(Future.class);
+    final Command command = new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+    final CommandId commandId = commandIdAssigner.getCommandId(null);
+    final CommandStore commandStore = new CommandStore(
+        COMMAND_TOPIC,
+        commandConsumer,
+        commandProducer,
+        commandIdAssigner);
+
+    // Given:
+    setupConsumerToReturnCommand(commandId, command);
     expect(commandProducer.send(anyObject(ProducerRecord.class))).andAnswer(
         () -> {
           commandStore.getNewCommands();
@@ -170,48 +208,34 @@ public class CommandStoreTest {
     expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
     future.get();
     expectLastCall().andStubReturn(null);
+    replay(future, commandProducer);
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
-    replay(commandIdAssigner, future, commandProducer, commandConsumer);
+    // When:
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
-    commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
-    commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
-
+    // Then:
     verify(commandIdAssigner, future, commandProducer, commandConsumer);
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands()
       throws ExecutionException, InterruptedException {
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
-    final Map<String, Object> overrideProperties = Collections.singletonMap(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     final String statementText = "test-statement";
 
     final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
+    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
     final Future<RecordMetadata> future = mock(Future.class);
-    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+    final CommandId commandId = commandIdAssigner.getCommandId(null);
     final Command command = new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
-
     final CommandStore commandStore = new CommandStore(
         COMMAND_TOPIC,
         commandConsumer,
         commandProducer,
         commandIdAssigner);
 
-    reset(commandConsumer);
-    expect(commandIdAssigner.getCommandId(statement)).andReturn(commandId);
-    expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
-        new ConsumerRecords<>(
-            Collections.singletonMap(
-                new TopicPartition("command-topic", 0),
-                Collections.singletonList(
-                    new ConsumerRecord<>(
-                        "command-topic", 0, 0, commandId, command)
-            ))
-        )
-    );
+    // Given:
+    setupConsumerToReturnCommand(commandId, command);
     expect(commandProducer.send(anyObject(ProducerRecord.class))).andAnswer(
         () -> {
           final QueuedCommand queuedCommand = commandStore.getNewCommands().get(0);
@@ -225,11 +249,13 @@ public class CommandStoreTest {
     );
     future.get();
     expectLastCall().andReturn(null);
+    replay(future, commandProducer);
 
-    replay(commandIdAssigner, future, commandProducer, commandConsumer);
+    // When:
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
-    commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
-
+    // Then:
+    // verifying the commandProducer also verifies the assertions in its IAnswer were run
     verify(commandIdAssigner, future, commandProducer, commandConsumer);
   }
 

@@ -16,20 +16,19 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -45,9 +44,7 @@ import org.slf4j.LoggerFactory;
  * the beginning until now, or any new messages since then), and writing to it.
  */
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements ReplayableCommandQueue, Closeable {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
@@ -57,7 +54,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
-  private final AtomicBoolean closed;
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
   public CommandStore(
@@ -70,11 +66,9 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
-    this.commandStatusMap = new ConcurrentHashMap<>();
+    this.commandStatusMap = Maps.newConcurrentMap();
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
-
-    closed = new AtomicBoolean(false);
   }
 
   /**
@@ -82,7 +76,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    */
   @Override
   public void close() {
-    closed.set(true);
     commandConsumer.wakeup();
     commandProducer.close();
   }
@@ -117,12 +110,17 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
           }
           // We should fail registration if a future is already registered, to prevent
           // a caller from receiving a future for a different statement.
-          throw new IllegalStateException("Concurrent command with id: " + commandId);
+          throw new IllegalStateException(
+              String.format(
+                  "Another command with the same id (%s) is being executed.",
+                  commandId)
+          );
         }
     );
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     } catch (final Exception e) {
+      commandStatusMap.remove(commandId);
       throw new KsqlException(
           String.format(
               "Could not write the statement '%s' into the "
@@ -141,13 +139,13 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    final List<QueuedCommand> queuedCommands = new ArrayList<>();
+    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
         c -> queuedCommands.add(
             new QueuedCommand(
                 c.key(),
-                c.value(),
-                commandStatusMap.remove(c.key())
+                Optional.ofNullable(c.value()),
+                Optional.ofNullable(commandStatusMap.remove(c.key()))
             )
         )
     );
@@ -163,7 +161,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
     log.debug("Reading prior command records");
 
-    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = new LinkedHashMap<>();
+    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
     ConsumerRecords<CommandId, Command> records =
         commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     while (!records.isEmpty()) {

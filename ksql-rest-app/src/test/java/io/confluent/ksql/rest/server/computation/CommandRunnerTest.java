@@ -27,6 +27,7 @@ import static org.easymock.EasyMock.verify;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -36,7 +37,8 @@ public class CommandRunnerTest {
   private List<QueuedCommand> getQueuedCommands() {
     final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
     return commandList.stream()
-        .map(c -> new QueuedCommand(c.getLeft(), c.getRight(), null))
+        .map(
+            c -> new QueuedCommand(c.getLeft(), Optional.ofNullable(c.getRight()), Optional.empty()))
         .collect(Collectors.toList());
   }
 

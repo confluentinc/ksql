@@ -134,18 +134,14 @@ public class StatementExecutor {
                         final Optional<QueuedCommandStatus> queuedCommandStatus,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
-    queuedCommandStatus.ifPresent(
-        s -> s.setStatus(status)
-    );
+    queuedCommandStatus.ifPresent(s -> s.setStatus(status));
   }
 
   public void putFinalStatus(final CommandId commandId,
                              final Optional<QueuedCommandStatus> queuedCommandStatus,
                              final CommandStatus status) {
     statusStore.put(commandId, status);
-    queuedCommandStatus.ifPresent(
-        s -> s.setFinalStatus(status)
-    );
+    queuedCommandStatus.ifPresent(s -> s.setFinalStatus(status));
   }
 
   /**

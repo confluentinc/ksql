@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ public class QueuedCommandStatus {
   private final CompletableFuture<CommandStatus> future;
 
   public QueuedCommandStatus(final CommandId commandId) {
-    this.commandId = commandId;
+    this.commandId = Objects.requireNonNull(commandId);
     this.commandStatus = INITIAL_STATUS;
     this.future = new CompletableFuture<>();
   }
@@ -45,17 +46,19 @@ public class QueuedCommandStatus {
     return commandStatus;
   }
 
-  public CommandStatus waitForFinalStatus(final long timeout, final TimeUnit timeUnit)
-      throws InterruptedException, ExecutionException {
+  public CommandStatus tryWaitForFinalStatus(final long timeout, final TimeUnit timeUnit)
+      throws InterruptedException {
     try {
       return future.get(timeout, timeUnit);
+    } catch (final ExecutionException e) {
+      throw new RuntimeException("Error executing command " + commandId, e.getCause());
     } catch (final TimeoutException e) {
       return commandStatus;
     }
   }
 
   public void setStatus(final CommandStatus status) {
-    this.commandStatus = status;
+    this.commandStatus = Objects.requireNonNull(status);
   }
 
   public void setFinalStatus(final CommandStatus status) {

@@ -16,17 +16,18 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class QueuedCommand {
   private final CommandId commandId;
-  private final Command command;
-  private final QueuedCommandStatus status;
+  private final Optional<Command> command;
+  private final Optional<QueuedCommandStatus> status;
 
   public QueuedCommand(final CommandId commandId,
-                       final Command command,
-                       final QueuedCommandStatus status) {
-    this.commandId = commandId;
+                       final Optional<Command> command,
+                       final Optional<QueuedCommandStatus> status) {
+    this.commandId = Objects.requireNonNull(commandId);
     this.command = command;
     this.status = status;
   }
@@ -36,10 +37,10 @@ public class QueuedCommand {
   }
 
   public Optional<QueuedCommandStatus> getStatus() {
-    return Optional.ofNullable(status);
+    return status;
   }
 
   public Optional<Command> getCommand() {
-    return Optional.ofNullable(command);
+    return command;
   }
 }

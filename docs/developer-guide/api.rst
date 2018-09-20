@@ -326,3 +326,61 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
         "status": "SUCCESS",
         "message":"Stream created and running"
       }
+
+
+Terminate A Cluster
+-------------------
+
+If you don't need your KSQL cluster anymore, you can terminate the cluster and cleanup the resources using this endpoint. When a server receives a ``TERMINATE CLUSTER`` request, it writes a ``TERMINATE CLUSTER`` command into the command topic.
+When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes the following steps:
+
+-Sets the KSQL engine mode to ``NOT ACCEPTING NEW STATEMENTS`` so no new statement will be passed to the engine for execution.
+-Terminates all of persistent and transient queries in the engine along with the required clean up for each query.
+-Delete all Kafka topics associated with the streams/tables in the KSQL metastore.
+-Delete the command topic for the cluster.
+
+**Example request**
+
+   .. code:: http
+
+      POST /ksql/terminate HTTP/1.1
+      Accept: application/vnd.ksql.v1+json
+      Content-Type: application/vnd.ksql.v1+json
+
+      {
+        "streamsProperties": {}
+      }
+
+You can customize the clean up process if you don't want to delete all the Kafka topics associated with the streams/tables in the metastore:
+
+**Provide a KEEP_SOURCES List**
+If you want to keep a set of topics associated with streams/tables in the metastore, you can provide the list of stream/table names in your request. This will clean up all topics belonging to the Streams/Tables in the metastore except the ones that belong to the streams/tables that are in the ``KEEP_SOURCES`` list.
+The following example will keep the Kafka topics for streams/tables named ``FOO`` and ``BAR``.
+
+   .. code:: http
+
+      POST /ksql/terminate HTTP/1.1
+      Accept: application/vnd.ksql.v1+json
+      Content-Type: application/vnd.ksql.v1+json
+
+      {
+        "streamsProperties": {
+          "KEEP_SOURCES": ["FOO", "BAR"]
+        }
+      }
+
+**Provide a DELETE_SOURCES List**
+You can provide the list of streams/tables that you want to delete their corresponding Kafka topics. In this case, only the topics associated with the streams/tables in the ``DELETE_SOURCES`` will be deleted and the rest of the topics will remain after cleanup.
+The following example will only delete the topic associated with stream/table ``FOO``.
+
+   .. code:: http
+
+      POST /ksql/terminate HTTP/1.1
+      Accept: application/vnd.ksql.v1+json
+      Content-Type: application/vnd.ksql.v1+json
+
+      {
+        "streamsProperties": {
+          "DELETE_SOURCES": ["FOO"]
+        }
+      }

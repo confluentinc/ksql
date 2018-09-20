@@ -72,6 +72,9 @@ public class StreamedQueryResource {
 
   @POST
   public Response streamQuery(final KsqlRequest request) throws Exception {
+    if (!ksqlEngine.getAcceptingStatements().get()) {
+      return Errors.badRequest("The cluster has been terminated. No new request will be accepted.");
+    }
     final String ksql = request.getKsql();
     final Statement statement;
     if (ksql == null) {

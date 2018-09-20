@@ -51,6 +51,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -76,8 +77,6 @@ public class StatementExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
-
-  private final AtomicBoolean clusterTerminated = new AtomicBoolean(false);
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
@@ -138,7 +137,7 @@ public class StatementExecutor {
   ) {
     final String statementText = command.getStatement();
     if (statementText.equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-      this.clusterTerminated.set(true);
+      this.ksqlEngine.getAcceptingStatements().set(false);
       final List<String> keepTopics = command
           .getOverwriteProperties().containsKey("KEEP_SOURCES")
           ? ((List<String>) command.getOverwriteProperties().get("KEEP_SOURCES"))
@@ -153,7 +152,7 @@ public class StatementExecutor {
       terminateCluster(keepTopics, deleteTopics);
       // Delete the command topic
       deleteCommandTopic();
-    } else if (!clusterTerminated.get()) {
+    } else if (ksqlEngine.getAcceptingStatements().get()) {
       handleStatementWithTerminatedQueries(command,
           commandId,
           status,
@@ -464,19 +463,20 @@ public class StatementExecutor {
       final List<String> keepSources,
       final List<String> deleteSources
   ) {
-    this.clusterTerminated.set(true);
     // Terminate all queries
-    final Iterator<QueryMetadata> iterator = ksqlEngine.getAllLiveQueries().iterator();
-    while (iterator.hasNext()) {
-      final QueryMetadata queryMetadata = iterator.next();
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata persistentQueryMetadata
-            = (PersistentQueryMetadata) queryMetadata;
-        ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
-      }  else {
-        queryMetadata.close();
-      }
-    }
+    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
+    queryMetadataList.addAll(ksqlEngine.getAllLiveQueries());
+    queryMetadataList.forEach(
+        queryMetadata -> {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            final PersistentQueryMetadata persistentQueryMetadata
+                = (PersistentQueryMetadata) queryMetadata;
+            ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
+          }  else {
+            queryMetadata.close();
+          }
+        }
+    );
 
     // if we have the explicit list of stream/table to delete.
     final MetaStore metaStore = ksqlEngine.getMetaStore();

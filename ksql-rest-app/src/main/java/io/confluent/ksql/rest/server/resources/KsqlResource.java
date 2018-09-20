@@ -199,6 +199,10 @@ public class KsqlResource {
 
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
+
+    if (!ksqlEngine.getAcceptingStatements().get()) {
+      return Errors.badRequest("The cluster has been terminated. No new request will be accepted.");
+    }
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 

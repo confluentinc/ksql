@@ -94,7 +94,8 @@ public class KsqlEngine implements Closeable {
       .build();
 
   private final AtomicBoolean clusterTerminated = new AtomicBoolean(false);
-
+  private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
+  
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
   private final DdlCommandExec ddlCommandExec;
@@ -608,4 +609,7 @@ public class KsqlEngine implements Closeable {
     return allLiveQueries;
   }
 
+  public AtomicBoolean getAcceptingStatements() {
+    return acceptingStatements;
+  }
 }

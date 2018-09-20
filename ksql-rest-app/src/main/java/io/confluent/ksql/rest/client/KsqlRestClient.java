@@ -39,9 +39,11 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -128,6 +130,7 @@ public class KsqlRestClient implements Closeable {
     final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
     return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
   }
+
 
   public RestResponse<KsqlEntityList> makeTerminateQlusterRequest() {
     final KsqlRequest jsonRequest =
@@ -380,4 +383,5 @@ public class KsqlRestClient implements Closeable {
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
+
 }

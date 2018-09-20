@@ -383,7 +383,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitCast(final Cast node, final Boolean unmangleNames) {
-      return (node.isSafe() ? "TRY_CAST" : "CAST")
+      return "CAST"
               + "(" + process(node.getExpression(), unmangleNames) + " AS " + node.getType() + ")";
     }
 

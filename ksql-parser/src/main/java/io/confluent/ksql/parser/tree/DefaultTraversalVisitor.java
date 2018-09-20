@@ -291,18 +291,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitSampledRelation(final SampledRelation node, final C context) {
-    process(node.getRelation(), context);
-    process(node.getSamplePercentage(), context);
-    if (node.getColumnsToStratifyOn().isPresent()) {
-      for (final Expression expression : node.getColumnsToStratifyOn().get()) {
-        process(expression, context);
-      }
-    }
-    return null;
-  }
-
-  @Override
   protected R visitJoin(final Join node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);

@@ -35,7 +35,6 @@
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
-        <module>ksql-clickstream-demo</module>
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
         <module>ksql-package</module>

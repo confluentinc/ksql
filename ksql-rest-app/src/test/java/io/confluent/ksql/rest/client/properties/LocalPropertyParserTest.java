@@ -110,13 +110,15 @@ public class LocalPropertyParserTest {
   }
 
   @Test
-  public void shouldParseConsumerConfig() {
-    assertThat(parser.parse(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100"), is(100));
+  public void shouldParsePrefixedStreamsConfig() {
+    assertThat(parser.parse(
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG, "100"),
+        is(100));
   }
 
   @Test
-  public void shouldParseProducerConfig() {
-    assertThat(parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, "100"), is(100L));
+  public void shouldParseConsumerConfig() {
+    assertThat(parser.parse(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100"), is(100));
   }
 
   @Test
@@ -124,6 +126,11 @@ public class LocalPropertyParserTest {
     assertThat(parser.parse(
         StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100"),
         is(100));
+  }
+
+  @Test
+  public void shouldParseProducerConfig() {
+    assertThat(parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, "100"), is(100L));
   }
 
   @Test

@@ -37,6 +37,7 @@ import org.apache.kafka.streams.StreamsConfig;
 @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "Tri-state use")
 class LocalPropertyParser implements PropertyParser {
 
+  private static final ConfigDef STEAMS_CONFIG_DEF = StreamsConfig.configDef();
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
   private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
   private static final Method PARSE_METHOD = getParseMethod();
@@ -71,8 +72,15 @@ class LocalPropertyParser implements PropertyParser {
   }
 
   private Optional<Object> handleStreamConfig(final String property, final Object value) {
-    if (StreamsConfig.configDef().configKeys().containsKey(property)) {
+    if (STEAMS_CONFIG_DEF.configKeys().containsKey(property)) {
       return parseValue(StreamsConfig.configDef(), property, value);
+    }
+
+    if (property.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
+      final String nonPrefixed = validatePrefixedProperty(
+          property, KsqlConfig.KSQL_STREAMS_PREFIX, STEAMS_CONFIG_DEF, "streams");
+
+      return parseValue(STEAMS_CONFIG_DEF, nonPrefixed, value);
     }
 
     return null;
@@ -84,12 +92,8 @@ class LocalPropertyParser implements PropertyParser {
     }
 
     if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
-      final String nonPrefixed = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      final ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(nonPrefixed);
-      if (configKey == null) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid consumer property: '%s'", nonPrefixed));
-      }
+      final String nonPrefixed = validatePrefixedProperty(
+          property, StreamsConfig.CONSUMER_PREFIX, CONSUMER_CONFIG_DEF, "consumer");
 
       return parseValue(CONSUMER_CONFIG_DEF, nonPrefixed, value);
     }
@@ -103,12 +107,8 @@ class LocalPropertyParser implements PropertyParser {
     }
 
     if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
-      final String nonPrefixed = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      final ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(nonPrefixed);
-      if (configKey == null) {
-        throw new IllegalArgumentException(
-            String.format("Invalid producer property: '%s'", nonPrefixed));
-      }
+      final String nonPrefixed = validatePrefixedProperty(
+          property, StreamsConfig.PRODUCER_PREFIX, PRODUCER_CONFIG_DEF, "producer");
 
       return parseValue(PRODUCER_CONFIG_DEF, nonPrefixed, value);
     }
@@ -155,6 +155,21 @@ class LocalPropertyParser implements PropertyParser {
 
       throw new RuntimeException(e.getTargetException());
     }
+  }
+
+  private static String validatePrefixedProperty(
+      final String property,
+      final String prefix,
+      final ConfigDef configDef,
+      final String propType) {
+
+    final String nonPrefixed = property.substring(prefix.length());
+    final ConfigKey configKey = configDef.configKeys().get(nonPrefixed);
+    if (configKey == null) {
+      throw new IllegalArgumentException(
+          String.format("Invalid %s property: '%s'", propType, nonPrefixed));
+    }
+    return nonPrefixed;
   }
 
   private static ConfigDef getConfigDef(final Class<? extends AbstractConfig> defClass) {

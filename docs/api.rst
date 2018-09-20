@@ -60,6 +60,8 @@ All API endpoints use a standard error message format for any requests that retu
        "message": <Error Message>
    }
 
+Some endpoints may include additional fields that provide more context for handling the error.
+
 Get the Status of a KSQL Server
 -------------------------------
 
@@ -73,11 +75,11 @@ use the ``curl`` command to query the ``/info`` endpoint:
 
 Your output should resemble:
 
-.. code:: json
+.. codewithvars:: bash
 
    {
      "KsqlServerInfo": {
-       "version": "5.0.0",
+       "version": "|release|",
        "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
        "ksqlServiceId": "default_"
      }

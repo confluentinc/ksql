@@ -82,7 +82,6 @@ import org.junit.rules.RuleChain;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
-@Ignore
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
@@ -244,6 +243,7 @@ public class CliTest {
     testRunner.test(selectQuery, expectedResults);
   }
 
+  @Ignore // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testPrint() {
     final Thread thread =
@@ -305,6 +305,7 @@ public class CliTest {
     testRunner.test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
   }
 
+  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectStar() {
     testCreateStreamAsSelect(
@@ -377,6 +378,7 @@ public class CliTest {
     );
   }
 
+  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectFilter() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();

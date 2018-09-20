@@ -181,7 +181,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
   }
 
+  public static final ConfigDef CURRENT_DEF = buildConfigDef(true);
+  public static final ConfigDef LEGACY_DEF = buildConfigDef(false);
+
   private static ConfigDef configDef(final boolean current) {
+    return current ? CURRENT_DEF : LEGACY_DEF;
+  }
+
+  private static ConfigDef buildConfigDef(final boolean current) {
     final ConfigDef configDef = new ConfigDef()
         .define(
             KSQL_SERVICE_ID_CONFIG,

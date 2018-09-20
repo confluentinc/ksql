@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -67,12 +68,12 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallValidatorForValuesThatDoNotNeedParsing() {
     // Given:
-    validator.validate(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "10");
+    validator.validate(DdlConfig.AVRO_SCHEMA, "something");
     EasyMock.expectLastCall();
     EasyMock.replay(validator);
 
     // When:
-    parser.parse(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "10");
+    parser.parse(DdlConfig.AVRO_SCHEMA, "something");
 
     // Then:
     EasyMock.verify(validator);
@@ -153,6 +154,11 @@ public class LocalPropertyParserTest {
   }
 
   @Test
+  public void shouldHandleKsqlConfig() {
+    assertThat(parser.parse(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "10"), is(10));
+  }
+
+  @Test
   public void shouldThrowOnUnknownProperty() {
     // Given:
     expectedException.expect(IllegalArgumentException.class);
@@ -161,5 +167,15 @@ public class LocalPropertyParserTest {
 
     // When:
     parser.parse("unknown", "100");
+  }
+
+  @Test
+  public void shouldThrowIfNewValueFailsDefValidation() {
+    // Given:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage(containsString("Invalid value"));
+
+    // When:
+    parser.parse(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid-value");
   }
 }

@@ -20,6 +20,10 @@ KSQL Basics
     - :ref:`ksql_quickstart-docker`
     - :ref:`ksql_quickstart-local`
 
+KSQL Cookbook
+    The `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+    provides in-depth tutorials and recommended deployment scenarios.
+
 Clickstream Data Analysis Pipeline
     Clickstream analysis is the process of collecting, analyzing, and
     reporting aggregate data about which pages a website visitor visits and

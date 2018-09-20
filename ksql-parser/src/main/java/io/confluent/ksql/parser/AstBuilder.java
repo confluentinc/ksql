@@ -972,15 +972,13 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitLike(final SqlBaseParser.LikeContext context) {
-    final Expression escape = null;
-
     Expression
         result =
         new LikePredicate(
             getLocation(context),
             (Expression) visit(context.value),
             (Expression) visit(context.pattern),
-            escape
+            null
         );
 
     if (context.NOT() != null) {

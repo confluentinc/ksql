@@ -16,12 +16,15 @@
 
 package io.confluent.ksql.rest.client.properties;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -29,11 +32,20 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.streams.StreamsConfig;
 
+@SuppressWarnings("OptionalAssignedToNull")
 class LocalPropertyParser implements PropertyParser {
 
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
   private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
   private static final Method PARSE_METHOD = getParseMethod();
+  private static final List<Handler> HANDLERS =
+      ImmutableList.<Handler>builder()
+          .add(LocalPropertyParser::handleStreamConfig)
+          .add(LocalPropertyParser::handleConsumerConfig)
+          .add(LocalPropertyParser::handleProducerConfig)
+          .add(LocalPropertyParser::handleKsqlConstants)
+          .add(LocalPropertyParser::handleKsqlConfig)
+          .build();
 
   private final PropertiesValidator validator;
 
@@ -47,44 +59,86 @@ class LocalPropertyParser implements PropertyParser {
 
   @Override
   public Object parse(final String property, final Object value) {
-    final String parsedProperty;
-    final ConfigDef def;
+    return HANDLERS.stream()
+        .map(handler -> handler.maybeHandle(this, property, value))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException(String.format(
+            "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property)))
+        .orElse(null);
+  }
 
+  private Optional<Object> handleStreamConfig(final String property, final Object value) {
     if (StreamsConfig.configDef().configKeys().containsKey(property)) {
-      def = StreamsConfig.configDef();
-      parsedProperty = property;
-    } else if (CONSUMER_CONFIG_DEF.configKeys().containsKey(property)) {
-      def = CONSUMER_CONFIG_DEF;
-      parsedProperty = property;
-    } else if (PRODUCER_CONFIG_DEF.configKeys().containsKey(property)) {
-      def = PRODUCER_CONFIG_DEF;
-      parsedProperty = property;
-    } else if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
-      parsedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      ensureConsumerProperty(parsedProperty);
-      def = CONSUMER_CONFIG_DEF;
-    } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
-      parsedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      ensureProducerProperty(parsedProperty);
-      def = PRODUCER_CONFIG_DEF;
-    } else if (property.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
-      def = KsqlConfig.CURRENT_DEF;
-      parsedProperty = property;
-    } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
+      return parseValue(StreamsConfig.configDef(), property, value);
+    }
+
+    return null;
+  }
+
+  private Optional<Object> handleConsumerConfig(final String property, final Object value) {
+    if (CONSUMER_CONFIG_DEF.configKeys().containsKey(property)) {
+      return parseValue(CONSUMER_CONFIG_DEF, property, value);
+    }
+
+    if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
+      final String nonPrefixed = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
+      final ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(nonPrefixed);
+      if (configKey == null) {
+        throw new IllegalArgumentException(String.format(
+            "Invalid consumer property: '%s'", nonPrefixed));
+      }
+
+      return parseValue(CONSUMER_CONFIG_DEF, nonPrefixed, value);
+    }
+
+    return null;
+  }
+
+  private Optional<Object> handleProducerConfig(final String property, final Object value) {
+    if (PRODUCER_CONFIG_DEF.configKeys().containsKey(property)) {
+      return parseValue(PRODUCER_CONFIG_DEF, property, value);
+    }
+
+    if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
+      final String nonPrefixed = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
+      final ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(nonPrefixed);
+      if (configKey == null) {
+        throw new IllegalArgumentException(
+            String.format("Invalid producer property: '%s'", nonPrefixed));
+      }
+
+      return parseValue(PRODUCER_CONFIG_DEF, nonPrefixed, value);
+    }
+
+    return null;
+  }
+
+  private Optional<Object> handleKsqlConstants(final String property, final Object value) {
+    if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
         || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
 
       validator.validate(property, value);
-      return value;
-    } else {
-      throw new IllegalArgumentException(String.format(
-          "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property));
+      return Optional.ofNullable(value);
     }
 
-    final ConfigKey key = def.configKeys().get(parsedProperty);
+    return null;
+  }
+
+  private Optional<Object> handleKsqlConfig(final String property, final Object value) {
+    if (property.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
+      return parseValue(KsqlConfig.CURRENT_DEF, property, value);
+    }
+
+    return null;
+  }
+
+  private Optional<Object> parseValue(final ConfigDef def, final String name, final Object value) {
+    final ConfigKey key = def.configKeys().get(name);
     final Object parsedValue = parseValue(def, key, value);
 
-    validator.validate(parsedProperty, parsedValue);
-    return parsedValue;
+    validator.validate(name, parsedValue);
+    return Optional.ofNullable(parsedValue);
   }
 
   private Object parseValue(final ConfigDef def, final ConfigKey key, final Object value) {
@@ -98,24 +152,6 @@ class LocalPropertyParser implements PropertyParser {
       }
 
       throw new RuntimeException(e.getTargetException());
-    }
-  }
-
-  @SuppressWarnings("ConstantConditions")
-  private static void ensureProducerProperty(final String parsedProperty) {
-    final ConfigDef.ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
-    if (configKey == null) {
-      throw new IllegalArgumentException(
-          String.format("Invalid producer property: '%s'", parsedProperty));
-    }
-  }
-
-  @SuppressWarnings("ConstantConditions")
-  private static void ensureConsumerProperty(final String parsedProperty) {
-    final ConfigDef.ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
-    if (configKey == null) {
-      throw new IllegalArgumentException(
-          String.format("Invalid consumer property: '%s'", parsedProperty));
     }
   }
 
@@ -138,5 +174,10 @@ class LocalPropertyParser implements PropertyParser {
     } catch (NoSuchMethodException e) {
       throw new IllegalStateException("Failed to get parseValue method of Config", e);
     }
+  }
+
+  private interface Handler {
+
+    Optional<Object> maybeHandle(LocalPropertyParser parser, String name, Object value);
   }
 }

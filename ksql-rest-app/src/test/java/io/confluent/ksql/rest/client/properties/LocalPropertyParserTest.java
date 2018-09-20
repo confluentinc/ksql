@@ -147,7 +147,7 @@ public class LocalPropertyParserTest {
   public void shouldThrowOnUnknownPrefixedProducerConfig() {
     // Given:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(containsString("Invalid producer property: 'unknown'"));
+    expectedException.expectMessage("Invalid producer property: 'unknown'");
 
     // When:
     parser.parse(StreamsConfig.PRODUCER_PREFIX + "unknown", "100");

@@ -16,149 +16,62 @@
 
 package io.confluent.ksql.util;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-import kafka.admin.AdminClient;
-import kafka.admin.ConsumerGroupCommand;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigDef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.clients.admin.ConsumerGroupListing;
 
-/**
- * Acts as a ConsumerGroup facade over the scala layer
- * Note: This functionality will very shortly be added to the java admin client, maybe even in
- * the upcoming 1.1. release: https://cwiki.apache.org/confluence/pages/viewpage
- * .action?pageId=74686265
- * Also, the Scala admin client is on the path to deprecation. See issue #642
- */
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
-  private static final Logger log = LoggerFactory.getLogger(KafkaConsumerGroupClientImpl.class);
-  private static final int ADMIN_CLIENT_TIMEOUT_MS = 1000;
   private final AdminClient adminClient;
-  private final KsqlConfig ksqlConfig;
 
-  public KafkaConsumerGroupClientImpl(final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
-    final Properties props = new Properties();
-    props.putAll(ConfigDef.convertToStringMapWithPasswordValues(
-        ksqlConfig.getKsqlAdminClientConfigProps()));
-    this.adminClient = AdminClient.create(props);
+  public KafkaConsumerGroupClientImpl(final AdminClient adminClient) {
+    this.adminClient = adminClient;
   }
 
   @Override
   public List<String> listGroups() {
-
-    final String[] args = consumerGroupCommandOptions();
-
-    final ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
-        new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
-    final ConsumerGroupCommand.ConsumerGroupService groupService =
-        new ConsumerGroupCommand.ConsumerGroupService(opts);
-
     try {
-      final scala.collection.immutable.List<String> consumerGroups = groupService.listGroups();
-      final scala.collection.Iterator<String> consumerGroupsIterator = consumerGroups.iterator();
-      final ArrayList<String> results = new ArrayList<>();
-      while (consumerGroupsIterator.hasNext()) {
-        results.add(consumerGroupsIterator.next());
-      }
-      return results;
-    } finally {
-      groupService.close();
+      return ExecutorUtil.executeWithRetries(
+          () -> adminClient.listConsumerGroups().all().get(),
+          RetryBehaviour.ON_RETRYABLE)
+          .stream()
+          .map(ConsumerGroupListing::groupId).collect(Collectors.toList());
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException("Failed to retrieve Kafka consumer groups", e);
     }
-  }
-
-  private String[] consumerGroupCommandOptions() {
-    // The ConsumerGroupCommand we use instantiates its own admin client. However, the configs
-    // for the underlying admin client can be passed only through a properties file. So we dump
-    // the admin client configs to a temporary file and then use that file to configure the
-    // underlying admin client correctly.
-    final Map<String, String> clientConfigProps = ConfigDef.convertToStringMapWithPasswordValues(
-        ksqlConfig.getKsqlAdminClientConfigProps());
-    try {
-      // this is dangerous - we could be writing a password out here
-      final File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
-      return new String[]{
-          "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
-          "--command-config", tmpConfigFile.getAbsolutePath()
-      };
-    } catch (final IOException e) {
-      log.error("Could not configure the list groups command.", e);
-      throw new KsqlException("Could not list groups", e);
-    }
-  }
-
-  private File flushPropertiesToTempFile(final Map<String, String> configProps) throws IOException {
-    final FileAttribute<Set<PosixFilePermission>> attributes
-        = PosixFilePermissions.asFileAttribute(new HashSet<>(
-            Arrays.asList(PosixFilePermission.OWNER_WRITE,
-                          PosixFilePermission.OWNER_READ)));
-    final File configFile
-        = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
-    configFile.deleteOnExit();
-
-    try (FileOutputStream outputStream = new FileOutputStream(configFile)) {
-      final Properties clientProps = new Properties();
-      for (final Map.Entry<String, String> property
-          : configProps.entrySet()) {
-        clientProps.put(property.getKey(), property.getValue());
-      }
-      clientProps.store(outputStream, "Configuration properties of KSQL AdminClient");
-    }
-    return configFile;
-  }
-
-  @Override
-  public void close() {
-    adminClient.close();
   }
 
   public ConsumerGroupSummary describeConsumerGroup(final String group) {
 
-    final AdminClient.ConsumerGroupSummary consumerGroupSummary = adminClient.describeConsumerGroup(
-        group,
-        ADMIN_CLIENT_TIMEOUT_MS
-    );
-    final scala.collection.immutable.List<AdminClient.ConsumerSummary> consumerSummaryList =
-        consumerGroupSummary.consumers().get();
-    final scala.collection.Iterator<AdminClient.ConsumerSummary> consumerSummaryIterator =
-        consumerSummaryList.iterator();
+    try {
+      final Map<String, ConsumerGroupDescription> groups = ExecutorUtil
+          .executeWithRetries(
+              () -> adminClient.describeConsumerGroups(Collections.singleton(group)).all().get(),
+              RetryBehaviour.ON_RETRYABLE);
 
-    final ConsumerGroupSummary results = new ConsumerGroupSummary();
+      final Set<ConsumerSummary> results = groups
+          .values()
+          .stream()
+          .flatMap(g ->
+              g.members()
+                  .stream()
+                  .map(member -> {
+                    final ConsumerSummary summary = new ConsumerSummary(member.consumerId());
+                    summary.addPartitions(member.assignment().topicPartitions());
+                    return summary;
+                  })).collect(Collectors.toSet());
 
-    while (consumerSummaryIterator.hasNext()) {
-      final AdminClient.ConsumerSummary consumerSummary = consumerSummaryIterator.next();
+      return new ConsumerGroupSummary(results);
 
-      final ConsumerSummary consumerSummary1 = new ConsumerSummary(consumerSummary.consumerId());
-      results.addConsumerSummary(consumerSummary1);
-
-      final scala.collection.immutable.List<TopicPartition> topicPartitionList =
-          consumerSummary.assignment();
-      final scala.collection.Iterator<TopicPartition> topicPartitionIterator =
-          topicPartitionList.iterator();
-
-      while (topicPartitionIterator.hasNext()) {
-        final TopicPartition topicPartition = topicPartitionIterator.next();
-        consumerSummary1.addPartition(new TopicPartition(
-            topicPartition.topic(),
-            topicPartition.partition()
-        ));
-      }
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException("Failed to describe Kafka consumer groups", e);
     }
-    return results;
   }
 }

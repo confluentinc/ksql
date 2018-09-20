@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
@@ -45,32 +47,40 @@ public class KsqlContext {
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     return create(
         ksqlConfig,
-        new KsqlSchemaRegistryClientFactory(ksqlConfig).create());
+        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get);
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    return create(ksqlConfig, schemaRegistryClient, new DefaultKafkaClientSupplier());
+    return create(
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier()
+    );
   }
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final KafkaClientSupplier clientSupplier
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
-    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient cannot be null.");
+    Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClient cannot be null.");
+    final AdminClient adminClient = clientSupplier
+        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
     final KafkaTopicClient kafkaTopicClient = new
-        KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+        KafkaTopicClientImpl(adminClient);
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     final KsqlEngine engine = new KsqlEngine(
         kafkaTopicClient,
-        schemaRegistryClient,
+        schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        ksqlConfig);
+        ksqlConfig,
+        adminClient
+    );
 
     return new KsqlContext(ksqlConfig, engine);
   }
@@ -101,8 +111,9 @@ public class KsqlContext {
 
     for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata persistent = (PersistentQueryMetadata) queryMetadata;
-        persistent.getKafkaStreams().start();
+        final PersistentQueryMetadata persistentQueryMetadata
+            = (PersistentQueryMetadata) queryMetadata;
+        persistentQueryMetadata.start();
       } else {
         System.err.println("Ignoring statemenst: " + sql);
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");

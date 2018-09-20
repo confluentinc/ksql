@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
-import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DELETE;
@@ -35,10 +35,10 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.testutils.secure.ClientTrustStore;
-import io.confluent.ksql.testutils.secure.Credentials;
-import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.secure.ClientTrustStore;
+import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -99,14 +100,17 @@ public class SecureIntegrationTest {
   private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
+  private AdminClient adminClient;
 
   @Before
   public void before() throws Exception {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
+    adminClient = AdminClient
+        .create(new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(
-        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
+        adminClient);
 
     produceInitData();
   }
@@ -125,7 +129,7 @@ public class SecureIntegrationTest {
       } catch (final Exception e) {
         e.printStackTrace(System.err);
       }
-      topicClient.close();
+      adminClient.close();
     }
   }
 
@@ -257,7 +261,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
 
     execInitCreateStreamQueries();
   }
@@ -289,7 +293,6 @@ public class SecureIntegrationTest {
   private Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
-    configs.put("application.id", "KSQL");
     configs.put("commit.interval.ms", 0);
     configs.put("cache.max.bytes.buffering", 0);
     configs.put("auto.offset.reset", "earliest");
@@ -343,7 +346,7 @@ public class SecureIntegrationTest {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(query, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
   }
 }

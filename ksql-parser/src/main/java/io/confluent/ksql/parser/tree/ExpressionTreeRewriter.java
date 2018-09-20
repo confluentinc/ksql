@@ -43,8 +43,10 @@ public final class ExpressionTreeRewriter<C> {
     return (T) visitor.process(node, new Context<>(context, false));
   }
 
+  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private class RewritingVisitor
       extends AstVisitor<Expression, Context<C>> {
+    // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     @Override
     protected Expression visitExpression(final Expression node, final Context<C> context) {

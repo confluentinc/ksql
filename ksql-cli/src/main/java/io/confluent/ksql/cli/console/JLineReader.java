@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@ package io.confluent.ksql.cli.console;
 
 import io.confluent.ksql.util.CliUtils;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
@@ -41,36 +42,44 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   private final LineReader lineReader;
   private final String prompt;
 
-  // Have to enable event expansion or multi-line parsing won't work, so a quick 'n dirty workaround
-  // will have to do to prevent strings like !! from being expanded by the line reader
-  private static class NoOpExpander extends DefaultExpander {
+  /**
+   * Override the default JLine 'expander' behavior so that history-referencing expressions such
+   * as '!42' or '!!' will only be processed and replaced if they occur at the beginning of an
+   * input line, even if the input line spans multiple terminal lines using the '\' separator.
+   */
+  private static class KsqlExpander extends DefaultExpander {
 
     @Override
     public String expandHistory(final History history, final String line) {
-      return line;
+      if (line.startsWith("!") || line.startsWith("^")) {
+        return super.expandHistory(history, line);
+      } else {
+        return line;
+      }
     }
+
   }
 
-  public JLineReader(final Terminal terminal, final Path historyFilePath) {
+  JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
     parser.setEscapeChars(new char[]{'\\'});
 
-    final Expander expander = new NoOpExpander();
+    final Expander expander = new KsqlExpander();
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder()
         .appName("KSQL")
+        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
+        .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
+        .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
         .expander(expander)
-        .parser(parser)
+        .parser(new TrimmingParser(parser))
         .terminal(terminal)
         .build();
 
-    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
-
-    if (CliUtils.createFile(historyFilePath)) {
+    if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
       LOGGER.info("Command history saved at: " + historyFilePath);
     } else {
@@ -98,5 +107,4 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     history.save();
     return line;
   }
-
 }

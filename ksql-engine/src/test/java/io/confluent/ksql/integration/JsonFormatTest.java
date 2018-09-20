@@ -26,7 +26,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -60,7 +60,7 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
 
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;
@@ -75,13 +75,12 @@ public class JsonFormatTest {
   public void before() throws Exception {
     final Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-    configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
 
     ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = new KsqlEngine(ksqlConfig);
+    ksqlEngine = KsqlEngine.create(ksqlConfig);
     topicClient = ksqlEngine.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
@@ -263,7 +262,7 @@ public class JsonFormatTest {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 

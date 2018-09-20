@@ -16,9 +16,13 @@
 
 package io.confluent.ksql;
 
+import static org.easymock.EasyMock.anyBoolean;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -32,42 +36,65 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.easymock.EasyMock.mock;
 
 public class KsqlEngineTest {
 
   private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+      () -> schemaRegistryClient;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       topicClient,
-      schemaRegistryClient,
+      schemaRegistryClientFactory,
       new DefaultKafkaClientSupplier(),
       metaStore,
       ksqlConfig);
@@ -128,10 +155,10 @@ public class KsqlEngineTest {
     } catch (final Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
       assertThat(e.getMessage(), equalTo(
-          "Exception while processing statements :Cannot drop FOO. \n"
-          + "The following queries read from this source: []. \n"
-          + "The following queries write into this source: [CTAS_FOO_1]. \n"
-          + "You need to terminate them before dropping FOO."));
+          "Exception while processing statement: Cannot drop FOO. \n"
+              + "The following queries read from this source: []. \n"
+              + "The following queries write into this source: [CTAS_FOO_1]. \n"
+              + "You need to terminate them before dropping FOO."));
     }
   }
 
@@ -182,9 +209,8 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    final List<PreparedStatement> parsedStatements = ksqlEngine.parseQueries(
-        runScriptContent.toString(), metaStore.clone());
-
+    final List<PreparedStatement> parsedStatements = ksqlEngine.parseStatements(
+        runScriptContent.toString(), metaStore.clone(), true);
     assertThat(parsedStatements.size(), equalTo(3));
 
   }
@@ -322,19 +348,104 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCloseInternallyCreatedTopicClientOnClose() {
+  public void shouldCloseAdminClientOnClose() {
     // Given:
-    final KafkaTopicClient topicClient = niceMock(KafkaTopicClient.class);
-    topicClient.close();
+    final AdminClient adminClient = niceMock(AdminClient.class);
+    adminClient.close();
     expectLastCall();
-    replay(topicClient);
-    final KsqlEngine ksqlEngine
-        = new KsqlEngine(topicClient, schemaRegistryClient, metaStore, ksqlConfig);
+    replay(adminClient);
+    ksqlEngine.close();
+    final KsqlEngine localKsqlEngine
+        = new KsqlEngine(
+            new FakeKafkaTopicClient(),
+            schemaRegistryClientFactory,
+            new DefaultKafkaClientSupplier(),
+            metaStore,
+            ksqlConfig,
+          adminClient);
 
     // When:
-    ksqlEngine.close();
+    localKsqlEngine.close();
 
     // Then:
-    verify(topicClient);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldUseSerdeSupplierToBuildQueries() {
+    final KsqlTopicSerDe mockKsqlSerde = mock(KsqlTopicSerDe.class);
+    this.ksqlEngine.close();
+    final MetaStore metaStore =
+        MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        topicClient,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier(),
+        metaStore,
+        ksqlConfig
+    );
+
+    expect(
+        mockKsqlSerde.getGenericRowSerde(
+            anyObject(org.apache.kafka.connect.data.Schema.class),
+            anyObject(KsqlConfig.class),
+            anyBoolean(),
+            same(schemaRegistryClientFactory)))
+        .andDelegateTo(new KsqlJsonTopicSerDe())
+        .atLeastOnce();
+
+    replay(mockKsqlSerde);
+
+    ksqlEngine.createQueries("create table bar as select * from test2;", ksqlConfig);
+
+    verify(mockKsqlSerde);
+    ksqlEngine.close();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldParseMultipleStatements() throws IOException {
+    final String statementsString = new String(Files.readAllBytes(
+        Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
+
+    final MetaStore emptyMetaStore = new MetaStoreImpl(new TestFunctionRegistry());
+    final List<PreparedStatement> parsedStatements =
+        ksqlEngine.parseStatements(statementsString, emptyMetaStore, true);
+    final List<Statement> statements = parsedStatements.stream().map(
+        PreparedStatement::getStatement).collect(Collectors.toList());
+    assertThat(statements, Matchers.contains(
+        instanceOf(CreateStream.class),
+        instanceOf(SetProperty.class),
+        instanceOf(CreateTable.class),
+        instanceOf(Query.class),
+        instanceOf(Query.class),
+        instanceOf(UnsetProperty.class),
+        instanceOf(Query.class)
+    ));
+    final Query csas1 = (Query) statements.get(3);
+    final QuerySpecification specification1 = (QuerySpecification) csas1.getQueryBody();
+    final Table table1 = (Table) specification1.getInto();
+    assertThat(table1.getName().getSuffix(), equalTo("PAGEVIEWS_ENRICHED"));
+
+    final Query csas2 = (Query) statements.get(4);
+    final QuerySpecification specification2 = (QuerySpecification) csas2.getQueryBody();
+    final Table table2 = (Table) specification2.getInto();
+    assertThat(table2.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE"));
+
+    final Query csas3 = (Query) statements.get(6);
+    final QuerySpecification specification3 = (QuerySpecification) csas3.getQueryBody();
+    final Table table3 = (Table) specification3.getInto();
+    assertThat(table3.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE_LIKE_89"));
+
+  }
+
+  public void shouldSetPropertyInRunScript() {
+    final Map<String, Object> overriddenProperties = new HashMap<>();
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "SET 'auto.offset.reset' = 'earliest'; ",
+        ksqlConfig, overriddenProperties);
+    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
+
   }
 }

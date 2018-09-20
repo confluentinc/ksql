@@ -107,7 +107,9 @@ import java.util.stream.Collectors;
  * your changes and the rest of the tree will remain the same.
  * 
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   protected Node visitExpression(final Expression node, final Object context) {
     return node;

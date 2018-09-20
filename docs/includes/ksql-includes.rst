@@ -35,7 +35,7 @@ Learn More
 
 .. CLI_welcome_start
 
-.. code:: bash
+.. codewithvars:: bash
 
                           ===========================================
                           =        _  __ _____  ____  _             =
@@ -330,12 +330,14 @@ the latest offset.
 
     .. code:: bash
 
-        Query ID                      | Kafka Topic              | Query String
-        ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
-        CSAS_PAGEVIEWS_FEMALE         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
-        CSAS_PAGEVIEWS_FEMALE_LIKE_89 | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-        ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        Query ID                        | Kafka Topic              | Query String
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE';
+        CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+        CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+        CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid;
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        For detailed information on a Query run: EXPLAIN <Query ID>;
 
 #.  Optional: Examine query run-time metrics and details. Observe that information including 
     the target Kafka topic is available, as well as throughput figures for the messages being processed.
@@ -428,7 +430,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
                of the ``ksql`` executable. For example, if ``ksql`` is installed at ``/usr/local/bin/ksql``, then it would
                attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default |cp|
                location, ``<path-to-confluent>/bin``, you must override this default behavior by using the ``LOG_DIR`` variable.
-
+.. log_limitations_qs_end
                For example, to store your logs in the ``ksql_logs`` directory within your current working directory, run this
                command when starting the KSQL CLI:
 
@@ -441,19 +443,20 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 .. __struct_support_01_start
 
 Using Nested Schemas (STRUCT) in KSQL
-=====================================
+-------------------------------------
 
 Struct support enables the modeling and access of nested data in Kafka
 topics, from both JSON and Avro.
 
 Here we’ll use the ``ksql-datagen`` tool to create some sample data
-which includes a nested ``address`` field.
+which includes a nested ``address`` field. Run this in a new window, and 
+leave it running. 
 
 .. __struct_support_01_end
 
 .. __struct_support_02_start
 
-Register the topic in KSQL:
+From the KSQL command prompt, register the topic in KSQL:
 
 .. code:: sql
 
@@ -519,7 +522,7 @@ Press Ctrl-C to cancel the ``SELECT`` query.
 .. __ss-join_01_start
 
 Stream-Stream join
-==================
+------------------
 
 Using a stream-stream join, it is possible to join two *streams* of
 events on a common key. An example of this could be a stream of order
@@ -618,7 +621,7 @@ Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 .. __tt-join_01_start
 
 Table-Table join
-================
+----------------
 
 Using a table-table join, it is possible to join two *tables* of on a
 common key. KSQL tables provide the latest *value* for a given *key*.
@@ -721,7 +724,7 @@ Your output should resemble:
 .. __insert-into_01_start
 
 INSERT INTO
-===========
+-----------
 
 The ``INSERT INTO`` syntax can be used to merge the contents of multiple
 streams. An example of this could be where the same event type is coming

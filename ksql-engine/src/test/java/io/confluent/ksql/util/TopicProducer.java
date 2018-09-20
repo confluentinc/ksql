@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;

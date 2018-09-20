@@ -17,7 +17,7 @@
 package io.confluent.ksql;
 
 import static io.confluent.ksql.TestResult.build;
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
@@ -38,6 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -47,11 +48,11 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TestKsqlRestApp;
+import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.net.URI;
@@ -72,6 +73,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -80,9 +82,10 @@ import org.junit.rules.RuleChain;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
+@Ignore
 public class CliTest {
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(CLUSTER::bootstrapServers)
@@ -108,10 +111,11 @@ public class CliTest {
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
   private static TestRunner testRunner;
+  private static KsqlRestClient restClient;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    final KsqlRestClient restClient = createRestClient();
+    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();
@@ -176,6 +180,7 @@ public class CliTest {
 
     localCli.close();
     terminal.close();
+    restClient.close();
   }
 
   private static Map<String, Object> validStartUpConfigs() {
@@ -462,6 +467,12 @@ public class CliTest {
   }
 
   @Test
+  public void testCommandsOverMultipleLines() throws Exception {
+    localCli.runNonInteractively("he\\\nlp");
+    localCli.runNonInteractively("he\\ \nlp");
+  }
+
+  @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
   }
@@ -484,9 +495,9 @@ public class CliTest {
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, createRestClient(), terminal);
+    new Cli(1L, 1L, restClient, terminal);
     assertThat(terminal.getCliSpecificCommands().get("server"),
-        instanceOf(Cli.RemoteServerSpecificCommand.class));
+        instanceOf(RemoteServerSpecificCommand.class));
   }
 
   @Test
@@ -501,7 +512,7 @@ public class CliTest {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, createRestClient());
+    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     new Cli(1L, 1L, mockRestClient, terminal)
         .runInteractively();
@@ -597,9 +608,5 @@ public class CliTest {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
-  }
-
-  private static KsqlRestClient createRestClient() {
-    return new KsqlRestClient(REST_APP.getListeners().get(0).toString());
   }
 }

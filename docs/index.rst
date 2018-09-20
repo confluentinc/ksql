@@ -3,11 +3,8 @@
 KSQL
 ====
 
-.. raw:: html
-
-   <h2>What Is KSQL?</h2>
-
----------------------
+What Is KSQL?
+-------------
 
 KSQL is the open source streaming SQL engine for Apache Kafka®. It provides an easy-to-use yet powerful interactive SQL
 interface for stream processing on Kafka, without the need to write code in a programming language such as Java or
@@ -18,11 +15,8 @@ including data filtering, transformations, aggregations, joins, windowing, and s
     :start-after: demo_start
     :end-before: demo_end
 
-.. raw:: html
-
-   <h2>What Can I Do With KSQL?</h2>
-
----------------------
+What Can I Do With KSQL?
+------------------------
 
 Streaming ETL
     Apache Kafka is a popular choice for powering data pipelines. KSQL makes it simple to transform data within the pipeline, readying messages to cleanly land in another system.
@@ -47,17 +41,8 @@ Customer 360-view
 
 Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
 
-.. raw:: html
-
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/euz0isNG1SQ" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
-    </div>
-
-.. raw:: html
-
-   <h2>What Are the Components?</h2>
-
----------------------
+What Are the Components?
+------------------------
 
 .. figure:: img/ksql-architecture-and-components.png
   :width:  960pt
@@ -80,22 +65,16 @@ KSQL CLI
 KSQL servers, clients, queries, and applications run outside of Kafka brokers,
 in separate JVM instances, or in separate clusters entirely. 
 
-.. raw:: html
-
-   <h2>Supported Versions and Interoperability</h2>
-
----------------------
+Supported Versions and Interoperability
+---------------------------------------
 
 .. _ksql-supported-versions:
 
 .. include:: includes/ksql-supported-versions.rst
 
 
-.. raw:: html
-
-   <h2>KSQL Documentation</h2>
-
----------------------
+KSQL Documentation
+------------------
 
 .. toctree::
     :titlesonly:

@@ -44,7 +44,9 @@ public class ConnectSchemaTranslator {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   protected Schema toKsqlFieldSchema(final Schema schema) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     switch (schema.type()) {
       case INT8:
       case INT16:
@@ -105,7 +107,7 @@ public class ConnectSchemaTranslator {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
         schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
       } catch (final UnsupportedTypeException e) {
-        log.error("Error inferring schema at field %s: %s", field.name(), e.getMessage());
+        log.error("Error inferring schema at field {}: {}", field.name(), e.getMessage());
       }
     }
     return schemaBuilder.optional().build();

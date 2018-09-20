@@ -23,6 +23,8 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -37,9 +39,11 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
-                                              final boolean isInternal,
-                                              final SchemaRegistryClient schemaRegistryClient) {
+  public Serde<GenericRow> getGenericRowSerde(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final boolean isInternal,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);

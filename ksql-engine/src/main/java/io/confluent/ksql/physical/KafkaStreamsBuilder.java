@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.physical;
 
+import java.util.Map;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 
 public interface KafkaStreamsBuilder {
-  KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf);
+  KafkaStreams buildKafkaStreams(StreamsBuilder builder, Map<String, Object> conf);
 }

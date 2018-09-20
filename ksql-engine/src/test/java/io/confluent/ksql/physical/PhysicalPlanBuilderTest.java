@@ -19,8 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -48,6 +46,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Supplier;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -87,12 +86,12 @@ public class PhysicalPlanBuilderTest {
     class Call {
 
       public StreamsBuilder builder;
-      public StreamsConfig config;
+      public Properties props;
       KafkaStreams kafkaStreams;
 
-      private Call(final StreamsBuilder builder, final StreamsConfig config, final KafkaStreams kafkaStreams) {
+      private Call(final StreamsBuilder builder, final Properties props, final KafkaStreams kafkaStreams) {
         this.builder = builder;
-        this.config = config;
+        this.props = props;
         this.kafkaStreams = kafkaStreams;
       }
     }
@@ -100,9 +99,11 @@ public class PhysicalPlanBuilderTest {
     private List<Call> calls = new LinkedList<>();
 
     @Override
-    public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final StreamsConfig conf) {
-      final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), conf);
-      calls.add(new Call(builder, conf, kafkaStreams));
+    public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final Map<String, Object> conf) {
+      final Properties props = new Properties();
+      props.putAll(conf);
+      final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
+      calls.add(new Call(builder, props, kafkaStreams));
       return kafkaStreams;
     }
 
@@ -426,17 +427,15 @@ public class PhysicalPlanBuilderTest {
 
     final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    final StreamsConfig config = calls.get(0).config;
+    final Properties props = calls.get(0).props;
 
-    Object val = config.originals().get(
-        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(1));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(0))));
 
-    val = config.originals().get(
-        StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    val = props.get(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(1));
@@ -493,18 +492,16 @@ public class PhysicalPlanBuilderTest {
 
     final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    final StreamsConfig config = calls.get(0).config;
+    final Properties props = calls.get(0).props;
 
-    Object val = config.originals().get(
-        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
-    val = config.originals().get(
-        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
@@ -526,18 +523,16 @@ public class PhysicalPlanBuilderTest {
 
     final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     assertThat(calls.size(), equalTo(1));
-    final StreamsConfig config = calls.get(0).config;
+    final Properties props = calls.get(0).props;
 
-    Object val = config.originals().get(
-        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Object val = props.get(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;
     assertThat(consumerInterceptors.size(), equalTo(2));
     assertThat(DummyConsumerInterceptor.class.getName(), equalTo(consumerInterceptors.get(0)));
     assertThat(ConsumerCollector.class, equalTo(Class.forName(consumerInterceptors.get(1))));
 
-    val = config.originals().get(
-        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    val = props.get(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     final List<String> producerInterceptors = (List<String>) val;
     assertThat(producerInterceptors.size(), equalTo(2));
@@ -575,9 +570,9 @@ public class PhysicalPlanBuilderTest {
 
     final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
     Assert.assertEquals(1, calls.size());
-    final StreamsConfig config = calls.get(0).config;
+    final Properties props = calls.get(0).props;
 
-    final Object val = config.originals().get(
+    final Object val = props.get(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
     Assert.assertThat(val, instanceOf(List.class));
     final List<String> consumerInterceptors = (List<String>) val;

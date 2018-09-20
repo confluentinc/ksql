@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,7 +46,7 @@ public class CommandStore implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
-  private static final long POLLING_TIMEOUT_FOR_COMMAND_TOPIC = 5000;
+  private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
   private final String commandTopic;
   private final Consumer<CommandId, Command> commandConsumer;
@@ -121,7 +122,7 @@ public class CommandStore implements Closeable {
    * @return The commands that have been polled from the command topic
    */
   public ConsumerRecords<CommandId, Command> getNewCommands() {
-    return commandConsumer.poll(Long.MAX_VALUE);
+    return commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
   }
 
   RestoreCommands getRestoreCommands() {

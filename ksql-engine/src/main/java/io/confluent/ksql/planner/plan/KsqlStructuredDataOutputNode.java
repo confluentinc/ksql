@@ -31,13 +31,16 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SourceTopicProperties;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -113,12 +116,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
+    final SourceTopicProperties sourceTopicProperties = getSourceTopicProperties(
+        getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+        kafkaTopicClient
+    );
+
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+        sourceTopicProperties.getPartitions());
     final short replicas = (Short) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
+        sourceTopicProperties.getReplicas());
 
     final SchemaKStream result = createOutputStream(
         schemaKStream,
@@ -253,6 +261,19 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getLimit(),
         newDoCreateInto
     );
+  }
+
+  private SourceTopicProperties getSourceTopicProperties(
+      final String kafkaTopicName,
+      final KafkaTopicClient kafkaTopicClient
+  ) {
+    final Map<String, TopicDescription> topicDescriptionMap = kafkaTopicClient
+        .describeTopics(Collections.singletonList(kafkaTopicName));
+    final TopicDescription topicDescription = topicDescriptionMap.get(kafkaTopicName);
+    Objects.requireNonNull(topicDescription, "Could not fetch source topic description.");
+    final int partitionCount = topicDescription.partitions().size();
+    final short replicas = (short) topicDescription.partitions().get(0).replicas().size();
+    return new SourceTopicProperties(partitionCount, replicas);
   }
 
   public static class Builder {

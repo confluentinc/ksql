@@ -79,6 +79,7 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.easymock.EasyMock.mock;
@@ -98,6 +99,15 @@ public class KsqlEngineTest {
       new DefaultKafkaClientSupplier(),
       metaStore,
       ksqlConfig);
+  @Before
+  public void init() {
+    metaStore.getAllKsqlTopics().forEach(
+        (s, ksqlTopic) -> {
+          topicClient.createTopic(ksqlTopic.getKafkaTopicName(), 1, (short) 1);
+        }
+    );
+  }
+
 
   @After
   public void closeEngine() {

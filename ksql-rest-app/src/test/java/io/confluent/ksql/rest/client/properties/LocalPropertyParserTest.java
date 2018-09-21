@@ -16,16 +16,13 @@
 
 package io.confluent.ksql.rest.client.properties;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -39,34 +36,51 @@ import org.junit.runner.RunWith;
 @RunWith(EasyMockRunner.class)
 public class LocalPropertyParserTest {
 
+  private static final Object PARSED_VALUE = new Object();
+  private static final String PARSED_PROP_NAME = "PARSED";
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(MockType.NICE)
   private PropertiesValidator validator;
+  @Mock(MockType.NICE)
+  private ConfigResolver resolver;
+  @Mock(MockType.NICE)
+  private ConfigItem configItem;
   private LocalPropertyParser parser;
 
   @Before
   public void setUp() {
-    parser = new LocalPropertyParser(validator);
+    parser = new LocalPropertyParser(resolver, validator);
+
+    EasyMock.expect(configItem.parseValue(EasyMock.anyObject()))
+        .andReturn(PARSED_VALUE)
+        .anyTimes();
+
+    EasyMock.expect(configItem.getPropertyName())
+        .andReturn(PARSED_PROP_NAME)
+        .anyTimes();
   }
 
   @Test
-  public void shouldCallValidatorWithParsedValue() {
+  public void shouldNotCallResolverForAvroSchemaConstant() {
     // Given:
-    validator.validate(ProducerConfig.LINGER_MS_CONFIG, 100);
-    EasyMock.expectLastCall();
-    EasyMock.replay(validator);
+    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+        .andThrow(new AssertionError("resolve called"))
+        .anyTimes();
+
+    EasyMock.replay(resolver);
 
     // When:
-    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+    parser.parse(DdlConfig.AVRO_SCHEMA, "100");
 
     // Then:
-    EasyMock.verify(validator);
+    EasyMock.verify(resolver);
   }
 
   @Test
-  public void shouldCallValidatorForValuesThatDoNotNeedParsing() {
+  public void shouldCallValidatorForAvroSchemaConstant() {
     // Given:
     validator.validate(DdlConfig.AVRO_SCHEMA, "something");
     EasyMock.expectLastCall();
@@ -80,109 +94,101 @@ public class LocalPropertyParserTest {
   }
 
   @Test
-  public void shouldHandleValueAlreadyBeingTheRightType() {
-    assertThat(parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, 100L), is(100L));
-  }
-
-  @Test
-  public void shouldThrowIfValueNotCompatibleType() {
+  public void shouldNotCallResolverForRunScriptConstant() {
     // Given:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(containsString("Invalid value"));
+    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+        .andThrow(new AssertionError("resolve called"))
+        .anyTimes();
+
+    EasyMock.replay(resolver);
 
     // When:
-    parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, String.class);
+    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "100");
+
+    // Then:
+    EasyMock.verify(resolver);
   }
 
   @Test
-  public void shouldThrowIfValueCanNotBeCoerced() {
+  public void shouldCallValidatorForRunScriptConstant() {
     // Given:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(containsString("Invalid value"));
+    validator.validate(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something");
+    EasyMock.expectLastCall();
+    EasyMock.replay(validator);
 
     // When:
-    parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, "not-a-number");
+    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something");
+
+    // Then:
+    EasyMock.verify(validator);
   }
 
   @Test
-  public void shouldParseStreamsConfig() {
-    assertThat(parser.parse(StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG, "100"), is(100));
+  public void shouldCallResolverForProperties() {
+    // Given:
+    EasyMock.expect(resolver.resolve(KsqlConfig.KSQL_SERVICE_ID_CONFIG))
+        .andReturn(Optional.of(configItem))
+        .once();
+
+    EasyMock.replay(resolver, configItem);
+
+    // When:
+    parser.parse(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "100");
+
+    // Then:
+    EasyMock.verify(resolver);
   }
 
   @Test
-  public void shouldParsePrefixedStreamsConfig() {
-    assertThat(parser.parse(
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG, "100"),
-        is(100));
-  }
-
-  @Test
-  public void shouldParseConsumerConfig() {
-    assertThat(parser.parse(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100"), is(100));
-  }
-
-  @Test
-  public void shouldParsePrefixedConsumerConfig() {
-    assertThat(parser.parse(
-        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100"),
-        is(100));
-  }
-
-  @Test
-  public void shouldParseProducerConfig() {
-    assertThat(parser.parse(ProducerConfig.BUFFER_MEMORY_CONFIG, "100"), is(100L));
-  }
-
-  @Test
-  public void shouldParsePrefixedProducerConfig() {
-    assertThat(parser.parse(
-        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "100"),
-        is(100L));
-  }
-
-  @Test
-  public void shouldThrowOnUnknownPrefixedConsumerConfig() {
+  public void shouldThrowIfResolverFailsToResolve() {
     // Given:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid consumer property: 'unknown'");
+    expectedException.expectMessage(
+        "Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'");
+
+    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+        .andReturn(Optional.empty())
+        .once();
+
+    EasyMock.replay(resolver);
 
     // When:
-    parser.parse(StreamsConfig.CONSUMER_PREFIX + "unknown", "100");
+    parser.parse("Unknown", "100");
+
+    // Then:
+    EasyMock.verify(resolver);
   }
 
   @Test
-  public void shouldThrowOnUnknownPrefixedProducerConfig() {
+  public void shouldCallValidatorWithParsedValue() {
     // Given:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid producer property: 'unknown'");
+    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+        .andReturn(Optional.of(configItem))
+        .once();
+
+    validator.validate(PARSED_PROP_NAME, PARSED_VALUE);
+    EasyMock.expectLastCall();
+    EasyMock.replay(validator, configItem, resolver);
 
     // When:
-    parser.parse(StreamsConfig.PRODUCER_PREFIX + "unknown", "100");
+    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+
+    // Then:
+    EasyMock.verify(validator);
   }
 
-  @Test
-  public void shouldHandleKsqlConfig() {
-    assertThat(parser.parse(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "10"), is(10));
-  }
-
-  @Test
-  public void shouldThrowOnUnknownProperty() {
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfValidatorThrows() {
     // Given:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(containsString(
-        "Not recognizable as ksql, streams, consumer, or producer property: 'unknown'"));
+    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+        .andReturn(Optional.of(configItem))
+        .once();
+
+    validator.validate(PARSED_PROP_NAME, PARSED_VALUE);
+    EasyMock.expectLastCall().andThrow(new IllegalArgumentException("Boom"));
+    EasyMock.replay(validator, configItem, resolver);
 
     // When:
-    parser.parse("unknown", "100");
-  }
-
-  @Test
-  public void shouldThrowIfNewValueFailsDefValidation() {
-    // Given:
-    expectedException.expect(ConfigException.class);
-    expectedException.expectMessage(containsString("Invalid value"));
-
-    // When:
-    parser.parse(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid-value");
+    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
   }
 }

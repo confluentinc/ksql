@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,10 +88,34 @@ public class KsqlConfigTest {
   public void shouldSetStreamsConfigConsumerPrefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
-            StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+            StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        equalTo(100));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigConsumerKsqlPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        equalTo(100));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
   }
 
   @Test
@@ -107,9 +131,33 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
             StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG);
-    assertThat(result, equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigKsqlProducerPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
   }
 
   @Test
@@ -134,9 +182,13 @@ public class KsqlConfigTest {
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
-    final Object result
-        = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
-    assertThat(result, equalTo(128L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+        get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG), equalTo(128L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+        get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
+        is(nullValue()));
   }
 
   @Test

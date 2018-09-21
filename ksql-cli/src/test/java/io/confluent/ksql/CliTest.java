@@ -267,7 +267,7 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(), containsString(
         "Successfully changed local property 'application.id' from 'App' to 'App2'.\n"));
 
-    testRunner.test("set 'auto.offset.reset' = 'none'", EMPTY_RESULT);
+    testRunner.test("set 'auto.offset.reset' = 'earliest'", EMPTY_RESULT);
     testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
     testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
     testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);

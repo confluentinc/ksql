@@ -18,21 +18,20 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.ConfigResolver;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
 
 public class KsqlConfig extends AbstractConfig implements Cloneable {
@@ -184,6 +183,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final ConfigDef CURRENT_DEF = buildConfigDef(true);
   public static final ConfigDef LEGACY_DEF = buildConfigDef(false);
 
+  private static final ConfigResolver resolver = new KsqlConfigResolver();
+
   private static ConfigDef configDef(final boolean current) {
     return current ? CURRENT_DEF : LEGACY_DEF;
   }
@@ -282,83 +283,51 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   private static final class ConfigValue {
-    final Optional<ConfigDef.Type> type;
+    final Optional<ConfigItem> resolved;
     final String key;
     final Object value;
 
-    private ConfigValue(final ConfigDef.Type type, final String key, final Object value) {
-      this.type = Optional.ofNullable(type);
+    private ConfigValue(final ConfigItem resolved, final String key, final Object value) {
+      this.resolved = Optional.ofNullable(resolved);
       this.key = key;
       this.value = value;
     }
 
-    static ConfigValue resolved(final ConfigDef.Type type, final String key, final Object value) {
-      return new ConfigValue(type, key, value);
+    private boolean isResolved() {
+      return resolved.isPresent();
+    }
+
+    static ConfigValue resolved(final ConfigItem configItem, final Object value) {
+      return new ConfigValue(configItem, configItem.getPropertyName(), value);
     }
 
     static ConfigValue unresolved(final String key, final Object value) {
       return new ConfigValue(null, key, value);
     }
+
+    private String convertToObfuscatedString() {
+      return resolved
+          .map(ConfigItem::getType)
+          .map(type -> ConfigDef.convertToString(value, type))
+          .orElse("");
+    }
   }
 
-  private static ConfigValue resolveConfig(final String prefix,
-                                           final AbstractConfig abstractConfig,
-                                           final String key,
-                                           final Object value) {
-    if (!key.startsWith(prefix)) {
-      return ConfigValue.unresolved(key, value);
-    }
-    final String keyNoPrefix = key.substring(prefix.length());
-    if (abstractConfig.values().containsKey(keyNoPrefix)) {
-      final ConfigDef.Type type = abstractConfig.typeOf(keyNoPrefix);
-      return ConfigValue.resolved(type, key, ConfigDef.parseType(keyNoPrefix, value, type));
-    }
-    return ConfigValue.unresolved(key, value);
-  }
-
-  private static final AbstractConfig CONSUMER_ABSTRACT_CONFIG = new ConsumerConfig(
-      ImmutableMap.of(
-          ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-          ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class
-      )
-  );
-
-  private static final AbstractConfig PRODUCER_ABSTRACT_CONFIG = new ProducerConfig(
-      ImmutableMap.of(
-          ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-          ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class
-      )
-  );
-
-  private static final AbstractConfig STREAMS_ABSTRACT_CONFIG = new StreamsConfig(
-      ImmutableMap.of(
-          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "",
-          StreamsConfig.APPLICATION_ID_CONFIG, ""
-      )
-  );
 
   private static Optional<ConfigValue> resolveStreamsConfig(final String maybePrefixedKey,
                                                             final Object value) {
-    final String key = maybePrefixedKey.startsWith(KSQL_STREAMS_PREFIX)
-        ? maybePrefixedKey.substring(KSQL_STREAMS_PREFIX.length()) : maybePrefixedKey;
-    if (key.startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
-      return Optional.empty();
-    }
-    final List<Pair<String, AbstractConfig>> configSpecsToTry = ImmutableList.of(
-        new Pair<>(StreamsConfig.CONSUMER_PREFIX, CONSUMER_ABSTRACT_CONFIG),
-        new Pair<>(StreamsConfig.PRODUCER_PREFIX, PRODUCER_ABSTRACT_CONFIG),
-        new Pair<>("", CONSUMER_ABSTRACT_CONFIG),
-        new Pair<>("", PRODUCER_ABSTRACT_CONFIG),
-        new Pair<>("", STREAMS_ABSTRACT_CONFIG)
-    );
-    for (final Pair<String, AbstractConfig> spec : configSpecsToTry) {
-      final ConfigValue configValue
-          = resolveConfig(spec.getLeft(), spec.getRight(), key, value);
-      if (configValue.type.isPresent()) {
-        return Optional.of(configValue);
-      }
-    }
-    return Optional.of(ConfigValue.unresolved(key, value));
+    return resolver.resolve(maybePrefixedKey)
+        .filter(configItem -> configItem.getDef() != CURRENT_DEF) // Exclude KSQL config
+        .map(configItem -> ConfigValue.resolved(configItem, configItem.parseValue(value)));
+  }
+
+  private static Map<String, ConfigValue> buildStreamingConfig(
+      final Map<String, ?> baseStreamConfig,
+      final Map<String, ?> overrides) {
+    final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
+    applyStreamsConfig(baseStreamConfig, streamConfigProps);
+    applyStreamsConfig(overrides, streamConfigProps);
+    return ImmutableMap.copyOf(streamConfigProps);
   }
 
   private static void applyStreamsConfig(
@@ -373,7 +342,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             configValue -> streamsConfigProps.put(configValue.key, configValue));
   }
 
-  private final ImmutableMap<String, ConfigValue> ksqlStreamConfigProps;
+  private final Map<String, ConfigValue> ksqlStreamConfigProps;
 
   public KsqlConfig(final Map<?, ?> props) {
     this(true, props);
@@ -399,15 +368,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
           LogMetricAndContinueExceptionHandler.class
       );
     }
-    final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
-    applyStreamsConfig(streamsConfigDefaults, streamConfigProps);
-    applyStreamsConfig(originals(), streamConfigProps);
-    this.ksqlStreamConfigProps = ImmutableMap.copyOf(streamConfigProps);
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
   }
 
   private KsqlConfig(final boolean current,
                      final Map<String, ?> values,
-                     final ImmutableMap<String, ConfigValue> ksqlStreamConfigProps) {
+                     final Map<String, ConfigValue> ksqlStreamConfigProps) {
     super(configDef(current), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
@@ -456,12 +422,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
     ksqlStreamConfigProps.values().stream()
-        // we must only return props for which we could resolve a type
-        .filter(configValue -> configValue.type.isPresent())
+        // we must only return props for which we could resolve
+        .filter(ConfigValue::isResolved)
         .forEach(
             configValue -> props.put(
                 configValue.key,
-                ConfigDef.convertToString(configValue.value, configValue.type.get())));
+                configValue.convertToObfuscatedString()));
     return Collections.unmodifiableMap(props);
   }
 
@@ -487,10 +453,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
     final Map<String, Object> cloneProps = new HashMap<>(values());
     cloneProps.putAll(props);
-    final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
-    applyStreamsConfig(getKsqlStreamConfigProps(), streamConfigProps);
-    applyStreamsConfig(props, streamConfigProps);
-    return new KsqlConfig(true, cloneProps, ImmutableMap.copyOf(streamConfigProps));
+    final Map<String, ConfigValue> streamConfigProps =
+        buildStreamingConfig(getKsqlStreamConfigProps(), props);
+
+    return new KsqlConfig(true, cloneProps, streamConfigProps);
   }
 
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
@@ -502,21 +468,4 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             k -> mergedProperties.put(k, originalConfig.get(k)));
     return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
   }
-
-  /* 6/19/2018: Temporary hack to pass around the timestamp column for a query
-                When this is removed KsqlConfig becomes immutable(ish)
-                and hence the clone method should be removed.
-   */
-
-  private int timestampColumnIndex = -1;
-
-  public void setKsqlTimestampColumnIndex(final int index) {
-    this.timestampColumnIndex = index;
-  }
-
-  public int getKsqlTimestampColumnIndex() {
-    return this.timestampColumnIndex;
-  }
-
-  /* end hack */
 }

@@ -212,8 +212,8 @@ signed by a CA trusted by the default JVM trust store.
     security.protocol=SASL_SSL
     sasl.mechanism=PLAIN
     sasl.jaas.config=\
-        org.apache.kafka.common.security.plain.PlainLoginModule required `
-        username="<ksql-user>" `
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="<ksql-user>" \
         password="<password>";
 
 The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are

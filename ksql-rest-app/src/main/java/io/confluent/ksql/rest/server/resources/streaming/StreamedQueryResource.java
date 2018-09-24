@@ -29,8 +29,10 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -51,19 +53,20 @@ public class StreamedQueryResource {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
-  private final long disconnectCheckInterval;
+  private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final long disconnectCheckInterval
+      final Duration disconnectCheckInterval
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-    this.disconnectCheckInterval = disconnectCheckInterval;
+    this.disconnectCheckInterval =
+        Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
   }
 
@@ -88,7 +91,7 @@ public class StreamedQueryResource {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
             ksqlEngine,
-            disconnectCheckInterval,
+            disconnectCheckInterval.toMillis(),
             ksql,
             clientLocalProperties,
             objectMapper);
@@ -100,7 +103,6 @@ public class StreamedQueryResource {
 
     } else if (statement instanceof PrintTopic) {
       final TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
-          clientLocalProperties,
           (PrintTopic) statement
       );
       return Response.ok().entity(topicStreamWriter).build();
@@ -110,10 +112,7 @@ public class StreamedQueryResource {
         statement.getClass().getName()));
   }
 
-  private TopicStreamWriter getTopicStreamWriter(
-      final Map<String, Object> clientLocalProperties,
-      final PrintTopic printTopic
-  ) {
+  private TopicStreamWriter getTopicStreamWriter(final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {

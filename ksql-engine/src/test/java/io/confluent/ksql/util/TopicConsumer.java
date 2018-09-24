@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +39,7 @@ import org.hamcrest.Matcher;
 public class TopicConsumer {
 
   private static final long RESULTS_POLL_MAX_TIME_MS = 30000;
-  private static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
+  private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
 
@@ -64,15 +65,15 @@ public class TopicConsumer {
       final long pollStart = System.currentTimeMillis();
       final long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
       while (System.currentTimeMillis() < pollEnd && !expectedNumMessages.matches(result.size())) {
-        for (final ConsumerRecord<K, V> record : consumer
-            .poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+        for (final ConsumerRecord<K, V> record :
+            consumer.poll(Duration.ofMillis(Math.max(1, pollEnd - System.currentTimeMillis())))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
           }
         }
       }
 
-      for (final ConsumerRecord<K, V> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<K, V> record : consumer.poll(RESULTS_EXTRA_POLL_TIME)) {
         if (record.value() != null) {
           result.put(record.key(), record.value());
         }

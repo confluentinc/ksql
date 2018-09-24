@@ -465,11 +465,13 @@ public class KsqlResource {
 
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
+    final KsqlConfigResolver resolver = new KsqlConfigResolver();
+
     final Map<String, String> engineProperties
         = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
 
-    final Map<String, String> mergedProperties
-        = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties)
+    final Map<String, String> mergedProperties = ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
         .getAllConfigPropsWithSecretsObfuscated();
 
     final List<String> overwritten = mergedProperties.entrySet()
@@ -478,7 +480,6 @@ public class KsqlResource {
         .map(Entry::getKey)
         .collect(Collectors.toList());
 
-    final KsqlConfigResolver resolver = new KsqlConfigResolver();
     final List<String> defaultProps = mergedProperties.entrySet().stream()
         .filter(e -> resolver.resolve(e.getKey(), false)
             .map(resolved -> resolved.isDefaultValue(e.getValue()))

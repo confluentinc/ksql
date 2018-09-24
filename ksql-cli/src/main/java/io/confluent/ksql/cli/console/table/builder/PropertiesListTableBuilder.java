@@ -21,37 +21,29 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.util.CliUtils;
-import java.util.Arrays;
+import io.confluent.ksql.util.CliUtils.PropertyDef;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Property", "Value");
+      ImmutableList.of("Property", "Default override", "Effective Value");
 
   @Override
   public Table buildTable(final PropertiesList entity) {
-    return print(CliUtils.propertiesListWithOverrides(entity))
+    return new Builder()
+        .withColumnHeaders(HEADERS)
+        .withRows(defRowValues(CliUtils.propertiesListWithOverrides(entity)))
         .build();
   }
 
-  public Table.Builder print(final Map<String, Object> properties) {
-    return new Builder()
-        .withColumnHeaders(HEADERS)
-        .withRows(propertiesRowValues(properties));
-  }
-
-  private static List<List<String>> propertiesRowValues(final Map<String, Object> properties) {
-    return properties.entrySet().stream()
-        .sorted(Map.Entry.comparingByKey())
-        .map(
-            propertyEntry -> Arrays.asList(
-                propertyEntry.getKey(),
-                Objects.toString(propertyEntry.getValue())
-            ))
+  private static List<List<String>> defRowValues(final List<PropertyDef> properties) {
+    return properties.stream()
+        .sorted(Comparator.comparing(PropertyDef::getPropertyName))
+        .map(def ->
+            ImmutableList.of(def.getPropertyName(), def.getOverrideType(), def.getEffectiveValue()))
         .collect(Collectors.toList());
   }
 }

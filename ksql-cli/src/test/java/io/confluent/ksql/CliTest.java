@@ -18,28 +18,17 @@ package io.confluent.ksql;
 
 import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -49,11 +38,11 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.net.URI;
@@ -65,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -86,10 +76,13 @@ import org.junit.rules.RuleChain;
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
-  private static final String DEFAULT_PROP = " (DEFAULT)";
+  private static final String SERVER_OVERRIDE = "SERVER";
+  private static final String SESSION_OVERRIDE = "SESSION";
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(CLUSTER::bootstrapServers)
+      .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
+          KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
 
   @ClassRule
@@ -118,11 +111,6 @@ public class CliTest {
   public static void setUp() throws Exception {
     restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
-    // TODO: Fix Properties Setup in Local().getCli()
-    // Local local =  new Local().getCli();
-    // LocalCli localCli = local.getCli(restClient, terminal);
-
-    // TODO: add remote cli test cases
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
@@ -184,26 +172,36 @@ public class CliTest {
     restClient.close();
   }
 
-  private static Map<String, Object> startUpConfigs() {
-    final Map<String, Object> startConfigs = new HashMap<>(REST_APP.getBaseConfig());
-    startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
-    startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
-    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 4);
+  private static List<List<String>> startUpConfigs() {
+    return ImmutableList.of(
+        // SERVER OVERRIDES:
+        ImmutableList.of(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG,
+            SERVER_OVERRIDE, "4"),
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY + DEFAULT_PROP, KsqlConstants.defaultSinkNumberOfReplications);
-    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY + DEFAULT_PROP, KsqlConstants.defaultSinkNumberOfPartitions);
-    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY, 1000000);
+        ImmutableList.of(
+            KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY, SERVER_OVERRIDE,
+            "" + (KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
+        ),
 
-    startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG + DEFAULT_PROP, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
-    startConfigs.put(KSQL_SERVICE_ID_CONFIG + DEFAULT_PROP, KSQL_SERVICE_ID_DEFAULT);
-    startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG + DEFAULT_PROP, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
-    startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG + DEFAULT_PROP, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-    startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY + DEFAULT_PROP, KsqlConfig.defaultSchemaRegistryUrl);
-    startConfigs.put(
-        KsqlConfig.KSQL_STREAMS_PREFIX
-            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG + DEFAULT_PROP,
-        LogMetricAndContinueExceptionHandler.class.getName());
-    return startConfigs;
+        ImmutableList.of(
+            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "", "NULL"
+        ),
+
+        // SESSION OVERRIDES:
+        ImmutableList.of(
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+            SESSION_OVERRIDE, "latest"),
+
+        // DEFAULTS:
+        ImmutableList.of(
+            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
+            "" + KsqlConstants.defaultSinkNumberOfReplications)
+        ,
+        ImmutableList.of(
+            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
+            "" + KsqlConstants.defaultSinkNumberOfReplications)
+    );
   }
 
   private static void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
@@ -262,13 +260,13 @@ public class CliTest {
   public void testPropertySetUnset() {
     testRunner.test("set 'application.id' = 'App'", EMPTY_RESULT);
     assertThatEventually(() -> terminal.getOutputString(), containsString(
-        "Successfully changed local property 'application.id' from NULL to 'App'. Use the UNSET command to revert your change"));
+        "Successfully changed local property 'application.id' to 'App'. Use the UNSET command to revert your change"));
 
     testRunner.test("set 'application.id' = 'App2'", EMPTY_RESULT);
     assertThatEventually(() -> terminal.getOutputString(), containsString(
         "Successfully changed local property 'application.id' from 'App' to 'App2'.\n"));
 
-    testRunner.test("set 'auto.offset.reset' = 'earliest'", EMPTY_RESULT);
+    testRunner.test("set 'auto.offset.reset' = 'latest'", EMPTY_RESULT);
     testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
     testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
     testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
@@ -284,7 +282,6 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(), containsString(
         "Successfully unset local property 'application.id' (value was 'App2').\n"));
 
-    testRunner.test("unset 'auto.offset.reset'", EMPTY_RESULT);
     testRunner.test("unset 'producer.batch.size'", EMPTY_RESULT);
     testRunner.test("unset 'max.request.size'", EMPTY_RESULT);
     testRunner.test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
@@ -297,6 +294,7 @@ public class CliTest {
     testRunner.test("unset 'ksql.service.id'", EMPTY_RESULT);
 
     testRunner.testListOrShow("properties", build(startUpConfigs()), false);
+    testRunner.test("unset 'auto.offset.reset'", EMPTY_RESULT);
   }
 
   @Test

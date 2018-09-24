@@ -18,8 +18,6 @@ package io.confluent.ksql.config;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlConfig;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,7 +37,6 @@ public class KsqlConfigResolver implements ConfigResolver {
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
   private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
   private static final ConfigDef KSQL_CONFIG_DEF = KsqlConfig.CURRENT_DEF;
-  private static final Method PARSE_METHOD = getParseMethod();
 
   private static final List<PrefixedConfig> STREAM_CONFIG_DEFS = ImmutableList.of(
       new PrefixedConfig(StreamsConfig.CONSUMER_PREFIX, CONSUMER_CONFIG_DEF),
@@ -104,31 +101,6 @@ public class KsqlConfigResolver implements ConfigResolver {
       return (ConfigDef) field.get(null);
     } catch (final Exception exception) {
       throw new IllegalStateException("Failed to initialize config def for " + defClass);
-    }
-  }
-
-  private Object parseValue(final ConfigDef def, final ConfigKey key, final Object value) {
-    try {
-      return PARSE_METHOD.invoke(def, key, value, true);
-    } catch (IllegalAccessException e) {
-      throw new IllegalArgumentException("Failed to invoke parseValue", e);
-    } catch (InvocationTargetException e) {
-      if (e.getTargetException() instanceof RuntimeException) {
-        throw (RuntimeException) e.getTargetException();
-      }
-
-      throw new RuntimeException(e.getTargetException());
-    }
-  }
-
-  private static Method getParseMethod() {
-    try {
-      final Method parseValue = ConfigDef.class.getDeclaredMethod("parseValue",
-          ConfigKey.class, Object.class, boolean.class);
-      parseValue.setAccessible(true);
-      return parseValue;
-    } catch (NoSuchMethodException e) {
-      throw new IllegalStateException("Failed to get parseValue method of Config", e);
     }
   }
 

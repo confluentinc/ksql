@@ -19,7 +19,6 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.ConfigItem;
-import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import java.util.Collection;
@@ -183,8 +182,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final ConfigDef CURRENT_DEF = buildConfigDef(true);
   public static final ConfigDef LEGACY_DEF = buildConfigDef(false);
 
-  private static final ConfigResolver resolver = new KsqlConfigResolver();
-
   private static ConfigDef configDef(final boolean current) {
     return current ? CURRENT_DEF : LEGACY_DEF;
   }
@@ -316,7 +313,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   private static Optional<ConfigValue> resolveStreamsConfig(final String maybePrefixedKey,
                                                             final Object value) {
-    return resolver.resolve(maybePrefixedKey)
+    return new KsqlConfigResolver().resolve(maybePrefixedKey)
         .filter(configItem -> configItem.getDef() != CURRENT_DEF) // Exclude KSQL config
         .map(configItem -> ConfigValue.resolved(configItem, configItem.parseValue(value)));
   }

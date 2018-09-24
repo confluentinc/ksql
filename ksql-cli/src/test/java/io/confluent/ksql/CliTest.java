@@ -259,7 +259,15 @@ public class CliTest {
 
   @Test
   public void testPropertySetUnset() {
-    testRunner.test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
+    testRunner.test("set 'application.id' = 'App'", EMPTY_RESULT);
+    assertThatEventually(() -> terminal.getOutputString(), containsString(
+        "Successfully changed local property 'application.id' from NULL to 'App'. Use the UNSET command to revert your change"));
+
+    testRunner.test("set 'application.id' = 'App2'", EMPTY_RESULT);
+    assertThatEventually(() -> terminal.getOutputString(), containsString(
+        "Successfully changed local property 'application.id' from 'App' to 'App2'.\n"));
+
+    testRunner.test("set 'auto.offset.reset' = 'earliest'", EMPTY_RESULT);
     testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
     testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
     testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
@@ -272,6 +280,10 @@ public class CliTest {
     testRunner.test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
 
     testRunner.test("unset 'application.id'", EMPTY_RESULT);
+    assertThatEventually(() -> terminal.getOutputString(), containsString(
+        "Successfully unset local property 'application.id' (value was 'App2').\n"));
+
+    testRunner.test("unset 'auto.offset.reset'", EMPTY_RESULT);
     testRunner.test("unset 'producer.batch.size'", EMPTY_RESULT);
     testRunner.test("unset 'max.request.size'", EMPTY_RESULT);
     testRunner.test("unset 'consumer.max.poll.records'", EMPTY_RESULT);

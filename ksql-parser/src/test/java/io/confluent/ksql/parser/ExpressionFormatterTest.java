@@ -281,11 +281,6 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatTryCast() {
-    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral(1), "Double", true)), equalTo("TRY_CAST(1 AS Double)"));
-  }
-
-  @Test
   public void shouldFormatSearchedCaseExpression() {
     final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(

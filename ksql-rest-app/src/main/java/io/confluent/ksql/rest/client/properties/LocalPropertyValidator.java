@@ -27,6 +27,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+/**
+ * This class adds additional validation of properties on top of that provided by the
+ * {@code ConfigDef} instances.
+ */
 class LocalPropertyValidator implements PropertyValidator {
 
   private static final Map<String, Consumer<Object>> HANDLERS =

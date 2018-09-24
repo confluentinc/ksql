@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,11 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -49,7 +50,7 @@ public class AggregateNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
-  private StreamsBuilder builder = new StreamsBuilder();
+  private final StreamsBuilder builder = new StreamsBuilder();
 
   @Test
 
@@ -59,7 +60,7 @@ public class AggregateNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList(MAPVALUES_NODE)));
-    assertThat(node.topics(), equalTo("[test1]"));
+    assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
   @Test
@@ -84,8 +85,8 @@ public class AggregateNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
-    assertThat(node.topics(), containsString("[KSTREAM-AGGREGATE-STATE-STORE-0000000006"));
-    assertThat(node.topics(), containsString("-repartition]"));
+    assertThat(node.topicSet(), hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000006")));
+    assertThat(node.topicSet(), hasItem(containsString("-repartition")));
   }
 
   @Test
@@ -94,7 +95,7 @@ public class AggregateNodeTest {
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
     final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
-    assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
+    assertThat(source.topicSet(), hasItem(sink.topic()));
   }
 
   @Test
@@ -126,6 +127,7 @@ public class AggregateNodeTest {
         + "WHERE col0 > 100 GROUP BY col0;");
   }
 
+  @SuppressWarnings("UnusedReturnValue")
   private SchemaKStream buildRequireRekey() {
     return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
         + "size 2 "

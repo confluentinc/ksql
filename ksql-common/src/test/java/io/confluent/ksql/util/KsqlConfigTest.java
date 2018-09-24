@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,6 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
@@ -79,19 +78,43 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldSetStreamsConfigConsumerUnprefixedProperties() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+    assertThat(result, equalTo("earliest"));
   }
 
   @Test
   public void shouldSetStreamsConfigConsumerPrefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
-            StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+            StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        equalTo(100));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigConsumerKsqlPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        equalTo(100));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        is(nullValue()));
   }
 
   @Test
@@ -107,9 +130,33 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
             StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG);
-    assertThat(result, equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigKsqlProducerPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "1024"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        equalTo(1024L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
   }
 
   @Test
@@ -134,9 +181,13 @@ public class KsqlConfigTest {
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
-    final Object result
-        = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
-    assertThat(result, equalTo(128L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+        get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG), equalTo(128L));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+        get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
+        is(nullValue()));
   }
 
   @Test
@@ -146,21 +197,6 @@ public class KsqlConfigTest {
     final Object result
         = ksqlConfig.getKsqlStreamConfigProps().get("confluent.monitoring.interceptor.topic");
     assertThat(result, equalTo("foo"));
-  }
-
-  @Test
-  public void shouldObfuscateSecretStreamsProperties() {
-    final String password = "super-secret-password";
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        SslConfigs.SSL_KEY_PASSWORD_CONFIG, password
-    ));
-    final Password passwordConfig
-        = (Password) ksqlConfig.getKsqlStreamConfigProps().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
-    assertThat(passwordConfig.value(), equalTo(password));
-    assertThat(
-        ksqlConfig.getKsqlConfigPropsWithSecretsObfuscated().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
-        not(equalTo(password))
-    );
   }
 
   @Test
@@ -185,23 +221,23 @@ public class KsqlConfigTest {
   @Test
   public void shouldCloneWithStreamPropertyOverwrite() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("200"));
+            ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
+    assertThat(result, equalTo(200));
   }
 
   @Test
   public void shouldCloneWithPrefixedStreamPropertyOverwrite() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
-            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("200"));
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
+    assertThat(result, equalTo(200));
   }
 
   @Test
@@ -296,5 +332,88 @@ public class KsqlConfigTest {
 
     // Then:
     assertThat(udfProps.keySet(), is(empty()));
+  }
+
+  @Test
+  public void shouldListKnownKsqlConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "not sensitive",
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "sensitive!"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG), is("not sensitive"));
+    assertThat(result.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG), is("[hidden]"));
+  }
+
+  @Test
+  public void shouldListKnownKsqlFunctionConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, "true"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG), is("true"));
+  }
+
+  @Test
+  public void shouldListUnknownKsqlFunctionConfigObfuscated() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+        is("[hidden]"));
+  }
+
+  @Test
+  public void shouldListKnownStreamsConfigObfuscated() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.APPLICATION_ID_CONFIG, "not sensitive",
+        KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "sensitive!",
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX +
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "sensitive!"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG),
+        is("not sensitive"));
+    assertThat(result.get(
+        KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
+        is("[hidden]"));
+    assertThat(result.get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
+            + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
+        is("[hidden]"));
+  }
+
+  @Test
+  public void shouldNotListUnresolvedServerConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        "some.random.property", "might be sensitive"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get("some.random.property"), is(nullValue()));
   }
 }

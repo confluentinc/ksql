@@ -50,6 +50,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
@@ -85,6 +86,7 @@ import org.junit.rules.RuleChain;
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
+  private static final String DEFAULT_PROP = " (DEFAULT)";
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(CLUSTER::bootstrapServers)
@@ -182,25 +184,24 @@ public class CliTest {
     restClient.close();
   }
 
-  private static Map<String, Object> validStartUpConfigs() {
-    // TODO: these configs should be set with other configs on start-up, rather than setup later.
+  private static Map<String, Object> startUpConfigs() {
     final Map<String, Object> startConfigs = new HashMap<>(REST_APP.getBaseConfig());
     startConfigs.remove(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
     startConfigs.remove(KsqlRestConfig.LISTENERS_CONFIG);
-    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.stream.threads", 4);
+    startConfigs.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 4);
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
-    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
+    startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY + DEFAULT_PROP, KsqlConstants.defaultSinkNumberOfReplications);
+    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY + DEFAULT_PROP, KsqlConstants.defaultSinkNumberOfPartitions);
     startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY, 1000000);
 
-    startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
-    startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
-    startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
-    startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-    startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
+    startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG + DEFAULT_PROP, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
+    startConfigs.put(KSQL_SERVICE_ID_CONFIG + DEFAULT_PROP, KSQL_SERVICE_ID_DEFAULT);
+    startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG + DEFAULT_PROP, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
+    startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG + DEFAULT_PROP, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
+    startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY + DEFAULT_PROP, KsqlConfig.defaultSchemaRegistryUrl);
     startConfigs.put(
         KsqlConfig.KSQL_STREAMS_PREFIX
-            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+            + StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG + DEFAULT_PROP,
         LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
@@ -283,7 +284,7 @@ public class CliTest {
     testRunner.test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
     testRunner.test("unset 'ksql.service.id'", EMPTY_RESULT);
 
-    testRunner.testListOrShow("properties", build(validStartUpConfigs()), false);
+    testRunner.testListOrShow("properties", build(startUpConfigs()), false);
   }
 
   @Test

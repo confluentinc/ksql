@@ -54,6 +54,13 @@ public interface ConfigItem {
    */
   String convertToString(Object value);
 
+  /**
+   * Checks if the supplied value is the default value for the config item.
+   * @param value the value to check
+   * @return {@code true} if it is, {@code false} otherwise.
+   */
+  boolean isDefaultValue(Object value);
+
   static ConfigItem resolved(final ConfigKey key) {
     return new ConfigItem.Resolved(key);
   }
@@ -89,6 +96,11 @@ public interface ConfigItem {
     public String convertToString(final Object value) {
       return value == null ? "NULL" : value.toString();
     }
+
+    @Override
+    public boolean isDefaultValue(final Object value) {
+      return false;
+    }
   }
 
   class Resolved implements ConfigItem {
@@ -122,6 +134,12 @@ public interface ConfigItem {
     public String convertToString(final Object value) {
       final Object parsed = parseValue(value);
       return ConfigDef.convertToString(parsed, key.type);
+    }
+
+    @Override
+    public boolean isDefaultValue(final Object value) {
+      final Object parsed = parseValue(value);
+      return Objects.equals(parsed, key.defaultValue);
     }
 
     ConfigKey getKey() {

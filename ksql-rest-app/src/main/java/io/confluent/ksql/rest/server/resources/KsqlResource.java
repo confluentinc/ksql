@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DdlCommand;
@@ -464,8 +465,6 @@ public class KsqlResource {
 
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
-    final Map<String, Object> originals = ksqlConfig.originals();
-
     final Map<String, String> engineProperties
         = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
 
@@ -479,9 +478,11 @@ public class KsqlResource {
         .map(Entry::getKey)
         .collect(Collectors.toList());
 
-    final List<String> defaultProps = mergedProperties.entrySet()
-        .stream()
-        .filter(e -> !Objects.equals(originals.get(e.getKey()), e.getValue()))
+    final KsqlConfigResolver resolver = new KsqlConfigResolver();
+    final List<String> defaultProps = mergedProperties.entrySet().stream()
+        .filter(e -> resolver.resolve(e.getKey(), false)
+            .map(resolved -> resolved.isDefaultValue(e.getValue()))
+            .orElse(false))
         .map(Entry::getKey)
         .collect(Collectors.toList());
 

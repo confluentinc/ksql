@@ -130,19 +130,14 @@ public class KsqlRestClient implements Closeable {
   }
 
 
-  public RestResponse<KsqlEntityList> makeTerminateQlusterRequest() {
+  public RestResponse<KsqlEntityList> makeTerminateClusterRequest() {
     final KsqlRequest jsonRequest =
-        new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, localProperties);
-    final Response response = makePostRequest("ksql/terminate", jsonRequest);
-    try {
-      if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-        return RestResponse.successful(response.readEntity(KsqlEntityList.class));
-      } else {
-        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-      }
-    } finally {
-      response.close();
-    }
+        new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, localProperties.toMap());
+    return postRequest(
+        "ksql/terminate",
+        jsonRequest,
+        true,
+        response1 -> response1.readEntity(KsqlEntityList.class));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {

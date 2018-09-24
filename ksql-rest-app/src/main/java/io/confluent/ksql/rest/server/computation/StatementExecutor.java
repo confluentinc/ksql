@@ -17,20 +17,12 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.commands.DdlCommand;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -40,25 +32,20 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
@@ -135,22 +122,28 @@ public class StatementExecutor {
   ) {
     final String statementText = command.getStatement();
     if (statementText.equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-      this.ksqlEngine.getAcceptingStatements().set(false);
-      final List<String> keepTopics = command
-          .getOverwriteProperties().containsKey("KEEP_SOURCES")
-          ? ((List<String>) command.getOverwriteProperties().get("KEEP_SOURCES"))
+      this.ksqlEngine.stopAcceptingStatemens();
+      final List<String> sourcesList = command
+          .getOverwriteProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          ? ((List<String>) command.getOverwriteProperties()
+          .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
           .stream()
           .map(String::toUpperCase).collect(Collectors.toList())
           : Collections.emptyList();
-      final List<String> deleteTopics = command
-          .getOverwriteProperties().containsKey("DELETE_SOURCES")
-          ? ((List<String>) command.getOverwriteProperties().get("DELETE_SOURCES"))
-          .stream().map(String::toUpperCase).collect(Collectors.toList())
-          : Collections.emptyList();
-      terminateCluster(keepTopics, deleteTopics);
-      // Delete the command topic
-      deleteCommandTopic();
-    } else if (ksqlEngine.getAcceptingStatements().get()) {
+      final boolean iskeep = command
+          .getOverwriteProperties().containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+          && command.getOverwriteProperties()
+          .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+          .toString().equalsIgnoreCase("KEEP");
+      new ClusterTerminator().terminateCluster(
+          ksqlConfig,
+          ksqlEngine,
+          sourcesList,
+          iskeep,
+          commandConsumer,
+          commandProducer
+      );
+    } else if (ksqlEngine.isAcceptingStatements()) {
       handleStatementWithTerminatedQueries(command,
           commandId,
           status,
@@ -457,88 +450,5 @@ public class StatementExecutor {
     }
   }
 
-  private void terminateCluster(
-      final List<String> keepSources,
-      final List<String> deleteSources
-  ) {
-    // Terminate all queries
-    getListForSet(ksqlEngine.getAllLiveQueries()).forEach(
-        queryMetadata -> {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMetadata
-                = (PersistentQueryMetadata) queryMetadata;
-            ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
-          }  else {
-            queryMetadata.close();
-          }
-        }
-    );
 
-    // if we have the explicit list of stream/table to delete.
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
-    if (!deleteSources.isEmpty()) {
-      deleteSources
-          .forEach(sourceName -> deleteSource(sourceName, metaStore.getSource(sourceName)));
-    } else if (!keepSources.isEmpty()) {
-      metaStore.getAllStructuredDataSources().forEach(
-          (sourceName, structuredDataSource) -> {
-            if (!keepSources.contains(sourceName)) {
-              deleteSource(sourceName, structuredDataSource);
-            }
-          }
-      );
-    } else {
-      metaStore.getAllStructuredDataSources().forEach(this::deleteSource);
-    }
-  }
-
-  // This is needed because the checkstyle complains if we create this in place.
-  List<QueryMetadata> getListForSet(final Set<QueryMetadata> queryMetadataSet) {
-    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
-    queryMetadataList.addAll(ksqlEngine.getAllLiveQueries());
-    return queryMetadataList;
-  }
-
-  private void deleteSource(
-      final String sourceName,
-      final StructuredDataSource structuredDataSource) {
-    final DdlCommand ddlCommand;
-    if (structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM) {
-      ddlCommand = new DropSourceCommand(
-          new DropStream(QualifiedName.of(sourceName), false, true),
-          structuredDataSource.getDataSourceType(),
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          true
-      );
-    } else  {
-      ddlCommand = new DropSourceCommand(
-          new DropTable(QualifiedName.of(sourceName), false, true),
-          structuredDataSource.getDataSourceType(),
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          true
-      );
-    }
-    final DdlCommandExec ddlCommandExec = ksqlEngine.getDdlCommandExec();
-    ddlCommandExec.execute(ddlCommand, false);
-  }
-
-  private void deleteCommandTopic() {
-    // Delete the command topic
-    commandConsumer.close();
-    commandProducer.close();
-    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    final KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
-    try {
-      ExecutorUtil.executeWithRetries(
-          () -> kafkaTopicClient.deleteTopics(
-              Collections.singletonList(commandTopic)),
-          ExecutorUtil.RetryBehaviour.ALWAYS);
-    } catch (final Exception e) {
-      throw new KsqlException("Could not delete the command topic: "
-          + commandTopic, e);
-    }
-  }
 }

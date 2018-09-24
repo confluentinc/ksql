@@ -609,7 +609,11 @@ public class KsqlEngine implements Closeable {
     return allLiveQueries;
   }
 
-  public AtomicBoolean getAcceptingStatements() {
-    return acceptingStatements;
+  public void stopAcceptingStatemens() {
+    acceptingStatements.set(false);
+  }
+
+  public boolean isAcceptingStatements() {
+    return acceptingStatements.get();
   }
 }

@@ -23,31 +23,32 @@ import java.util.Optional;
 
 public class TerminateCluster extends Statement {
 
-  private final List<String> keepSources;
-  private final List<String> deleteSources;
+  private final List<String> sourcesList;
+  private final boolean isKeep;
 
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
 
-  public TerminateCluster(final List<String> keepSources, final List<String> deleteSources) {
+  public static final String SOURCES_LIST_PARAM_NAME = "SOURCES_LIST";
+  public static final String SOURCES_LIST_TYPE_PARAM_NAME = "SOURCES_LIST_TYPE";
+
+  public TerminateCluster(final List<String> sourcesList, final boolean isKeep) {
     super(Optional.empty());
-    Objects.requireNonNull(keepSources, "KEEP_SOURCES cannot be null.");
-    Objects.requireNonNull(deleteSources, "DELETE_SOURCES cannot be null.");
-    this.keepSources = keepSources;
-    this.deleteSources = deleteSources;
+    Objects.requireNonNull(sourcesList, "SOURCES_LIST cannot be null.");
+    this.sourcesList = sourcesList;
+    this.isKeep = isKeep;
   }
 
-
-  public List<String> getKeepSources() {
-    return keepSources;
+  public List<String> getSourcesList() {
+    return sourcesList;
   }
 
-  public List<String> getDeleteSources() {
-    return deleteSources;
+  public boolean isKeep() {
+    return isKeep;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, keepSources, deleteSources);
+    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, sourcesList, isKeep);
   }
 
   @Override
@@ -59,8 +60,8 @@ public class TerminateCluster extends Statement {
       return false;
     }
     final TerminateCluster terminateCluster = (TerminateCluster) obj;
-    return keepSources.equals(terminateCluster.getKeepSources())
-        && deleteSources.equals(terminateCluster.getDeleteSources());
+    return sourcesList.equals(terminateCluster.getSourcesList())
+        && isKeep == terminateCluster.isKeep();
   }
 
   @Override

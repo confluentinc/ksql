@@ -162,29 +162,45 @@ public class KsqlResource {
   @Path("/terminate")
   @SuppressWarnings("unchecked")
   public Response terminateCluster(final KsqlRequest request) {
-    final String terminateClusterString = "TERMINATE CLUSTER;";
+    final String terminateClusterString = TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT;
     final KsqlEntityList result = new KsqlEntityList();
     try {
-      final List<String> keepTopics = request
-          .getStreamsProperties().containsKey("KEEP_SOURCES")
-          && request.getStreamsProperties().get("KEEP_SOURCES") instanceof List
-          ? ((List<String>) request.getStreamsProperties().get("KEEP_SOURCES"))
+      if (request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          && !request.getStreamsProperties()
+          .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)) {
+        return Errors.badRequest("You need to send "
+            + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
+            + " parameter as part of your request.");
+      }
+      final List<String> sourcesList = request
+          .getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          && request.getStreamsProperties().get(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          instanceof List
+          ? ((List<String>) request.getStreamsProperties()
+          .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
           .stream()
           .map(String::toUpperCase).collect(Collectors.toList())
           : Collections.emptyList();
-      final List<String> deleteTopics = request
-          .getStreamsProperties().containsKey("DELETE_SOURCES")
-          && request.getStreamsProperties().get("DELETE_SOURCES") instanceof List
-          ? ((List<String>) request.getStreamsProperties().get("DELETE_SOURCES"))
-          .stream().map(String::toUpperCase).collect(Collectors.toList())
-          : Collections.emptyList();
-      if (!keepTopics.isEmpty() && !deleteTopics.isEmpty()) {
-        return Errors.serverErrorForStatement(
-            new KsqlException("You cannot path both KEEP_SOURCES and DELETE_SOURCES lists at "
-                + "the same time."), terminateClusterString, result);
+
+      final String sourcesListType = request.getStreamsProperties()
+          .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+          ? request.getStreamsProperties()
+          .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME).toString()
+          : "";
+
+      if (request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+          && (sourcesListType.equalsIgnoreCase("KEEP")
+          || sourcesListType.equalsIgnoreCase("DELETE"))
+          ) {
+        return Errors.badRequest("Invalid " + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
+            + " : " + sourcesListType + ". "
+            +  TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME + " can either be KEEP or DELETE.");
       }
 
-      final TerminateCluster terminateCluster = new TerminateCluster(keepTopics, deleteTopics);
+      final TerminateCluster terminateCluster = new TerminateCluster(
+          sourcesList,
+          sourcesListType.equalsIgnoreCase("KEEP")
+      );
       distributeStatement(
           terminateClusterString,
           terminateCluster,
@@ -200,7 +216,7 @@ public class KsqlResource {
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
 
-    if (!ksqlEngine.getAcceptingStatements().get()) {
+    if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.badRequest("The cluster has been terminated. No new request will be accepted.");
     }
     final List<PreparedStatement> parsedStatements;

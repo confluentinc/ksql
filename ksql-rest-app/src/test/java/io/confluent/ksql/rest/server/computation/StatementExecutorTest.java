@@ -211,6 +211,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     mockQueryMetadata.start();
     expectLastCall();
 
+    expect(mockEngine.isAcceptingStatements()).andReturn(true).anyTimes();
+
     replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);
 
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
@@ -446,21 +448,27 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldTerminateClusterAndKeepList() throws IOException {
     final List<String> keepSources = Collections.singletonList("FOO");
+    final Map<String, Object> props = new HashMap<>();
+    props.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, keepSources);
+    props.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "KEEP");
     final Command command = new Command(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-        Collections.singletonMap("KEEP_SOURCES", keepSources),
+        props,
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, keepSources, Collections.emptyList(), 2);
+    testTerminateClusterForCommand(command, 2);
   }
 
   @Test
   public void shouldTerminateClusterAndDeleteList() throws IOException {
     final List<String> deleteSources = Collections.singletonList("FOO");
+    final Map<String, Object> props = new HashMap<>();
+    props.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, deleteSources);
+    props.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "DELETE");
     final Command command = new Command(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-        Collections.singletonMap("DELETE_SOURCES", deleteSources),
+        props,
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, deleteSources, Collections.emptyList(), 1);
+    testTerminateClusterForCommand(command, 1);
   }
 
   @Test
@@ -469,11 +477,11 @@ public class StatementExecutorTest extends EasyMockSupport {
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         Collections.emptyMap(),
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, Collections.emptyList(), Collections.emptyList(), 3);
+    testTerminateClusterForCommand(command, 3);
   }
 
   @SuppressWarnings("unchecked")
-  private void testTerminateClusterForCommand(final Command command, final List<String> keepTopics, final List<String> deleteTopics, final int deleteCount) throws IOException {
+  private void testTerminateClusterForCommand(final Command command, final int deleteCount) throws IOException {
     final CommandId commandId = mock(CommandId.class);
     final KsqlEngine ksqlEngine = niceMock(KsqlEngine.class);
     final KafkaTopicClient kafkaTopicClient = niceMock(KafkaTopicClient.class);

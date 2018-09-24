@@ -24,7 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class LocalPropertiesValidatorTest {
+public class LocalPropertyValidatorTest {
 
   private static final Collection<String> IMMUTABLE_PROPS =
       ImmutableList.of("immutable-1", "immutable-2");
@@ -32,11 +32,11 @@ public class LocalPropertiesValidatorTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private LocalPropertiesValidator validator;
+  private LocalPropertyValidator validator;
 
   @Before
   public void setUp() {
-    validator = new LocalPropertiesValidator(IMMUTABLE_PROPS);
+    validator = new LocalPropertyValidator(IMMUTABLE_PROPS);
   }
 
   @Test

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.properties;
+package io.confluent.ksql.config;
 
-public interface PropertyParser {
+public interface PropertyValidator {
 
-  Object parse(String property, Object value);
+  void validate(String property, Object value);
 }

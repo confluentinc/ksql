@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client.properties;
 
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
+import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -43,7 +44,7 @@ public class LocalPropertyParserTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(MockType.NICE)
-  private PropertiesValidator validator;
+  private PropertyValidator validator;
   @Mock(MockType.NICE)
   private ConfigResolver resolver;
   @Mock(MockType.NICE)

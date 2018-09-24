@@ -20,6 +20,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
+import io.confluent.ksql.config.PropertyParser;
+import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
@@ -29,13 +31,13 @@ import java.util.Objects;
 class LocalPropertyParser implements PropertyParser {
 
   private final ConfigResolver resolver;
-  private final PropertiesValidator validator;
+  private final PropertyValidator validator;
 
   LocalPropertyParser() {
-    this(new KsqlConfigResolver(), new LocalPropertiesValidator());
+    this(new KsqlConfigResolver(), new LocalPropertyValidator());
   }
 
-  LocalPropertyParser(final ConfigResolver resolver, final PropertiesValidator validator) {
+  LocalPropertyParser(final ConfigResolver resolver, final PropertyValidator validator) {
     this.resolver = Objects.requireNonNull(resolver, "resolver");
     this.validator = Objects.requireNonNull(validator, "validator");
   }

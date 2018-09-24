@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.client.properties;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.PropertyParser;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;

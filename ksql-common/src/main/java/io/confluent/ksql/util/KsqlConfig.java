@@ -294,8 +294,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       return resolved.isPresent();
     }
 
-    static ConfigValue resolved(final ConfigItem configItem, final Object value) {
-      return new ConfigValue(configItem, configItem.getPropertyName(), value);
+    static ConfigValue resolved(final ConfigItem configItem, final String key, final Object value) {
+      return new ConfigValue(configItem, key, value);
     }
 
     static ConfigValue unresolved(final String key, final Object value) {
@@ -304,18 +304,26 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     private String convertToObfuscatedString() {
       return resolved
-          .map(ConfigItem::getType)
-          .map(type -> ConfigDef.convertToString(value, type))
+          .map(item -> item.convertToString(value))
           .orElse("");
     }
   }
 
 
-  private static Optional<ConfigValue> resolveStreamsConfig(final String maybePrefixedKey,
-                                                            final Object value) {
-    return new KsqlConfigResolver().resolve(maybePrefixedKey)
-        .filter(configItem -> configItem.getDef() != CURRENT_DEF) // Exclude KSQL config
-        .map(configItem -> ConfigValue.resolved(configItem, configItem.parseValue(value)));
+  private static Optional<ConfigValue> resolveStreamsConfig(
+      final String maybePrefixedKey,
+      final Object value) {
+
+    final String key = maybePrefixedKey.startsWith(KSQL_STREAMS_PREFIX)
+        ? maybePrefixedKey.substring(KSQL_STREAMS_PREFIX.length()) : maybePrefixedKey;
+
+    if (key.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(new KsqlConfigResolver().resolve(maybePrefixedKey)
+        .map(configItem -> ConfigValue.resolved(configItem, key, configItem.parseValue(value)))
+        .orElseGet(() -> ConfigValue.unresolved(key, value)));
   }
 
   private static Map<String, ConfigValue> buildStreamingConfig(
@@ -396,7 +404,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     final Map<String, String> props = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString
-    configDef(true).names().stream().forEach(
+    configDef(true).names().forEach(
         key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
     );
     return Collections.unmodifiableMap(props);

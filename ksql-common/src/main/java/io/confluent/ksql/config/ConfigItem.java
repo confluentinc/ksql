@@ -19,37 +19,98 @@ package io.confluent.ksql.config;
 import java.util.Objects;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
-public class ConfigItem {
+public interface ConfigItem {
 
-  private final ConfigDef def;
-  private final ConfigKey key;
+  /**
+   * @return the name of the property.
+   */
+  String getPropertyName();
 
-  public ConfigItem(final ConfigDef def, final String propertyName) {
-    this.def = Objects.requireNonNull(def, "def");
-    this.key = def.configKeys().get(Objects.requireNonNull(propertyName, "propertyName"));
+  /**
+   * Parse and validate the value for this config item.
+   *
+   * <p>Parsing and validating is done by the underlying {@link ConfigDef}, where known.
+   * For unresolved items the {@code value} passes through as-is.
+   *
+   * @param value the raw item to parse.
+   * @return the parsed and validated value.
+   */
+  Object parseValue(Object value);
+
+  /**
+   * Convert the supplied {@code value} to a {@code String}.
+   *
+   * <p>Passwords are obfuscated.
+   * For unresolved items the {@code value} is converted to a {@code String}.
+   *
+   * @param value the value of the property.
+   * @return the obfuscated value.
+   */
+  String convertToString(Object value);
+
+  static ConfigItem resolved(final ConfigKey key) {
+    return new ConfigItem.Resolved(key);
   }
 
-  public ConfigDef getDef() {
-    return def;
+  static ConfigItem unresolved(final String propertyName) {
+    return new ConfigItem.Unresolved(propertyName);
   }
 
-  public String getPropertyName() {
-    return key.name;
-  }
+  class Unresolved implements ConfigItem {
 
-  public Type getType() {
-    return key.type;
-  }
+    private final String propertyName;
 
-  public Object parseValue(final Object value) {
-    final Object parsed = ConfigDef.parseType(key.name, value, key.type);
-
-    if (key.validator != null) {
-      key.validator.ensureValid(key.name, parsed);
+    private Unresolved(final String propertyName) {
+      this.propertyName = Objects.requireNonNull(propertyName, "propertyName");
     }
 
-    return parsed;
+    @Override
+    public String getPropertyName() {
+      return propertyName;
+    }
+
+    @Override
+    public Object parseValue(final Object value) {
+      return value;
+    }
+
+    @Override
+    public String convertToString(final Object value) {
+      return value == null ? "NULL" : value.toString();
+    }
+  }
+
+  class Resolved implements ConfigItem {
+
+    private final ConfigKey key;
+
+    private Resolved(final ConfigKey key) {
+      this.key = Objects.requireNonNull(key, "key");
+    }
+
+    @Override
+    public String getPropertyName() {
+      return key.name;
+    }
+
+    @Override
+    public Object parseValue(final Object value) {
+      final Object parsed = ConfigDef.parseType(key.name, value, key.type);
+      if (key.validator != null) {
+        key.validator.ensureValid(key.name, parsed);
+      }
+      return parsed;
+    }
+
+    @Override
+    public String convertToString(final Object value) {
+      final Object parsed = parseValue(value);
+      return ConfigDef.convertToString(parsed, key.type);
+    }
+
+    ConfigKey getKey() {
+      return key;
+    }
   }
 }

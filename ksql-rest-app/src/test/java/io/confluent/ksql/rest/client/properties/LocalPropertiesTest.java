@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.PropertyParser;
 import java.util.Map;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;

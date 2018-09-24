@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.client.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.config.PropertyValidator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -26,21 +27,21 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
-class LocalPropertiesValidator implements PropertiesValidator {
+class LocalPropertyValidator implements PropertyValidator {
 
   private static final Map<String, Consumer<Object>> HANDLERS =
       ImmutableMap.<String, Consumer<Object>>builder()
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-          LocalPropertiesValidator::validateConsumerOffsetResetConfig)
+          LocalPropertyValidator::validateConsumerOffsetResetConfig)
       .build();
 
   private final Set<String> immutableProps;
 
-  LocalPropertiesValidator() {
+  LocalPropertyValidator() {
     this(KsqlEngine.getImmutableProperties());
   }
 
-  LocalPropertiesValidator(final Collection<String> immutableProps) {
+  LocalPropertyValidator(final Collection<String> immutableProps) {
     this.immutableProps = ImmutableSet.copyOf(
         Objects.requireNonNull(immutableProps, "immutableProps"));
   }

@@ -79,9 +79,9 @@ public class KsqlConfigTest {
 
   @Test
   public void shouldSetStreamsConfigConsumerUnprefixedProperties() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("100"));
+    assertThat(result, equalTo("earliest"));
   }
 
   @Test
@@ -237,23 +237,23 @@ public class KsqlConfigTest {
   @Test
   public void shouldCloneWithStreamPropertyOverwrite() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("200"));
+            ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
+    assertThat(result, equalTo(200));
   }
 
   @Test
   public void shouldCloneWithPrefixedStreamPropertyOverwrite() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));
     final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(
-            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
-    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    assertThat(result, equalTo("200"));
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
+    final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
+    assertThat(result, equalTo(200));
   }
 
   @Test

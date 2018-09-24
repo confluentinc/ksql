@@ -48,27 +48,57 @@ public class KsqlConfigResolver implements ConfigResolver {
 
   @Override
   public  Optional<ConfigItem> resolve(final String propertyName) {
-    if (propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)
-        || !propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
-      return resolveStreamsConfig(propertyName);
+    if (propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)
+        && !propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
+      return resolveKsqlConfig(propertyName);
     }
 
-    return resolveKsqlConfig(propertyName);
+    return resolveStreamsConfig(propertyName);
   }
 
   private static Optional<ConfigItem> resolveStreamsConfig(final String propertyName) {
     final String key = stripPrefix(propertyName, KsqlConfig.KSQL_STREAMS_PREFIX);
 
-    return STREAM_CONFIG_DEFS
+    final Optional<ConfigItem> resolved = STREAM_CONFIG_DEFS
         .stream()
         .map(def -> resolveConfig(def.prefix, def.def, key))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst();
+
+    if (resolved.isPresent()) {
+      return resolved;
+    }
+
+    if (key.startsWith(StreamsConfig.CONSUMER_PREFIX)
+        || key.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
+      return Optional.empty();  // Unknown producer / consumer config
+    }
+
+    if (propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
+      return Optional.empty();  // Unknown streams config
+    }
+
+    // Unknown config (which could be used):
+    return Optional.of(ConfigItem.unresolved(key));
   }
 
   private static Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
-    return resolveConfig("", KSQL_CONFIG_DEF, propertyName);
+    if (!propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
+      return Optional.empty();
+    }
+
+    final Optional<ConfigItem> possibleItem = resolveConfig("", KSQL_CONFIG_DEF, propertyName);
+    if (possibleItem.isPresent()) {
+      return possibleItem;
+    }
+
+    if (propertyName.startsWith(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX)) {
+      // Functions properties are free form, so can not be resolved / validated:
+      return Optional.of(ConfigItem.unresolved(propertyName));
+    }
+
+    return Optional.empty();
   }
 
   private static Optional<ConfigItem> resolveConfig(
@@ -86,7 +116,7 @@ public class KsqlConfigResolver implements ConfigResolver {
       return Optional.empty();
     }
 
-    return Optional.of(new ConfigItem(def, keyNoPrefix));
+    return Optional.of(ConfigItem.resolved(configKey));
   }
 
   private static String stripPrefix(final String maybePrefixedKey, final String prefix) {

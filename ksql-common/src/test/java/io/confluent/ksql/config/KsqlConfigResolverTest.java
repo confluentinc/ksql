@@ -19,11 +19,13 @@ package io.confluent.ksql.config;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.config.ConfigItem.Resolved;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -51,61 +53,68 @@ public class KsqlConfigResolverTest {
   @Test
   public void shouldResolveKsqlProperty() {
     assertThat(resolver.resolve(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY),
-        is(configItem(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KSQL_CONFIG_DEF)));
+        is(resolvedItem(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KSQL_CONFIG_DEF)));
   }
 
   @Test
-  public void shouldNotResolvePrefixedKsqlProperty() {
-    assertNotResolvable(
+  public void shouldNotFindPrefixedKsqlProperty() {
+    assertNotFound(
         KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
   }
 
   @Test
-  public void shouldNotResolveUnknownKsqlProperty() {
-    assertNotResolvable(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + "you.won't.find.me...right");
+  public void shouldNotFindUnknownKsqlProperty() {
+    assertNotFound(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + "you.won't.find.me...right");
+  }
+
+  @Test
+  public void shouldResolveKnownKsqlFunctionProperty() {
+    assertThat(resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG),
+        is(resolvedItem(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, KSQL_CONFIG_DEF)));
+  }
+
+  @Test
+  public void shouldReturnUnresolvedForOtherKsqlFunctionProperty() {
+    assertThat(resolver.resolve(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+        is(unresolvedItem(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop")));
   }
 
   @Test
   public void shouldResolveStreamsConfig() {
     assertThat(resolver.resolve(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG),
-        is(configItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
-  }
-
-  @Test
-  public void shouldNotResolveStreamPrefixedStreamConfig() {
-    assertNotResolvable("streams." + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG);
+        is(resolvedItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlStreamPrefixedStreamConfig() {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG),
-        is(configItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
+        is(resolvedItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
   }
 
   @Test
-  public void shouldNotResolveUnknownStreamsProperty() {
-    assertNotResolvable(KsqlConfig.KSQL_STREAMS_PREFIX + "you.won't.find.me...right");
+  public void shouldNotFindUnknownStreamsProperty() {
+    assertNotFound(KsqlConfig.KSQL_STREAMS_PREFIX + "you.won't.find.me...right");
   }
 
   @Test
   public void shouldResolveConsumerConfig() {
     assertThat(resolver.resolve(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
-        is(configItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
+        is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveConsumerPrefixedConsumerConfig() {
     assertThat(resolver.resolve(
         StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
-        is(configItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
+        is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlPrefixedConsumerConfig() {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
-        is(configItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
+        is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
@@ -113,37 +122,32 @@ public class KsqlConfigResolverTest {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
             + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
-        is(configItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
+        is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
-  public void shouldNotResolveConsumerConfigWithAnyOtherPrefix() {
-    assertNotResolvable("what the?" + ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
-  }
-
-  @Test
-  public void shouldNotResolveUnknownConsumerProperty() {
-    assertNotResolvable(StreamsConfig.CONSUMER_PREFIX + "you.won't.find.me...right");
+  public void shouldNotFindUnknownConsumerProperty() {
+    assertNotFound(StreamsConfig.CONSUMER_PREFIX + "you.won't.find.me...right");
   }
 
   @Test
   public void shouldResolveProducerConfig() {
     assertThat(resolver.resolve(ProducerConfig.BUFFER_MEMORY_CONFIG),
-        is(configItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
+        is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveProducerPrefixedProducerConfig() {
     assertThat(resolver.resolve(
         StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
-        is(configItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
+        is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlPrefixedProducerConfig() {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
-        is(configItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
+        is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
@@ -151,26 +155,25 @@ public class KsqlConfigResolverTest {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX
             + ProducerConfig.BUFFER_MEMORY_CONFIG),
-        is(configItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
+        is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
-  public void shouldNotResolveProducerConfigWithAnyOtherPrefix() {
-    assertNotResolvable("what the?" + ProducerConfig.BUFFER_MEMORY_CONFIG);
+  public void shouldNotFindUnknownProducerProperty() {
+    assertNotFound(StreamsConfig.PRODUCER_PREFIX + "you.won't.find.me...right");
   }
 
   @Test
-  public void shouldNotResolveUnknownProducerProperty() {
-    assertNotResolvable(StreamsConfig.PRODUCER_PREFIX + "you.won't.find.me...right");
+  public void shouldReturnUnresolvedForOtherConfig() {
+    assertThat(resolver.resolve("confluent.monitoring.interceptor.topic"),
+        is(unresolvedItem("confluent.monitoring.interceptor.topic")));
   }
 
-  private void assertNotResolvable(final String configName) {
+  private void assertNotFound(final String configName) {
     assertThat(resolver.resolve(configName), is(Optional.empty()));
   }
 
-  private static Matcher<Optional<ConfigItem>> configItem(
-      final String propertyName,
-      final ConfigDef def) {
+  private static Matcher<Optional<ConfigItem>> unresolvedItem(final String propertyName) {
     return new TypeSafeDiagnosingMatcher<Optional<ConfigItem>>() {
       @Override
       protected boolean matchesSafely(
@@ -178,18 +181,18 @@ public class KsqlConfigResolverTest {
           final Description desc) {
 
         if (!possibleConfig.isPresent()) {
-          desc.appendText(" but the name did not resolve");
+          desc.appendText(" but the name was not known");
           return false;
         }
 
         final ConfigItem configItem = possibleConfig.get();
-        if (!configItem.getPropertyName().equals(propertyName)) {
-          desc.appendText(" but propertyName was ").appendValue(configItem.getPropertyName());
+        if (!(configItem instanceof ConfigItem.Unresolved)) {
+          desc.appendText(" but was resolved item ").appendValue(configItem);
           return false;
         }
 
-        if (!isEqual(configItem.getDef(), def)) {
-          desc.appendText(" but def was ").appendValue(getDefName(configItem.getDef()));
+        if (!configItem.getPropertyName().equals(propertyName)) {
+          desc.appendText(" but propertyName was ").appendValue(configItem.getPropertyName());
           return false;
         }
 
@@ -199,33 +202,57 @@ public class KsqlConfigResolverTest {
       @Override
       public void describeTo(final Description description) {
         description
-            .appendText("ConfigItem{propertyName=").appendValue(propertyName)
-            .appendText(", def=").appendValue(getDefName(def));
+            .appendText("ConfigItem.Unresolved{propertyName=")
+            .appendValue(propertyName)
+            .appendText("}");
       }
     };
   }
 
-  private static String getDefName(final ConfigDef def) {
-    if (isEqual(def, PRODUCER_CONFIG_DEF)) {
-      return "PRODUCER_CONFIG_DEF";
-    }
+  private static Matcher<Optional<ConfigItem>> resolvedItem(
+      final String propertyName,
+      final ConfigDef def) {
+    final Optional<ConfigKey> expectedKey = Optional.ofNullable(def)
+        .map(d -> d.configKeys().get(propertyName));
 
-    if (isEqual(def, CONSUMER_CONFIG_DEF)) {
-      return "CONSUMER_CONFIG_DEF";
-    }
+    return new TypeSafeDiagnosingMatcher<Optional<ConfigItem>>() {
+      @Override
+      protected boolean matchesSafely(
+          final Optional<ConfigItem> possibleConfig,
+          final Description desc) {
 
-    if (isEqual(def, KSQL_CONFIG_DEF)) {
-      return "KSQL_CONFIG_DEF";
-    }
+        if (!possibleConfig.isPresent()) {
+          desc.appendText(" but the name was not known");
+          return false;
+        }
 
-    if (isEqual(def, STREAMS_CONFIG_DEF)) {
-      return "STREAMS_CONFIG_DEF";
-    }
+        final ConfigItem configItem = possibleConfig.get();
+        if (!(configItem instanceof ConfigItem.Resolved)) {
+          desc.appendText(" but was unresolved item ").appendValue(configItem);
+          return false;
+        }
 
-    return "UNKNOWN_DEF";
-  }
+        if (!configItem.getPropertyName().equals(propertyName)) {
+          desc.appendText(" but propertyName was ").appendValue(configItem.getPropertyName());
+          return false;
+        }
 
-  private static boolean isEqual(final ConfigDef lhs, final ConfigDef rhs) {
-    return lhs.configKeys().equals(rhs.configKeys());
+        final ConfigItem.Resolved resolvedItem = (Resolved) configItem;
+        if (expectedKey.map(k -> !k.equals(resolvedItem.getKey())).orElse(false)) {
+          desc.appendText(" but key was ").appendValue(resolvedItem.getKey());
+          return false;
+        }
+
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description
+            .appendText("ConfigItem.Resolved{key=")
+            .appendValue(expectedKey)
+            .appendText("}");
+      }
+    };
   }
 }

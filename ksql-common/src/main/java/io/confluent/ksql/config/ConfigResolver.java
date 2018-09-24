@@ -18,8 +18,23 @@ package io.confluent.ksql.config;
 
 import java.util.Optional;
 
+/**
+ * A resolver of configuration names.
+ */
 public interface ConfigResolver {
 
+  /**
+   * Attempt to resolve the supplied {@code propertyName}.
+   *
+   * <p>The return value is tri-state.
+   * <ul>
+   * <li><b>{@code Optional.empty()}</b> - indicating the property is know to be
+   * invalid/unknown.</li>
+   * <li><b>{@code ConfigItem.Resolved}</b></li> - a known valid property. Such items can parse
+   * and validate potential values for the property and can obfuscate sensitive data.
+   * <li><b>{@code ConfigItem.Unresolved}</b></li> - a potentially valid property. Such items
+   * perform no parsing, validation or obfuscation.
+   * </ul>
+   */
   Optional<ConfigItem> resolve(String propertyName);
-
 }

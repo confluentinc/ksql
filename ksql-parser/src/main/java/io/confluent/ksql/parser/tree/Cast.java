@@ -26,51 +26,39 @@ public final class Cast
 
   private final Expression expression;
   private final String type;
-  private final boolean safe;
   private final boolean typeOnly;
 
   public Cast(final Expression expression, final String type) {
-    this(Optional.empty(), expression, type, false, false);
-  }
-
-  public Cast(final Expression expression, final String type, final boolean safe) {
-    this(Optional.empty(), expression, type, safe, false);
+    this(Optional.empty(), expression, type, false);
   }
 
   public Cast(
       final Expression expression,
       final String type,
-      final boolean safe,
       final boolean typeOnly) {
-    this(Optional.empty(), expression, type, safe, typeOnly);
+    this(Optional.empty(), expression, type, typeOnly);
   }
 
-  public Cast(final NodeLocation location, final Expression expression, final String type) {
-    this(Optional.of(location), expression, type, false, false);
+
+  public Cast(
+      final NodeLocation location,
+      final Expression expression,
+      final String type) {
+    this(Optional.of(location), expression, type, false);
   }
 
   public Cast(
       final NodeLocation location,
       final Expression expression,
       final String type,
-      final boolean safe) {
-    this(Optional.of(location), expression, type, safe, false);
-  }
-
-  public Cast(
-      final NodeLocation location,
-      final Expression expression,
-      final String type,
-      final boolean safe,
       final boolean typeOnly) {
-    this(Optional.of(location), expression, type, safe, typeOnly);
+    this(Optional.of(location), expression, type, typeOnly);
   }
 
   private Cast(
       final Optional<NodeLocation> location,
       final Expression expression,
       final String type,
-      final boolean safe,
       final boolean typeOnly) {
     super(location);
     requireNonNull(expression, "expression is null");
@@ -78,7 +66,6 @@ public final class Cast
 
     this.expression = expression;
     this.type = type;
-    this.safe = safe;
     this.typeOnly = typeOnly;
   }
 
@@ -88,10 +75,6 @@ public final class Cast
 
   public String getType() {
     return type;
-  }
-
-  public boolean isSafe() {
-    return safe;
   }
 
   public boolean isTypeOnly() {
@@ -114,12 +97,11 @@ public final class Cast
     final Cast o = (Cast) obj;
     return Objects.equals(this.expression, o.expression)
            && Objects.equals(this.type, o.type)
-           && Objects.equals(this.safe, o.safe)
            && Objects.equals(this.typeOnly, o.typeOnly);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression, type, safe, typeOnly);
+    return Objects.hash(expression, type, typeOnly);
   }
 }

@@ -868,7 +868,7 @@ public class KsqlResourceTest {
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final Response response = handleKsqlStatements(
         testResource,
-        new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", "100")));
+        new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", "latest")));
 
     assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
@@ -878,7 +878,7 @@ public class KsqlResourceTest {
     final PropertiesList propertiesList = (PropertiesList)entityList.get(0);
     assertThat(
         propertiesList.getProperties().get("ksql.streams.auto.offset.reset"),
-        equalTo("100"));
+        equalTo("latest"));
     assertThat(
         propertiesList.getOverwrittenProperties(),
         hasItem(equalTo("ksql.streams.auto.offset.reset")));

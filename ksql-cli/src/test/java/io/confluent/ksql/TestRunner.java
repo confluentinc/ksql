@@ -27,7 +27,7 @@ import java.util.Objects;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matchers;
 
-public final class TestRunner {
+final class TestRunner {
   private final Cli localCli;
   private final TestTerminal testTerminal;
 
@@ -68,7 +68,7 @@ public final class TestRunner {
     }
   }
 
-  TestResult run(String command, final boolean requireOrder) {
+  void run(String command, final boolean requireOrder) {
     try {
       if (!command.endsWith(";")) {
         command += ";";
@@ -76,13 +76,8 @@ public final class TestRunner {
       System.out.println("[Run Command] " + command);
       testTerminal.resetTestResult(requireOrder);
       localCli.handleLine(command);
-      return testTerminal.getTestResult();
     } catch (final Exception e) {
       throw new AssertionError("Failed to run command: " + command, e);
     }
-  }
-
-  public TestResult run(final String command) {
-    return run(command, false);
   }
 }

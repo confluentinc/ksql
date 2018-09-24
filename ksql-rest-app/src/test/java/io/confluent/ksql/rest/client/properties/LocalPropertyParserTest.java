@@ -67,7 +67,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldNotCallResolverForAvroSchemaConstant() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andThrow(new AssertionError("resolve called"))
         .anyTimes();
 
@@ -97,7 +97,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldNotCallResolverForRunScriptConstant() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andThrow(new AssertionError("resolve called"))
         .anyTimes();
 
@@ -127,7 +127,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallResolverForProperties() {
     // Given:
-    EasyMock.expect(resolver.resolve(KsqlConfig.KSQL_SERVICE_ID_CONFIG))
+    EasyMock.expect(resolver.resolve(KsqlConfig.KSQL_SERVICE_ID_CONFIG, true))
         .andReturn(Optional.of(configItem))
         .once();
 
@@ -147,7 +147,7 @@ public class LocalPropertyParserTest {
     expectedException.expectMessage(
         "Not recognizable as ksql, streams, consumer, or producer property: 'Unknown'");
 
-    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andReturn(Optional.empty())
         .once();
 
@@ -163,7 +163,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallValidatorWithParsedValue() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andReturn(Optional.of(configItem))
         .once();
 
@@ -181,7 +181,7 @@ public class LocalPropertyParserTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfValidatorThrows() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString()))
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andReturn(Optional.of(configItem))
         .once();
 

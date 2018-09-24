@@ -23,6 +23,11 @@ import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 public interface ConfigItem {
 
   /**
+   * @return {@code true} is this is a known, resolved config.
+   */
+  boolean isResolved();
+
+  /**
    * @return the name of the property.
    */
   String getPropertyName();
@@ -66,6 +71,11 @@ public interface ConfigItem {
     }
 
     @Override
+    public boolean isResolved() {
+      return false;
+    }
+
+    @Override
     public String getPropertyName() {
       return propertyName;
     }
@@ -87,6 +97,11 @@ public interface ConfigItem {
 
     private Resolved(final ConfigKey key) {
       this.key = Objects.requireNonNull(key, "key");
+    }
+
+    @Override
+    public boolean isResolved() {
+      return true;
     }
 
     @Override

@@ -280,32 +280,22 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   private static final class ConfigValue {
-    final Optional<ConfigItem> resolved;
+    final ConfigItem configItem;
     final String key;
     final Object value;
 
-    private ConfigValue(final ConfigItem resolved, final String key, final Object value) {
-      this.resolved = Optional.ofNullable(resolved);
+    private ConfigValue(final ConfigItem configItem, final String key, final Object value) {
+      this.configItem = configItem;
       this.key = key;
       this.value = value;
     }
 
     private boolean isResolved() {
-      return resolved.isPresent();
-    }
-
-    static ConfigValue resolved(final ConfigItem configItem, final String key, final Object value) {
-      return new ConfigValue(configItem, key, value);
-    }
-
-    static ConfigValue unresolved(final String key, final Object value) {
-      return new ConfigValue(null, key, value);
+      return configItem.isResolved();
     }
 
     private String convertToObfuscatedString() {
-      return resolved
-          .map(item -> item.convertToString(value))
-          .orElse("");
+      return configItem.convertToString(value);
     }
   }
 
@@ -321,9 +311,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       return Optional.empty();
     }
 
-    return Optional.of(new KsqlConfigResolver().resolve(maybePrefixedKey)
-        .map(configItem -> ConfigValue.resolved(configItem, key, configItem.parseValue(value)))
-        .orElseGet(() -> ConfigValue.unresolved(key, value)));
+    return new KsqlConfigResolver().resolve(maybePrefixedKey, false)
+        .map(configItem -> new ConfigValue(configItem, key, configItem.parseValue(value)));
   }
 
   private static Map<String, ConfigValue> buildStreamingConfig(
@@ -400,16 +389,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(props);
   }
 
-  public Map<String, String> getKsqlConfigPropsWithSecretsObfuscated() {
-    final Map<String, String> props = new HashMap<>();
-    // build a properties map with obfuscated values for sensitive configs.
-    // Obfuscation is handled by ConfigDef.convertToString
-    configDef(true).names().forEach(
-        key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
-    );
-    return Collections.unmodifiableMap(props);
-  }
-
   public Map<String, Object> getKsqlFunctionsConfigProps(final String functionName) {
     final Map<String, Object> udfProps = originalsWithPrefix(
         KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase(), false);
@@ -422,7 +401,20 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return udfProps;
   }
 
-  public Map<String, String> getKsqlStreamConfigPropsWithSecretsObfuscated() {
+  private Map<String, String> getKsqlConfigPropsWithSecretsObfuscated() {
+    final Map<String, String> props = new HashMap<>();
+
+    originalsWithPrefix(KSQ_FUNCTIONS_PROPERTY_PREFIX, false)
+        .forEach((key, value) -> props.put(key, "[hidden]"));
+
+    configDef(true).names().forEach(
+        key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
+    );
+
+    return Collections.unmodifiableMap(props);
+  }
+
+  private Map<String, String> getKsqlStreamConfigPropsWithSecretsObfuscated() {
     final Map<String, String> props = new HashMap<>();
     // build a properties map with obfuscated values for sensitive configs.
     // Obfuscation is handled by ConfigDef.convertToString

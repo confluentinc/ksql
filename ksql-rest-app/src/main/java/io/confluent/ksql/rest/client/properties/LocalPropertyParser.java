@@ -51,7 +51,7 @@ class LocalPropertyParser implements PropertyParser {
       return value;
     }
 
-    final ConfigItem configItem = resolver.resolve(property)
+    final ConfigItem configItem = resolver.resolve(property, true)
         .orElseThrow(() -> new IllegalArgumentException(String.format(
             "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property)));
 

@@ -26,6 +26,7 @@ import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,6 +55,12 @@ public class ConfigItemTest {
   }
 
   @Test
+  public void shouldReturnResolved() {
+    assertThat(RESOLVED_NO_VALIDATOR.isResolved(), is(true));
+    assertThat(UNRESOLVED.isResolved(), is(false));
+  }
+
+  @Test
   public void shouldReturnPropertyName() {
     assertThat(RESOLVED_NO_VALIDATOR.getPropertyName(),
         is(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
@@ -75,6 +82,11 @@ public class ConfigItemTest {
   @Test
   public void shouldCoerceParsedValue() {
     assertThat(RESOLVED_NO_VALIDATOR.parseValue("101"), is(101));
+  }
+
+  @Test
+  public void shouldResolvePasswordToPassword() {
+    assertThat(RESOLVED_PASSWORD.parseValue("Sensitive"), is(new Password("Sensitive")));
   }
 
   @Test

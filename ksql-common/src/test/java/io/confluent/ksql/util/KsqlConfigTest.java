@@ -34,7 +34,6 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
@@ -201,21 +200,6 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldObfuscateSecretStreamsProperties() {
-    final String password = "super-secret-password";
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        SslConfigs.SSL_KEY_PASSWORD_CONFIG, password
-    ));
-    final Password passwordConfig
-        = (Password) ksqlConfig.getKsqlStreamConfigProps().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
-    assertThat(passwordConfig.value(), equalTo(password));
-    assertThat(
-        ksqlConfig.getKsqlConfigPropsWithSecretsObfuscated().get(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
-        not(equalTo(password))
-    );
-  }
-
-  @Test
   public void shouldFilterPropertiesForWhichTypeUnknown() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap("you.shall.not.pass", "wizard"));
     assertThat(
@@ -348,5 +332,88 @@ public class KsqlConfigTest {
 
     // Then:
     assertThat(udfProps.keySet(), is(empty()));
+  }
+
+  @Test
+  public void shouldListKnownKsqlConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "not sensitive",
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "sensitive!"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG), is("not sensitive"));
+    assertThat(result.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG), is("[hidden]"));
+  }
+
+  @Test
+  public void shouldListKnownKsqlFunctionConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, "true"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG), is("true"));
+  }
+
+  @Test
+  public void shouldListUnknownKsqlFunctionConfigObfuscated() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+        is("[hidden]"));
+  }
+
+  @Test
+  public void shouldListKnownStreamsConfigObfuscated() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.APPLICATION_ID_CONFIG, "not sensitive",
+        KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "sensitive!",
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX +
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "sensitive!"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG),
+        is("not sensitive"));
+    assertThat(result.get(
+        KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
+        is("[hidden]"));
+    assertThat(result.get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
+            + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
+        is("[hidden]"));
+  }
+
+  @Test
+  public void shouldNotListUnresolvedServerConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        "some.random.property", "might be sensitive"
+    ));
+
+    // When:
+    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
+
+    // Then:
+    assertThat(result.get("some.random.property"), is(nullValue()));
   }
 }

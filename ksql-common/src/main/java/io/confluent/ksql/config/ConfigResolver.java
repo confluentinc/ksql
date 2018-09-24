@@ -35,6 +35,18 @@ public interface ConfigResolver {
    * <li><b>{@code ConfigItem.Unresolved}</b></li> - a potentially valid property. Such items
    * perform no parsing, validation or obfuscation.
    * </ul>
+   *
+   * <p>For {@code strict} resolution, only known configuration, i.e. those that map directly to an
+   * item in a {@code  ConfigDef} instance, or UDF properties, i.e. those prefixed with
+   * {@link io.confluent.ksql.util.KsqlConfig#KSQ_FUNCTIONS_PROPERTY_PREFIX}, will be resolved.
+   * All others will result in {@code empty}.
+   *
+   * <p>For non-{@code strict} resolution, only configuration <i>known</i> to be invalid, e.g.
+   * properties that are prefixed with {@code ksql.}, but which are not known KSQL config, will
+   * result in {@code empty}.
+   *
+   * @param propertyName the name of the property to resolve.
+   * @param strict if resolution should use strict mode or not.
    */
-  Optional<ConfigItem> resolve(String propertyName);
+  Optional<ConfigItem> resolve(String propertyName, boolean strict);
 }

@@ -47,16 +47,19 @@ public class KsqlConfigResolver implements ConfigResolver {
   );
 
   @Override
-  public  Optional<ConfigItem> resolve(final String propertyName) {
+  public  Optional<ConfigItem> resolve(final String propertyName, final boolean strict) {
     if (propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)
         && !propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
       return resolveKsqlConfig(propertyName);
     }
 
-    return resolveStreamsConfig(propertyName);
+    return resolveStreamsConfig(propertyName, strict);
   }
 
-  private static Optional<ConfigItem> resolveStreamsConfig(final String propertyName) {
+  private static Optional<ConfigItem> resolveStreamsConfig(
+      final String propertyName,
+      final boolean strict) {
+
     final String key = stripPrefix(propertyName, KsqlConfig.KSQL_STREAMS_PREFIX);
 
     final Optional<ConfigItem> resolved = STREAM_CONFIG_DEFS
@@ -80,14 +83,10 @@ public class KsqlConfigResolver implements ConfigResolver {
     }
 
     // Unknown config (which could be used):
-    return Optional.of(ConfigItem.unresolved(key));
+    return strict ? Optional.empty() : Optional.of(ConfigItem.unresolved(key));
   }
 
   private static Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
-    if (!propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
-      return Optional.empty();
-    }
-
     final Optional<ConfigItem> possibleItem = resolveConfig("", KSQL_CONFIG_DEF, propertyName);
     if (possibleItem.isPresent()) {
       return possibleItem;

@@ -29,7 +29,11 @@ import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.PropertyParser;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
@@ -47,88 +51,90 @@ public class LocalPropertiesTest {
 
   @Mock(MockType.NICE)
   private PropertyParser parser;
-  private LocalProperties props;
+  private LocalProperties propsWithMockParser;
+  private LocalProperties realProps;
 
   @Before
   public void setUp() {
-    props = new LocalProperties(INITIAL, parser);
+    propsWithMockParser = new LocalProperties(INITIAL, parser);
 
     expect(parser.parse(anyString(), anyObject()))
         .andReturn("parsed-val");
 
     replay(parser);
+    realProps = new LocalProperties(ImmutableMap.of());
   }
 
   @Test
   public void shouldGetInitialValues() {
-    assertThat(props.toMap().get("prop-1"), is("initial-val-1"));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is("initial-val-1"));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
   public void shouldUnsetInitialValue() {
     // When:
-    final Object oldValue = props.unset("prop-1");
+    final Object oldValue = propsWithMockParser.unset("prop-1");
 
     // Then:
     assertThat(oldValue, is("initial-val-1"));
-    assertThat(props.toMap().get("prop-1"), is(nullValue()));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is(nullValue()));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
   public void shouldOverrideInitialValue() {
     // When:
-    final Object oldValue = props.set("prop-1", "new-val");
+    final Object oldValue = propsWithMockParser.set("prop-1", "new-val");
 
     // Then:
     assertThat(oldValue, is("initial-val-1"));
-    assertThat(props.toMap().get("prop-1"), is("parsed-val"));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is("parsed-val"));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
   public void shouldUnsetOverriddenValue() {
     // Given:
-    props.set("prop-1", "new-val");
+    propsWithMockParser.set("prop-1", "new-val");
 
     // When:
-    final Object oldValue = props.unset("prop-1");
+    final Object oldValue = propsWithMockParser.unset("prop-1");
 
     // Then:
     assertThat(oldValue, is("parsed-val"));
-    assertThat(props.toMap().get("prop-1"), is(nullValue()));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is(nullValue()));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
   public void shouldReturnOnlyKnownKeys() {
-    assertThat(props.toMap().keySet(), containsInAnyOrder("prop-1", "prop-2"));
+    assertThat(propsWithMockParser.toMap().keySet(), containsInAnyOrder("prop-1", "prop-2"));
   }
 
   @Test
   public void shouldSetNewValue() {
     // When:
-    final Object oldValue = props.set("new-prop", "new-val");
+    final Object oldValue = propsWithMockParser.set("new-prop", "new-val");
 
     // Then:
     assertThat(oldValue, is(nullValue()));
-    assertThat(props.toMap().get("new-prop"), is("parsed-val"));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("new-prop"), is("parsed-val"));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
   public void shouldUnsetNewValue() {
     // Given:
-    props.set("new-prop", "new-val");
+    propsWithMockParser.set("new-prop", "new-val");
 
     // When:
-    final Object oldValue = props.unset("new-prop");
+    final Object oldValue = propsWithMockParser.unset("new-prop");
 
     // Then:
     assertThat(oldValue, is("parsed-val"));
-    assertThat(props.toMap().get("new-prop"), is(nullValue()));
-    assertThat(props.toMap().get("prop-2"), is("initial-val-2"));
+    assertThat(propsWithMockParser.toMap().get("new-prop"), is(nullValue()));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 
   @Test
@@ -139,10 +145,10 @@ public class LocalPropertiesTest {
     replay(parser);
 
     // When:
-    props.set("prop-1", "new-val");
+    propsWithMockParser.set("prop-1", "new-val");
 
     // Then:
-    assertThat(props.toMap().get("prop-1"), is("parsed-new-val"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is("parsed-new-val"));
     verify(parser);
   }
 
@@ -155,6 +161,83 @@ public class LocalPropertiesTest {
     replay(parser);
 
     // When:
-    props.set("prop-1", "new-val");
+    propsWithMockParser.set("prop-1", "new-val");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotAllowUnknownPropertyToBeSet() {
+    realProps.set("some.unknown.prop", "some.value");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotAllowUnknownConsumerPropertyToBeSet() {
+    realProps.set(StreamsConfig.CONSUMER_PREFIX + "some.unknown.prop", "some.value");
+  }
+
+  @Test
+  public void shouldAllowKnownConsumerPropertyToBeSet() {
+    realProps.set(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldAllowKnownPrefixedConsumerPropertyToBeSet() {
+    realProps.set(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldAllowKnownKsqlPrefixedConsumerPropertyToBeSet() {
+    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
+        + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotAllowUnknownProducerPropertyToBeSet() {
+    realProps.set(StreamsConfig.PRODUCER_PREFIX + "some.unknown.prop", "some.value");
+  }
+
+  @Test
+  public void shouldAllowKnownProducerPropertyToBeSet() {
+    realProps.set(ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldAllowKnownKsqlPrefixedProducerPropertyToBeSet() {
+    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX
+        + ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldAllowKnownPrefixedProducerPropertyToBeSet() {
+    realProps.set(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotAllowUnknownStreamsConfigToBeSet() {
+    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + "some.unknown.prop", "some.value");
+  }
+
+  @Test
+  public void shouldAllowKnownStreamsConfigToBeSet() {
+    realProps.set(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
+  }
+
+  @Test
+  public void shouldAllowKnownPrefixedStreamsConfigToBeSet() {
+    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotAllowUnknownKsqlConfigToBeSet() {
+    realProps.set(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + "some.unknown.prop", "some.value");
+  }
+
+  @Test
+  public void shouldAllowKnownUdfConfigToBeSet() {
+    realProps.set(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, "true");
+  }
+
+  @Test
+  public void shouldAllowUnknownUdfConfigToBeSet() {
+    realProps.set(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "some thing");
   }
 }

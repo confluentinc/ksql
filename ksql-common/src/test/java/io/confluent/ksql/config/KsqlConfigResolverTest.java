@@ -52,7 +52,7 @@ public class KsqlConfigResolverTest {
 
   @Test
   public void shouldResolveKsqlProperty() {
-    assertThat(resolver.resolve(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY),
+    assertThat(resolver.resolve(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, true),
         is(resolvedItem(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KSQL_CONFIG_DEF)));
   }
 
@@ -69,26 +69,27 @@ public class KsqlConfigResolverTest {
 
   @Test
   public void shouldResolveKnownKsqlFunctionProperty() {
-    assertThat(resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG),
+    assertThat(resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, true),
         is(resolvedItem(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, KSQL_CONFIG_DEF)));
   }
 
   @Test
   public void shouldReturnUnresolvedForOtherKsqlFunctionProperty() {
-    assertThat(resolver.resolve(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+    assertThat(
+        resolver.resolve(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", true),
         is(unresolvedItem(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop")));
   }
 
   @Test
   public void shouldResolveStreamsConfig() {
-    assertThat(resolver.resolve(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG),
+    assertThat(resolver.resolve(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, true),
         is(resolvedItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlStreamPrefixedStreamConfig() {
     assertThat(resolver.resolve(
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG),
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, true),
         is(resolvedItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
   }
 
@@ -99,21 +100,21 @@ public class KsqlConfigResolverTest {
 
   @Test
   public void shouldResolveConsumerConfig() {
-    assertThat(resolver.resolve(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+    assertThat(resolver.resolve(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, true),
         is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveConsumerPrefixedConsumerConfig() {
     assertThat(resolver.resolve(
-        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, true),
         is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlPrefixedConsumerConfig() {
     assertThat(resolver.resolve(
-        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, true),
         is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
@@ -121,7 +122,7 @@ public class KsqlConfigResolverTest {
   public void shouldResolveKsqlConsumerPrefixedConsumerConfig() {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
-            + ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
+            + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, true),
         is(resolvedItem(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, CONSUMER_CONFIG_DEF)));
   }
 
@@ -132,21 +133,21 @@ public class KsqlConfigResolverTest {
 
   @Test
   public void shouldResolveProducerConfig() {
-    assertThat(resolver.resolve(ProducerConfig.BUFFER_MEMORY_CONFIG),
+    assertThat(resolver.resolve(ProducerConfig.BUFFER_MEMORY_CONFIG, true),
         is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveProducerPrefixedProducerConfig() {
     assertThat(resolver.resolve(
-        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, true),
         is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
   @Test
   public void shouldResolveKsqlPrefixedProducerConfig() {
     assertThat(resolver.resolve(
-        KsqlConfig.KSQL_STREAMS_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG),
+        KsqlConfig.KSQL_STREAMS_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, true),
         is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
@@ -154,7 +155,7 @@ public class KsqlConfigResolverTest {
   public void shouldResolveKsqlProducerPrefixedProducerConfig() {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX
-            + ProducerConfig.BUFFER_MEMORY_CONFIG),
+            + ProducerConfig.BUFFER_MEMORY_CONFIG, true),
         is(resolvedItem(ProducerConfig.BUFFER_MEMORY_CONFIG, PRODUCER_CONFIG_DEF)));
   }
 
@@ -164,13 +165,19 @@ public class KsqlConfigResolverTest {
   }
 
   @Test
-  public void shouldReturnUnresolvedForOtherConfig() {
-    assertThat(resolver.resolve("confluent.monitoring.interceptor.topic"),
+  public void shouldReturnUnresolvedForOtherConfigIfNotStrict() {
+    assertThat(resolver.resolve("confluent.monitoring.interceptor.topic", false),
         is(unresolvedItem("confluent.monitoring.interceptor.topic")));
   }
 
+  @Test
+  public void shouldReturnEmptyForOtherConfigIfStrict() {
+    assertThat(resolver.resolve("confluent.monitoring.interceptor.topic", true),
+        is(Optional.empty()));
+  }
+
   private void assertNotFound(final String configName) {
-    assertThat(resolver.resolve(configName), is(Optional.empty()));
+    assertThat(resolver.resolve(configName, false), is(Optional.empty()));
   }
 
   private static Matcher<Optional<ConfigItem>> unresolvedItem(final String propertyName) {

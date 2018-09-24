@@ -476,10 +476,10 @@ public class Cli implements Closeable {
     }
 
     terminal.writer().printf(
-        "Successfully changed local property '%s' from %s to %s.%s%n",
+        "Successfully changed local property '%s'%s to '%s'.%s%n",
         property,
-        priorValue == null ? "NULL" : "'" + priorValue + "'",
-        value == null ? "NULL" : "'" + value + "'",
+        priorValue == null ? "" : " from '" + priorValue + "'",
+        value,
         priorValue == null ? " Use the UNSET command to revert your change." : ""
     );
     terminal.flush();

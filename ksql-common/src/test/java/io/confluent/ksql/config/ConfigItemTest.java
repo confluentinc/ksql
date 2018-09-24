@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
@@ -39,11 +41,15 @@ public class ConfigItemTest {
   private static final ConfigKey KEY_WITH_VALIDATOR = StreamsConfig.configDef().configKeys()
       .get(StreamsConfig.SEND_BUFFER_CONFIG);
 
+  private static final ConfigKey KEY_NO_DEFAULT = StreamsConfig.configDef().configKeys()
+      .get(StreamsConfig.APPLICATION_ID_CONFIG);
+
   private static final ConfigKey PASSWORD_KEY = KsqlConfig.CURRENT_DEF.configKeys()
       .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
 
   private static final ConfigItem RESOLVED_NO_VALIDATOR = ConfigItem.resolved(KEY_NO_VALIDATOR);
   private static final ConfigItem RESOLVED_WITH_VALIDATOR = ConfigItem.resolved(KEY_WITH_VALIDATOR);
+  private static final ConfigItem RESOLVED_NO_DEFAULT = ConfigItem.resolved(KEY_NO_DEFAULT);
   private static final ConfigItem RESOLVED_PASSWORD = ConfigItem.resolved(PASSWORD_KEY);
   private static final ConfigItem UNRESOLVED = ConfigItem.unresolved("some.unresolved.prop");
 
@@ -51,6 +57,7 @@ public class ConfigItemTest {
   public static void classSetUp() {
     assertThat("Invalid test", KEY_NO_VALIDATOR.validator, is(nullValue()));
     assertThat("Invalid test", KEY_WITH_VALIDATOR.validator, is(notNullValue()));
+    assertThat("Invalid test", KEY_NO_DEFAULT.defaultValue, is(ConfigDef.NO_DEFAULT_VALUE));
     assertThat("Invalid test", PASSWORD_KEY.type, is(Type.PASSWORD));
   }
 
@@ -113,5 +120,33 @@ public class ConfigItemTest {
   @Test
   public void shouldObfuscatePasswordsOnResolveToString() {
     assertThat(RESOLVED_PASSWORD.convertToString("Sensitive"), is("[hidden]"));
+  }
+
+  @Test
+  public void shouldNotBeDefaultValueIfNotResolved() {
+    assertThat(UNRESOLVED.isDefaultValue("anything"), is(false));
+    assertThat(UNRESOLVED.isDefaultValue(null), is(false));
+  }
+
+  @Test
+  public void shouldBeDefaultValue() {
+    assertThat(RESOLVED_NO_VALIDATOR.isDefaultValue(KsqlConstants.defaultSinkNumberOfPartitions),
+        is(true));
+  }
+
+  @Test
+  public void shouldCoerceBeforeCheckingIfDefaultValue() {
+    assertThat(RESOLVED_NO_VALIDATOR
+            .isDefaultValue("" + KsqlConstants.defaultSinkNumberOfPartitions), is(true));
+  }
+
+  @Test
+  public void shouldHandleNoDefaultValue() {
+    assertThat(RESOLVED_NO_DEFAULT.isDefaultValue("anything"), is(false));
+  }
+
+  @Test
+  public void shouldHandlePasswordDefaultValue() {
+    assertThat(RESOLVED_PASSWORD.isDefaultValue("anything"), is(false));
   }
 }

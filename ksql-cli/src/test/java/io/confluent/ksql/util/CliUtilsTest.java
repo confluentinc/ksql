@@ -17,15 +17,16 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.util.CliUtils.PropertyDef;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
 
@@ -47,28 +48,70 @@ public class CliUtilsTest {
   }
 
   @Test
-  public void shouldUpdateOverwrittenPropertiesCorrectly() {
+  public void shouldHandleClientOverwrittenProperties() {
+    // Given:
     final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-    final PropertiesList serverPropertiesList = new PropertiesList(
-        "list properties;",
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
         ImmutableMap.of(key, "earliest"),
-        ImmutableList.of(key)
+        ImmutableList.of(key),
+        Collections.emptyList()
     );
-    final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
 
-    assertThat(properties, hasKey(key + " (LOCAL OVERRIDE)"));
-    assertThat(properties.get(key + " (LOCAL OVERRIDE)"), equalTo("earliest"));
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "SESSION", "earliest")));
   }
 
   @Test
-  public void shouldNotChangeUnwrittenProperty() {
+  public void shouldHandleServerOverwrittenProperties() {
+    // Given:
     final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-    final PropertiesList serverPropertiesList = new PropertiesList(
-        "list properties;",
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
         ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
         Collections.emptyList()
     );
-    final Map<String, Object> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
-    assertThat(properties.get(key), equalTo("earliest"));
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "SERVER", "earliest")));
+  }
+
+  @Test
+  public void shouldHandleDefaultProperties() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
+        ImmutableList.of(key)
+    );
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "", "earliest")));
+  }
+
+  @Test
+  public void shouldHandlePropertiesWithNullValue() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        Collections.singletonMap(key, null),
+        Collections.emptyList(),
+        ImmutableList.of(key)
+    );
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "", "NULL")));
   }
 }

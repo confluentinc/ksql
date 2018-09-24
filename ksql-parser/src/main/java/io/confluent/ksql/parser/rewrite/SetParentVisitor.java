@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -373,19 +372,6 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   protected Node visitAliasedRelation(final AliasedRelation node, final Node parent) {
     node.setParent(parent);
     return process(node.getRelation(), node);
-  }
-
-  @Override
-  protected Node visitSampledRelation(final SampledRelation node, final Node parent) {
-    node.setParent(parent);
-    process(node.getRelation(), node);
-    process(node.getSamplePercentage(), node);
-    if (node.getColumnsToStratifyOn().isPresent()) {
-      for (final Expression expression : node.getColumnsToStratifyOn().get()) {
-        process(expression, node);
-      }
-    }
-    return null;
   }
 
   @Override

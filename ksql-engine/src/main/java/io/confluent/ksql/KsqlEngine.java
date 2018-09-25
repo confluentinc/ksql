@@ -189,7 +189,9 @@ public class KsqlEngine implements Closeable {
   }
 
   /**
-   * Runs the set of queries in the given query string, updating the metastore.
+   * Builds the set of queries in the given query string, updating the metastore.
+   *
+   * <p>The queries are not started.
    *
    * @param queriesString The ksql query string.
    * @param overriddenProperties The user-requested property overrides
@@ -320,7 +322,7 @@ public class KsqlEngine implements Closeable {
       return ksqlParser.buildAst(
           queriesString,
           tempMetaStoreForParser,
-          stmt -> buildSingleQueryAst(
+          stmt -> postProcessSingleQueryAst(
               stmt.getStatement(),
               stmt.getStatementText(),
               tempMetaStore,
@@ -334,7 +336,7 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement buildSingleQueryAst(
+  private PreparedStatement postProcessSingleQueryAst(
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,
@@ -351,17 +353,17 @@ public class KsqlEngine implements Closeable {
       }
 
       if (statement instanceof CreateAsSelect) {
-        return buildCreateAsSelectStatement(
+        return postProcessCreateAsSelectStatement(
             statement, statementString, tempMetaStoreForParser, convertStatementToQuery);
       }
 
       if (statement instanceof InsertInto) {
-        return buildInsertIntoStatement(
+        return postProcessInsertIntoStatement(
             statement, statementString, tempMetaStoreForParser, convertStatementToQuery);
       }
 
       if (statement instanceof DdlStatement) {
-        return buildSingleDdlStatement(
+        return postProcessSingleDdlStatement(
             statement, statementString, tempMetaStore, tempMetaStoreForParser);
       }
 
@@ -372,7 +374,7 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement buildCreateAsSelectStatement(final Statement statement,
+  private PreparedStatement postProcessCreateAsSelectStatement(final Statement statement,
       final String statementString, final MetaStore tempMetaStoreForParser,
       final boolean convertStatementToQuery) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement;
@@ -398,7 +400,7 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement buildInsertIntoStatement(final Statement statement,
+  private PreparedStatement postProcessInsertIntoStatement(final Statement statement,
       final String statementString, final MetaStore tempMetaStoreForParser,
       final boolean convertStatementToQuery) {
     final InsertInto insertInto = (InsertInto) statement;
@@ -434,7 +436,7 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement buildSingleDdlStatement(
+  private PreparedStatement postProcessSingleDdlStatement(
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,

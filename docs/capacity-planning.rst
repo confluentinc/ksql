@@ -56,7 +56,7 @@ KSQL consumes resources on your Kafka cluster.
 Internal Topics
 +++++++++++++++
 
-KSQL creates the following types of topics on your KSQL cluster:
+KSQL creates the following types of topics on your Kafka cluster:
 
 **Output Topics**
 

@@ -84,6 +84,4 @@ KSQL Documentation
     operations
     capacity-planning
     tutorials/index
-    syntax-reference
-    api
     faq

@@ -85,6 +85,7 @@ public class StreamedQueryResourceTest {
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andThrow(new IllegalArgumentException("some msg only the parser would use"));
 
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
@@ -116,6 +117,7 @@ public class StreamedQueryResourceTest {
     expect(mockKsqlEngine.buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()))
         .andThrow(new KsqlException("some msg only the engine would use"));
 
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
@@ -203,7 +205,7 @@ public class StreamedQueryResourceTest {
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
-
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(

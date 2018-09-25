@@ -353,8 +353,10 @@ When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes 
 
 You can customize the clean up process if you don't want to delete all of the Kafka topics associated with the streams/tables in the metastore:
 
-**Provide a KEEP_SOURCES List**
-If you want to keep a set of topics associated with streams/tables in the metastore, provide the list of stream/table names in your request. This will clean up all topics belonging to the Streams/Tables in the metastore except for the ones that belong to the streams/tables that are in the ``KEEP_SOURCES`` list.
+**Provide a List of Sourced to Keep**
+If you want to keep a set of topics associated with streams/tables in the metastore, provide the list of stream/table names in your request along with the type of this list.
+This will clean up all topics belonging to the Streams/Tables in the metastore except for the ones that belong to the streams/tables that are in the ``SOURCES_LIST`` list.
+Note that you need to indicate the type of the list as ``KEEP`` by setting the value of ``SOURCES_LIST_TYPE`` parameter to ``KEEP``.
 The following example will keep the Kafka topics for streams/tables named ``FOO`` and ``BAR``.
 
    .. code:: http
@@ -365,12 +367,14 @@ The following example will keep the Kafka topics for streams/tables named ``FOO`
 
       {
         "streamsProperties": {
-          "KEEP_SOURCES": ["FOO", "BAR"]
+          "SOURCES_LIST": ["FOO", "BAR"],
+          "SOURCES_LIST_TYPE": "KEEP"
         }
       }
 
-**Provide a DELETE_SOURCES List**
-You can provide the list of streams/tables that you want to delete their corresponding Kafka topics. In this case, only the topics associated with the streams/tables in the ``DELETE_SOURCES`` list will be deleted, and the rest of the topics will remain after cleanup.
+**Provide a List of Sources to Delete**
+You can provide the list of streams/tables that you want to delete their corresponding Kafka topics. In this case, only the topics associated with the streams/tables in the ``SOURCES_LIST`` list will be deleted, and the rest of the topics will remain after cleanup.
+Note that you need to indicate the type of the list as ``DELETE`` by setting the value of ``SOURCES_LIST_TYPE`` parameter to ``DELETE``.
 The following example will only delete the topic associated with stream/table ``FOO``.
 
    .. code:: http
@@ -381,6 +385,7 @@ The following example will only delete the topic associated with stream/table ``
 
       {
         "streamsProperties": {
-          "DELETE_SOURCES": ["FOO"]
+          "SOURCES_LIST": ["FOO"],
+          "SOURCES_LIST_TYPE": "DELETE"
         }
       }

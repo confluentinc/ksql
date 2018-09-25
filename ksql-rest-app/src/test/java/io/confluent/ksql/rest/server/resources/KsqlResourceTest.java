@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -496,6 +497,24 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
+    final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
+    // Set up a mock engine to mirror the returns of the real engine
+    final KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
+    EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
+    EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
+    EasyMock.expect(
+        mockEngine.parseStatements(ksqlString)).andThrow(
+            new RuntimeException("internal error"));
+    expect(mockEngine.isAcceptingStatements()).andReturn(true);
+    EasyMock.replay(mockEngine);
+
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, mockEngine);
+    final Response response = handleKsqlStatements(
+        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
+    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    final KsqlErrorMessage result = (KsqlErrorMessage)response.getEntity();
+    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
     EasyMock.verify(ksqlEngine);
   }
@@ -511,6 +530,29 @@ public class KsqlResourceTest {
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
+
+    // Set up a mock engine to mirror the returns of the real engine
+    final KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
+    EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
+    EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
+    EasyMock.replay(mockEngine);
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, mockEngine);
+
+    EasyMock.reset(mockEngine);
+    EasyMock.expect(
+        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.parseStatements(ksqlString));
+    EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
+        .andThrow(new RuntimeException("internal error"));
+    expect(mockEngine.isAcceptingStatements()).andReturn(true);
+    EasyMock.replay(mockEngine);
+
+    final Response response = handleKsqlStatements(
+        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
+    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    final KsqlErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
+    assertThat(result.getMessage(), containsString("internal error"));
 
     // Then:
     final KsqlErrorMessage result = makeFailingRequest(

@@ -22,6 +22,7 @@ import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -113,26 +114,26 @@ public class ClusterTerminator {
       final String sourceName,
       final StructuredDataSource structuredDataSource,
       final KsqlEngine ksqlEngine) {
-    final DdlCommand ddlCommand;
-    if (structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM) {
-      ddlCommand = new DropSourceCommand(
-          new DropStream(QualifiedName.of(sourceName), false, true),
-          structuredDataSource.getDataSourceType(),
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          true
-      );
-    } else  {
-      ddlCommand = new DropSourceCommand(
-          new DropTable(QualifiedName.of(sourceName), false, true),
-          structuredDataSource.getDataSourceType(),
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          true
-      );
-    }
+    final DdlCommand ddlCommand = new DropSourceCommand(
+        getAbstractStreamDropStatement(sourceName,
+            structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM),
+        structuredDataSource.getDataSourceType(),
+        ksqlEngine.getTopicClient(),
+        ksqlEngine.getSchemaRegistryClient(),
+        true
+    );
     final DdlCommandExec ddlCommandExec = ksqlEngine.getDdlCommandExec();
     ddlCommandExec.execute(ddlCommand, false);
+  }
+
+  private AbstractStreamDropStatement getAbstractStreamDropStatement(
+      final String sourceName,
+      final boolean isStream) {
+    if (isStream) {
+      return new DropStream(QualifiedName.of(sourceName), false, true);
+    } else {
+      return new DropTable(QualifiedName.of(sourceName), false, true);
+    }
   }
 
   private void deleteCommandTopic(

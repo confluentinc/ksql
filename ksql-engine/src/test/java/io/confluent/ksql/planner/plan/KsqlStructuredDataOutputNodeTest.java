@@ -206,7 +206,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final Map<String, Object> topicConfig = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
-    topicClientForNonWindowTable.createTopic("output", 4, (short) 3, false, topicConfig);
+    topicClientForNonWindowTable.createTopic("output", 4, (short) 3, true, topicConfig);
     expectLastCall();
     replay(topicClientForNonWindowTable);
     final SchemaKStream schemaKStream = outputNode.buildStream(
@@ -227,7 +227,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(true);
 
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
-    topicClientForWindowTable.createTopic("output", 4, (short) 3, false, Collections.emptyMap());
+    topicClientForWindowTable.createTopic("output", 4, (short) 3, true, Collections.emptyMap());
     EasyMock.replay(topicClientForWindowTable);
     final SchemaKStream schemaKStream = outputNode.buildStream(
         streamsBuilder,
@@ -246,7 +246,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final KafkaTopicClient topicClientForWindowTable = getTopicClient();
 
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
-    topicClientForWindowTable.createTopic("output", 4, (short) 3, false, Collections.emptyMap());
+    topicClientForWindowTable.createTopic("output", 4, (short) 3, true, Collections.emptyMap());
     expectLastCall();
     EasyMock.replay(topicClientForWindowTable);
     final SchemaKStream schemaKStream = outputNode.buildStream(

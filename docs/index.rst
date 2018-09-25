@@ -39,14 +39,6 @@ Sensor data and IoT
 Customer 360-view
     Achieve a comprehensive understanding of your customers across every interaction through a variety of channels, where new information is continuously incorporated in real-time.
 
-Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
-
-.. raw:: html
-
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/euz0isNG1SQ" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" allowfullscreen></iframe>
-    </div>
-
 What Are the Components?
 ------------------------
 
@@ -70,6 +62,14 @@ KSQL CLI
 
 KSQL servers, clients, queries, and applications run outside of Kafka brokers,
 in separate JVM instances, or in separate clusters entirely. 
+
+KSQL Resources
+--------------
+
+- The `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+  provides in-depth tutorials and recommended deployment scenarios.
+- Check out :ref:`ksql_tutorials` to learn about stream processing with KSQL.
+- Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
 
 Supported Versions and Interoperability
 ---------------------------------------

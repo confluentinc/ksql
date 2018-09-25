@@ -15,7 +15,7 @@ import org.junit.Test;
 public abstract class BaseSumKudafTest<
     T extends Number, AT extends TableAggregationFunction<T, T>> {
   protected interface TGenerator<TG> {
-    TG fromInt(int s);
+    TG fromInt(Integer s);
   }
 
   @Test
@@ -24,7 +24,7 @@ public abstract class BaseSumKudafTest<
     final AT sumKudaf = getSumKudaf();
     T currentVal = tGenerator.fromInt(0);
     final List<T> values = Stream.of(3, 5, 8, 2, 3, 4, 5)
-        .map(v -> tGenerator.fromInt(v)).collect(Collectors.toList());
+        .map(tGenerator::fromInt).collect(Collectors.toList());
     for (final T i : values) {
       currentVal = sumKudaf.aggregate(i, currentVal);
     }
@@ -32,12 +32,25 @@ public abstract class BaseSumKudafTest<
   }
 
   @Test
-  public void shouldComputeCorrectSubraction() {
+  public void shouldHandleNullsInSum() {
+    final TGenerator<T> tGenerator = getTGenerator();
+    final AT sumKudaf = getSumKudaf();
+    T currentVal = tGenerator.fromInt(0);
+    final List<T> values = Stream.of(3, null, 8, 2, 3, 4, 5)
+        .map(tGenerator::fromInt).collect(Collectors.toList());
+    for (final T i : values) {
+      currentVal = sumKudaf.aggregate(i, currentVal);
+    }
+    assertThat(tGenerator.fromInt(25), equalTo(currentVal));
+  }
+
+  @Test
+  public void shouldComputeCorrectSubtraction() {
     final TGenerator<T> tGenerator = getTGenerator();
     final AT sumKudaf = getSumKudaf();
     T currentVal = tGenerator.fromInt(30);
     final List<T> values = Stream.of(3, 5, 8, 2, 3, 4, 5)
-        .map(v -> tGenerator.fromInt(v)).collect(Collectors.toList());
+        .map(tGenerator::fromInt).collect(Collectors.toList());
     for (final T i: values) {
       currentVal = sumKudaf.undo(i, currentVal);
     }
@@ -57,7 +70,17 @@ public abstract class BaseSumKudafTest<
     assertThat(mergeResult3, equalTo(tGenerator.fromInt(-10)));
   }
 
-  protected abstract TGenerator<T> getTGenerator();
+  private TGenerator<T> getTGenerator() {
+    final TGenerator<T> underlying = getNumberGenerator();
+    return value -> {
+      if (value == null) {
+        return null;
+      }
+      return underlying.fromInt(value);
+    };
+  }
+
+  abstract TGenerator<T> getNumberGenerator();
 
   protected abstract AT getSumKudaf();
 }

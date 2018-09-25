@@ -19,8 +19,8 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.client.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -46,26 +46,37 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.function.Function;
 import javax.naming.AuthenticationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.commons.compress.utils.IOUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlRestClient implements Closeable, AutoCloseable {
+public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final KsqlErrorMessage UNAUTHORIZED_ERROR_MESSAGE = new KsqlErrorMessage(
+      Errors.ERROR_CODE_UNAUTHORIZED,
+      new AuthenticationException(
+          "Could not authenticate successfully with the supplied credentials.")
+  );
+
+  private static final KsqlErrorMessage FORBIDDEN_ERROR_MESSAGE = new KsqlErrorMessage(
+      Errors.ERROR_CODE_FORBIDDEN,
+      new AuthenticationException("You are forbidden from using this cluster.")
+  );
 
   private final Client client;
 
   private URI serverAddress;
 
-  private final Map<String, Object> localProperties;
-
-  private boolean hasUserCredentials = false;
+  private final LocalProperties localProperties;
 
   public KsqlRestClient(final String serverAddress) {
     this(serverAddress, Collections.emptyMap());
@@ -85,8 +96,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
                  final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
     this.serverAddress = parseServerAddress(serverAddress);
-    this.localProperties = Maps.newHashMap(
-        Objects.requireNonNull(localProperties, "localProperties"));
+    this.localProperties = new LocalProperties(localProperties);
   }
 
   public void setupAuthenticationCredentials(final String userName, final String password) {
@@ -95,12 +105,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         Objects.requireNonNull(password)
     );
     client.register(feature);
-    hasUserCredentials = true;
-  }
-
-  // Visible for testing
-  public boolean hasUserCredentials() {
-    return hasUserCredentials;
   }
 
   public URI getServerAddress() {
@@ -116,79 +120,30 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
-    return makeRequest("/info", ServerInfo.class);
-  }
-
-  <T> RestResponse<T> makeRequest(final String path, final Class<T> type) {
-    final Response response = makeGetRequest(path);
-    try {
-      if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
-        return RestResponse.erroneous(
-                new KsqlErrorMessage(
-                    Errors.ERROR_CODE_UNAUTHORIZED,
-                    new AuthenticationException(
-                        "Could not authenticate successfully with the supplied credentials."
-                    )
-                )
-        );
-      }
-      if (response.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
-        return RestResponse.erroneous(404, "Path not found. Path='" + path + "'. "
-            + "Check your ksql http url to make sure you are connecting to a ksql server.");
-      }
-      if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-      }
-      return RestResponse.successful(response.readEntity(type));
-    } finally {
-      response.close();
-    }
+    return getRequest("/info", ServerInfo.class);
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
-    final Response response = makePostRequest("ksql", jsonRequest);
-    try {
-      if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-        return RestResponse.successful(response.readEntity(KsqlEntityList.class));
-      } else {
-        return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-      }
-    } finally {
-      response.close();
-    }
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
-    return makeRequest("status", CommandStatuses.class);
+    return getRequest("status", CommandStatuses.class);
   }
 
   public RestResponse<CommandStatus> makeStatusRequest(final String commandId) {
-    return makeRequest(String.format("status/%s", commandId), CommandStatus.class);
+    return getRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
   public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
-    final Response response = makePostRequest("query", jsonRequest);
-    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      return RestResponse.successful(new QueryStream(response));
-    } else {
-      return RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-    }
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    return postRequest("query", jsonRequest, false, QueryStream::new);
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(
-      final String ksql
-  ) {
-    final RestResponse<InputStream> result;
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
-    final Response response = makePostRequest("query", jsonRequest);
-    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      result = RestResponse.successful((InputStream) response.getEntity());
-    } else {
-      result = RestResponse.erroneous(response.readEntity(KsqlErrorMessage.class));
-    }
-    return result;
+  public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    return postRequest("query", jsonRequest, true, r -> (InputStream)r.getEntity());
   }
 
   @Override
@@ -196,28 +151,76 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     client.close();
   }
 
-  private Response makePostRequest(final String path, final Object jsonEntity) {
+  private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
+
+    try (Response response = client.target(serverAddress)
+        .path(path)
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .get()) {
+
+      return response.getStatus() == Response.Status.OK.getStatusCode()
+          ? RestResponse.successful(response.readEntity(type))
+          : createErrorResponse(path, response);
+
+    } catch (final Exception e) {
+      throw new KsqlRestClientException("Error issuing GET to KSQL server. path:" + path, e);
+    }
+  }
+
+  private <T> RestResponse<T> postRequest(
+      final String path,
+      final Object jsonEntity,
+      final boolean closeResponse,
+      final Function<Response, T> mapper) {
+
+    Response response = null;
+
     try {
-      return client.target(serverAddress)
+      response = client.target(serverAddress)
           .path(path)
           .request(MediaType.APPLICATION_JSON_TYPE)
           .post(Entity.json(jsonEntity));
-    } catch (final Exception exception) {
-      throw new KsqlRestClientException("Error issuing POST to KSQL server", exception);
+
+      return response.getStatus() == Response.Status.OK.getStatusCode()
+          ? RestResponse.successful(mapper.apply(response))
+          : createErrorResponse(path, response);
+
+    } catch (final Exception e) {
+      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
+    } finally {
+      if (response != null && closeResponse) {
+        response.close();
+      }
     }
   }
 
-  private Response makeGetRequest(final String path) {
-    try {
-      return client.target(serverAddress).path(path)
-          .request(MediaType.APPLICATION_JSON_TYPE)
-          .get();
-    } catch (final Exception exception) {
-      throw new KsqlRestClientException("Error issuing GET to KSQL server", exception);
+  private static <T> RestResponse<T> createErrorResponse(
+      final String path,
+      final Response response) {
+
+    final KsqlErrorMessage errorMessage = response.readEntity(KsqlErrorMessage.class);
+    if (errorMessage != null) {
+      return RestResponse.erroneous(errorMessage);
     }
+
+    if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
+      return RestResponse.erroneous(404, "Path not found. Path='" + path + "'. "
+          + "Check your ksql http url to make sure you are connecting to a ksql server.");
+    }
+
+    if (response.getStatus() == Status.UNAUTHORIZED.getStatusCode()) {
+      return RestResponse.erroneous(UNAUTHORIZED_ERROR_MESSAGE);
+    }
+
+    if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+      return RestResponse.erroneous(FORBIDDEN_ERROR_MESSAGE);
+    }
+
+    return RestResponse.erroneous(
+        Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error.");
   }
 
-  public static final class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+  public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
     private final Response response;
     private final ObjectMapper objectMapper;
@@ -327,16 +330,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public Map<String, Object> getLocalProperties() {
-    return localProperties;
-  }
-
   public Object setProperty(final String property, final Object value) {
-    return localProperties.put(property, value);
+    return localProperties.set(property, value);
   }
 
-  public boolean unsetProperty(final String property) {
-    return localProperties.remove(property) != null;
+  public Object unsetProperty(final String property) {
+    return localProperties.unset(property);
   }
 
   private static Map<String, Object> propertiesToMap(final Properties properties) {

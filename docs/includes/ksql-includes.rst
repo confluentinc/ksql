@@ -443,7 +443,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 .. __struct_support_01_start
 
 Using Nested Schemas (STRUCT) in KSQL
-=====================================
+-------------------------------------
 
 Struct support enables the modeling and access of nested data in Kafka
 topics, from both JSON and Avro.
@@ -522,7 +522,7 @@ Press Ctrl-C to cancel the ``SELECT`` query.
 .. __ss-join_01_start
 
 Stream-Stream join
-==================
+------------------
 
 Using a stream-stream join, it is possible to join two *streams* of
 events on a common key. An example of this could be a stream of order
@@ -621,7 +621,7 @@ Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 .. __tt-join_01_start
 
 Table-Table join
-================
+----------------
 
 Using a table-table join, it is possible to join two *tables* of on a
 common key. KSQL tables provide the latest *value* for a given *key*.
@@ -724,7 +724,7 @@ Your output should resemble:
 .. __insert-into_01_start
 
 INSERT INTO
-===========
+-----------
 
 The ``INSERT INTO`` syntax can be used to merge the contents of multiple
 streams. An example of this could be where the same event type is coming

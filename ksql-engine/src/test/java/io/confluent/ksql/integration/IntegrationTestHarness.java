@@ -59,16 +59,16 @@ public class IntegrationTestHarness {
 
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHarness.class);
 
-  public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
-  public static final long RESULTS_POLL_MAX_TIME_MS = 60000;
-  public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
+  private static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
+  static final long RESULTS_POLL_MAX_TIME_MS = 60000;
+  private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
-  public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Integration_Test_Consumer_";
+  private static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Integration_Test_Consumer_";
 
   public KsqlConfig ksqlConfig;
   private KafkaTopicClientImpl topicClient;
 
-  public Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   public SchemaRegistryClient schemaRegistryClient;
 
   private final AtomicInteger consumedCount;
@@ -227,7 +227,7 @@ public class IntegrationTestHarness {
         }
       }
 
-      for (final ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME)) {
         if (record.value() != null) {
           result.put(record.key(), record.value());
         }
@@ -251,14 +251,14 @@ public class IntegrationTestHarness {
       while (System.currentTimeMillis() < pollEnd &&
           continueConsuming(results.size(), expectedNumMessages)) {
         for (final ConsumerRecord<String, byte[]> record :
-            consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+            consumer.poll(Duration.ofMillis(Math.max(1, pollEnd - System.currentTimeMillis())))) {
           if (record.value() != null) {
             results.add(record);
           }
         }
       }
 
-      for (final ConsumerRecord<String, byte[]> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<String, byte[]> record : consumer.poll(RESULTS_EXTRA_POLL_TIME)) {
         if (record.value() != null) {
           results.add(record);
         }

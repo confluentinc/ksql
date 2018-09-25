@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,7 +81,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   }
 
-  public JLineReader(final Terminal terminal, final Path historyFilePath) {
+  JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
@@ -92,14 +92,14 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder()
         .appName("KSQL")
+        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
+        .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
+        .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
+        .option(LineReader.Option.DISABLE_EVENT_EXPANSION, false)
         .expander(expander)
-        .parser(parser)
+        .parser(new TrimmingParser(parser))
         .terminal(terminal)
         .build();
-
-    this.lineReader.setOpt(Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.unsetOpt(Option.HISTORY_IGNORE_SPACE);
-    this.lineReader.unsetOpt(Option.DISABLE_EVENT_EXPANSION);
 
     if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
@@ -129,5 +129,4 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     history.save();
     return line;
   }
-
 }

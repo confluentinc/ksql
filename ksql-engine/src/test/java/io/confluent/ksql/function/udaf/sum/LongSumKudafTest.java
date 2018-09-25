@@ -8,7 +8,7 @@ import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 
 public class LongSumKudafTest extends BaseSumKudafTest<Long, LongSumKudaf> {
-  protected TGenerator<Long> getTGenerator() {
+  protected TGenerator<Long> getNumberGenerator() {
     return Long::valueOf;
   }
 

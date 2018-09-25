@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,6 +53,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
@@ -63,10 +64,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Test;
 
 public class StreamedQueryResourceTest {
+
+  private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
+
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
     final String queryString = "SELECT * FROM test_stream;";
@@ -83,7 +88,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -114,7 +119,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, 1000);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -165,13 +170,11 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING);
+    expect(mockKafkaStreams.state()).andReturn(State.RUNNING).once();
+    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
     mockKafkaStreams.close();
     expectLastCall();
-    mockKafkaStreams.cleanUp();
-    expectLastCall();
-    mockKafkaStreams.setStateListener(anyObject());
-    expectLastCall();
+
 
     final OutputNode mockOutputNode = niceMock(OutputNode.class);
     expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))
@@ -204,7 +207,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, 1000);
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));

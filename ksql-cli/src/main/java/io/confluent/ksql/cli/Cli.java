@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,9 @@
 
 package io.confluent.ksql.cli;
 
-import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -29,17 +27,13 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -64,24 +58,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.ws.rs.ProcessingException;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.streams.StreamsConfig;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cli implements Closeable, AutoCloseable {
+public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
-
-  private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
-  private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
 
   private final ExecutorService queryStreamExecutorService;
 
@@ -106,49 +91,13 @@ public class Cli implements Closeable, AutoCloseable {
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
-    terminal.registerCliSpecificCommand(new RemoteServerSpecificCommand(
-        restClient,
-        terminal.writer()
-    ));
-  }
-
-  private static void validateClient(
-      final PrintWriter writer,
-      final KsqlRestClient restClient
-  ) {
-    try {
-      final RestResponse restResponse = restClient.makeRootRequest();
-      if (restResponse.isErroneous()) {
-        final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
-        if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
-          writer.format("This CLI version no longer supported: %s%n%n", ksqlError);
-          return;
-        }
-        writer.format(
-            "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
-      }
-    } catch (final IllegalArgumentException exception) {
-      writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
-    } catch (final KsqlRestClientException exception) {
-      if (exception.getCause() instanceof ProcessingException) {
-        writer.println();
-        writer.println("**************** ERROR ********************");
-        writer.println("Remote server address may not be valid.");
-        writer.println("Address: " + restClient.getServerAddress());
-        writer.println(ErrorMessageUtil.buildErrorMessage(exception));
-        writer.println("*******************************************");
-        writer.println();
-      } else {
-        throw exception;
-      }
-    } finally {
-      writer.flush();
-    }
+    terminal
+        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
   }
 
   public void runInteractively() {
     displayWelcomeMessage();
-    validateClient(terminal.writer(), restClient);
+    RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     boolean eof = false;
     while (!eof) {
       try {
@@ -480,7 +429,7 @@ public class Cli implements Closeable, AutoCloseable {
           StandardCharsets.UTF_8.name()
       )) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
-          while (topicStreamScanner.hasNextLine()) {
+          while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
             final String line = topicStreamScanner.nextLine();
             if (!line.isEmpty()) {
               terminal.writer().println(line);
@@ -517,82 +466,23 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void setProperty(final String property, final String value) {
-    final String parsedProperty;
-    final ConfigDef.Type type;
-    if (StreamsConfig.configDef().configKeys().containsKey(property)) {
-      type = StreamsConfig.configDef().configKeys().get(property).type;
-      parsedProperty = property;
-    } else if (CONSUMER_CONFIG_DEF.configKeys().containsKey(property)) {
-      type = CONSUMER_CONFIG_DEF.configKeys().get(property).type;
-      parsedProperty = property;
-    } else if (PRODUCER_CONFIG_DEF.configKeys().containsKey(property)) {
-      type = PRODUCER_CONFIG_DEF.configKeys().get(property).type;
-      parsedProperty = property;
-    } else if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
-      parsedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      type = parseConsumerProperty(parsedProperty);
-    } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
-      parsedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      type = parseProducerProperty(parsedProperty);
-    } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
-      restClient.setProperty(property, value);
-      return;
-    } else if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      restClient.setProperty(property, value);
-      return;
-    } else if (property.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
-      restClient.setProperty(property, value);
-      return;
-    } else {
-      throw new IllegalArgumentException(String.format(
-          "Not recognizable as ksql, streams, consumer, or producer property: '%s'",
-          property
-      ));
-    }
+    final Object priorValue = restClient.setProperty(property, value);
 
-    if (KsqlEngine.getImmutableProperties().contains(parsedProperty)) {
-      throw new IllegalArgumentException(String.format(
-          "Cannot override property '%s'",
-          property
-      ));
-    }
+    if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
+        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
 
-    final Object parsedValue = ConfigDef.parseType(parsedProperty, value, type);
-    final Object priorValue = restClient.setProperty(property, parsedValue);
+      // Don't output.
+      return;
+    }
 
     terminal.writer().printf(
-        "Successfully changed local property '%s' from '%s' to '%s'%n",
+        "Successfully changed local property '%s'%s to '%s'.%s%n",
         property,
-        priorValue,
-        parsedValue
+        priorValue == null ? "" : " from '" + priorValue + "'",
+        value,
+        priorValue == null ? " Use the UNSET command to revert your change." : ""
     );
     terminal.flush();
-  }
-
-  private ConfigDef.Type parseProducerProperty(final String parsedProperty) {
-    final ConfigDef.Type type;
-    final ConfigDef.ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
-    if (configKey == null) {
-      throw new IllegalArgumentException(String.format(
-          "Invalid producer property: '%s'",
-          parsedProperty
-      ));
-    }
-    type = configKey.type;
-    return type;
-  }
-
-  private ConfigDef.Type parseConsumerProperty(final String parsedProperty) {
-    final ConfigDef.Type type;
-    final ConfigDef.ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
-    if (configKey == null) {
-      throw new IllegalArgumentException(String.format(
-          "Invalid consumer property: '%s'",
-          parsedProperty
-      ));
-    }
-    type = configKey.type;
-    return type;
   }
 
   private StringBuilder unsetProperty(
@@ -613,72 +503,13 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void unsetProperty(final String property) {
-    if (restClient.unsetProperty(property)) {
-      final Object value = restClient.getLocalProperties().get(property);
-      terminal.writer().printf(
-          "Successfully unset local property '%s' (value was '%s')%n",
-          property,
-          value
-      );
-    } else {
+    final Object oldValue = restClient.unsetProperty(property);
+    if (oldValue == null) {
       throw new IllegalArgumentException(String.format(
-          "Cannot unset local property '%s' which was never set in the first place",
-          property
-      ));
-    }
-  }
-
-  // It seemed like a good idea at the time
-  private static ConfigDef getConfigDef(final Class<? extends AbstractConfig> classs) {
-    try {
-      final java.lang.reflect.Field field = classs.getDeclaredField("CONFIG");
-      field.setAccessible(true);
-      return (ConfigDef) field.get(null);
-    } catch (final Exception exception) {
-      // uhhh...
-      // TODO
-      return null;
-    }
-  }
-
-  public static class RemoteServerSpecificCommand implements CliSpecificCommand {
-
-    private final KsqlRestClient restClient;
-    private final PrintWriter writer;
-
-    RemoteServerSpecificCommand(
-        final KsqlRestClient restClient,
-        final PrintWriter writer
-    ) {
-      this.writer = writer;
-      this.restClient = restClient;
+          "Cannot unset local property '%s' which was never set in the first place", property));
     }
 
-    @Override
-    public String getName() {
-      return "server";
-    }
-
-    @Override
-    public void printHelp() {
-      writer.println("server:");
-      writer.println("\tShow the current server");
-      writer.println("\nserver <server>:");
-      writer.println("\tChange the current server to <server>");
-      writer.println("\t example: \"server http://my.awesome.server.com:9098\"");
-    }
-
-    @Override
-    public void execute(final String commandStrippedLine) {
-      if (commandStrippedLine.isEmpty()) {
-        writer.println(restClient.getServerAddress());
-      } else {
-        final String serverAddress = commandStrippedLine.trim();
-        restClient.setServerAddress(serverAddress);
-        writer.write("Server now: " + commandStrippedLine);
-      }
-
-      validateClient(writer, restClient);
-    }
+    terminal.writer()
+        .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
   }
 }

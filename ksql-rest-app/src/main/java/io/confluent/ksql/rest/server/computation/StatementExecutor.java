@@ -227,7 +227,10 @@ public class StatementExecutor {
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement instanceof DdlStatement) {
-      result = ksqlEngine.executeDdlStatement(statementStr, (DdlStatement) statement);
+      result = ksqlEngine.executeDdlStatement(
+          statementStr,
+          (DdlStatement) statement,
+          command.getOverwriteProperties());
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect(
           (CreateAsSelect)
@@ -277,15 +280,18 @@ public class StatementExecutor {
       final String queries =
           (String) command.getOverwriteProperties().get(
               KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
+      final Map<String, Object> overriddenProperties = new HashMap<>();
+      overriddenProperties.putAll(command.getOverwriteProperties());
+
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
-          command.getOverwriteProperties()
+          overriddenProperties
       );
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.getKafkaStreams().start();
+          persistentQueryMd.start();
         }
       }
     } else {
@@ -393,7 +399,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
         return false;
       } else {
-        persistentQueryMd.getKafkaStreams().start();
+        persistentQueryMd.start();
         return true;
       }
 

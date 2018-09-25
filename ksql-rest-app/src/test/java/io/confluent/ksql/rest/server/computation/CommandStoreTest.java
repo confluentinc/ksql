@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyLong;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,7 +88,7 @@ public class CommandStoreTest {
 
     EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
 
-    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
+    EasyMock.expect(commandConsumer.poll(anyObject())).andReturn(records)
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 
@@ -141,7 +142,7 @@ public class CommandStoreTest {
     )))));
 
     EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
-    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
+    EasyMock.expect(commandConsumer.poll(anyObject())).andReturn(records)
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 

@@ -361,7 +361,7 @@ public class PhysicalPlanBuilder {
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ProducerCollector.class.getCanonicalName()
     );
-    return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+    return kafkaStreamsBuilder.buildKafkaStreams(builder, newStreamsProperties);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

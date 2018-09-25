@@ -67,6 +67,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -365,7 +366,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig,
         ksqlEngine,
         statementParser,
-        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
+        Duration.ofMillis(
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG))
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
@@ -433,8 +435,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         );
       }
       if (replicationFactor < 2) {
-        log.warn("Creating topic {} with replication factor of %d which is less than 2. "
-                 + "This is not advisable in a production environment. ", replicationFactor);
+        log.warn("Creating topic {} with replication factor of {} which is less than 2. "
+                 + "This is not advisable in a production environment. ",
+                commandTopic, replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we

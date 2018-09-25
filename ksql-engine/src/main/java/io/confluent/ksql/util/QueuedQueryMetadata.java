@@ -46,7 +46,6 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.rowQueue = rowQueue;
-    kafkaStreams.setStateListener(new StateListener());
   }
 
   public boolean isRunning() {
@@ -77,10 +76,10 @@ public class QueuedQueryMetadata extends QueryMetadata {
     getOutputNode().setLimitHandler(limitHandler);
   }
 
-  private class StateListener implements KafkaStreams.StateListener {
-    @Override
-    public void onChange(final KafkaStreams.State newState, final KafkaStreams.State oldState) {
-      isRunning.set(newState != KafkaStreams.State.NOT_RUNNING);
-    }
+  @Override
+  public void close() {
+    super.close();
+    isRunning.set(false);
   }
+
 }

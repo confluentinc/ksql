@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.util.MetaStoreFixture;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

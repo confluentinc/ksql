@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
@@ -52,7 +52,7 @@ public class KsqlBareOutputNodeTest {
   private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
   private SchemaKStream stream;
   private StreamsBuilder builder;
-  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
 
   @Before
@@ -63,16 +63,16 @@ public class KsqlBareOutputNodeTest {
   }
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList(SOURCE_MAPVALUES_NODE)));
-    assertThat(node.topics(), equalTo("[test1]"));
+    assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
   @Test
-  public void shouldBuildMapNode() throws Exception {
+  public void shouldBuildMapNode() {
     verifyProcessorNode((TopologyDescription.Processor) getNodeByName(SOURCE_MAPVALUES_NODE),
         Collections.singletonList(SOURCE_NODE),
         Collections.singletonList(TRANSFORM_NODE));

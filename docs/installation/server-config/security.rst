@@ -3,8 +3,11 @@
 Configuring Security for KSQL
 =============================
 
-KSQL supports many of the security features of both Apache Kafka and the |sr|.
+KSQL supports authentication on its HTTP endpoints and also supports many of the security features
+of the other services it communicates with both Apache Kafka and the |sr|.
 
+- KSQL supports Basic HTTP authentication on its RESTful and Websocket HTTP endpoints, which means
+  that the endpoints can be protected by a username and password.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
@@ -21,6 +24,88 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
 .. contents:: Table of Contents
     :local:
+
+Configuring KSQL for Basic HTTP Authentication
+----------------------------------------------
+KSQL can be configured to require users to authenticate using a username and password via the Basic
+HTTP authentication mechanism.
+
+.. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
+use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+
+Use the following settings to configure the KSQL server to require authentication:
+
+.. code:: bash
+
+    authentication.method=BASIC
+    authentication.roles=some-ksql-cluster-id
+    authentication.realm=KsqlServer-Props
+    java.security.auth.login.config=/path/to/the/jaas_config.file
+
+The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
+to use the KSQL server an authenticated user must belong to at least one of these roles.
+
+The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which
+defines how the server authenticates users, for example:
+
+.. code:: bash
+
+    KsqlServer-Props {
+      org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+      file="/path/to/password-file"
+      debug="false";
+    };
+
+The example ``jaas_config.file`` above uses the Jetty ``PropertyFileLoginModule``, which itself
+authenticates users by checking for their credentials in a password file.
+
+You can also use other implementations of the standard Java ``LoginModule`` interface, such as
+``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
+
+The file parameter is the location of the properties file, The format is:
+
+.. code:: bash
+
+    <username>: <password-hash>[,<rolename> ...]
+
+Here’s an example:
+
+.. code:: bash
+
+    fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+    harry: changeme,user,developer
+    tom: MD5:164c88b302622e17050af52c89945d44,user
+    dick: CRYPT:adpexzg3FUZAk,admin,ksq-user
+
+The password hash for a user can be obtained by using the ``org.eclipse.jetty.util.security.Password``
+utility, for example running:
+
+.. code:: bash
+
+    > bin/ksql-run-class org.eclipse.jetty.util.security.Password fred letmein
+
+Which results in an output similar to:
+
+.. code:: bash
+
+    letmein
+    OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x
+    MD5:0d107d09f5bbe40cade3de5c71e9e9b7
+    CRYPT:frd5btY/mvXo6
+
+Where each line of the output is the password encrypted using different mechanisms, starting with
+plain text.
+
+-------------------
+Configuring the CLI
+-------------------
+If the KSQL server is configured to use Basic authentication, CLI instances will need to be
+configured with suitable valid credentials.  Credentials can be passed when starting the CLI using
+the ``--user`` and ``--password`` command-line arguments, for example:
+
+.. code:: bash
+
+    <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 
 Configuring KSQL for |ccloud|
 -----------------------------
@@ -39,7 +124,7 @@ For example, a trustStore is required if the Schema Registry's SSL certificates 
 the JVM by default; a keyStore is required if the Schema Registry requires mutual authentication.
 
 SSL configuration for communication with the Schema Registry can be supplied using none-prefixed,
-e.g. `ssl.truststore.location`, or prefixed e.g. `ksql.schema.registry.ssl.truststore.location`,
+like ``ssl.truststore.location``, or prefixed like ``ksql.schema.registry.ssl.truststore.location``,
 names. Non-prefixed names are used for settings that are shared with other communication
 channels, i.e. where the same settings are required to configure SSL communication
 with both Kafka and Schema Registry. Prefixed names only affects communication with Schema registry
@@ -127,8 +212,8 @@ signed by a CA trusted by the default JVM trust store.
     security.protocol=SASL_SSL
     sasl.mechanism=PLAIN
     sasl.jaas.config=\
-        org.apache.kafka.common.security.plain.PlainLoginModule required `
-        username="<ksql-user>" `
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="<ksql-user>" \
         password="<password>";
 
 The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
@@ -172,7 +257,7 @@ Resource
     A resource is comprised of a resource type and resource name:
 
     - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
-    - Resource name, e.g. the name of a topic or a consumer-group.
+    - Resource name, for example the name of a topic or a consumer-group.
 
 ResourcePattern
     A resource pattern matches zero or more Resources and is comprised of a resource type, a resource name and a pattern type.
@@ -197,7 +282,7 @@ with the Apache Kafka cluster, or an appropriate group that includes the authent
 ACLs on Literal Resource Pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A literal resource pattern matches resources exactly. They are case-sensitive. e.g.
+A literal resource pattern matches resources exactly. They are case-sensitive. For example
 ``ALLOW`` ``user Fred`` to ``READ`` the ``TOPIC`` with the ``LITERAL`` name ``users``.
 
 Here, user Fred would be allowed to read from the topic *users* only.
@@ -208,10 +293,11 @@ ACLs on Prefixed Resource Pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A prefixed resource pattern matches resources where the resource name starts with the pattern's name.
-They are case-sensitive. e.g.
+They are case-sensitive. For example
 ``ALLOW`` ``user Bob`` to ``WRITE`` to any ``TOPIC`` whose name is ``PREFIXED`` with ``fraud-``.
 
-Here, user Bob would be allowed to write to any topic whose name starts with *fraud-*, e.g. *fraud-us*, *fraud-testing* and *fraud-*.
+Here, user Bob would be allowed to write to any topic whose name starts with *fraud-*, for example
+*fraud-us*, *fraud-testing* and *fraud-*.
 Bob would not be allowed to write to topics such as *production-fraud-europe*, *Fraud-us*, etc.
 
 Required ACLs
@@ -343,7 +429,7 @@ Resource
     A resource is comprised of a resource type and resource name:
 
     - ``RESOURCE_TYPE``, for example ``TOPIC`` or consumer ``GROUP``.
-    - Resource name, where the name is either specific, e.g. ``users``, or the wildcard ``*``, meaning all resources of this type. The name is case-sensitive.
+    - Resource name, where the name is either specific, for example ``users``, or the wildcard ``*``, meaning all resources of this type. The name is case-sensitive.
 
     The ``CLUSTER`` resource type does not require a resource name because it refers to the entire Kafka cluster.
 

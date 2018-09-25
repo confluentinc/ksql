@@ -143,7 +143,7 @@ public class KsqlRestClient implements Closeable {
 
   public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
     final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
-    return postRequest("query", jsonRequest, true, r -> (InputStream)r.getEntity());
+    return postRequest("query", jsonRequest, false, r -> (InputStream)r.getEntity());
   }
 
   @Override

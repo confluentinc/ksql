@@ -1,4 +1,4 @@
-ksql-cli/src/test/java/io/confluent/ksql/TestResult.java/*
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,20 +16,7 @@ ksql-cli/src/test/java/io/confluent/ksql/TestResult.java/*
 
 package io.confluent.ksql;
 
-import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY;
-import static io.confluent.ksql.util.KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -65,7 +52,6 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +74,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -132,7 +117,7 @@ public class CliTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    restClient = createRestClient();
+    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
@@ -378,7 +363,6 @@ public class CliTest {
     assertRunListCommand("queries", is(EMPTY_RESULT));
   }
 
-  @Ignore // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testPrint() {
     final Thread thread =
@@ -394,6 +378,7 @@ public class CliTest {
 
   @Test
   public void testPropertySetUnset() {
+    assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
     assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
     assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
     assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
@@ -419,9 +404,10 @@ public class CliTest {
     assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
 
     final TestResult.Builder builder = new TestResult.Builder();
-    validStartUpConfigs().forEach(
-        (k, v) -> builder.addRow(k, String.valueOf(v)));
+    builder.addRows(startUpConfigs());
     assertRunListCommand("properties", hasItems(builder.build()));
+
+    assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
   }
 
   @Test
@@ -447,7 +433,6 @@ public class CliTest {
         contains(builder.build()));
   }
 
-  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectStar() {
     testCreateStreamAsSelect(
@@ -520,7 +505,6 @@ public class CliTest {
     );
   }
 
-  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectFilter() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();

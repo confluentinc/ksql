@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package io.confluent.ksql.test.util;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -309,12 +310,12 @@ public class IntegrationTestUtils {
                                                            final Consumer<K, V> consumer, final long waitTime, final int maxMessages) {
     final List<KeyValue<K, V>> consumedValues;
     consumer.subscribe(Collections.singletonList(topic));
-    final int pollIntervalMs = 100;
+    final Duration pollIntervalMs = Duration.ofMillis(100);
     consumedValues = new ArrayList<>();
     int totalPollTimeMs = 0;
     while (totalPollTimeMs < waitTime &&
             continueConsuming(consumedValues.size(), maxMessages)) {
-      totalPollTimeMs += pollIntervalMs;
+      totalPollTimeMs += pollIntervalMs.toMillis();
       final ConsumerRecords<K, V> records = consumer.poll(pollIntervalMs);
       for (final ConsumerRecord<K, V> record : records) {
         consumedValues.add(new KeyValue<>(record.key(), record.value()));

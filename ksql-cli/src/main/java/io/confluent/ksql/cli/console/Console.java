@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
+import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.cli.console.table.builder.CommandStatusTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
@@ -66,9 +67,11 @@ import io.confluent.ksql.util.HandlerMap.Handler;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.function.Supplier;
@@ -410,7 +413,14 @@ public abstract class Console implements Closeable {
       return;
     }
 
-    new PropertiesListTableBuilder().print(overriddenProperties)
+    final List<List<String>> rows = overriddenProperties.entrySet().stream()
+        .sorted(Entry.comparingByKey())
+        .map(prop -> Arrays.asList(prop.getKey(), "", Objects.toString(prop.getValue())))
+        .collect(Collectors.toList());
+
+    new Builder()
+        .withColumnHeaders("Property", "Value")
+        .withRows(rows)
         .withHeaderLine(String.format(
             "%n%-20s%n%-20s",
             "Overridden Properties",

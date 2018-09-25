@@ -27,8 +27,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
@@ -78,22 +81,24 @@ public class CliUtils {
     }
   }
 
-  public static Map<String, Object> propertiesListWithOverrides(
-      final PropertiesList propertiesList) {
-    return propertiesList.getProperties().entrySet()
-        .stream()
-        .collect(
-            Collectors.toMap(
-              e ->
-                  propertiesList.getOverwrittenProperties().contains(e.getKey())
-                      ? e.getKey() + " (LOCAL OVERRIDE)" : e.getKey(),
-              e -> e.getValue() == null ? "null" : e.getValue()
-            )
-        );
-  }
+  public static List<PropertyDef> propertiesListWithOverrides(final PropertiesList properties) {
 
-  public static String getLocalServerAddress(final int portNumber) {
-    return String.format("http://localhost:%d", portNumber);
+    final Function<Entry<String, ?>, PropertyDef> toPropertyDef = e -> {
+      final String value = e.getValue() == null ? "NULL" : e.getValue().toString();
+      if (properties.getOverwrittenProperties().contains(e.getKey())) {
+        return new PropertyDef(e.getKey(), "SESSION", value);
+      }
+
+      if (properties.getDefaultProperties().contains(e.getKey())) {
+        return new PropertyDef(e.getKey(), "", value);
+      }
+
+      return new PropertyDef(e.getKey(), "SERVER", value);
+    };
+
+    return properties.getProperties().entrySet().stream()
+        .map(toPropertyDef)
+        .collect(Collectors.toList());
   }
 
   public static boolean createFile(final Path path) {
@@ -111,6 +116,61 @@ public class CliUtils {
     } catch (final Exception e) {
       log.warn("createFile failed, path: {}", path, e);
       return false;
+    }
+  }
+
+  public static class PropertyDef {
+    private final String propertyName;
+    private final String overrideType;
+    private final String effectiveValue;
+
+    PropertyDef(
+        final String propertyName,
+        final String overrideType,
+        final String effectiveValue) {
+      this.propertyName = Objects.requireNonNull(propertyName, "propertyName");
+      this.overrideType = Objects.requireNonNull(overrideType, "overrideType");
+      this.effectiveValue = Objects.requireNonNull(effectiveValue, "effectiveValue");
+    }
+
+    public String getPropertyName() {
+      return propertyName;
+    }
+
+    public String getOverrideType() {
+      return overrideType;
+    }
+
+    public String getEffectiveValue() {
+      return effectiveValue;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final PropertyDef that = (PropertyDef) o;
+      return Objects.equals(propertyName, that.propertyName)
+          && Objects.equals(overrideType, that.overrideType)
+          && Objects.equals(effectiveValue, that.effectiveValue);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(propertyName, overrideType, effectiveValue);
+    }
+
+    @Override
+    public String toString() {
+      return "PropertyDef{"
+          + "propertyName='" + propertyName + '\''
+          + ", overrideType='" + overrideType + '\''
+          + ", effectiveValue='" + effectiveValue + '\''
+          + '}';
     }
   }
 }

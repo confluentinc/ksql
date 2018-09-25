@@ -314,7 +314,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-deprecation</arg>
+                        <arg>-Xlint:all,-options,-path</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>
@@ -341,11 +341,10 @@
             </plugin>
 
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>${findbugs-maven-plugin.version}</version>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.maven.plugin.version}</version>
                 <configuration>
-                    <findbugsXmlOutput>true</findbugsXmlOutput>
                     <xmlOutput>true</xmlOutput>
                     <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
                     <effort>Max</effort>

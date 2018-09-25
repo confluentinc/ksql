@@ -22,6 +22,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -101,13 +102,16 @@ import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -115,6 +119,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class KsqlResourceTest {
   private KsqlConfig ksqlConfig;
+  private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine ksqlEngine;
 
@@ -122,8 +127,7 @@ public class KsqlResourceTest {
   public void setUp() throws IOException, RestClientException {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
-    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(
-        TestKsqlResourceUtil.getDefaultKsqlConfig());
+    ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
     ksqlEngine = TestUtils.createKsqlEngine(
@@ -873,7 +877,7 @@ public class KsqlResourceTest {
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final Response response = handleKsqlStatements(
         testResource,
-        new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", "100")));
+        new KsqlRequest(ksqlString, Collections.singletonMap("auto.offset.reset", "latest")));
 
     assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
@@ -883,7 +887,7 @@ public class KsqlResourceTest {
     final PropertiesList propertiesList = (PropertiesList)entityList.get(0);
     assertThat(
         propertiesList.getProperties().get("ksql.streams.auto.offset.reset"),
-        equalTo("100"));
+        equalTo("latest"));
     assertThat(
         propertiesList.getOverwrittenProperties(),
         hasItem(equalTo("ksql.streams.auto.offset.reset")));
@@ -896,14 +900,55 @@ public class KsqlResourceTest {
     final Response response
         = handleKsqlStatements(testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
 
-
     assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
     final KsqlEntityList entityList = (KsqlEntityList)response.getEntity();
     assertThat(entityList.size(), equalTo(1));
     assertThat(entityList.get(0), instanceOf(PropertiesList.class));
     final PropertiesList propertiesList = (PropertiesList)entityList.get(0);
-    assertThat(propertiesList.getOverwrittenProperties().size(), equalTo(0));
+    assertThat(propertiesList.getOverwrittenProperties(), is(empty()));
+  }
+
+  @Test
+  public void shouldListPropertiesWithDefault() {
+    final String ksqlString = "list properties;";
+    final Map<String, Object> originals = ksqlRestConfig.getKsqlConfigProperties();
+    originals.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/kafka-streams");  //<-default
+    originals.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
+        + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "101");
+    originals.put(StreamsConfig.PRODUCER_PREFIX
+        + ProducerConfig.BUFFER_MEMORY_CONFIG, "102");
+    originals.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CLIENT_ID_CONFIG, "custom-id");
+    originals.put(StreamsConfig.RETRIES_CONFIG, 69);
+    ksqlConfig = new KsqlConfig(originals);
+
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final Response response = handleKsqlStatements(
+        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
+
+    assertThat(response.getStatus(), equalTo(Response.Status.OK.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
+    final KsqlEntityList entityList = (KsqlEntityList)response.getEntity();
+    assertThat(entityList.size(), equalTo(1));
+    assertThat(entityList.get(0), instanceOf(PropertiesList.class));
+    final PropertiesList props = (PropertiesList)entityList.get(0);
+
+    assertThat(props.getDefaultProperties(),
+        hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG));
+
+    assertThat(props.getDefaultProperties(),
+        not(hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
+        + ConsumerConfig.FETCH_MIN_BYTES_CONFIG)));
+
+    assertThat(props.getDefaultProperties(),
+        not(hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX
+            + ProducerConfig.BUFFER_MEMORY_CONFIG)));
+
+    assertThat(props.getDefaultProperties(),
+        not(hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CLIENT_ID_CONFIG)));
+
+    assertThat(props.getDefaultProperties(),
+        not(hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.RETRIES_CONFIG)));
   }
 
   private void registerSchema(final SchemaRegistryClient schemaRegistryClient)
@@ -925,7 +970,5 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
                                   avroSchema);
-
   }
-
 }

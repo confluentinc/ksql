@@ -88,7 +88,8 @@ public class KsqlEngine implements Closeable {
 
   // TODO: Decide if any other properties belong in here
   private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.of(
-      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
+      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+      KsqlConfig.KSQL_EXT_DIR
   );
 
   private final MetaStore metaStore;

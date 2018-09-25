@@ -28,9 +28,9 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
@@ -147,9 +147,8 @@ public class KsqlParser {
 
   private ParserRuleContext getParseTree(final String sql) {
 
-    final SqlBaseLexer
-        sqlBaseLexer =
-        new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
+    final SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(
+        new CaseInsensitiveStream(CharStreams.fromString(sql)));
     final CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
     final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
 
@@ -160,21 +159,19 @@ public class KsqlParser {
     sqlBaseParser.addErrorListener(ERROR_LISTENER);
 
     final Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
-    ParserRuleContext tree;
+
     try {
       // first, try parsing with potentially faster SLL mode
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
-      tree = parseFunction.apply(sqlBaseParser);
+      return parseFunction.apply(sqlBaseParser);
     } catch (final ParseCancellationException ex) {
       // if we fail, parse with LL mode
-      tokenStream.reset(); // rewind input stream
+      tokenStream.seek(0); // rewind input stream
       sqlBaseParser.reset();
 
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
-      tree = parseFunction.apply(sqlBaseParser);
+      return parseFunction.apply(sqlBaseParser);
     }
-
-    return tree;
   }
 
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {

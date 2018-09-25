@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DdlCommand;
@@ -114,6 +115,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -467,16 +469,29 @@ public class KsqlResource {
 
   private PropertiesList listProperties(final String statementText,
                                         final Map<String, Object> overwriteProperties) {
+    final KsqlConfigResolver resolver = new KsqlConfigResolver();
+
     final Map<String, String> engineProperties
         = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-    final Map<String, String> mergedProperties
-        = ksqlConfig.cloneWithPropertyOverwrite(overwriteProperties)
-            .getAllConfigPropsWithSecretsObfuscated();
-    final List<String> overwritten = mergedProperties.keySet()
+
+    final Map<String, String> mergedProperties = ksqlConfig
+        .cloneWithPropertyOverwrite(overwriteProperties)
+        .getAllConfigPropsWithSecretsObfuscated();
+
+    final List<String> overwritten = mergedProperties.entrySet()
         .stream()
-        .filter(k -> !Objects.equals(engineProperties.get(k), mergedProperties.get(k)))
+        .filter(e -> !Objects.equals(engineProperties.get(e.getKey()), e.getValue()))
+        .map(Entry::getKey)
         .collect(Collectors.toList());
-    return new PropertiesList(statementText, mergedProperties, overwritten);
+
+    final List<String> defaultProps = mergedProperties.entrySet().stream()
+        .filter(e -> resolver.resolve(e.getKey(), false)
+            .map(resolved -> resolved.isDefaultValue(e.getValue()))
+            .orElse(false))
+        .map(Entry::getKey)
+        .collect(Collectors.toList());
+
+    return new PropertiesList(statementText, mergedProperties, overwritten, defaultProps);
   }
 
   private KsqlEntity listStreams(final String statementText, final boolean showDescriptions) {

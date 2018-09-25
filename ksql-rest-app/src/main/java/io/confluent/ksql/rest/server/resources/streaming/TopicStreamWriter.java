@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -39,7 +41,7 @@ public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
   private final Long interval;
-  private final long disconnectCheckInterval;
+  private final Duration disconnectCheckInterval;
   private final KafkaConsumer<String, Bytes> topicConsumer;
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
@@ -51,14 +53,15 @@ public class TopicStreamWriter implements StreamingOutput {
       final Map<String, Object> consumerProperties,
       final String topicName,
       final long interval,
-      final long disconnectCheckInterval,
+      final Duration disconnectCheckInterval,
       final boolean fromBeginning
   ) {
     this.schemaRegistryClient = schemaRegistryClient;
     this.topicName = topicName;
     this.messagesWritten = 0;
 
-    this.disconnectCheckInterval = disconnectCheckInterval;
+    this.disconnectCheckInterval = Objects
+        .requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
 
     this.topicConsumer = new KafkaConsumer<>(
         consumerProperties,
@@ -79,6 +82,7 @@ public class TopicStreamWriter implements StreamingOutput {
     this.interval = interval;
   }
 
+  @SuppressWarnings("InfiniteLoopStatement")
   @Override
   public void write(final OutputStream out) {
     try {

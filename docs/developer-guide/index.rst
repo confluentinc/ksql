@@ -12,4 +12,6 @@ These topics show how to develop KSQL applications for |cp|.
     ../installation/cli-config
     syntax-reference
     api
+    udf
     ../tutorials/index
+    

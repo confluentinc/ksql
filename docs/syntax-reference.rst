@@ -1131,7 +1131,7 @@ Scalar functions
 |                        |                                                            | will return ``Xx-Xest $123``.                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``        | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that only the last or rightt-most ``numChars``    |
+|                        |                                                            | that only the last or right-most ``numChars``     |
 |                        |                                                            | characters will have any masking applied to them. |
 |                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
 |                        |                                                            | will return ``My Test -nnn``.                     |
@@ -1184,6 +1184,14 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | Function               | Example                   | Description                                                         |
 +========================+===========================+=====================================================================+
+| COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Return an array containing all the values of ``col1`` from each     |
+|                        |                           | input row (for the specified grouping and time window, if any).     |
+|                        |                           | Currently only works for simple types (not Map, Array, or Struct).  |
++------------------------+---------------------------+---------------------------------------------------------------------+
+| COLLECT_SET            | ``COLLECT_SET(col1)``     | Return an array containing the distinct values of ``col1`` from     |
+|                        |                           | each input row (for the specified grouping and time window, if any).|
+|                        |                           | Currently only works for simple types (not Map, Array, or Struct).  |
++------------------------+---------------------------+---------------------------------------------------------------------+
 | COUNT                  | ``COUNT(col1)``           |  Count the number of rows                                           |
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | MAX                    | ``MAX(col1)``             |  Return the maximum value for a given column and window             |

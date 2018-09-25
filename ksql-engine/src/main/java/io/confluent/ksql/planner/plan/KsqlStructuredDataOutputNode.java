@@ -128,6 +128,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
         sourceTopicProperties.getReplicas());
 
+    // Only check for topic properties if we have either partions or replicas properties in
+    // the WITH clause.
+    final boolean checkTopicProperties =
+        outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
+        || outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+
     final SchemaKStream result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
@@ -144,7 +150,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           kafkaTopicClient,
           shouldBeCompacted(result),
           partitions,
-          replicas);
+          replicas,
+          checkTopicProperties);
     }
     result.into(
         noRowKey.getKafkaTopicName(),
@@ -223,7 +230,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KafkaTopicClient kafkaTopicClient,
       final boolean isCompacted,
       final int numberOfPartitions,
-      final short numberOfReplications
+      final short numberOfReplications,
+      final boolean checkTopicProperties
   ) {
     final Map<String, ?> config = isCompacted
         ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
@@ -232,6 +240,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     kafkaTopicClient.createTopic(kafkaTopicName,
                                  numberOfPartitions,
                                  numberOfReplications,
+                                 checkTopicProperties,
                                  config
     );
   }

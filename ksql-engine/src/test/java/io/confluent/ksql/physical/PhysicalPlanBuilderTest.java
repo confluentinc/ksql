@@ -188,7 +188,7 @@ public class PhysicalPlanBuilderTest {
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -255,7 +255,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -287,7 +287,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -327,8 +327,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     // No need for setting the correct clean up policy in test.
-    kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
-    kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("t1", 1, (short) 1, false, Collections.emptyMap());
+    kafkaTopicClient.createTopic("s1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -357,7 +357,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -389,7 +389,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
@@ -598,7 +598,7 @@ public class PhysicalPlanBuilderTest {
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, false, Collections.emptyMap());
     final KsqlEngine ksqlEngine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,

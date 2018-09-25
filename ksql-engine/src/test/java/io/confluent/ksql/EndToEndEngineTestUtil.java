@@ -524,7 +524,7 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final KsqlEngine ksqlEngine) {
       for (final Topic topic : topics) {
-        ksqlEngine.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
+        ksqlEngine.getTopicClient().createTopic(topic.getName(), 1, (short) 1, false);
         if (topic.getSchema() != null) {
           try {
             ksqlEngine.getSchemaRegistryClient().register(

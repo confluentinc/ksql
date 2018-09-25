@@ -65,8 +65,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final Map<String, Object> props = new HashMap<>();
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
-    kafkaTopicClient.createTopic("pageview_topic", 1, (short) 1);
-    kafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1);
+    kafkaTopicClient.createTopic("pageview_topic", 1, (short) 1, false);
+    kafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, false);
 
     ksqlConfig = new KsqlConfig(props);
     ksqlEngine = TestUtils.createKsqlEngine(

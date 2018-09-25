@@ -90,9 +90,9 @@ public class JsonFormatTest {
   }
 
   private void createInitTopics() {
-    topicClient.createTopic(inputTopic, 1, (short) 1);
-    topicClient.createTopic(usersTopic, 1, (short) 1);
-    topicClient.createTopic(messageLogTopic, 1, (short) 1);
+    topicClient.createTopic(inputTopic, 1, (short) 1, false);
+    topicClient.createTopic(usersTopic, 1, (short) 1, false);
+    topicClient.createTopic(messageLogTopic, 1, (short) 1, false);
   }
 
   private void produceInitData() throws Exception {

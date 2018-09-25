@@ -160,7 +160,7 @@ public class KafkaTopicClientImplIntegrationTest {
     final String topicName = UUID.randomUUID().toString();
 
     // When:
-    client.createTopic(topicName, 3, (short) 1);
+    client.createTopic(topicName, 3, (short) 1, false);
 
     // Then:
     assertThatEventually(() -> topicExists(topicName), is(true));
@@ -177,7 +177,7 @@ public class KafkaTopicClientImplIntegrationTest {
         TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy");
 
     // When:
-    client.createTopic(topicName, 2, (short) 1, config);
+    client.createTopic(topicName, 2, (short) 1, false, config);
 
     // Then:
     assertThatEventually(() -> topicExists(topicName), is(true));

@@ -98,7 +98,7 @@ public class IntegrationTestHarness {
     }
   }
   public void createTopic(final String topicName, final int numPartitions, final short replicatonFactor) {
-    topicClient.createTopic(topicName, numPartitions, replicatonFactor);
+    topicClient.createTopic(topicName, numPartitions, replicatonFactor, false);
   }
 
   /**

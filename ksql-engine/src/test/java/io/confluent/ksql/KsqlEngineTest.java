@@ -99,11 +99,12 @@ public class KsqlEngineTest {
       new DefaultKafkaClientSupplier(),
       metaStore,
       ksqlConfig);
+
   @Before
   public void init() {
     metaStore.getAllKsqlTopics().forEach(
         (s, ksqlTopic) -> {
-          topicClient.createTopic(ksqlTopic.getKafkaTopicName(), 1, (short) 1);
+          topicClient.createTopic(ksqlTopic.getKafkaTopicName(), 1, (short) 1, false);
         }
     );
   }
@@ -196,7 +197,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldEnforceTopicExistenceCorrectly() throws Exception {
-    topicClient.createTopic("s1_topic", 1, (short) 1);
+    topicClient.createTopic("s1_topic", 1, (short) 1, false);
     final StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
@@ -288,7 +289,7 @@ public class KsqlEngineTest {
         .record("Test").fields()
         .name("field").type().intType().noDefault()
         .endRecord();
-    topicClient.createTopic("bar", 1, (short) 1);
+    topicClient.createTopic("bar", 1, (short) 1, false);
     ksqlEngine.getSchemaRegistryClient().register("bar-value", schema);
     ksqlEngine.buildMultipleQueries(
         "create stream bar with (value_format='avro', kafka_topic='bar');",

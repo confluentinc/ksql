@@ -111,7 +111,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic("test", 1, (short) 1);
+    kafkaTopicClient.createTopic("test", 1, (short) 1, true);
     verify(adminClient);
   }
 
@@ -122,7 +122,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 1, true);
     verify(adminClient);
   }
 
@@ -133,7 +133,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 2, true);
     verify(adminClient);
   }
 
@@ -145,7 +145,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 1, true);
     verify(adminClient);
   }
 
@@ -160,7 +160,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult()).once();
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 1, true);
     verify(adminClient);
   }
 
@@ -298,6 +298,7 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.createTopic(topicName1,
                                  1,
                                  (short) 1,
+                                 true,
                                  Collections.singletonMap("cleanup.policy", "compact"));
     verify(adminClient);
   }

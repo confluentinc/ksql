@@ -446,6 +446,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
           commandTopic,
           1,
           replicationFactor,
+          true,
           Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
       );
     } catch (final KafkaTopicException e) {

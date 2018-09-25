@@ -219,14 +219,14 @@ public class KsqlResourceTest {
       addSource(
           metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
           "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
-      kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
+      kafkaTopicClient.createTopic("orders-topic", 1, (short)1, false);
     }
 
     public static void addSource(
         final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient, final DataSource.DataSourceType type, final String sourceName,
         final String topicName, final String ksqlTopicName, final Schema schema) {
       final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
-      kafkaTopicClient.createTopic(topicName, 1, (short)1);
+      kafkaTopicClient.createTopic(topicName, 1, (short)1, false);
       metaStore.putTopic(ksqlTopic);
       if (type == DataSource.DataSourceType.KSTREAM) {
         metaStore.putSource(

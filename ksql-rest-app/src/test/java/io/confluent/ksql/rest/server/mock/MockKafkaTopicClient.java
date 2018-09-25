@@ -34,6 +34,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(final String topic,
                           final int numPartitions,
                           final short replicationFactor,
+                          final boolean checkTopicProperties,
                           final Map<String, ?> configs) {
 
   }

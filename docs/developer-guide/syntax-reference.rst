@@ -198,7 +198,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-line: 2
     :end-line: 6
 
@@ -274,7 +274,7 @@ The WITH clause supports the following properties:
 |                         | according to the timestamp in ``ROWTIME``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-line: 2
     :end-line: 6
 
@@ -345,7 +345,7 @@ The WITH clause for the result supports the following properties:
 |               | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
 +---------------+------------------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-line: 2
     :end-line: 6
 
@@ -411,7 +411,7 @@ The WITH clause supports the following properties:
 |               | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +---------------+------------------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-line: 2
     :end-line: 6
 

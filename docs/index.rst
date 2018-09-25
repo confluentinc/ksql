@@ -80,6 +80,7 @@ KSQL Documentation
 
     quickstart
     installation/index
+    developer-guide/index
     operations
     capacity-planning
     tutorials/index

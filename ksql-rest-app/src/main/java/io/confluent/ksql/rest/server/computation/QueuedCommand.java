@@ -28,8 +28,8 @@ public class QueuedCommand {
                        final Optional<Command> command,
                        final Optional<QueuedCommandStatus> status) {
     this.commandId = Objects.requireNonNull(commandId);
-    this.command = command;
-    this.status = status;
+    this.command = Objects.requireNonNull(command);
+    this.status = Objects.requireNonNull(status);
   }
 
   public CommandId getCommandId() {

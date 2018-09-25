@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
@@ -58,9 +57,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
-import org.easymock.IMocksControl;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -73,8 +69,15 @@ public class CommandStoreTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
   private static final Map<String, Object> OVERRIDE_PROPERTIES = Collections.emptyMap();
 
-  private Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
-  private Producer<CommandId, Command> commandProducer = mock(Producer.class);
+  private final Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
+  private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
+  private final String statementText = "test-statement";
+  private final CommandId commandId =
+      new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+  private final Statement statement = mock(Statement.class);
+  private final Future<RecordMetadata> future = niceMock(Future.class);
+  private final Command command =
+      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
 
   @Test
   public void shouldHaveAllCreateCommandsInOrder() {
@@ -107,38 +110,9 @@ public class CommandStoreTest {
         new Pair<>(createId, latestCommand))));
   }
 
-  private CommandIdAssigner buildSameIdAssigner() {
-    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
-    expect(commandIdAssigner.getCommandId(anyObject())).andStubAnswer(
-        () -> new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE)
-    );
-    replay(commandIdAssigner);
-    return commandIdAssigner;
-  }
-
-  private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
-    reset(commandConsumer);
-    expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
-        new ConsumerRecords<>(
-            Collections.singletonMap(
-                new TopicPartition("command-topic", 0),
-                Collections.singletonList(
-                    new ConsumerRecord<>(
-                        "command-topic", 0, 0, commandId, command)
-                ))
-        )
-    ).times(1);
-    replay(commandConsumer);
-  }
-
   @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
-    final Future<RecordMetadata> future = niceMock(Future.class);
-    final CommandStore commandStore = createCommandStore(commandIdAssigner);
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     expect(commandProducer.send(anyObject())).andReturn(future);
@@ -157,12 +131,7 @@ public class CommandStoreTest {
 
   @Test
   public void shouldCleanupCommandStatusOnProduceError() {
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
-    final Future<RecordMetadata> future = niceMock(Future.class);
-    final CommandStore commandStore = createCommandStore(commandIdAssigner);
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     expect(commandProducer.send(anyObject())).andThrow(new RuntimeException("oops")).times(1);
@@ -184,18 +153,7 @@ public class CommandStoreTest {
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() throws InterruptedException, ExecutionException {
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
-    final Future<RecordMetadata> future = mock(Future.class);
-    final Command command = new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
-    final CommandId commandId = commandIdAssigner.getCommandId(null);
-    final CommandStore commandStore = new CommandStore(
-        COMMAND_TOPIC,
-        commandConsumer,
-        commandProducer,
-        commandIdAssigner);
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     setupConsumerToReturnCommand(commandId, command);
@@ -215,24 +173,13 @@ public class CommandStoreTest {
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    verify(commandIdAssigner, future, commandProducer, commandConsumer);
+    verify(future, commandProducer, commandConsumer);
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands()
       throws ExecutionException, InterruptedException {
-    final String statementText = "test-statement";
-
-    final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = buildSameIdAssigner();
-    final Future<RecordMetadata> future = mock(Future.class);
-    final CommandId commandId = commandIdAssigner.getCommandId(null);
-    final Command command = new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
-    final CommandStore commandStore = new CommandStore(
-        COMMAND_TOPIC,
-        commandConsumer,
-        commandProducer,
-        commandIdAssigner);
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     setupConsumerToReturnCommand(commandId, command);
@@ -256,7 +203,7 @@ public class CommandStoreTest {
 
     // Then:
     // verifying the commandProducer also verifies the assertions in its IAnswer were run
-    verify(commandIdAssigner, future, commandProducer, commandConsumer);
+    verify(future, commandProducer, commandConsumer);
   }
 
   @Test
@@ -268,21 +215,18 @@ public class CommandStoreTest {
     final String statementText = "test-statement";
 
     final Statement statement = mock(Statement.class);
-    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
     final Capture<ProducerRecord<CommandId, Command>> recordCapture = Capture.newInstance();
     final Future<RecordMetadata> future = mock(Future.class);
 
-    final CommandId commandId = new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
-    expect(commandIdAssigner.getCommandId(statement)).andReturn(commandId);
     expect(commandProducer.send(capture(recordCapture))).andReturn(future);
     future.get();
     expectLastCall().andReturn(null);
-    replay(commandIdAssigner, commandProducer, future);
+    replay(commandProducer, future);
 
-    final CommandStore commandStore = createCommandStore(commandIdAssigner);
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
     commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
 
-    verify(commandIdAssigner, commandProducer, future);
+    verify(commandProducer, future);
 
     final ProducerRecord<CommandId, Command> record = recordCapture.getValue();
     assertThat(record.key(), equalTo(commandId));
@@ -311,6 +255,30 @@ public class CommandStoreTest {
     assertThat(restoreCommands.terminatedQueries(), equalTo(Collections.singletonMap(new QueryId("queryId"), terminated)));
   }
 
+  private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
+    reset(commandConsumer);
+    expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
+        new ConsumerRecords<>(
+            Collections.singletonMap(
+                new TopicPartition("command-topic", 0),
+                Collections.singletonList(
+                    new ConsumerRecord<>(
+                        "command-topic", 0, 0, commandId, command)
+                ))
+        )
+    ).times(1);
+    replay(commandConsumer);
+  }
+
+  private CommandStore createCommandStoreThatAssignsSameId(final CommandId commandId) {
+    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
+    expect(commandIdAssigner.getCommandId(anyObject())).andStubAnswer(
+        () -> new CommandId(commandId.getType(), commandId.getEntity(), commandId.getAction())
+    );
+    replay(commandIdAssigner);
+    return createCommandStore(commandIdAssigner);
+  }
+
   private CommandStore createCommandStore() {
     return createCommandStore(new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry())));
   }
@@ -329,5 +297,4 @@ public class CommandStoreTest {
     priorCommands.forEach(((id, cmd, terminatedQueries, droppedEntities) -> commands.add(new Pair<>(id, cmd))));
     return commands;
   }
-
 }

@@ -106,6 +106,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -113,7 +114,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -335,7 +335,7 @@ public class KsqlResource {
           statementText,
           queuedCommandStatus.getCommandId(),
           queuedCommandStatus.tryWaitForFinalStatus(
-              distributedCommandResponseTimeout, TimeUnit.MILLISECONDS)
+              Duration.ofMillis(distributedCommandResponseTimeout))
       );
     } catch (final Exception e) {
       throw new RuntimeException(e);

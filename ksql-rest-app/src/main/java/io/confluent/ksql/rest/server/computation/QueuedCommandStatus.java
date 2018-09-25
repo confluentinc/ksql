@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -46,10 +47,10 @@ public class QueuedCommandStatus {
     return commandStatus;
   }
 
-  public CommandStatus tryWaitForFinalStatus(final long timeout, final TimeUnit timeUnit)
+  public CommandStatus tryWaitForFinalStatus(final Duration timeout)
       throws InterruptedException {
     try {
-      return future.get(timeout, timeUnit);
+      return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
       throw new RuntimeException("Error executing command " + commandId, e.getCause());
     } catch (final TimeoutException e) {

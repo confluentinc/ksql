@@ -92,8 +92,5 @@ KSQL Documentation
     operations
     capacity-planning
     tutorials/index
-    syntax-reference
-    udf
-    api
     faq
     changelog

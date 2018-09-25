@@ -251,7 +251,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
@@ -337,7 +337,7 @@ The WITH clause supports the following properties:
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
@@ -423,7 +423,7 @@ The WITH clause for the result supports the following properties:
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
@@ -504,7 +504,7 @@ The WITH clause supports the following properties:
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
-.. include:: includes/ksql-includes.rst
+.. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 

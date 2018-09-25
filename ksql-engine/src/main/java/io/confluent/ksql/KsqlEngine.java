@@ -366,8 +366,6 @@ public class KsqlEngine implements Closeable {
       }
 
       return new PreparedStatement(statementString, statement);
-      //    } catch (final KsqlException e) {
-      //   throw e;  -> KsqlEngineTest::shouldFailIfReferenialIntegityVolated
     } catch (final Exception e) {
       throw new ParseFailedException(
           "Exception while processing statement: " + e.getMessage(), statementString, e);

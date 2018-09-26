@@ -1,11 +1,11 @@
 .. _install_ksql-avro-schema:
 
-Avro and Schema Registry
-========================
+Avro and |sr|
+=============
 
 KSQL can read and write messages in Avro format by integrating with :ref:`Confluent Schema Registry <schemaregistry_intro>`.
 KSQL automatically retrieves (read) and registers (write) Avro schemas as needed and thus saves you from both having to
-manually define columns and data types in KSQL and from manual interaction with the Schema Registry.
+manually define columns and data types in KSQL and from manual interaction with |sr|.
 
 .. contents:: Contents
     :local:

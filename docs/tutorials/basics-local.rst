@@ -11,7 +11,7 @@ this Kafka cluster. KSQL is installed in the |cp| by default.
 **Prerequisites:**
 
 - :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
-  |zk|, Schema Registry, REST Proxy, and Kafka Connect.
+  |zk|, |sr|, REST Proxy, and Kafka Connect.
 - If you installed |cp| via TAR or ZIP, navigate into the installation directory. The paths and commands used throughout
   this tutorial assume that your are in this installation directory.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine

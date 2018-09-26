@@ -26,11 +26,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
 public class KsqlConfig extends AbstractConfig implements Cloneable {
@@ -181,6 +183,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final ConfigDef CURRENT_DEF = buildConfigDef(true);
   public static final ConfigDef LEGACY_DEF = buildConfigDef(false);
+  public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
 
   private static ConfigDef configDef(final boolean current) {
     return current ? CURRENT_DEF : LEGACY_DEF;
@@ -407,9 +410,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     originalsWithPrefix(KSQ_FUNCTIONS_PROPERTY_PREFIX, false)
         .forEach((key, value) -> props.put(key, "[hidden]"));
 
-    configDef(true).names().forEach(
-        key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key)))
-    );
+    configDef(true).names().stream()
+        .filter(key -> !SSL_CONFIG_NAMES.contains(key))
+        .forEach(
+            key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key))));
 
     return Collections.unmodifiableMap(props);
   }
@@ -464,5 +468,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));
     return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
+  }
+
+  private static Set<String> sslConfigNames() {
+    final ConfigDef sslConfig = new ConfigDef();
+    SslConfigs.addClientSslSupport(sslConfig);
+    return sslConfig.names();
   }
 }

@@ -347,7 +347,6 @@ public class KsqlConfigTest {
 
     // Then:
     assertThat(result.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG), is("not sensitive"));
-    assertThat(result.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG), is("[hidden]"));
   }
 
   @Test

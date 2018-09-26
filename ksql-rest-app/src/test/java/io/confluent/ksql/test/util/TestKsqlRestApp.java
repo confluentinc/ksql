@@ -95,30 +95,12 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @SuppressWarnings("unused") // Part of public API
   public URI getHttpListener() {
-    final URL url = getListeners().stream()
-        .filter(l -> l.getProtocol().equals("http"))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("No HTTP Listener found: "));
-
-    try {
-      return url.toURI();
-    } catch (final Exception e) {
-      throw new RuntimeException("Invalid REST listener", e);
-    }
+    return getListener("HTTP");
   }
 
   @SuppressWarnings("unused") // Part of public API
   public URI getHttpsListener() {
-    final URL url = getListeners().stream()
-        .filter(l -> l.getProtocol().equals("https"))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("No HTTPS Listener found: "));
-
-    try {
-      return url.toURI();
-    } catch (final Exception e) {
-      throw new RuntimeException("Invalid REST listener", e);
-    }
+    return getListener("HTTPS");
   }
 
   @SuppressWarnings("unused") // Part of public API
@@ -185,6 +167,19 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public static Builder builder(final Supplier<String> bootstrapServers) {
     return new Builder(bootstrapServers);
+  }
+
+  private URI getListener(final String protocol) {
+    final URL url = getListeners().stream()
+        .filter(l -> l.getProtocol().equalsIgnoreCase(protocol))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("No " + protocol + " Listener found"));
+
+    try {
+      return url.toURI();
+    } catch (final Exception e) {
+      throw new IllegalStateException("Invalid REST listener", e);
+    }
   }
 
   private KsqlRestConfig buildConfig() {

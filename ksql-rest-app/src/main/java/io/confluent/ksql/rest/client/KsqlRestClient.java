@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
@@ -129,16 +128,6 @@ public class KsqlRestClient implements Closeable {
     return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
   }
 
-
-  public RestResponse<KsqlEntityList> makeTerminateClusterRequest() {
-    final KsqlRequest jsonRequest =
-        new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, localProperties.toMap());
-    return postRequest(
-        "ksql/terminate",
-        jsonRequest,
-        true,
-        response1 -> response1.readEntity(KsqlEntityList.class));
-  }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
     return getRequest("status", CommandStatuses.class);

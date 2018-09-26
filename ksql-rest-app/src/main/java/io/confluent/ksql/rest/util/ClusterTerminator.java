@@ -27,8 +27,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -39,24 +37,32 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.producer.Producer;
 
 public class ClusterTerminator {
 
-  @SuppressWarnings("unchecked")
-  public void terminateCluster(
+  private final KsqlConfig ksqlConfig;
+  private final KsqlEngine ksqlEngine;
+  private final List<String> sourcesList;
+  private final boolean isKeep;
+
+  public ClusterTerminator(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final List<String> sourcesList,
-      final boolean isKeep,
-      final Consumer<CommandId, Command> commandConsumer,
-      final Producer<CommandId, Command> commandProducer
+      final boolean isKeep
   ) {
+    this.ksqlConfig = ksqlConfig;
+    this.ksqlEngine = ksqlEngine;
+    this.sourcesList = sourcesList;
+    this.isKeep = isKeep;
+  }
+
+  @SuppressWarnings("unchecked")
+  public void terminateCluster() {
     ksqlEngine.stopAcceptingStatemens();
     terminateCluster(ksqlEngine, sourcesList, isKeep);
     // Delete the command topic
-    deleteCommandTopic(ksqlConfig, ksqlEngine, commandConsumer, commandProducer);
+    deleteCommandTopic(ksqlConfig, ksqlEngine);
   }
 
   private void terminateCluster(
@@ -64,18 +70,7 @@ public class ClusterTerminator {
       final List<String> sourcesList,
       final boolean isKeep
   ) {
-    // Terminate all queries
-    getListForSet(ksqlEngine).forEach(
-        queryMetadata -> {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMetadata
-                = (PersistentQueryMetadata) queryMetadata;
-            ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
-          }  else {
-            queryMetadata.close();
-          }
-        }
-    );
+    terminateAllQueries();
 
     // if we have the explicit list of stream/table to delete.
     final MetaStore metaStore = ksqlEngine.getMetaStore();
@@ -101,6 +96,20 @@ public class ClusterTerminator {
     }
   }
 
+  private void terminateAllQueries() {
+    getListForSet(ksqlEngine).forEach(
+        queryMetadata -> {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            final PersistentQueryMetadata persistentQueryMetadata
+                = (PersistentQueryMetadata) queryMetadata;
+            ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
+          }  else {
+            queryMetadata.close();
+          }
+        }
+    );
+  }
+
   // This is needed because the checkstyle complains if we create this in place.
   private List<QueryMetadata> getListForSet(
       final KsqlEngine ksqlEngine
@@ -114,6 +123,9 @@ public class ClusterTerminator {
       final String sourceName,
       final StructuredDataSource structuredDataSource,
       final KsqlEngine ksqlEngine) {
+    if (structuredDataSource == null) {
+      return;
+    }
     final DdlCommand ddlCommand = new DropSourceCommand(
         getAbstractStreamDropStatement(sourceName,
             structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM),
@@ -126,7 +138,7 @@ public class ClusterTerminator {
     ddlCommandExec.execute(ddlCommand, false);
   }
 
-  private AbstractStreamDropStatement getAbstractStreamDropStatement(
+  private static AbstractStreamDropStatement getAbstractStreamDropStatement(
       final String sourceName,
       final boolean isStream) {
     if (isStream) {
@@ -138,12 +150,7 @@ public class ClusterTerminator {
 
   private void deleteCommandTopic(
       final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final Consumer<CommandId, Command> commandConsumer,
-      final Producer<CommandId, Command> commandProducer) {
-    // Delete the command topic
-    commandConsumer.close();
-    commandProducer.close();
+      final KsqlEngine ksqlEngine) {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
     final KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();

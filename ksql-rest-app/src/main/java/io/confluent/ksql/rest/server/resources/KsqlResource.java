@@ -97,10 +97,8 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
-import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.rest.util.TerminateCluster.SourceListType;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -120,6 +118,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -160,61 +159,34 @@ public class KsqlResource {
 
   @POST
   @Path("/terminate")
-  @SuppressWarnings("unchecked")
   public Response terminateCluster(final KsqlRequest request) {
-    final String terminateClusterString = TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT;
     final KsqlEntityList result = new KsqlEntityList();
     try {
-      if (request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
-          && !request.getStreamsProperties()
-          .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)) {
-        return Errors.badRequest("You need to send "
-            + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
-            + " parameter as part of your request.");
+      final Optional<Response> validationResult = validateTerminateRequest(request);
+      if (validationResult.isPresent()) {
+        return validationResult.get();
       }
-      final List<String> sourcesList = request
-          .getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
-          && request.getStreamsProperties().get(TerminateCluster.SOURCES_LIST_PARAM_NAME)
-          instanceof List
-          ? ((List<String>) request.getStreamsProperties()
-          .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
-          .stream()
-          .map(String::toUpperCase).collect(Collectors.toList())
-          : Collections.emptyList();
-
-      final String sourcesListType = request.getStreamsProperties()
-          .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
-          ? request.getStreamsProperties()
-          .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME).toString()
-          : "";
-
-      if (request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
-          && (sourcesListType.equalsIgnoreCase("KEEP")
-          || sourcesListType.equalsIgnoreCase("DELETE"))
-          ) {
-        return Errors.badRequest("Invalid " + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
-            + " : " + sourcesListType + ". "
-            +  TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME + " can either be KEEP or DELETE.");
-      }
-
-      final TerminateCluster terminateCluster = new TerminateCluster(
-          sourcesList,
-          sourcesListType.equalsIgnoreCase("KEEP")
-      );
-      distributeStatement(
-          terminateClusterString,
-          terminateCluster,
+      result.add(distributeStatement(
+          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          processTerminateRequest(request),
           request.getStreamsProperties(),
           ksqlConfig
-      );
+      ));
     } catch (final Exception e) {
-      return Errors.serverErrorForStatement(e, terminateClusterString, result);
+      return Errors.serverErrorForStatement(
+          e,
+          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          result);
     }
     return Response.ok(result).build();
   }
 
+
+
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
 
     if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.badRequest("The cluster has been terminated. No new request will be accepted.");
@@ -376,7 +348,7 @@ public class KsqlResource {
         && !((statement instanceof SetProperty) || (statement instanceof UnsetProperty));
   }
 
-  private synchronized CommandStatusEntity distributeStatement(
+  private CommandStatusEntity distributeStatement(
       final String statementText,
       final Statement statement,
       final Map<String, Object> propertyOverrides,
@@ -830,5 +802,85 @@ public class KsqlResource {
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private TerminateCluster processTerminateRequest(final KsqlRequest request) {
+    final List<String> sourcesList = request
+        .getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+        && request.getStreamsProperties().get(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+        instanceof List
+        ? ((List<String>) request.getStreamsProperties()
+        .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
+        .stream()
+        .map(String::toUpperCase).collect(Collectors.toList())
+        : Collections.emptyList();
+
+    final String sourcesListType = request.getStreamsProperties()
+        .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+        ? request.getStreamsProperties()
+        .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME).toString()
+        : "";
+    return new TerminateCluster(
+        sourcesList,
+        sourcesListType.equalsIgnoreCase(String.valueOf(SourceListType.KEEP))
+    );
+  }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity, NPathComplexity
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
+  @SuppressWarnings("unchecked")
+  private Optional<Response> validateTerminateRequest(final KsqlRequest request) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity, NPathComplexity
+    // CHECKSTYLE_RULES.ON: NPathComplexity
+    if ((request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+        && !request.getStreamsProperties()
+        .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME))
+        || (!request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+        && request.getStreamsProperties()
+        .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME))) {
+      return Optional.of(Errors.badRequest("You need to send both "
+          + TerminateCluster.SOURCES_LIST_PARAM_NAME + " and "
+          + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
+          + " parameters as part of your request."));
+    }
+
+    final String sourcesListType = request.getStreamsProperties()
+        .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+        ? request.getStreamsProperties()
+        .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME).toString()
+        : "";
+
+    if (request.getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
+        && (!sourcesListType.equalsIgnoreCase(String.valueOf(SourceListType.KEEP))
+        && !sourcesListType.equalsIgnoreCase(String.valueOf(SourceListType.DELETE)))
+        ) {
+      return Optional.of(Errors.badRequest(
+          "Invalid " + TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME
+          + " : " + sourcesListType + ". "
+          +  TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME + " can either be KEEP or DELETE."));
+    }
+    if (sourcesListType.equalsIgnoreCase(String.valueOf(SourceListType.DELETE))) {
+      final List<String> sourcesList = request
+          .getStreamsProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          && request.getStreamsProperties().get(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+          instanceof List
+          ? ((List<String>) request.getStreamsProperties()
+          .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
+          .stream()
+          .map(String::toUpperCase).collect(Collectors.toList())
+          : Collections.emptyList();
+      final List<String> invlidNames = sourcesList.stream()
+          .filter(sourceName -> ksqlEngine.getMetaStore().getSource(sourceName) == null)
+          .collect(Collectors.toList());
+      if (!invlidNames.isEmpty()) {
+        return Optional.of(
+            Errors.badRequest("The following sources in the list do not exist: "
+                + invlidNames.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining("-", "{", "}"))));
+      }
+    }
+    return Optional.empty();
   }
 }

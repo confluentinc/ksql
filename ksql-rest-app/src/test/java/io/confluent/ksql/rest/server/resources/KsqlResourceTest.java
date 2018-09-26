@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isNull;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -70,6 +71,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -443,8 +445,51 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailPrintTopic() {
+<<<<<<< 35f6e99376982be18ce96ff32d1365e8596253f1
     // When:
     final KsqlErrorMessage result = makeFailingRequest("PRINT 'orders-topic';", Code.BAD_REQUEST);
+=======
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final String ksqlString = "PRINT 'orders-topic';";
+    final Response response = handleKsqlStatements(
+        testResource, new KsqlRequest(ksqlString, new HashMap<>()));
+    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
+  }
+
+  @Test
+  public void shouldFailForInvalidTerminateClusterParameters() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, Collections.singletonList("FOO"));
+    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final Response response = testResource.terminateCluster(ksqlRequest);
+    assertThat(response.getEntity().toString(), equalTo("You need to send both SOURCES_LIST and SOURCES_LIST_TYPE parameters as part of your request.\n"));
+  }
+
+  @Test
+  public void shouldFailForMisSpelledTerminateClusterParameters() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, Collections.singletonList("FOO"));
+    properties.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "KEEEP");
+    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final Response response = testResource.terminateCluster(ksqlRequest);
+    assertThat(response.getEntity().toString(), equalTo("Invalid SOURCES_LIST_TYPE : KEEEP. SOURCES_LIST_TYPE can either be KEEP or DELETE.\n"));
+  }
+
+
+  private void validateQueryDescription(
+      final String ksqlQueryString,
+      final Map<String, Object> overriddenProperties,
+      final KsqlEntity entity) {
+    final QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
+        ksqlQueryString, ksqlConfig, overriddenProperties).get(0);
+    validateQueryDescription(queryMetadata, overriddenProperties, entity);
+  }
+>>>>>>> Review feedback applied.
 
     // Then:
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));

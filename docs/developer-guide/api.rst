@@ -331,7 +331,8 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 Terminate A Cluster
 -------------------
 
-If you don't need your KSQL cluster anymore, you can terminate the cluster and clean up the resources using this endpoint. When a server receives a ``TERMINATE CLUSTER`` request, it writes a ``TERMINATE CLUSTER`` command into the command topic.
+If you don't need your KSQL cluster anymore, you can terminate the cluster and clean up the resources using this endpoint. When a server receives a ``TERMINATE CLUSTER`` request at ``/ksql/terminate`` endpoint, it writes a ``TERMINATE CLUSTER`` command into the command topic.
+Note that ``TERMINATE CLUSTER`` request can only be sent via the ``/ksql/terminate`` endpoint and you cannot send it via the CLI.
 When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes the following steps:
 
 -Sets the KSQL engine mode to ``NOT ACCEPTING NEW STATEMENTS`` so no new statement will be passed to the engine for execution.
@@ -353,7 +354,7 @@ When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes 
 
 You can customize the clean up process if you don't want to delete all of the Kafka topics associated with the streams/tables in the metastore:
 
-**Provide a List of Sourced to Keep**
+**Provide a List of Sources to Keep**
 If you want to keep a set of topics associated with streams/tables in the metastore, provide the list of stream/table names in your request along with the type of this list.
 This will clean up all topics belonging to the Streams/Tables in the metastore except for the ones that belong to the streams/tables that are in the ``SOURCES_LIST`` list.
 Note that you need to indicate the type of the list as ``KEEP`` by setting the value of ``SOURCES_LIST_TYPE`` parameter to ``KEEP``.

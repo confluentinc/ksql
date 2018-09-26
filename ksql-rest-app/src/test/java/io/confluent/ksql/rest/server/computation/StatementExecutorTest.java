@@ -546,7 +546,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(ddlCommandExec.execute(anyObject(), anyBoolean())).andReturn(ddlCommandResult).times(deleteCount);
     expect(ksqlEngine.getDdlCommandExec()).andReturn(ddlCommandExec).times(deleteCount);
 
-
     final StatementExecutor statementExecutor = new StatementExecutor(
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,

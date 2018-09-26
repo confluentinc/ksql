@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 import java.util.Objects;
@@ -23,18 +24,20 @@ import java.util.Optional;
 
 public class TerminateCluster extends Statement {
 
-  private final List<String> sourcesList;
-  private final boolean isKeep;
-
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
 
   public static final String SOURCES_LIST_PARAM_NAME = "SOURCES_LIST";
   public static final String SOURCES_LIST_TYPE_PARAM_NAME = "SOURCES_LIST_TYPE";
 
+  public enum SourceListType { KEEP, DELETE }
+
+  private final List<String> sourcesList;
+  private final boolean isKeep;
+
   public TerminateCluster(final List<String> sourcesList, final boolean isKeep) {
     super(Optional.empty());
     Objects.requireNonNull(sourcesList, "SOURCES_LIST cannot be null.");
-    this.sourcesList = sourcesList;
+    this.sourcesList = ImmutableList.copyOf(Objects.requireNonNull(sourcesList, "sourceList"));
     this.isKeep = isKeep;
   }
 

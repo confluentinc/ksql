@@ -108,9 +108,32 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   @SuppressWarnings("unused") // Part of public API
+  public URI getHttpsListener() {
+    final URL url = getListeners().stream()
+        .filter(l -> l.getProtocol().equals("https"))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("No HTTPS Listener found: "));
+
+    try {
+      return url.toURI();
+    } catch (final Exception e) {
+      throw new RuntimeException("Invalid REST listener", e);
+    }
+  }
+
+  @SuppressWarnings("unused") // Part of public API
   public URI getWsListener() {
     try {
       return WSURI.toWebsocket(getHttpListener());
+    } catch (URISyntaxException e) {
+      throw new RuntimeException("Invalid WS listener", e);
+    }
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public URI getWssListener() {
+    try {
+      return WSURI.toWebsocket(getHttpsListener());
     } catch (URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }

@@ -19,9 +19,9 @@ package io.confluent.ksql.rest.server.computation;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,30 +78,28 @@ public class CommandRunner implements Runnable, Closeable {
   }
 
   void fetchAndRunCommands() {
-    final ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
-    log.trace("Found {} new writes to command topic", records.count());
-    for (final ConsumerRecord<CommandId, Command> record : records) {
-      final CommandId commandId = record.key();
-      final Command command = record.value();
-      if (command != null) {
-        executeStatement(command, commandId);
-      }
-    }
+    final List<QueuedCommand> commands = commandStore.getNewCommands();
+    log.trace("Found {} new writes to command topic", commands.size());
+    commands.stream()
+        .filter(c -> c.getCommand().isPresent())
+        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
   }
 
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    * @throws Exception TODO: Refine this.
    */
-  public void processPriorCommands() throws Exception {
+  public void processPriorCommands() {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
     statementExecutor.handleRestoration(restoreCommands);
   }
 
-  private void executeStatement(final Command command, final CommandId commandId) {
+  private void executeStatement(final Command command,
+                                final CommandId commandId,
+                                final Optional<QueuedCommandStatus> status) {
     log.info("Executing statement: " + command.getStatement());
     try {
-      statementExecutor.handleStatement(command, commandId);
+      statementExecutor.handleStatement(command, commandId, status);
     } catch (final WakeupException wue) {
       throw wue;
     } catch (final Exception exception) {

@@ -491,7 +491,7 @@ public class KsqlResourceTest {
   public void shouldReturn5xxOnSystemError() {
     // Given:
     final KsqlEngine mockEngine = givenMockEngine(engine ->
-        EasyMock.expect(engine.getStatements(EasyMock.anyString()))
+        EasyMock.expect(engine.parseStatements(EasyMock.anyString()))
             .andThrow(new RuntimeException("internal error")));
 
     // When:
@@ -510,8 +510,8 @@ public class KsqlResourceTest {
     // Given:
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     final KsqlEngine mockEngine = givenMockEngine(engine -> {
-      EasyMock.expect(engine.getStatements(EasyMock.anyString()))
-          .andReturn(ksqlEngine.getStatements(ksqlString));
+      EasyMock.expect(engine.parseStatements(EasyMock.anyString()))
+          .andReturn(ksqlEngine.parseStatements(ksqlString));
 
       EasyMock.expect(engine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));

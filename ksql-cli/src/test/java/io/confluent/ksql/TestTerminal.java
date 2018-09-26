@@ -21,14 +21,17 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.jline.terminal.Terminal;
 
 public class TestTerminal extends Console {
 
   private final PrintWriter printWriter;
   private final StringWriter writer;
-  private TestResult output;
+  private TestResult.Builder output;
 
   public TestTerminal(final OutputFormat outputFormat, final KsqlRestClient restClient) {
     super(outputFormat, restClient);
@@ -40,11 +43,11 @@ public class TestTerminal extends Console {
   }
 
   public void resetTestResult(final boolean requireOrder) {
-    output = TestResult.init(requireOrder);
+    output = new TestResult.Builder();
   }
 
   public synchronized TestResult getTestResult() {
-    return output.copy();
+    return output.build();
   }
 
   public String getOutputString() {

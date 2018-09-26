@@ -16,12 +16,15 @@
 
 package io.confluent.ksql;
 
-import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static org.hamcrest.CoreMatchers.any;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -32,6 +35,9 @@ import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
@@ -46,12 +52,11 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -60,11 +65,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -94,18 +103,17 @@ public class CliTest {
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
   private static final long STREAMED_QUERY_TIMEOUT_MS = 10000;
 
-  private static final TestResult.OrderedResult EMPTY_RESULT = build("");
+  private static final TestResult EMPTY_RESULT = new TestResult();
 
   private static Cli localCli;
   private static TestTerminal terminal;
   private static String commandTopicName;
   private static TopicProducer topicProducer;
   private static TopicConsumer topicConsumer;
+  private static KsqlRestClient restClient;
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
-  private static TestRunner testRunner;
-  private static KsqlRestClient restClient;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -125,14 +133,82 @@ public class CliTest {
         terminal
     );
 
-    testRunner = new TestRunner(localCli, terminal);
-
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
 
-    testListOrShowCommands();
-
     produceInputStream(orderDataProvider);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Matcher<Iterable<List<String>>> hasItems(final TestResult expected) {
+    return CoreMatchers.hasItems(expected.rows().stream()
+            .map(CoreMatchers::equalTo)
+            .collect(Collectors.toList())
+            .toArray(new Matcher[0]));
+  }
+
+  private static class BoundedMatcher extends BaseMatcher<Iterable<List<String>>> {
+    private final Matcher<Iterable<? extends List<String>>> internal;
+
+    public BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
+      this.internal = internal;
+    }
+
+    @Override
+    public boolean matches(Object o) {
+      return internal.matches(o);
+    }
+
+    @Override
+    public void describeTo(Description description) {
+      internal.describeTo(description);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Matcher<Iterable<List<String>>> contains(final TestResult expected) {
+    return new BoundedMatcher(
+        Matchers.contains(expected.rows().stream()
+            .map(CoreMatchers::equalTo)
+            .collect(Collectors.toList())
+            .toArray(new Matcher[0])));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Matcher<Iterable<List<String>>> containsInAnyOrder(final TestResult expected) {
+    return new BoundedMatcher(
+        Matchers.containsInAnyOrder(expected.rows().stream()
+            .map(CoreMatchers::equalTo)
+            .collect(Collectors.toList())
+            .toArray(new Matcher[0])));
+  }
+
+  static void assertRunListCommand(
+      final String commandSuffix,
+      final Matcher<Iterable<List<String>>> matcher) {
+    assertRunCommand("list " + commandSuffix, matcher);
+    assertRunCommand("show " + commandSuffix, matcher);
+  }
+
+  private static void assertRunCommand(
+      final String command,
+      final Matcher<Iterable<List<String>>> matcher) {
+    run(command, true);
+    assertThat(terminal.getTestResult(), matcher);
+  }
+
+  private static TestResult run(String command, final boolean strict) {
+    try {
+      if (!command.endsWith(";")) {
+        command += ";";
+      }
+      System.out.println("[Run Command] " + command);
+      terminal.resetTestResult(strict);
+      localCli.handleLine(command);
+      return terminal.getTestResult();
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to run command: " + command, e);
+    }
   }
 
   private static void produceInputStream(final TestDataProvider dataProvider) throws Exception {
@@ -141,22 +217,13 @@ public class CliTest {
   }
 
   private static void createKStream(final TestDataProvider dataProvider) {
-    testRunner.test(
+    assertRunCommand(
         String.format("CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
             dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
-        build("Stream created")
-    );
-  }
-
-  private static void testListOrShowCommands() {
-    final TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
-    testResult.addRows(Collections.singletonList(Arrays.asList(orderDataProvider.topicName(), "false", "1",
-        "1", "0", "0")));
-    testRunner.testListOrShow("topics", testResult);
-    testRunner.testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
-    testRunner.testListOrShow("streams", EMPTY_RESULT);
-    testRunner.testListOrShow("tables", EMPTY_RESULT);
-    testRunner.testListOrShow("queries", EMPTY_RESULT);
+        anyOf(
+            equalTo(new TestResult("Stream created")),
+            equalTo(new TestResult("Parsing statement")),
+            equalTo(new TestResult("Executing statement"))));
   }
 
   @AfterClass
@@ -212,7 +279,12 @@ public class CliTest {
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */
-    testRunner.test(queryString, build("Stream created and running"));
+    assertRunCommand(
+        queryString,
+        anyOf(
+            equalTo(new TestResult("Stream created and running")),
+            equalTo(new TestResult("Parsing statement")),
+            equalTo(new TestResult("Executing statement"))));
 
     /* Assert Results */
     final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
@@ -223,30 +295,78 @@ public class CliTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  private static void terminateQuery(final String queryId) {
-    testRunner.test(
-        String.format("terminate %s", queryId),
-        build("Query terminated.")
+  private static void runStatement(final String statement, final KsqlRestClient restClient) {
+    final RestResponse response = restClient.makeKsqlRequest(statement);
+    Assert.assertThat(response.isSuccessful(), is(true));
+    final KsqlEntityList entityList = ((KsqlEntityList) response.get());
+    Assert.assertThat(entityList.size(), equalTo(1));
+    Assert.assertThat(entityList.get(0), instanceOf(CommandStatusEntity.class));
+    final CommandStatusEntity entity = (CommandStatusEntity) entityList.get(0);
+    final CommandStatus status = entity.getCommandStatus();
+    assertThatEventually(
+        "",
+        () -> {
+          final RestResponse statusResponse = restClient.makeStatusRequest(entity.getCommandId().toString());
+          Assert.assertThat(statusResponse.isSuccessful(), is(true));
+          Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
+          return ((CommandStatus) statusResponse.get()).getStatus();
+        },
+        anyOf(
+            is(CommandStatus.Status.SUCCESS),
+            is(CommandStatus.Status.TERMINATED),
+            is(CommandStatus.Status.ERROR)),
+        120,
+        TimeUnit.SECONDS
     );
+    Assert.assertThat(status, not(CommandStatus.Status.ERROR));
+  }
+
+
+  private static void terminateQuery(final String queryId) {
+    runStatement(String.format("terminate %s;", queryId), restClient);
   }
 
   private static void dropStream(final String name) {
-    testRunner.test(
-        String.format("drop stream %s", name),
-        build("Source " + name + " was dropped. ")
-    );
+    runStatement(String.format("drop stream %s;", name), restClient);
   }
 
-  private static void selectWithLimit(String selectQuery, final int limit, final TestResult.OrderedResult expectedResults) {
+  private static void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
-    testRunner.test(selectQuery, expectedResults);
+    assertRunCommand(selectQuery, contains(expectedResults));
   }
 
-  @Ignore // Tmp disabled as its unstable - waiting on Rohan for fix
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldPrintResultsForListOrShowCommands() {
+    assertRunListCommand(
+        "topics",
+        Matchers.hasItems(
+            Matchers.contains(
+                equalTo(orderDataProvider.topicName()),
+                equalTo("true"), equalTo("1"),
+                equalTo("1"), any(String.class),
+                any(String.class))));
+    assertRunListCommand(
+        "registered topics",
+        containsInAnyOrder(
+            new TestResult.Builder()
+                .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
+                .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
+                .build()
+        )
+    );
+    assertRunListCommand(
+        "streams",
+        contains(
+            new TestResult(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")));
+    assertRunListCommand("tables", is(EMPTY_RESULT));
+    assertRunListCommand("queries", is(EMPTY_RESULT));
+  }
+
   @Test
   public void testPrint() {
     final Thread thread =
-        new Thread(() -> testRunner.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
     thread.start();
 
     try {
@@ -258,65 +378,61 @@ public class CliTest {
 
   @Test
   public void testPropertySetUnset() {
-    testRunner.test("set 'application.id' = 'App'", EMPTY_RESULT);
-    assertThatEventually(() -> terminal.getOutputString(), containsString(
-        "Successfully changed local property 'application.id' to 'App'. Use the UNSET command to revert your change"));
+    assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
+    assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
+    assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
+    assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
+    assertRunCommand("set 'consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
+    assertRunCommand("set 'enable.auto.commit' = 'true'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true'", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.service.id' = 'assertPrint'", is(EMPTY_RESULT));
 
-    testRunner.test("set 'application.id' = 'App2'", EMPTY_RESULT);
-    assertThatEventually(() -> terminal.getOutputString(), containsString(
-        "Successfully changed local property 'application.id' from 'App' to 'App2'.\n"));
+    assertRunCommand("unset 'application.id'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'producer.batch.size'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'max.request.size'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'consumer.max.poll.records'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'enable.auto.commit'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.application.id'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.producer.batch.size'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.max.request.size'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
 
-    testRunner.test("set 'auto.offset.reset' = 'latest'", EMPTY_RESULT);
-    testRunner.test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
-    testRunner.test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
-    testRunner.test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    testRunner.test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
-    testRunner.test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
+    final TestResult.Builder builder = new TestResult.Builder();
+    builder.addRows(startUpConfigs());
+    assertRunListCommand("properties", hasItems(builder.build()));
 
-    testRunner.test("unset 'application.id'", EMPTY_RESULT);
-    assertThatEventually(() -> terminal.getOutputString(), containsString(
-        "Successfully unset local property 'application.id' (value was 'App2').\n"));
-
-    testRunner.test("unset 'producer.batch.size'", EMPTY_RESULT);
-    testRunner.test("unset 'max.request.size'", EMPTY_RESULT);
-    testRunner.test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
-    testRunner.test("unset 'enable.auto.commit'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
-    testRunner.test("unset 'ksql.service.id'", EMPTY_RESULT);
-
-    testRunner.testListOrShow("properties", build(startUpConfigs()), false);
-    testRunner.test("unset 'auto.offset.reset'", EMPTY_RESULT);
+    assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
   }
 
   @Test
   public void testDescribe() {
-    testRunner.test("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
+    assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
+        contains(new TestResult(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")));
   }
 
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
-    final List<List<String>> rows = new ArrayList<>();
-    rows.add(Arrays.asList("ORDERTIME", "BIGINT"));
-    rows.add(Arrays.asList("ORDERID", "VARCHAR(STRING)"));
-    rows.add(Arrays.asList("ITEMID", "VARCHAR(STRING)"));
-    rows.add(Arrays.asList("ORDERUNITS", "DOUBLE"));
-    rows.add(Arrays.asList("TIMESTAMP", "VARCHAR(STRING)"));
-    rows.add(Arrays.asList("PRICEARRAY", "ARRAY<DOUBLE>"));
-    rows.add(Arrays.asList("KEYVALUEMAP", "MAP<STRING, DOUBLE>"));
-    testRunner.test("describe " + orderDataProvider.kstreamName(), TestResult.OrderedResult.build(rows));
+    TestResult.Builder builder = new TestResult.Builder();
+    builder.addRow("ROWTIME", "BIGINT           (system)");
+    builder.addRow("ROWKEY", "VARCHAR(STRING)  (system)");
+    builder.addRow("ORDERTIME", "BIGINT");
+    builder.addRow("ORDERID", "VARCHAR(STRING)");
+    builder.addRow("ITEMID", "VARCHAR(STRING)");
+    builder.addRow("ORDERUNITS", "DOUBLE");
+    builder.addRow("TIMESTAMP", "VARCHAR(STRING)");
+    builder.addRow("PRICEARRAY", "ARRAY<DOUBLE>");
+    builder.addRow("KEYVALUEMAP", "MAP<STRING, DOUBLE>");
+    assertRunCommand(
+        "describe " + orderDataProvider.kstreamName(),
+        contains(builder.build()));
   }
 
-  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectStar() {
     testCreateStreamAsSelect(
@@ -330,48 +446,48 @@ public class CliTest {
   public void testSelectProject() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_1",
             10.0,
             new Double[]{100.0, 110.99, 90.0})));
     expectedResults.put("2", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_2",
             20.0,
             new Double[]{10.0, 10.99, 9.0})));
 
     expectedResults.put("3", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_3",
             30.0,
             new Double[]{10.0, 10.99, 91.0})));
 
     expectedResults.put("4", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_4",
             40.0,
             new Double[]{10.0, 140.99, 94.0})));
 
     expectedResults.put("5", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_5",
             50.0,
             new Double[]{160.0, 160.99, 98.0})));
 
     expectedResults.put("6", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_6",
             60.0,
             new Double[]{1000.0, 1100.99, 900.0})));
 
     expectedResults.put("7", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_7",
             70.0,
             new Double[]{1100.0, 1110.99, 190.0})));
 
     expectedResults.put("8", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             "ITEM_8",
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
@@ -389,7 +505,6 @@ public class CliTest {
     );
   }
 
-  @Ignore  // Tmp disabled as its unstable - waiting on Rohan for fix
   @Test
   public void testSelectFilter() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();
@@ -398,7 +513,7 @@ public class CliTest {
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(
-        Arrays.asList(
+        ImmutableList.of(
             8,
             "ORDER_6",
             "ITEM_8",
@@ -416,17 +531,17 @@ public class CliTest {
 
   @Test
   public void testSelectLimit() {
-    final TestResult.OrderedResult expectedResult = TestResult.build();
+    final TestResult.Builder builder = new TestResult.Builder();
     final Map<String, GenericRow> streamData = orderDataProvider.data();
     final int limit = 3;
     for (int i = 1; i <= limit; i++) {
       final GenericRow srcRow = streamData.get(Integer.toString(i));
       final List<Object> columns = srcRow.getColumns();
-      final GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
-      expectedResult.addRow(resultRow);
+      final GenericRow resultRow = new GenericRow(ImmutableList.of(columns.get(1), columns.get(2)));
+      builder.addRow(resultRow);
     }
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(), limit, expectedResult);
+        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(), limit, builder.build());
   }
 
   @Test
@@ -443,7 +558,7 @@ public class CliTest {
     );
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
+    expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
     // TODO: tests failed!
     // testCreateStreamAsSelect(queryString, orderDataProvider.schema(), expectedResults);
@@ -540,11 +655,11 @@ public class CliTest {
 
   @Test
   public void shouldListFunctions() {
-    final List<List<String>> rows = new ArrayList<>();
-    rows.add(Arrays.asList("TIMESTAMPTOSTRING", "SCALAR"));
-    rows.add(Arrays.asList("EXTRACTJSONFIELD", "SCALAR"));
-    rows.add(Arrays.asList("TOPK", "AGGREGATE"));
-    testRunner.testListOrShow("functions", TestResult.OrderedResult.build(rows), false);
+    final TestResult.Builder builder = new TestResult.Builder();
+    builder.addRow("TIMESTAMPTOSTRING", "SCALAR");
+    builder.addRow("EXTRACTJSONFIELD", "SCALAR");
+    builder.addRow("TOPK", "AGGREGATE");
+    assertRunListCommand("functions", hasItems(builder.build()));
   }
 
   @Test

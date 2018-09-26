@@ -40,16 +40,16 @@ public class CommandFactories implements DdlCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean enforceTopicExistence
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     factories.put(
         RegisterTopic.class,
-        (sqlExpression, ddlStatement, properties) ->
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(
         CreateStream.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
             topicClient,
@@ -58,7 +58,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         CreateTable.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
             topicClient,
@@ -67,7 +68,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropStream.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new DropSourceCommand(
             (DropStream) ddlStatement,
             DataSource.DataSourceType.KSTREAM,
             topicClient,
@@ -77,7 +79,8 @@ public class CommandFactories implements DdlCommandFactory {
     );
     factories.put(
         DropTable.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+        (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
+            new DropSourceCommand(
             (DropTable) ddlStatement,
             DataSource.DataSourceType.KTABLE,
             topicClient,
@@ -86,13 +89,13 @@ public class CommandFactories implements DdlCommandFactory {
         )
     );
     factories.put(
-        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
+        DropTopic.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(
-        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
+        SetProperty.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new SetPropertyCommand(((SetProperty) ddlStatement), properties));
     factories.put(
-        UnsetProperty.class, (sqlExpression, ddlStatement, properties) ->
+        UnsetProperty.class, (sqlExpression, ddlStatement, properties, enforceTopicExistence) ->
             new UnsetPropertyCommand(((UnsetProperty) ddlStatement), properties));
   }
 
@@ -100,16 +103,19 @@ public class CommandFactories implements DdlCommandFactory {
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
-      final Map<String, Object> properties
+      final Map<String, Object> properties,
+      final boolean enforceTopicExistence
   ) {
-    if (!factories.containsKey(ddlStatement.getClass())) {
+    final DdlCommandFactory factory = factories.get(ddlStatement.getClass());
+    if (factory == null) {
       throw new KsqlException(
           "Unable to find ddl command factory for statement:"
-          + ddlStatement.getClass()
-          + " valid statements:"
-          + factories.keySet()
+              + ddlStatement.getClass()
+              + " valid statements:"
+              + factories.keySet()
       );
     }
-    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement, properties);
+
+    return factory.create(sqlExpression, ddlStatement, properties, enforceTopicExistence);
   }
 }

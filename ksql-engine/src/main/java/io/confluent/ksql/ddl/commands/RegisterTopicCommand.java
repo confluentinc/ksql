@@ -95,7 +95,7 @@ public class RegisterTopicCommand implements DdlCommand {
                                     "Topic is not registered because it already registered"
                                           + ".");
       } else {
-        throw new KsqlException("Topic already registered.");
+        throw new KsqlException("Topic already registered: " + topicName);
       }
     }
 

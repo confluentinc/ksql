@@ -197,16 +197,14 @@ public final class AvroUtil {
   ) {
 
     if (persistentQueryMetadata.getResultTopicSerde() == DataSource.DataSourceSerDe.AVRO) {
-      final String avroSchemaString = SchemaUtil.buildAvroSchema(
+      final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
           persistentQueryMetadata.getResultSchema(),
           persistentQueryMetadata.getResultTopic().getName()
       );
-      final boolean isValidSchema = isValidAvroSchemaForTopic(
-          persistentQueryMetadata.getResultTopic().getTopicName(),
-          avroSchemaString,
-              schemaRegistryClient
-      );
-      if (!isValidSchema) {
+
+      final String topicName = persistentQueryMetadata.getResultTopic().getTopicName();
+
+      if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
         throw new KsqlException(String.format(
             "Cannot register avro schema for %s since it is not valid for schema registry.",
             persistentQueryMetadata.getResultTopic().getKafkaTopicName()
@@ -218,26 +216,19 @@ public final class AvroUtil {
 
   private static boolean isValidAvroSchemaForTopic(
       final String topicName,
-      final String avroSchemaString,
+      final org.apache.avro.Schema avroSchema,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-
-    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    final org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
     try {
       return schemaRegistryClient.testCompatibility(topicName, avroSchema);
     } catch (final IOException e) {
-      final String errorMessage = String.format(
+      throw new KsqlException(String.format(
           "Could not check Schema compatibility: %s", e.getMessage()
-      );
-      log.error(errorMessage, e);
-      throw new KsqlException(errorMessage);
+      ));
     } catch (final RestClientException e) {
-      final String errorMessage = String.format(
+      throw new KsqlException(String.format(
           "Could not connect to Schema Registry service: %s", e.getMessage()
-      );
-      log.error(errorMessage, e);
-      throw new KsqlException(errorMessage);
+      ));
     }
   }
 }

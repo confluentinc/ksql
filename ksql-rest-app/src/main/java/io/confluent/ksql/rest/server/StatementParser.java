@@ -29,10 +29,8 @@ public class StatementParser {
   }
 
   public Statement parseSingleStatement(final String statementString) {
-    final List<PreparedStatement> statements = ksqlEngine.getStatements(statementString);
-    if (statements == null) {
-      throw new IllegalArgumentException("Call to KsqlEngine.getStatements() returned null");
-    } else if ((statements.size() != 1)) {
+    final List<PreparedStatement> statements = ksqlEngine.parseStatements(statementString);
+    if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
           String.format("Expected exactly one KSQL statement; found %d instead", statements.size())
       );

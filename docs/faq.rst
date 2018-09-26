@@ -145,15 +145,15 @@ How can I lock-down KSQL servers for production and prevent interactive client a
 You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the
 ``--queries-file`` command line flag. For more information, see :ref:`ksql-server-config`.
 
-====================================================================
-How do I use Avro data and integrate with Confluent Schema Registry?
-====================================================================
+====================================================
+How do I use Avro data and integrate with |sr-long|?
+====================================================
 
-Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to Schema Registry
+Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to |sr|
 (see :ref:`install_ksql-avro-schema`).
 
 .. important::
-    - To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
+    - To use Avro data with KSQL you must have |sr| installed. This is included by default with |cp|.
     - Avro message values are supported. Avro keys are not yet supported.
 
 =========================
@@ -200,11 +200,11 @@ Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 
 Yes. For more information, see :ref:`config-security-ksql-acl`.
 
-======================================================
-Will KSQL work with a HTTPS Confluent Schema Registry?
-======================================================
+======================================
+Will KSQL work with a HTTPS |sr-long|?
+======================================
 
-Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
+Yes. KSQL can be configured to communicate with |sr-long| over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.
 
 ================================================

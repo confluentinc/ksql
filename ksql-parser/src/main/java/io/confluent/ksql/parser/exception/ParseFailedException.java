@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,11 +20,26 @@ import io.confluent.ksql.util.KsqlException;
 
 public class ParseFailedException extends KsqlException {
 
+  private final String sqlStatement;
+
   public ParseFailedException(final String message) {
     super(message);
+    this.sqlStatement = "";
   }
 
   public ParseFailedException(final String message, final Throwable throwable) {
+    this(message, "", throwable);
+  }
+
+  public ParseFailedException(
+      final String message,
+      final String sqlStatement,
+      final Throwable throwable) {
     super(message, throwable);
+    this.sqlStatement = sqlStatement;
+  }
+
+  public String getSqlStatement() {
+    return sqlStatement;
   }
 }

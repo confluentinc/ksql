@@ -25,7 +25,7 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 
@@ -229,7 +229,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
 
-    final Command ctasCommand = new Command("CREATE TABLE user1pvtb "
+    final Command badCtasCommand = new Command("CREATE TABLE user1pvtb "
         + " AS select * from pageview window tumbling(size 5 "
         + "second) WHERE userid = "
         + "'user1' group by pageid;",
@@ -240,7 +240,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
 
-    statementExecutor.handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+    statementExecutor.handleStatement(badCtasCommand, ctasCommandId, Optional.empty());
 
     final Command terminateCommand = new Command(
         "TERMINATE CSAS_USER1PV_0;",
@@ -255,7 +255,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     assertThat(statusStore, is(notNullValue()));
     assertThat(statusStore.keySet(),
-        contains(topicCommandId, csCommandId, csasCommandId, ctasCommandId, terminateCmdId));
+        containsInAnyOrder(topicCommandId, csCommandId, csasCommandId, ctasCommandId, terminateCmdId));
 
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
@@ -333,8 +333,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QueuedCommandStatus status = mock(QueuedCommandStatus.class);
 
     status.setStatus(sameStatus(CommandStatus.Status.PARSING));
-    expectLastCall();
-    status.setStatus(sameStatus(CommandStatus.Status.EXECUTING));
     expectLastCall();
     status.setFinalStatus(sameStatus(CommandStatus.Status.ERROR));
     expectLastCall();

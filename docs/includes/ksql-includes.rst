@@ -246,7 +246,7 @@ the latest offset.
 #. Create a new persistent query that counts the pageviews for each region and gender combination in a
    :ref:`tumbling window <windowing-tumbling>` of 30 seconds when the count is greater than 1. Results from this query
    are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
-   configured schema registry when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
+   configured |sr| when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
    .. code:: bash
 

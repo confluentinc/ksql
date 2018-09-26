@@ -119,7 +119,7 @@ properties file:
 ksql.schema.registry.url
 ------------------------
 
-The Schema Registry URL path to connect KSQL to.
+The |sr| URL path to connect KSQL to.
 
 .. _ksql-service-id:
 

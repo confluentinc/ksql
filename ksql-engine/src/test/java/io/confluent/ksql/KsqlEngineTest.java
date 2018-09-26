@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.same;
@@ -81,8 +82,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.easymock.EasyMock.mock;
-
 public class KsqlEngineTest {
 
   private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
@@ -107,8 +106,8 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreatePersistentQueries() throws Exception {
     final List<QueryMetadata> queries
-        = ksqlEngine.createQueries("create table bar as select * from test2;" +
-        "create table foo as select * from test2;", ksqlConfig);
+        = ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
+        "create table foo as select * from test2;", ksqlConfig, Collections.emptyMap());
 
     assertThat(queries.size(), equalTo(2));
     final PersistentQueryMetadata queryOne = (PersistentQueryMetadata) queries.get(0);
@@ -119,7 +118,7 @@ public class KsqlEngineTest {
 
   @Test(expected = ParseFailedException.class)
   public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() throws Exception {
-    ksqlEngine.createQueries("select * from bar;", ksqlConfig);
+    ksqlEngine.buildMultipleQueries("select * from bar;", ksqlConfig, Collections.emptyMap());
   }
 
   @Test(expected = ParseFailedException.class)
@@ -131,13 +130,14 @@ public class KsqlEngineTest {
     }
     final ByteBuffer bb = ByteBuffer.wrap(m);
     final String s = mapper.writeValueAsString(bb);
-    ksqlEngine.createQueries("blah;", ksqlConfig);
+    ksqlEngine.buildMultipleQueries("blah;", ksqlConfig, Collections.emptyMap());
   }
 
   @Test
   public void shouldUpdateReferentialIntegrityTableCorrectly() throws Exception {
-    ksqlEngine.createQueries("create table bar as select * from test2;" +
-                                   "create table foo as select * from test2;", ksqlConfig);
+    ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
+                                   "create table foo as select * from test2;", ksqlConfig, Collections
+        .emptyMap());
     final MetaStore metaStore = ksqlEngine.getMetaStore();
     assertThat(metaStore.getQueriesWithSource("TEST2"),
                equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
@@ -148,9 +148,10 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailIfReferentialIntegrityIsViolated() {
     try {
-      ksqlEngine.createQueries("create table bar as select * from test2;" +
-                               "create table foo as select * from test2;", ksqlConfig);
-      ksqlEngine.createQueries("drop table foo;", ksqlConfig);
+      ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
+                                 "create table foo as select * from test2;",
+          ksqlConfig, Collections.emptyMap());
+      ksqlEngine.buildMultipleQueries("drop table foo;", ksqlConfig, Collections.emptyMap());
       Assert.fail();
     } catch (final Exception e) {
       assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
@@ -177,10 +178,10 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldDropTableIfAllReferencedQueriesTerminated() throws Exception {
-    ksqlEngine.createQueries("create table bar as select * from test2;" +
-                             "create table foo as select * from test2;", ksqlConfig);
+    ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
+                             "create table foo as select * from test2;", ksqlConfig, Collections.emptyMap());
     ksqlEngine.terminateQuery(new QueryId("CTAS_FOO_1"), true);
-    ksqlEngine.createQueries("drop table foo;", ksqlConfig);
+    ksqlEngine.buildMultipleQueries("drop table foo;", ksqlConfig, Collections.emptyMap());
     assertThat(ksqlEngine.getMetaStore().getSource("foo"), nullValue());
   }
 
@@ -209,8 +210,7 @@ public class KsqlEngineTest {
     runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
                             + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
 
-    final List<PreparedStatement> parsedStatements = ksqlEngine.parseStatements(
-        runScriptContent.toString(), metaStore.clone(), true);
+    final List<?> parsedStatements = ksqlEngine.parseStatements(runScriptContent.toString());
     assertThat(parsedStatements.size(), equalTo(3));
 
   }
@@ -396,7 +396,8 @@ public class KsqlEngineTest {
 
     replay(mockKsqlSerde);
 
-    ksqlEngine.createQueries("create table bar as select * from test2;", ksqlConfig);
+    ksqlEngine
+        .buildMultipleQueries("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
 
     verify(mockKsqlSerde);
     ksqlEngine.close();
@@ -409,10 +410,13 @@ public class KsqlEngineTest {
         Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
 
     final MetaStore emptyMetaStore = new MetaStoreImpl(new TestFunctionRegistry());
-    final List<PreparedStatement> parsedStatements =
-        ksqlEngine.parseStatements(statementsString, emptyMetaStore, true);
-    final List<Statement> statements = parsedStatements.stream().map(
-        PreparedStatement::getStatement).collect(Collectors.toList());
+
+    final List<Statement> statements =
+        ksqlEngine.parseStatements(statementsString, emptyMetaStore, true)
+            .stream()
+            .map(PreparedStatement::getStatement)
+            .collect(Collectors.toList());
+
     assertThat(statements, Matchers.contains(
         instanceOf(CreateStream.class),
         instanceOf(SetProperty.class),
@@ -436,9 +440,9 @@ public class KsqlEngineTest {
     final QuerySpecification specification3 = (QuerySpecification) csas3.getQueryBody();
     final Table table3 = (Table) specification3.getInto();
     assertThat(table3.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE_LIKE_89"));
-
   }
 
+  @Test
   public void shouldSetPropertyInRunScript() {
     final Map<String, Object> overriddenProperties = new HashMap<>();
     final List<QueryMetadata> queries

@@ -24,11 +24,10 @@ import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -43,20 +42,14 @@ import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -66,6 +59,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+@SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
 
   private KsqlEngine ksqlEngine;
@@ -182,9 +176,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(statementParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(
         mockEngine.addInto(
-            csasStatement.getQuery(),
             (QuerySpecification)csasStatement.getQuery().getQueryBody(),
             csasStatement.getName().getSuffix(),
+            csasStatement.getQuery().getLimit(),
             csasStatement.getProperties(),
             csasStatement.getPartitionByColumn(),
             true))
@@ -235,7 +229,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
 
-    final Command ctasCommand = new Command("CREATE TABLE user1pvtb "
+    final Command badCtasCommand = new Command("CREATE TABLE user1pvtb "
         + " AS select * from pageview window tumbling(size 5 "
         + "second) WHERE userid = "
         + "'user1' group by pageid;",
@@ -246,34 +240,34 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
 
-    statementExecutor.handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+    statementExecutor.handleStatement(badCtasCommand, ctasCommandId, Optional.empty());
 
     final Command terminateCommand = new Command(
         "TERMINATE CSAS_USER1PV_0;",
         Collections.emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    final CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE,
+    final CommandId terminateCmdId =  new CommandId(CommandId.Type.TABLE,
                                                   "_TerminateGen",
                                                   CommandId.Action.CREATE);
-    statementExecutor.handleStatement(terminateCommand, terminateCommandId, Optional.empty());
+    statementExecutor.handleStatement(terminateCommand, terminateCmdId, Optional.empty());
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    assertThat(statusStore.size(), equalTo(5));
+    assertThat(statusStore, is(notNullValue()));
+    assertThat(statusStore.keySet(),
+        containsInAnyOrder(topicCommandId, csCommandId, csasCommandId, ctasCommandId, terminateCmdId));
+
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
-    assertThat(statusStore.get(terminateCommandId).getStatus(),
-               equalTo(CommandStatus.Status.SUCCESS));
-
+    assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   private static class StatusMatcher implements IArgumentMatcher {
     final CommandStatus.Status status;
 
-    public StatusMatcher(final CommandStatus.Status status) {
+    StatusMatcher(final CommandStatus.Status status) {
       this.status = status;
     }
 
@@ -285,7 +279,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     @Override
     public void appendTo(final StringBuffer buffer) {
-      buffer.append("status(" + status + ")");
+      buffer.append("status(").append(status).append(")");
     }
   }
 
@@ -339,8 +333,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QueuedCommandStatus status = mock(QueuedCommandStatus.class);
 
     status.setStatus(sameStatus(CommandStatus.Status.PARSING));
-    expectLastCall();
-    status.setStatus(sameStatus(CommandStatus.Status.EXECUTING));
     expectLastCall();
     status.setFinalStatus(sameStatus(CommandStatus.Status.ERROR));
     expectLastCall();

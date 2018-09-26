@@ -72,9 +72,7 @@ public class LogicalPlanner {
     if (analysis.getWhereExpression() != null) {
       currentNode = buildFilterNode(currentNode);
     }
-    if ((analysis.getGroupByExpressions() != null) && (
-        !analysis.getGroupByExpressions().isEmpty()
-      )) {
+    if (!analysis.getGroupByExpressions().isEmpty()) {
       currentNode = buildAggregateNode(currentNode.getSchema(), currentNode);
     } else {
       currentNode = buildProjectNode(currentNode.getSchema(), currentNode);

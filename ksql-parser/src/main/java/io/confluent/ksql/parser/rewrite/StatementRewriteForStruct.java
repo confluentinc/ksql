@@ -17,15 +17,14 @@
 package io.confluent.ksql.parser.rewrite;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.util.DataSourceExtractor;
@@ -48,8 +47,7 @@ public class StatementRewriteForStruct {
 
   public static boolean requiresRewrite(final Statement statement) {
     return statement instanceof Query
-        || statement instanceof CreateAsSelect
-        || statement instanceof InsertInto;
+        || statement instanceof QueryContainer;
   }
 
 

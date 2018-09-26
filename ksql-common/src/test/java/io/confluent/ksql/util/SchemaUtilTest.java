@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -147,7 +147,7 @@ public class SchemaUtilTest {
         .field("orderunits", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .field("arraycol", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("mapcol", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)).optional().build();
-    final String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
+    final String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders").toString();
     assertThat(avroSchemaString, equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
             + "[{\"name\":\"ordertime\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":"
@@ -212,7 +212,7 @@ public class SchemaUtilTest {
   public void shouldFailForCorrectJavaType() {
 
     try {
-      final Class class8 = SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
+      SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
       Assert.fail();
     } catch (final KsqlException ksqlException) {
       assertThat("Invalid type retured.",ksqlException.getMessage(), equalTo("Type is not "
@@ -295,7 +295,7 @@ public class SchemaUtilTest {
   public void shouldFailForIncorrectSchema() {
 
     try {
-      final Schema schema8 = SchemaUtil.getTypeSchema("BYTES");
+      SchemaUtil.getTypeSchema("BYTES");
       Assert.fail();
     } catch (final Exception e) {
       assertThat(e.getMessage(), equalTo("Unsupported type: BYTES"));
@@ -421,6 +421,7 @@ public class SchemaUtilTest {
         equalTo(schema.fields().get(0).name()));
   }
 
+  @Test
   public void shouldResolveIntAndLongSchemaToLong() {
     assertThat(
         SchemaUtil.resolveArithmeticType(Schema.Type.INT64, Schema.Type.INT32).type(),
@@ -558,8 +559,10 @@ public class SchemaUtilTest {
   }
 
   // Following methods not invoked but used to test conversion from Type -> Schema
+  @SuppressWarnings("unused")
   private void mapType(final Map<String, Integer> map) {}
 
+  @SuppressWarnings("unused")
   private void listType(final List<Double> list) {}
 }
 

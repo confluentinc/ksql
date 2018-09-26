@@ -57,10 +57,12 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
     this.partitionByColumn = partitionByColumn;
   }
 
+  @Override
   public QualifiedName getName() {
     return name;
   }
 
+  @Override
   public Query getQuery() {
     return query;
   }
@@ -69,10 +71,12 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
     return notExists;
   }
 
+  @Override
   public Map<String, Expression> getProperties() {
     return properties;
   }
 
+  @Override
   public Optional<Expression> getPartitionByColumn() {
     return partitionByColumn;
   }

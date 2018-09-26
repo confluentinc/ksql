@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,18 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.parser.tree.DdlStatement;
-import java.util.Map;
-
-public interface DdlCommandFactory {
-  DdlCommand create(
-      String sqlExpression,
-      DdlStatement ddlStatement,
-      Map<String, Object> properties,
-      boolean enforceTopicExistence
-  );
+/**
+ * Indicates the statement contains a {@link Query}.
+ */
+public interface QueryContainer {
+  Query getQuery();
 }

@@ -218,7 +218,7 @@ public class KsqlResourceTest {
       kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
     }
 
-    public static void addSource(
+    private static void addSource(
         final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient, final DataSource.DataSourceType type, final String sourceName,
         final String topicName, final String ksqlTopicName, final Schema schema) {
       final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
@@ -560,7 +560,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForIncorrectCSASStatementResultType() {
+  public void shouldFailForIncorrectCSASStatementResultType1() {
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
@@ -576,6 +576,11 @@ public class KsqlResourceTest {
             "Invalid result type. Your SELECT query produces a TABLE. " +
                 "Please use CREATE TABLE AS SELECT statement instead."));
 
+  }
+
+  @Test
+  public void shouldFailForIncorrectCSASStatementResultType2() {
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
                          + "s2_f1;";
 
@@ -698,6 +703,7 @@ public class KsqlResourceTest {
 
     final Response response = handleKsqlStatements(
         testResource, new KsqlRequest(ksqlString, new HashMap<>()));
+    assertThat(response.getEntity(), is(instanceOf(KsqlEntityList.class)));
     final KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Incorrect response.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(CommandStatusEntity.class));
@@ -817,7 +823,7 @@ public class KsqlResourceTest {
     EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
     EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
     EasyMock.expect(
-        mockEngine.getStatements(ksqlString)).andThrow(
+        mockEngine.parseStatements(ksqlString)).andThrow(
             new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);
 
@@ -845,7 +851,7 @@ public class KsqlResourceTest {
 
     EasyMock.reset(mockEngine);
     EasyMock.expect(
-        mockEngine.getStatements(ksqlString)).andReturn(ksqlEngine.getStatements(ksqlString));
+        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.parseStatements(ksqlString));
     EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
         .andThrow(new RuntimeException("internal error"));
     EasyMock.replay(mockEngine);

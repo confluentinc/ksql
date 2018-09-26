@@ -117,7 +117,7 @@ public class KsqlParser {
           .map(stmt -> new ParsedStatement(getStatementString(stmt), stmt))
           .collect(Collectors.toList());
     } catch (final Exception e) {
-      throw new ParseFailedException(e.getMessage(), e);
+      throw new ParseFailedException(e.getMessage(), sql, e);
     }
   }
 
@@ -140,7 +140,8 @@ public class KsqlParser {
     } catch (final ParseFailedException e) {
       throw e;
     } catch (final Exception e) {
-      throw new ParseFailedException("Failed to prepare statement", e);
+      throw new ParseFailedException(
+          "Failed to prepare statement: " + e.getMessage(), parsedStatement.statementText, e);
     }
   }
 

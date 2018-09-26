@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -326,10 +327,8 @@ public final class SchemaUtil {
         .collect(Collectors.joining(", ", "STRUCT <", ">"));
   }
 
-  public static String buildAvroSchema(final Schema schema, final String name) {
-
-    final org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler =
-        org.apache.avro.SchemaBuilder
+  static org.apache.avro.Schema buildAvroSchema(final Schema schema, final String name) {
+    final FieldAssembler<org.apache.avro.Schema> fieldAssembler = org.apache.avro.SchemaBuilder
         .record(name).namespace("ksql")
         .fields();
 
@@ -340,7 +339,7 @@ public final class SchemaUtil {
           .withDefault(null);
     }
 
-    return fieldAssembler.endRecord().toString();
+    return fieldAssembler.endRecord();
   }
 
   private static org.apache.avro.Schema getAvroSchemaForField(final Schema fieldSchema) {

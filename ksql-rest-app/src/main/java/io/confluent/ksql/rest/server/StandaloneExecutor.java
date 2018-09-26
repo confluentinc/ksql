@@ -20,13 +20,13 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -64,15 +64,18 @@ public class StandaloneExecutor implements Executable {
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
   private final Map<String, Object> configProperties = new HashMap<>();
+  private final boolean failOnNoQueries;
 
   StandaloneExecutor(final KsqlConfig ksqlConfig,
                      final KsqlEngine ksqlEngine,
                      final String queriesFile,
-                     final UdfLoader udfLoader) {
+                     final UdfLoader udfLoader,
+                     final boolean failOnNoQueries) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
+    this.failOnNoQueries = failOnNoQueries;
   }
 
   private interface Handler<T extends Statement> {
@@ -123,39 +126,36 @@ public class StandaloneExecutor implements Executable {
   private void handleCreateStreamAsSelect(
       final String queryString,
       final CreateStreamAsSelect statement) {
-    final Query query = getQueryFromStatement(queryString, statement);
+    final Query query = statement.getQuery();
     final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     if (queryMetadata.getDataSourceType() != DataSourceType.KSTREAM) {
       throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
           + "use CREATE STREAM AS SELECT statement instead. Query: " + queryString);
     }
-    handlePersistentQuery(query,
-        queryString,
-        configProperties);
+
+    handlePersistentQuery(queryString, configProperties);
   }
 
   @SuppressWarnings("unused")
   private void handleCreateTableAsSelect(
       final String queryString,
       final CreateTableAsSelect statement) {
-    final Query query = getQueryFromStatement(queryString, statement);
+    final Query query = statement.getQuery();
     final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     if (queryMetadata.getDataSourceType() != DataSourceType.KTABLE) {
       throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
           + "use CREATE TABLE AS SELECT statement instead. Query: " + queryString);
     }
-    handlePersistentQuery(query,
-        queryString,
-        configProperties);
+
+    handlePersistentQuery(queryString, configProperties);
   }
 
   @SuppressWarnings("unused")
   private void handleInsertInto(final String queryString, final InsertInto statement) {
-    final Query query = getQueryFromStatement(queryString, statement);
+    final Query query = statement.getQuery();
     ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-    handlePersistentQuery(query,
-        queryString,
-        configProperties);
+
+    handlePersistentQuery(queryString, configProperties);
   }
 
   // Define a default handler to call when no other handler registered.
@@ -214,7 +214,7 @@ public class StandaloneExecutor implements Executable {
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);
-    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader);
+    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader, true);
   }
 
   private void showWelcomeMessage() {
@@ -234,8 +234,17 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<PreparedStatement> preparedStatements =
-        ksqlEngine.parseStatements(queries, ksqlEngine.getMetaStore().clone(), false);
+    final List<PreparedStatement> preparedStatements = ksqlEngine.parseStatements(queries);
+
+    if (failOnNoQueries) {
+      final boolean noQueries = preparedStatements.stream()
+          .map(PreparedStatement::getStatement)
+          .noneMatch(stmt -> stmt instanceof QueryContainer);
+      if (noQueries) {
+        throw new KsqlException("The SQL file did not contain any queries");
+      }
+    }
+
     for (final PreparedStatement preparedStatement: preparedStatements) {
       final Statement statement = preparedStatement.getStatement();
       HANDLERS
@@ -245,7 +254,6 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void handlePersistentQuery(
-      final Query query,
       final String statementString,
       final Map<String, Object> configProperties) {
 
@@ -256,17 +264,6 @@ public class StandaloneExecutor implements Executable {
       throw new KsqlException("Could not build the query: " + statementString);
     }
     queryMetadataList.get(0).start();
-  }
-
-  private Query getQueryFromStatement(final String statementString, final Statement statement) {
-    if (statement instanceof CreateAsSelect) {
-      return  ((CreateAsSelect) statement).getQuery();
-    } else if (statement instanceof InsertInto) {
-      return  ((InsertInto) statement).getQuery();
-    } else {
-      throw new KsqlException("Only CSAS/CTAS and INSERT INTO are persistent queries: "
-          + statementString);
-    }
   }
 
   private static String readQueriesFile(final String queryFilePath) {

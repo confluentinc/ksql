@@ -23,7 +23,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class InsertInto
-    extends Statement {
+    extends Statement
+    implements QueryContainer {
   private final QualifiedName target;
   private final Query query;
   private final Optional<Expression> partitionByColumn;
@@ -50,6 +51,7 @@ public class InsertInto
     return target;
   }
 
+  @Override
   public Query getQuery() {
     return query;
   }

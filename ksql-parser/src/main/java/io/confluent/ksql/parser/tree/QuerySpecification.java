@@ -65,7 +65,7 @@ public class QuerySpecification
          having, limit);
   }
 
-  private QuerySpecification(
+  public QuerySpecification(
       final Optional<NodeLocation> location,
       final Select select,
       final Relation into,

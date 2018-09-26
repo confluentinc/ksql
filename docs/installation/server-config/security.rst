@@ -3,7 +3,7 @@
 Configuring Security for KSQL
 =============================
 
-KSQL supports many of the security features of both Apache Kafka and the |sr|.
+KSQL supports many of the security features of both Apache Kafka and |sr|.
 
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
@@ -29,33 +29,33 @@ You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :re
 
 .. _config-security-ksql-sr:
 
-Configuring KSQL for Secured Confluent Schema Registry
-------------------------------------------------------
+Configuring KSQL for Secured |sr-long|
+--------------------------------------
 
-KSQL can be configured to connect to the Schema Registry over HTTP by setting the
-``ksql.schema.registry.url`` to the Schema Registry's HTTPS endpoint.
+You can configure KSQL to connect to |sr| over HTTP by setting the
+``ksql.schema.registry.url`` to the HTTPS endpoint of |sr|.
 Depending on your security setup, you might also need to supply additional SSL configuration.
-For example, a trustStore is required if the Schema Registry's SSL certificates are not trusted by
-the JVM by default; a keyStore is required if the Schema Registry requires mutual authentication.
+For example, a trustStore is required if the |sr| SSL certificates are not trusted by
+the JVM by default; a keyStore is required if |sr| requires mutual authentication.
 
-SSL configuration for communication with the Schema Registry can be supplied using none-prefixed,
-e.g. `ssl.truststore.location`, or prefixed e.g. `ksql.schema.registry.ssl.truststore.location`,
-names. Non-prefixed names are used for settings that are shared with other communication
+You can configure SSL for communication with |sr| by using non-prefixed names,
+e.g. ``ssl.truststore.location``, or prefixed names, e.g. ``ksql.schema.registry.ssl.truststore.location``.
+Non-prefixed names are used for settings that are shared with other communication
 channels, i.e. where the same settings are required to configure SSL communication
-with both Kafka and Schema Registry. Prefixed names only affects communication with Schema registry
-and overrides any non-prefixed setting of the same name.
+with both Kafka and |sr|. Prefixed names only affect communication with |sr|
+and override any non-prefixed setting of the same name.
 
-Use the following to configure KSQL to communicate with the Schema Registry over HTTPS,
-where mutual authentication is not required and the Schema Registry's SSL certificates are trusted
+Use the following to configure KSQL to communicate with |sr| over HTTPS,
+where mutual authentication is not required and |sr| SSL certificates are trusted
 by the JVM:
 
 .. code:: bash
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-Use the following to configure KSQL to communicate with the Schema Registry over HTTPS, with
+Use the following to configure KSQL to communicate with |sr| over HTTPS, with
 mutual authentication, with an explicit trustStore, and where the SSL configuration is shared
-between Kafka and Schema Registry:
+between Kafka and |sr|:
 
 .. code:: bash
 
@@ -66,9 +66,9 @@ between Kafka and Schema Registry:
     ssl.keystore.password=confluent
     ssl.key.password=confluent
 
-Use the following to configure KSQL to communicate with the Schema Registry over HTTP, without
+Use the following to configure KSQL to communicate with |sr| over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
-KSQL to Schema Registry SSL communication.
+KSQL to |sr| SSL communication.
 
 .. code:: bash
 
@@ -76,10 +76,10 @@ KSQL to Schema Registry SSL communication.
     ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
     ksql.schema.registry.ssl.truststore.password=confluent
 
-The exact settings will vary depending on the encryption and authentication mechanisms the
-Confluent Schema Registry is using, and how your SSL certificates are signed.
+The exact settings will vary depending on the encryption and authentication mechanisms 
+|sr| is using, and how your SSL certificates are signed.
 
-You can pass authentication settings to the Schema Registry client used by KSQL
+You can pass authentication settings to the |sr| client used by KSQL
 by adding the following to your KSQL server config.
 
 .. code:: bash

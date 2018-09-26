@@ -339,13 +339,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         getJsonSerializer(false)
     );
 
-    final CommandStore commandStore = new CommandStore(
-        commandTopic,
-        commandConsumer,
-        commandProducer,
-        new CommandIdAssigner(ksqlEngine.getMetaStore())
-    );
-
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     final StatementExecutor statementExecutor = new StatementExecutor(
@@ -353,6 +346,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlEngine,
         statementParser
     );
+
+    final CommandStore commandStore = new CommandStore(
+        commandTopic,
+        commandConsumer,
+        commandProducer,
+        new CommandIdAssigner(ksqlEngine.getMetaStore()));
 
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
@@ -373,7 +372,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig,
         ksqlEngine,
         commandStore,
-        statementExecutor,
         restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
     );
 

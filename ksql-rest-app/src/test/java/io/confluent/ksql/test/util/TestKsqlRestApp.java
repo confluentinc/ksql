@@ -186,7 +186,7 @@ public class TestKsqlRestApp extends ExternalResource {
     final HashMap<String, Object> config = new HashMap<>(baseConfig);
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
+    config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
     return new KsqlRestConfig(config);
   }
 

@@ -203,7 +203,7 @@ associated Avro schemas, they aren't automatically matched with the renamed
 topics.
 
 In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which shows
-that the Avro schema ID exists in the Schema Registry, and KSQL can deserialize
+that the Avro schema ID exists in |sr|, and KSQL can deserialize
 the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
 
 .. code:: bash

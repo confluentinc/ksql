@@ -3,7 +3,7 @@
 Configuring Security for KSQL
 =============================
 
-KSQL supports many of the security features of both Apache Kafka and the |sr|.
+KSQL supports many of the security features of both Apache Kafka and |sr|.
 
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
@@ -28,10 +28,10 @@ You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :re
 
 .. _config-security-ksql-sr:
 
-Configuring KSQL for Secured Confluent Schema Registry
-------------------------------------------------------
+Configuring KSQL for Secured |sr-long|
+--------------------------------------
 
-The following configuration connects KSQL with the Confluent Schema Registry over HTTPS.
+The following configuration connects KSQL with |sr-long| over HTTPS.
 
 #. Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
    KSQL server configuration file:
@@ -40,17 +40,17 @@ The following configuration connects KSQL with the Confluent Schema Registry ove
 
         ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-#. Specify any SSL or SASL configuration the Schema Registry client requires using the ``KSQL_OPTS``
+#. Specify any SSL or SASL configuration that the |sr| client requires using the ``KSQL_OPTS``
    environment variable.
 
-   For example, if the Schema Registry's SSL certificate is not signed by a CA that is recognized by
+   For example, if the SSL certificate of |sr| is not signed by a CA that is recognized by
    the JVM by default, then you can provide a suitable truststore when starting KSQL via the command line:
 
    .. code:: bash
 
       $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-The exact settings will vary depending on what SASL mechanism the Confluent Schema Registry is using is using and how your SSL certificates
+The exact settings will vary depending on what SASL mechanism |sr-long| is using is using and how your SSL certificates
 are signed. For more information, see :ref:`schemaregistry_security`.
 
 .. _config-security-kafka:

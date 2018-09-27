@@ -95,22 +95,27 @@ public class TestKsqlRestApp extends ExternalResource {
 
   @SuppressWarnings("unused") // Part of public API
   public URI getHttpListener() {
-    final URL url = getListeners().stream()
-        .filter(l -> l.getProtocol().equals("http"))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("No HTTP Listener found: "));
+    return getListener("HTTP");
+  }
 
-    try {
-      return url.toURI();
-    } catch (final Exception e) {
-      throw new RuntimeException("Invalid REST listener", e);
-    }
+  @SuppressWarnings("unused") // Part of public API
+  public URI getHttpsListener() {
+    return getListener("HTTPS");
   }
 
   @SuppressWarnings("unused") // Part of public API
   public URI getWsListener() {
     try {
       return WSURI.toWebsocket(getHttpListener());
+    } catch (URISyntaxException e) {
+      throw new RuntimeException("Invalid WS listener", e);
+    }
+  }
+
+  @SuppressWarnings("unused") // Part of public API
+  public URI getWssListener() {
+    try {
+      return WSURI.toWebsocket(getHttpsListener());
     } catch (URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }
@@ -164,11 +169,24 @@ public class TestKsqlRestApp extends ExternalResource {
     return new Builder(bootstrapServers);
   }
 
+  private URI getListener(final String protocol) {
+    final URL url = getListeners().stream()
+        .filter(l -> l.getProtocol().equalsIgnoreCase(protocol))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("No " + protocol + " Listener found"));
+
+    try {
+      return url.toURI();
+    } catch (final Exception e) {
+      throw new IllegalStateException("Invalid REST listener", e);
+    }
+  }
+
   private KsqlRestConfig buildConfig() {
     final HashMap<String, Object> config = new HashMap<>(baseConfig);
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
+    config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
     return new KsqlRestConfig(config);
   }
 

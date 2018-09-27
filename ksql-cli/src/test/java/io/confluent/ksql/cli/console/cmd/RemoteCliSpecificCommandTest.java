@@ -120,14 +120,10 @@ public class RemoteCliSpecificCommandTest {
 
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
-    final RemoteServerSpecificCommand command = new RemoteServerSpecificCommand(
-        new KsqlRestClient(INITIAL_SERVER_ADDRESS, Collections.emptyMap()) {
-          @Override
-          public RestResponse<ServerInfo> getServerInfo() {
-            return RestResponse.erroneous(
-                Errors.ERROR_CODE_SERVER_ERROR, "it is broken");
-          }
-        }, new PrintWriter(out));
+    expect(restClient.makeRootRequest()).andReturn(RestResponse.erroneous(
+        Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
+    replay(restClient);
+
     command.execute(VALID_SERVER_ADDRESS);
 
     assertThat(out.toString(), containsString("it is broken"));
@@ -139,5 +135,4 @@ public class RemoteCliSpecificCommandTest {
     assertThat(out.toString(), containsString("server:\n\tShow the current server"));
     assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
   }
-
 }

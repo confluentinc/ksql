@@ -577,6 +577,19 @@ DESCRIBE
 * DESCRIBE EXTENDED: Display DESCRIBE information with additional runtime statistics, Kafka topic details, and the
   set of queries that populate the table or stream.
 
+Extended descriptions provide the following metrics for the topic backing the source being described:
+
+* messages-per-sec: The number of messages produced per second into the topic by the server
+* total-messages: Total number of messages produced into the topic by the server
+* total-message-bytes: Total number of bytes produced into the topic by the server
+* consumer-messages-per-sec: The number of messages consumed per second from the topic by the server
+* consumer-total-messages: Total number of messages consumed from the topic by the server
+* consumer-total-message-bytes: Total number of bytes consumed from the topic by the server
+* last-message: The time that the last message was produced to or consumed from the topic by the server
+* failed-messages-per-sec: The number of failures during message consumption (for example, deserialization failures) per second on the server
+* consumer-failed-messages: The total number of failures during message consumption on the server
+* last-failed: The time that the last failure occured when a message was consumed from the topic by the server
+
 Example of describing a table:
 
 .. code:: bash

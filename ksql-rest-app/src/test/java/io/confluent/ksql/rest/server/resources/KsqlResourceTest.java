@@ -128,6 +128,7 @@ public class KsqlResourceTest {
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
+  private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
   private CommandStore mockCommandStore;
@@ -140,19 +141,21 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    ksqlEngine = TestUtils.createKsqlEngine(
+    realEngine = TestUtils.createKsqlEngine(
         ksqlConfig,
         kafkaTopicClient,
         () -> schemaRegistryClient);
 
+    ksqlEngine = realEngine;
+
     addTestTopicAndSources();
 
-    givenKsqlResourceWith(ksqlConfig, ksqlEngine);
+    setUpKsqlResourceWith();
   }
 
   @After
   public void tearDown() {
-    ksqlEngine.close();
+    realEngine.close();
   }
 
   @Test
@@ -388,7 +391,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldCreateTableWithInference() {
+  public void shouldDistributeStatementWithConfigAndColumnInference() {
     // Given:
     final QueuedCommandStatus queuedCommandStatus
         = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
@@ -409,7 +412,7 @@ public class KsqlResourceTest {
 
     EasyMock.replay(mockCommandStore);
 
-    givenKsqlResourceWith(ksqlConfig, ksqlEngine, mockCommandStore);
+    givenKsqlResourceWith(mockCommandStore);
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
@@ -490,8 +493,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturn5xxOnSystemError() {
     // Given:
-    final KsqlEngine mockEngine = givenMockEngine(engine ->
-        EasyMock.expect(engine.parseStatements(EasyMock.anyString()))
+    givenMockEngine(mockEngine ->
+        EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
             .andThrow(new RuntimeException("internal error")));
 
     // When:
@@ -502,18 +505,18 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
-    EasyMock.verify(mockEngine);
+    EasyMock.verify(ksqlEngine);
   }
 
   @Test
   public void shouldReturn5xxOnStatementSystemError() {
     // Given:
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
-    final KsqlEngine mockEngine = givenMockEngine(engine -> {
-      EasyMock.expect(engine.parseStatements(EasyMock.anyString()))
-          .andReturn(ksqlEngine.parseStatements(ksqlString));
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andReturn(realEngine.parseStatements(ksqlString));
 
-      EasyMock.expect(engine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
+      EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
 
@@ -524,7 +527,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
-    EasyMock.verify(mockEngine);
+    EasyMock.verify(ksqlEngine);
   }
 
   @Test
@@ -700,14 +703,13 @@ public class KsqlResourceTest {
     return new SourceInfo.Stream(stream);
   }
 
-  private KsqlEngine givenMockEngine(final Consumer<KsqlEngine> mockInitializer) {
-    final KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
-    EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
-    EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
-    mockInitializer.accept(mockEngine);
-    EasyMock.replay(mockEngine);
-    givenKsqlResourceWith(ksqlConfig, mockEngine);
-    return mockEngine;
+  private void givenMockEngine(final Consumer<KsqlEngine> mockInitializer) {
+    ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
+    EasyMock.expect(ksqlEngine.getMetaStore()).andReturn(realEngine.getMetaStore()).anyTimes();
+    EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(realEngine.getTopicClient()).anyTimes();
+    mockInitializer.accept(ksqlEngine);
+    EasyMock.replay(ksqlEngine);
+    setUpKsqlResourceWith();
   }
 
   private List<PersistentQueryMetadata> createQueries(
@@ -745,7 +747,7 @@ public class KsqlResourceTest {
     config.putAll(additionalConfig);
     ksqlConfig = new KsqlConfig(config);
 
-    givenKsqlResourceWith(ksqlConfig, ksqlEngine);
+    setUpKsqlResourceWith();
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
@@ -839,7 +841,7 @@ public class KsqlResourceTest {
     }
   }
 
-  private void givenKsqlResourceWith(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
+  private void setUpKsqlResourceWith() {
     final Properties defaultKsqlConfig = getDefaultKsqlConfig();
 
     final KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
@@ -857,13 +859,10 @@ public class KsqlResourceTest {
     final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
         commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
 
-    givenKsqlResourceWith(ksqlConfig, ksqlEngine, commandStore);
+    givenKsqlResourceWith(commandStore);
   }
 
-  private void givenKsqlResourceWith(
-      final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final CommandStore commandStore) {
+  private void givenKsqlResourceWith(final CommandStore commandStore) {
     ksqlResource = new KsqlResource(
         ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
   }

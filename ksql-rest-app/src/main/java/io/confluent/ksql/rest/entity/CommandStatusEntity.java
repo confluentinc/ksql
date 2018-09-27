@@ -88,4 +88,12 @@ public class CommandStatusEntity extends KsqlEntity {
   public int hashCode() {
     return Objects.hash(getCommandId(), getCommandStatus());
   }
+
+  @Override
+  public String toString() {
+    return "CommandStatusEntity{"
+        + "commandId=" + commandId
+        + ", commandStatus=" + commandStatus
+        + '}';
+  }
 }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.gson.Gson;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
@@ -37,10 +38,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   private final Schema schema;
   private final JsonConverter jsonConverter;
 
+  private final Gson gson;
+
   /**
    * Default constructor needed by Kafka
    */
   public KsqlJsonDeserializer(final Schema schema, final boolean isInternal) {
+    gson = new Gson();
     // If this is a Deserializer for an internal topic in the streams app
     if (isInternal) {
       this.schema = schema;
@@ -105,7 +109,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       case FLOAT64:
         return SerdeUtils.toDouble(columnVal);
       case STRING:
-        return columnVal.toString();
+        return processString(columnVal);
       case ARRAY:
         return enforceFieldTypeForArray(fieldSchema, (List<?>) columnVal);
       case MAP:
@@ -115,6 +119,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
+  }
+
+  private String processString(final Object columnVal) {
+    if (columnVal instanceof Map) {
+      return gson.toJson(columnVal);
+    }
+    return columnVal.toString();
   }
 
   private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final List<?> arrayList) {

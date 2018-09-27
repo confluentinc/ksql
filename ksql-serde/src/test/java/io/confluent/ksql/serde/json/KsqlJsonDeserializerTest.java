@@ -35,6 +35,7 @@ import org.junit.Test;
 public class KsqlJsonDeserializerTest {
 
   private Schema orderSchema;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Before
   public void before() {
@@ -51,7 +52,6 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeJsonCorrectly() throws JsonProcessingException {
-    final ObjectMapper objectMapper = new ObjectMapper();
     final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
@@ -75,7 +75,6 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
-    final ObjectMapper objectMapper = new ObjectMapper();
     final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
@@ -105,7 +104,6 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldDeserializeEvenWithMissingFields() throws JsonProcessingException {
-    final ObjectMapper objectMapper = new ObjectMapper();
     final Map<String, Object> orderRow = new HashMap<>();
     orderRow.put("ordertime", 1511897796092L);
     orderRow.put("@orderid", 1L);
@@ -128,7 +126,6 @@ public class KsqlJsonDeserializerTest {
 
   @Test
   public void shouldTreatNullAsNull() throws JsonProcessingException {
-    final ObjectMapper objectMapper = new ObjectMapper();
     final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema, false);
     final Map<String, Object> row = new HashMap<>();
     row.put("ordertime", null);
@@ -143,4 +140,21 @@ public class KsqlJsonDeserializerTest {
     assertThat(genericRow, equalTo(expected));
 
   }
+
+  @Test
+  public void shouldCreatedJsonStringForStructIfDefinedAsVarchar() throws JsonProcessingException {
+    final Schema schema = SchemaBuilder.struct()
+        .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, false);
+    final Map<String, Object> row = new HashMap<>();
+    row.put("itemid", "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}");
+
+    System.out.println(objectMapper.writeValueAsString(row));
+
+    final GenericRow expected = new GenericRow(Arrays.asList("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
+    final GenericRow genericRow = deserializer.deserialize("", "{\"itemid\":{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}}".getBytes());
+    assertThat(genericRow, equalTo(expected));
+  }
+
 }

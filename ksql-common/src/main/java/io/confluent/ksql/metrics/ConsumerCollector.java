@@ -115,7 +115,6 @@ public class ConsumerCollector implements MetricCollector {
     synchronized (this.metrics) {
       addSensor(key, "consumer-messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "consumer-total-messages", new Total(), sensors, false);
-      addSensor(key, "consumer-failed-messages", new Total(), sensors, true);
       addSensor(key, "consumer-total-message-bytes", new Total(), sensors, false,
           (r) -> {
             if (r == null) {
@@ -124,7 +123,8 @@ public class ConsumerCollector implements MetricCollector {
               return ((double) r.serializedValueSize() + r.serializedKeySize());
             }
           });
-      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
+      addSensor(key, "consumer-failed-messages", new Total(), sensors, true);
+      addSensor(key, "consumer-failed-messages-per-sec", new Rate(), sensors, true);
     }
     return sensors;
   }

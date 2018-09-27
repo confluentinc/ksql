@@ -90,8 +90,14 @@ public class ProducerCollector implements MetricCollector {
     synchronized (metrics) {
       addSensor(key, "messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "total-messages", new Total(), sensors, false);
-      addSensor(key, "failed-messages", new Total(), sensors, true);
-      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
+      // This is intentional - recording of error metrics is a huge hack
+      // Currently its only recorded for deserialization errors. The error
+      // is recorded from the streams error handler, from which we cant obtain
+      // a reference to this interceptor. So MetricCollector just records the
+      // error on the first metric collector it sees. So each metric collector
+      // has to track all the error metrics.
+      addSensor(key, "consumer-failed-messages", new Total(), sensors, true);
+      addSensor(key, "consumer-failed-messages-per-sec", new Rate(), sensors, true);
     }
     return sensors;
   }

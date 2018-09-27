@@ -149,9 +149,7 @@ public class KsqlJsonDeserializerTest {
     final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, false);
     final Map<String, Object> row = new HashMap<>();
     row.put("itemid", "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}");
-
-    System.out.println(objectMapper.writeValueAsString(row));
-
+    
     final GenericRow expected = new GenericRow(Arrays.asList("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
     final GenericRow genericRow = deserializer.deserialize("", "{\"itemid\":{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}}".getBytes());
     assertThat(genericRow, equalTo(expected));

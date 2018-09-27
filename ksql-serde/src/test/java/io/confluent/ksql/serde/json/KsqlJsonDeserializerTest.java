@@ -142,7 +142,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldCreatedJsonStringForStructIfDefinedAsVarchar() throws JsonProcessingException {
+  public void shouldCreateJsonStringForStructIfDefinedAsVarchar() throws JsonProcessingException {
     final Schema schema = SchemaBuilder.struct()
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();

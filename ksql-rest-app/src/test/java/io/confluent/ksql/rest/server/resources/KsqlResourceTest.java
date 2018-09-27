@@ -32,9 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -67,9 +64,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -90,19 +85,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -131,7 +118,7 @@ public class KsqlResourceTest {
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
-  private CommandStore mockCommandStore;
+  private CommandStore commandStore;
   private KsqlResource ksqlResource;
 
   @Before
@@ -150,7 +137,7 @@ public class KsqlResourceTest {
 
     addTestTopicAndSources();
 
-    setUpKsqlResourceWith();
+    setUpKsqlResource();
   }
 
   @After
@@ -160,21 +147,27 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldInstantRegisterTopic() {
+    // Given:
+    final QueuedCommandStatus cmdStatus
+        = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
+
+    givenCommandStore(mockCommandStore ->
+        EasyMock.expect(mockCommandStore.enqueueCommand(
+            EasyMock.eq("REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');"),
+            EasyMock.anyObject(), EasyMock.anyObject(), EasyMock.anyObject()))
+            .andReturn(cmdStatus));
+
     // When:
-    final KsqlEntity testKsqlEntity = makeSingleRequest(
+    final CommandStatusEntity result = makeSingleRequest(
         "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        KsqlEntity.class);
+        CommandStatusEntity.class);
 
-    /// Then:
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, "FOO", CommandId.Action.CREATE);
-    final CommandStatus commandStatus = new CommandStatus(
-        CommandStatus.Status.QUEUED, "Statement written to command topic");
-
+    // Then:
     final CommandStatusEntity expectedCommandStatusEntity = new CommandStatusEntity(
-        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');", commandId,
-        commandStatus);
+        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
+        cmdStatus.getCommandId(), cmdStatus.getStatus());
 
-    assertThat(testKsqlEntity, is(expectedCommandStatusEntity));
+    assertThat(result, is(expectedCommandStatusEntity));
   }
 
   @Test
@@ -393,26 +386,24 @@ public class KsqlResourceTest {
   @Test
   public void shouldDistributeStatementWithConfigAndColumnInference() {
     // Given:
-    final QueuedCommandStatus queuedCommandStatus
-        = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
-    queuedCommandStatus.setFinalStatus(
-        new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
+    givenCommandStore(mockCommandStore -> {
+      final QueuedCommandStatus queuedCommandStatus
+          = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
+      queuedCommandStatus.setFinalStatus(
+          new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
 
-    final String ksqlStringWithSchema =
-        "CREATE TABLE ORDERS " +
-            "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRING, ORDERUNITS DOUBLE, " +
-            "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>) " +
-            "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
-            "AVRO_SCHEMA_ID='1', KEY='orderid');";
+      final String ksqlStringWithSchema =
+          "CREATE TABLE ORDERS " +
+              "(ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRING, ORDERUNITS DOUBLE, " +
+              "ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>) " +
+              "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
+              "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
-    EasyMock.expect(mockCommandStore.enqueueCommand(
-        EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
-        EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
-        .andReturn(queuedCommandStatus);
-
-    EasyMock.replay(mockCommandStore);
-
-    givenKsqlResourceWith(mockCommandStore);
+      EasyMock.expect(mockCommandStore.enqueueCommand(
+          EasyMock.eq(ksqlStringWithSchema), EasyMock.anyObject(Statement.class),
+          EasyMock.same(ksqlConfig), EasyMock.anyObject(Map.class)))
+          .andReturn(queuedCommandStatus);
+    });
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
@@ -421,7 +412,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getCommandId().getType().name().toUpperCase(), is("TABLE"));
-    EasyMock.verify(mockCommandStore);
+    EasyMock.verify(commandStore);
   }
 
   @Test
@@ -709,7 +700,7 @@ public class KsqlResourceTest {
     EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(realEngine.getTopicClient()).anyTimes();
     mockInitializer.accept(ksqlEngine);
     EasyMock.replay(ksqlEngine);
-    setUpKsqlResourceWith();
+    setUpKsqlResource();
   }
 
   private List<PersistentQueryMetadata> createQueries(
@@ -740,14 +731,6 @@ public class KsqlResourceTest {
             md.getSinkNames(),
             new EntityQueryId(md.getQueryId())))
         .collect(Collectors.toList());
-  }
-
-  private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
-    final Map<String, Object> config = ksqlRestConfig.getKsqlConfigProperties();
-    config.putAll(additionalConfig);
-    ksqlConfig = new KsqlConfig(config);
-
-    setUpKsqlResourceWith();
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
@@ -805,82 +788,25 @@ public class KsqlResourceTest {
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
-  private void registerSchema(final SchemaRegistryClient schemaRegistryClient)
-      throws IOException, RestClientException {
-    final String ordersAveroSchemaStr = "{"
-        + "\"namespace\": \"kql\","
-        + " \"name\": \"orders\","
-        + " \"type\": \"record\","
-        + " \"fields\": ["
-        + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
-        + "     {\"name\": \"orderid\",  \"type\": \"long\"},"
-        + "     {\"name\": \"itemid\", \"type\": \"string\"},"
-        + "     {\"name\": \"orderunits\", \"type\": \"double\"},"
-        + "     {\"name\": \"arraycol\", \"type\": {\"type\": \"array\", \"items\": \"double\"}},"
-        + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
-        + " ]"
-        + "}";
-    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
-    schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-        avroSchema);
-  }
-
-  private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
-
-    private TestCommandProducer(final Map configs, final Serializer keySerializer,
-        final Serializer valueSerializer) {
-      super(configs, keySerializer, valueSerializer);
-    }
-
-    @Override
-    public Future<RecordMetadata> send(final ProducerRecord record) {
-      // Fake result: only for testing purpose
-      return ConcurrentUtils.constantFuture(new RecordMetadata(
-          null, 0L, 0L, 0L, 0L, 0, 0));
-    }
-  }
-
-  private void setUpKsqlResourceWith() {
-    final Properties defaultKsqlConfig = getDefaultKsqlConfig();
-
-    final KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        defaultKsqlConfig,
-        getJsonDeserializer(CommandId.class, true),
-        getJsonDeserializer(Command.class, false)
-    );
-
-    final KafkaProducer<CommandId, Command> commandProducer = new TestCommandProducer<>(
-        defaultKsqlConfig,
-        getJsonSerializer(true),
-        getJsonSerializer(false)
-    );
-
-    final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-        commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
-
-    givenKsqlResourceWith(commandStore);
-  }
-
-  private void givenKsqlResourceWith(final CommandStore commandStore) {
+  private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
         ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
   }
 
-  private static <T> Deserializer<T> getJsonDeserializer(final Class<T> type, final boolean isKey) {
-    final String typeConfigProperty = isKey
-        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+  private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
+    final Map<String, Object> config = ksqlRestConfig.getKsqlConfigProperties();
+    config.putAll(additionalConfig);
+    ksqlConfig = new KsqlConfig(config);
 
-    final Deserializer<T> result = new KafkaJsonDeserializer<>();
-    result.configure(Collections.singletonMap(typeConfigProperty,type), isKey);
-    return result;
+    setUpKsqlResource();
   }
 
-  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
-    final Serializer<T> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), isKey);
-    return result;
+  private void givenCommandStore(final Consumer<CommandStore> commandStoreInitializer) {
+    EasyMock.reset(commandStore);
+    commandStoreInitializer.accept(commandStore);
+    EasyMock.replay(commandStore);
+
+    setUpKsqlResource();
   }
 
   private void addTestTopicAndSources() {
@@ -936,5 +862,26 @@ public class KsqlResourceTest {
     properties.putAll(configMap);
 
     return properties;
+  }
+
+  private static void registerSchema(final SchemaRegistryClient schemaRegistryClient)
+      throws IOException, RestClientException {
+    final String ordersAveroSchemaStr = "{"
+        + "\"namespace\": \"kql\","
+        + " \"name\": \"orders\","
+        + " \"type\": \"record\","
+        + " \"fields\": ["
+        + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
+        + "     {\"name\": \"orderid\",  \"type\": \"long\"},"
+        + "     {\"name\": \"itemid\", \"type\": \"string\"},"
+        + "     {\"name\": \"orderunits\", \"type\": \"double\"},"
+        + "     {\"name\": \"arraycol\", \"type\": {\"type\": \"array\", \"items\": \"double\"}},"
+        + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
+        + " ]"
+        + "}";
+    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
+    schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+        avroSchema);
   }
 }

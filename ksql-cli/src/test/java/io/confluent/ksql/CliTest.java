@@ -251,10 +251,6 @@ public class CliTest {
             "" + (KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
         ),
 
-        ImmutableList.of(
-            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "", "NULL"
-        ),
-
         // SESSION OVERRIDES:
         ImmutableList.of(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,

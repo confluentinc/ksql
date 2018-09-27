@@ -169,23 +169,24 @@ public class RestApiTest {
   }
 
   private static void startRestServer(Map<String, Object> configs) throws Exception {
-    int retries = NUM_RETRIES;
-    while (0 < retries) {
+    for (int tryIndex = 0; tryIndex < NUM_RETRIES; ++tryIndex) {
       try {
-        final int port = randomFreeLocalPort();
-        serverAddress = "http://localhost:" + port;
-        configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
-        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
-                                                               new DummyVersionCheckerAgent());
-        restApplication.start();
+        startRestServerOnce(configs);
         return;
       } catch (BindException e) {
         LOGGER.info("Failed to start rest server due to bind exception.", e);
-        retries--;
-        if (retries == 0) {
-          LOGGER.error("Could not start server after {} retries", NUM_RETRIES);
-        }
       }
     }
+    LOGGER.error("Could not start server after {} retries", NUM_RETRIES);
   }
+
+  private static void startRestServerOnce(Map<String, Object> configs) throws Exception {
+    final int port = randomFreeLocalPort();
+    serverAddress = "http://localhost:" + port;
+    configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
+    restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
+                                                           new DummyVersionCheckerAgent());
+    restApplication.start();
+  }
+
 }

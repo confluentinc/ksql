@@ -36,6 +36,14 @@ import org.apache.kafka.common.utils.SystemTime;
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
 public final class MetricCollectors {
+  public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
+  public static final String PRODUCER_TOTAL_MESSAGES = "total-messages";
+  public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
+  public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
+  public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
+  public static final String CONSUMER_FAILED_MESSAGES = "consumer-failed-messages";
+  public static final String CONSUMER_FAILED_MESSAGES_PER_SEC
+      = "consumer-failed-messages-per-sec";
 
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
@@ -96,20 +104,20 @@ public final class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  public static String getStatsFor(final String topic, final boolean isError) {
-
-    final ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
-    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase(), isError)));
-
-    final Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
-
-    return format(aggregateStats.values(), isError ? "last-failed" : "last-message");
+  static Map<String, TopicSensors.Stat> getStatsFor(
+      final String topic, final boolean isError) {
+    return getAggregateMetrics(
+        collectorMap.values().stream()
+            .flatMap(c -> c.stats(topic.toLowerCase(), isError).stream())
+            .collect(Collectors.toList())
+    );
   }
 
-  public static void recordError(final String topic) {
-    collectorMap.values().iterator().next().recordError(topic);
+  public static String getAndFormatStatsFor(final String topic, final boolean isError) {
+    return format(
+        getStatsFor(topic, isError).values(),
+        isError ? "last-failed" : "last-message");
   }
-
 
   static Map<String, TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
@@ -146,35 +154,33 @@ public final class MetricCollectors {
             Collectors.groupingBy(
               MetricCollector::getGroupId,
               Collectors.summingDouble(
-                  MetricCollector::currentMessageConsumptionRate
+                  m -> m.aggregateStat(CONSUMER_MESSAGES_PER_SEC, false)
               )
           )
         )
         .values();
   }
 
-  public static double currentProductionRate() {
+  public static double aggregateStat(final String name, final boolean isError) {
     return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::currentMessageProductionRate)
+        .mapToDouble(m -> m.aggregateStat(name, isError))
         .sum();
+  }
+
+  public static double currentProductionRate() {
+    return aggregateStat(PRODUCER_MESSAGES_PER_SEC, false);
   }
 
   public static double currentConsumptionRate() {
-    return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::currentMessageConsumptionRate)
-        .sum();
+    return aggregateStat(CONSUMER_MESSAGES_PER_SEC, false);
   }
 
   public static double totalMessageConsumption() {
-    return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::totalMessageConsumption)
-        .sum();
+    return aggregateStat(CONSUMER_TOTAL_MESSAGES, false);
   }
 
   public static double totalBytesConsumption() {
-    return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::totalBytesConsumption)
-        .sum();
+    return aggregateStat(CONSUMER_TOTAL_BYTES, false);
   }
 
   public static double currentErrorRate() {

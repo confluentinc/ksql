@@ -22,7 +22,7 @@ public class ConsumerCollectorTest {
   private static final String TEST_TOPIC = "testtopic";
 
   @Test
-  public void shouldDisplayRateThroughput() throws Exception {
+  public void shouldDisplayRateThroughput() {
 
     final ConsumerCollector collector = new ConsumerCollector();//
     collector.configure(new Metrics(), "group", new SystemTime());

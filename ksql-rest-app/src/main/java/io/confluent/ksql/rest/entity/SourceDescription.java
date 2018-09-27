@@ -107,25 +107,25 @@ public class SourceDescription {
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
             .map(TimestampExtractionPolicy::timestampField).orElse(""),
-        (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
-        (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
+        (extended
+            ? MetricCollectors.getAndFormatStatsFor(
+                dataSource.getKafkaTopicName(), false) : ""),
+        (extended
+            ? MetricCollectors.getAndFormatStatsFor(
+                dataSource.getKafkaTopicName(), true) : ""),
         extended,
         format,
-        dataSource.getKsqlTopic().getKafkaTopicName(),
+        dataSource.getKafkaTopicName(),
         (
             extended && topicClient != null ? getPartitions(
                 topicClient,
-                dataSource
-                    .getKsqlTopic()
-                    .getKafkaTopicName()
+                dataSource.getKafkaTopicName()
             ) : 0
         ),
         (
             extended && topicClient != null ? getReplication(
                 topicClient,
-                dataSource
-                    .getKsqlTopic()
-                    .getKafkaTopicName()
+                dataSource.getKafkaTopicName()
             ) : 0
         )
     );

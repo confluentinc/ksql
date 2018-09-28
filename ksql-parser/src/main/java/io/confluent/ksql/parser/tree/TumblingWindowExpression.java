@@ -16,16 +16,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.streams.kstream.Initializer;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.TimeWindows;
 
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
@@ -76,16 +69,5 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     }
     final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public KTable applyAggregate(final KGroupedStream groupedStream,
-                               final Initializer initializer,
-                               final UdafAggregator aggregator,
-                               final Materialized<String, GenericRow, ?> materialized) {
-    return groupedStream.windowedBy(TimeWindows.of(sizeUnit.toMillis(size)))
-        .aggregate(initializer, aggregator, materialized);
-
   }
 }

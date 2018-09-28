@@ -79,13 +79,11 @@ public final class AvroUtil {
 
     try {
       final String avroSchemaString = schemaMetadata.getSchema();
-      streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-      final AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
+      return addAvroFields(
               abstractStreamCreateStatement,
               AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
               schemaMetadata.getId()
       );
-      return abstractStreamCreateStatementCopy;
 
     } catch (final Exception e) {
       throw new KsqlException("Unable to verify if the Avro schema for topic " + kafkaTopicName

@@ -86,11 +86,11 @@ public class KsqlEngine implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
-  // TODO: Decide if any other properties belong in here
-  private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.of(
-      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-      KsqlConfig.KSQL_EXT_DIR
-  );
+  private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
+      .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
+      .add(KsqlConfig.KSQL_EXT_DIR)
+      .addAll(KsqlConfig.SSL_CONFIG_NAMES)
+      .build();
 
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;

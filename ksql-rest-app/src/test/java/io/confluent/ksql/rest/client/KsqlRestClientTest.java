@@ -205,7 +205,7 @@ public class KsqlRestClientTest {
 
   @Test(expected = KsqlRestClientException.class)
   public void shouldThrowOnInvalidServerAddress() {
-    new KsqlRestClient("not-valid-address", Collections.emptyMap());
+    new KsqlRestClient("not-valid-address");
   }
 
   @Test

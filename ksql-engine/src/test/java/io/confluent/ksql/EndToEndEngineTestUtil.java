@@ -789,8 +789,7 @@ final class EndToEndEngineTestUtil {
         .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
-        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id");
 
       if(additionalConfigs != null){
           mapBuilder.putAll(additionalConfigs);
@@ -799,9 +798,13 @@ final class EndToEndEngineTestUtil {
 
   }
 
-  static void shouldBuildAndExecuteQuery(final Query query) {
+  static void shouldBuildAndExecuteQuery(final Query query, final String optimizationsSetting) {
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
+    final Map<String, Object> optimizationConfig = new HashMap<>();
+    optimizationConfig.put(StreamsConfig.TOPOLOGY_OPTIMIZATION, optimizationsSetting);
 
-    final Map<String, Object> config = getConfigs(new HashMap<>());
+    final Map<String, Object> config = getConfigs(optimizationConfig);
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
     final KsqlConfig currentConfigs = new KsqlConfig(config);

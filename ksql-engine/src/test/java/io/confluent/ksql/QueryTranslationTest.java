@@ -52,6 +52,7 @@ import java.util.stream.StreamSupport;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -98,19 +99,28 @@ public class QueryTranslationTest {
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final Query query;
+  private final String optimizationsOn;
+  private final String optimizationsOff;
 
   /**
    * @param name  - unused. Is just so the tests get named.
    * @param query - query to run.
    */
   @SuppressWarnings("unused")
-  public QueryTranslationTest(final String name, final Query query) {
+  public QueryTranslationTest(final String name, final Query query, final String optimizationsOn, final String optimizationsOff) {
     this.query = Objects.requireNonNull(query, "query");
+    this.optimizationsOff = optimizationsOff;
+    this.optimizationsOn = optimizationsOn;
   }
 
   @Test
-  public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+  public void shouldBuildAndExecuteQueries_Optimized() {
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query, optimizationsOn);
+  }
+
+  @Test
+  public void shouldBuildAndExecuteQueries_No_Optimization() {
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query, optimizationsOff);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -127,7 +137,7 @@ public class QueryTranslationTest {
               q.setPersistedProperties(topologyAndConfigs.configs);
             }
           })
-          .map(query -> new Object[]{query.getName(), query})
+          .map(query -> new Object[]{query.getName(), query, StreamsConfig.OPTIMIZE, StreamsConfig.NO_OPTIMIZATION})
           .collect(Collectors.toCollection(ArrayList::new));
   }
 

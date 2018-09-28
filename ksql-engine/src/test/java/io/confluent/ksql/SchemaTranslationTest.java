@@ -50,7 +50,7 @@ public class SchemaTranslationTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query, "none");
   }
 
   @Parameterized.Parameters(name = "{0}")

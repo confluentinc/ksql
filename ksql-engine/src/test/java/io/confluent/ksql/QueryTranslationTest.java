@@ -105,6 +105,8 @@ public class QueryTranslationTest {
   /**
    * @param name  - unused. Is just so the tests get named.
    * @param query - query to run.
+   * @param optimizationsOff - turns off streams optimizations
+   * @param  optimizationsOn - turns on all streams optimizations
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final Query query, final String optimizationsOn, final String optimizationsOff) {

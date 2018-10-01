@@ -1246,13 +1246,11 @@ If these conditions are not met, then the results of aggregations and joins may 
 What To Do If Your Key Is Not Set or Is In A Different Format
 -------------------------------------------------------------
 
--------
 Streams
 -------
 
 For streams, just leave out the ``KEY`` property from the ``WITH`` clause. KSQL will take care of repartitioning the stream for you using the value(s) from the ``GROUP BY`` columns for aggregates, and the join predicate for joins.
 
-------
 Tables
 ------
 

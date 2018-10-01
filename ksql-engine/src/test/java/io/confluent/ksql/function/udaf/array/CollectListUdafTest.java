@@ -31,7 +31,6 @@ public class CollectListUdafTest {
     for (final Integer i : values) {
       runningList = udaf.aggregate(i, runningList);
     }
-    assertThat(runningList, hasSize(4));
     assertThat(runningList, contains(3, 4, 5, 3));
   }
 
@@ -44,7 +43,6 @@ public class CollectListUdafTest {
     for (final Integer i : lhsValues) {
       lhs = udaf.aggregate(i, lhs);
     }
-    assertThat(lhs, hasSize(4));
     assertThat(lhs, contains(1, 2, null, 3));
 
     List<Integer> rhs = udaf.initialize();
@@ -52,11 +50,9 @@ public class CollectListUdafTest {
     for (final Integer i : rhsValues) {
       rhs = udaf.aggregate(i, rhs);
     }
-    assertThat(rhs, hasSize(6));
     assertThat(rhs, contains(2, null, 3, 4, 5, 6));
 
     final List<Integer> merged = udaf.merge(lhs, rhs);
-    assertThat(merged, hasSize(10));
     assertThat(merged, contains(1, 2, null, 3, 2, null, 3, 4, 5, 6));
   }
 

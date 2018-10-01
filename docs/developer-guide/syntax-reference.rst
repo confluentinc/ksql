@@ -503,7 +503,7 @@ The WITH clause supports the following properties:
 |                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
 |                         | e.g. given the statement                                                                             |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
+|                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
 |                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
@@ -704,7 +704,7 @@ Example of explaining a running query:
 .. _drop-stream:
 
 DROP STREAM [IF EXISTS] [DELETE TOPIC];
------------------------
+---------------------------------------
 
 **Synopsis**
 
@@ -724,7 +724,7 @@ If IF EXISTS is present, does not fail if the table does not exist.
 .. _drop-table:
 
 DROP TABLE [IF EXISTS] [DELETE TOPIC];
-----------------------
+--------------------------------------
 
 **Synopsis**
 
@@ -738,7 +738,7 @@ Drops an existing table.
 If DELETE TOPIC clause is present, the corresponding topic in
 kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
 schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
- some time to complete.
+some time to complete.
 If IF EXISTS is present, does not fail if the table does not exist.
 
 PRINT
@@ -928,6 +928,7 @@ SHOW FUNCTIONS
 **Synopsis**
 
 .. code:: sql
+
     SHOW | LIST FUNCTIONS;
 
 **Description**

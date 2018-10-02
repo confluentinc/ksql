@@ -18,7 +18,7 @@ Learn More
 
 .. CLI welcome
 
-.. code:: bash
+::
 
                           ===========================================
                           =        _  __ _____  ____  _             =
@@ -103,7 +103,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -121,7 +121,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -164,7 +164,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        Page_24
        Page_73
@@ -183,7 +183,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -201,7 +201,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
        1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
@@ -217,7 +217,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -236,7 +236,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -255,7 +255,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------------------
@@ -272,7 +272,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        FEMALE | Region_6 | 3
        FEMALE | Region_1 | 4
@@ -291,7 +291,7 @@ the latest offset.
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Query ID                      | Kafka Topic              | Query String
         ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

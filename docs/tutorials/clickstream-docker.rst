@@ -23,7 +23,7 @@ your local host.
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Unable to find image 'confluentinc/ksql-clickstream-demo:4.1.0' locally
     latest: Pulling from confluentinc/ksql-clickstream-demo
@@ -63,7 +63,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         [....] Starting Elasticsearch Server:sysctl: setting key "vm.max_map_count": Read-only file system
         . ok
@@ -76,7 +76,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         [ ok ] Starting Grafana Server:.
 
@@ -88,7 +88,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Starting zookeeper
         zookeeper is [UP]
@@ -120,7 +120,7 @@ Create the Clickstream Data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Writing console output to /tmp/ksql-logs/ksql.out
 
@@ -132,7 +132,7 @@ Create the Clickstream Data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         200 --> ([ 200 | 'Successful' ])
         302 --> ([ 302 | 'Redirect' ])
@@ -148,7 +148,7 @@ Create the Clickstream Data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
         2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
@@ -183,7 +183,7 @@ Load the Streaming Data to KSQL
 
     The output should resemble:
 
-    .. code:: bash
+    ::
 
          Message
         ---------
@@ -204,7 +204,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
          Table Name                 | Kafka Topic                | Format | Windowed
         -----------------------------------------------------------------------------
@@ -227,7 +227,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
          Stream Name               | Kafka Topic               | Format
         ----------------------------------------------------------------
@@ -247,7 +247,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1503585407989 | 222.245.174.248 | 1503585407989 | 24/Aug/2017:07:36:47 -0700 | 233.90.225.227 | GET /site/login.html HTTP/1.1 | 407 | 19 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
         1503585407999 | 233.168.257.122 | 1503585407999 | 24/Aug/2017:07:36:47 -0700 | 233.173.215.103 | GET /site/user_status.html HTTP/1.1 | 200 | 15 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
@@ -265,7 +265,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1521108180000 | 6 : Window{start=1521108180000 end=-} | 6 | 24
         1521108180000 | 4 : Window{start=1521108180000 end=-} | 4 | 23
@@ -284,7 +284,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1503585475000 | 4 : Window{start=1503585475000 end=-} | 4 | 14
         1503585480000 | 25 : Window{start=1503585480000 end=-} | 25 | 9
@@ -323,7 +323,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
        Logging to: /tmp/ksql-connect.log
@@ -346,7 +346,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        Loading Grafana ClickStream Dashboard
        {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}

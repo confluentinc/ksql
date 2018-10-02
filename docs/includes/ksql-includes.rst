@@ -123,7 +123,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
    and ``ROWKEY``, which corresponds to the Kafka message key.
 
-   .. code:: bash
+   .. code:: sql
 
         ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
         (kafka_topic='pageviews', value_format='DELIMITED');
@@ -141,7 +141,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Create a table ``users_original`` from the Kafka topic ``users``, specifying the ``value_format`` of ``JSON``.
 
-   .. code:: bash
+   .. code:: sql
 
     ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
     (kafka_topic='users', value_format='JSON', key = 'userid');
@@ -159,7 +159,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Optional: Show all streams and tables.
 
-   .. code:: bash
+   ::
 
        ksql> SHOW STREAMS;
 
@@ -322,7 +322,7 @@ the latest offset.
 
 #.  Optional: Show all persistent queries.
 
-    .. code:: sql
+    ::
 
         ksql> SHOW QUERIES;
 
@@ -399,7 +399,7 @@ queries.
    like to terminate. For example, if you wish to terminate query ID
    ``CTAS_PAGEVIEWS_REGIONS``:
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
@@ -407,7 +407,7 @@ queries.
 
 #. Run this command to exit the KSQL CLI.
 
-   .. code:: bash
+   ::
 
        ksql> exit
 
@@ -655,7 +655,6 @@ For each ``CREATE TABLE`` statement, you should get the message:
 
 ::
 
-
      Message
     ---------------
      Table created
@@ -776,7 +775,7 @@ Your output should resemble:
 
 Use the ``DESCRIBE`` command to observe the schema of the target stream. 
 
-.. code:: sql
+::
 
     ksql> DESCRIBE ALL_ORDERS;
 
@@ -839,7 +838,7 @@ Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 You can view the two queries that are running using ``SHOW QUERIES``: 
 
-.. code:: sql
+::
 
     ksql> SHOW QUERIES;
 

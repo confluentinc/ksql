@@ -91,8 +91,8 @@ public class ProducerCollector implements MetricCollector {
       addSensor(key, "messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "total-messages", new Total(), sensors, false);
       // This is intentional - recording of error metrics is a huge hack
-      // Currently its only recorded for deserialization errors. The error
-      // is recorded from the streams error handler, from which we cant obtain
+      // Currently it's only recorded for deserialization errors. The error
+      // is recorded from the streams error handler, from which we can't obtain
       // a reference to this interceptor. So MetricCollector just records the
       // error on the first metric collector it sees. So each metric collector
       // has to track all the error metrics.

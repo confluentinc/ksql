@@ -2,7 +2,7 @@
 
 .. tip:: Run the following to tell KSQL to read from the `beginning` of the topic: 
 
-    .. code:: bash
+    .. code:: sql
 
         ksql> SET 'auto.offset.reset' = 'earliest';
 
@@ -35,7 +35,7 @@ Learn More
 
 .. CLI_welcome_start
 
-.. codewithvars:: bash
+.. codewithvars:: text
 
                           ===========================================
                           =        _  __ _____  ____  _             =

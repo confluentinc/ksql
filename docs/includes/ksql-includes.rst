@@ -96,7 +96,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
    and ``ROWKEY``, which corresponds to the Kafka message key.
 
-   .. code:: bash
+   .. code:: sql
 
         ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
         (kafka_topic='pageviews', value_format='DELIMITED');
@@ -114,7 +114,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Create a table ``users_original`` from the Kafka topic ``users``, specifying the ``value_format`` of ``JSON``.
 
-   .. code:: bash
+   .. code:: sql
 
     ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
     (kafka_topic='users', value_format='JSON', key = 'userid');
@@ -132,7 +132,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Optional: Show all streams and tables.
 
-   .. code:: bash
+   ::
 
        ksql> SHOW STREAMS;
 
@@ -158,7 +158,7 @@ the latest offset.
 #. Use ``SELECT`` to create a query that returns data from a STREAM. This query includes the ``LIMIT`` keyword to limit
    the number of rows returned in the query result. Note that exact data output may vary because of the randomness of the data generation.
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> SELECT pageid FROM pageviews_original LIMIT 3;
 
@@ -176,7 +176,7 @@ the latest offset.
    query are written to the ``PAGEVIEWS_ENRICHED`` Kafka topic. The following query enriches the ``pageviews`` STREAM by
    doing a ``LEFT JOIN`` with the ``users_original`` TABLE on the user ID.
 
-   .. code:: bash
+   .. code:: sql
 
     ksql> CREATE STREAM pageviews_enriched AS SELECT users_original.userid AS userid, pageid, regionid, gender \
     FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid;
@@ -195,7 +195,7 @@ the latest offset.
 #. Use ``SELECT`` to view query results as they come in. To stop viewing the query results, press ``<ctrl-c>``. This stops printing to the
    console but it does not terminate the actual query. The query continues to run in the underlying KSQL application.
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> SELECT * FROM pageviews_enriched;
 
@@ -211,7 +211,7 @@ the latest offset.
 #. Create a new persistent query where a condition limits the streams content, using ``WHERE``. Results from this query
    are written to a Kafka topic called ``PAGEVIEWS_FEMALE``.
 
-   .. code:: bash
+   .. code:: sql
 
     ksql> CREATE STREAM pageviews_female AS SELECT * FROM pageviews_enriched WHERE gender = 'FEMALE';
 
@@ -229,7 +229,7 @@ the latest offset.
 #. Create a new persistent query where another condition is met, using ``LIKE``. Results from this query are written to the
    ``pageviews_enriched_r8_r9`` Kafka topic.
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', \
        value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
@@ -248,7 +248,7 @@ the latest offset.
    are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
    configured schema registry when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
-   .. code:: bash
+   .. code:: sql
 
     ksql> CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers \
     FROM pageviews_enriched WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
@@ -266,7 +266,7 @@ the latest offset.
 
 #. Optional: View results from the above queries using ``SELECT``.
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
 
@@ -285,7 +285,7 @@ the latest offset.
 
 #.  Optional: Show all persistent queries.
 
-    .. code:: bash
+    ::
 
         ksql> SHOW QUERIES;
 
@@ -315,13 +315,13 @@ queries.
    like to terminate. For example, if you wish to terminate query ID
    ``CTAS_PAGEVIEWS_REGIONS``:
 
-   .. code:: bash
+   .. code:: sql
 
        ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
 #. Run this command to exit the KSQL CLI.
 
-   .. code:: bash
+   ::
 
        ksql> exit
 

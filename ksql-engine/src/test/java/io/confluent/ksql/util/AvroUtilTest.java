@@ -145,7 +145,6 @@ public class AvroUtilTest {
         ("CREATE STREAM S1 WITH "
          + "(kafka_topic='s1_topic', "
          + "value_format='avro' );");
-
     AvroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
   }
 
@@ -193,6 +192,7 @@ public class AvroUtilTest {
                                                 + "it is not valid for schema registry.", equalTo(e.getMessage()));
     }
   }
+
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(final String statementString) {
     final List<PreparedStatement> statementList = new KsqlParser().buildAst

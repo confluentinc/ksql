@@ -52,4 +52,9 @@ public class KsqlConstants {
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String AVRO_SCHEMA_FULL_NAME = AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  public static final String DOC_URL_SR_SERIALISER =
+      "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
+  public static final String DOC_URL_SR_REST_GETSUBJECTS =
+      "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
 }

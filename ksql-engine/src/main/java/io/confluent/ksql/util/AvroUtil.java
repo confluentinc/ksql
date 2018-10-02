@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -85,11 +86,12 @@ public class AvroUtil {
         return abstractStreamCreateStatement;
       }
     } catch (final Exception e) {
-      final String errorMessage = String.format(
-          " Unable to verify the AVRO schema is compatible with KSQL. %s ",
-          e.getMessage()
-      );
-      throw new KsqlException(errorMessage);
+      throw new KsqlException("Unable to verify if the Avro schema for topic " + kafkaTopicName
+          + " is compatible with KSQL.\nReason: " + e.getMessage() + "\n\n"
+          + "Please see https://github.com/confluentinc/ksql/issues/ to see if this "
+          + "particular reason is already\n"
+          + "known, and if not log a new issue. Please include the full Avro schema "
+          + "that you are trying to use.");
     }
   }
 
@@ -97,36 +99,59 @@ public class AvroUtil {
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final SchemaRegistryClient schemaRegistryClient,
       final String kafkaTopicName
-  ) throws IOException, RestClientException {
+  ) throws IOException {
 
-    if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
-      final int schemaId;
-      try {
-        schemaId = Integer.parseInt(
-            StringUtil.cleanQuotes(
-                abstractStreamCreateStatement
-                    .getProperties()
-                    .get(KsqlConstants.AVRO_SCHEMA_ID)
-                    .toString()
-            )
+    try {
+      if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
+        final int schemaId;
+        try {
+          schemaId = Integer.parseInt(
+              StringUtil.cleanQuotes(
+                  abstractStreamCreateStatement
+                      .getProperties()
+                      .get(KsqlConstants.AVRO_SCHEMA_ID)
+                      .toString()
+              )
+          );
+        } catch (final NumberFormatException e) {
+          throw new KsqlException(String.format(
+              "Invalid schema id property: %s.",
+              abstractStreamCreateStatement
+                  .getProperties()
+                  .get(KsqlConstants.AVRO_SCHEMA_ID)
+                  .toString()
+          ));
+        }
+        return schemaRegistryClient.getSchemaMetadata(
+            kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+            schemaId
         );
-      } catch (final NumberFormatException e) {
-        throw new KsqlException(String.format(
-            "Invalid schema id property: %s.",
-            abstractStreamCreateStatement
-                .getProperties()
-                .get(KsqlConstants.AVRO_SCHEMA_ID)
-                .toString()
-        ));
+      } else {
+        return schemaRegistryClient.getLatestSchemaMetadata(
+            kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        );
       }
-      return schemaRegistryClient.getSchemaMetadata(
-          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-          schemaId
-      );
-    } else {
-      return schemaRegistryClient.getLatestSchemaMetadata(
-          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
-      );
+    } catch (final RestClientException e) {
+      if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+        throw new KsqlException("Avro schema for message values on topic " + kafkaTopicName
+            + " does not exist in the Schema Registry.\n"
+            + "Subject: " + kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX + "\n\n"
+            + "Possible causes include:\n"
+            + "- The topic itself does not exist\n"
+            + "\t-> Use SHOW TOPICS; to check\n"
+            + "- Messages on the topic are not Avro serialized\n"
+            + "\t-> Use PRINT '" + kafkaTopicName + "' FROM BEGINNING; to verify\n"
+            + "- Messages on the topic have not been serialized using the Confluent Schema "
+            + "Registry Avro serializer\n"
+            + "\t-> See " + KsqlConstants.DOC_URL_SR_SERIALISER + "\n"
+            + "- The schema is registered on a different instance of the Schema Registry\n"
+            + "\t-> Use the REST API to list available subjects\n\t"
+            + KsqlConstants.DOC_URL_SR_REST_GETSUBJECTS + "\n"
+        );
+      }
+      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName
+          + " request failed.\n", e);
+
     }
   }
 

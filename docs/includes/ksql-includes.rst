@@ -130,7 +130,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -148,7 +148,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -191,7 +191,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        Page_24
        Page_73
@@ -211,7 +211,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -229,7 +229,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
        1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
@@ -247,7 +247,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -268,7 +268,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -292,7 +292,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------------------
@@ -309,7 +309,7 @@ the latest offset.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        FEMALE | Region_6 | 3
        FEMALE | Region_1 | 4
@@ -328,7 +328,7 @@ the latest offset.
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Query ID                        | Kafka Topic              | Query String
         --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -348,7 +348,7 @@ the latest offset.
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Name                 : PAGEVIEWS_REGIONS
         Type                 : TABLE
@@ -464,7 +464,7 @@ From the KSQL command prompt, register the topic in KSQL:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     ----------------
@@ -480,7 +480,7 @@ Use the ``DESCRIBE`` function to observe the schema, which includes a
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Name                 : ORDERS
      Field      | Type
@@ -504,7 +504,7 @@ Query the data, using ``->`` notation to access the Struct contents:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     0 | City_35
     1 | City_21
@@ -547,7 +547,7 @@ Register both topics with KSQL:
 
 After each ``CREATE STREAM`` statement you should get the message: 
 
-.. code:: bash
+::
 
      Message
     ----------------
@@ -568,7 +568,7 @@ For the ``NEW_ORDERS`` topic, run:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 10.5 | Bob Smith
     2 | 3.32 | Sarah Black
@@ -582,7 +582,7 @@ For the ``SHIPMENTS`` topic, run:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 42 | Nashville
     3 | 43 | Palo Alto
@@ -601,7 +601,7 @@ based on a join window of 1 hours.
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 10.5 | Bob Smith | 42 | Nashville
     3 | 21.0 | Emma Turner | 43 | Palo Alto
@@ -653,7 +653,7 @@ Register both as KSQL tables:
 
 For each ``CREATE TABLE`` statement, you should get the message: 
 
-.. code:: bash
+::
 
 
      Message
@@ -675,7 +675,7 @@ they are not, the join will not succeed or behave as expected.
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 1
     2 | 2
@@ -689,7 +689,7 @@ Your output should resemble:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 1
     2 | 2
@@ -709,7 +709,7 @@ Now join the two tables:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | Leeds | UK | 16000.0
     2 | Sheffield | UK | 42000.0
@@ -749,7 +749,7 @@ In KSQL, register the source topic for each:
 
 After each ``CREATE STREAM`` statement you should get the message: 
 
-.. code:: bash
+::
 
      Message
     ----------------
@@ -767,7 +767,7 @@ as part of the ``SELECT``:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     ----------------------------
@@ -783,7 +783,7 @@ Use the ``DESCRIBE`` command to observe the schema of the target stream.
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Name                 : ALL_ORDERS
      Field      | Type
@@ -808,7 +808,7 @@ Add stream of 3rd party orders into the existing output stream:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     -------------------------------
@@ -825,7 +825,7 @@ written to it:
 Your output should resemble the following. Note that there are messages from both source 
 topics (denoted by ``LOCAL`` and ``3RD PARTY`` respectively). 
 
-.. code:: bash
+::
 
     1531736084879 | 1802 | 3RD PARTY | 1508543844870 | 1802 | Item_427 | 5.003326679575532 | {CITY=City_27, STATE=State_63, ZIPCODE=12589}
     1531736085016 | 1836 | LOCAL | 1489112050820 | 1836 | Item_224 | 9.561788841477156 | {CITY=City_67, STATE=State_99, ZIPCODE=28638}
@@ -846,7 +846,7 @@ You can view the two queries that are running using ``SHOW QUERIES``:
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Query ID          | Kafka Topic | Query String
     -------------------------------------------------------------------------------------------------------------------

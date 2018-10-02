@@ -71,7 +71,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
     Here are the default settings:
 
-    .. code:: bash
+    ::
 
         bootstrap.servers=localhost:9092
         listeners=http://localhost:8088
@@ -93,7 +93,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
 .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 
-         .. code:: bash
+         ::
 
                 NAME
                         server - KSQL Cluster
@@ -147,10 +147,9 @@ After KSQL is started, your terminal should resemble this.
     :start-line: 19
     :end-line: 40
 
-Tip
-    You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.
+.. tip:: You can view the KSQL CLI help text by running ``<path-to-confluent>/bin/ksql --help``.
 
-    .. code:: bash
+    ::
 
             NAME
                     ksql - KSQL CLI

@@ -83,7 +83,7 @@ following methods.
 
    Your data input should resemble this.
 
-   .. code:: bash
+   ::
 
        key1:v1,v2,v3
        key2:v4,v5,v6
@@ -100,7 +100,7 @@ following methods.
 
    Your data input should resemble this.
 
-   .. code:: bash
+   ::
 
        key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
        key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
@@ -121,7 +121,7 @@ environment is properly setup.
 
    Your output should resemble this. Take note of the ``Up`` state.
 
-   .. code:: bash
+   ::
 
                Name                        Command               State                           Ports
        -------------------------------------------------------------------------------------------------------------------------
@@ -143,7 +143,7 @@ environment is properly setup.
 
    Your output should resemble this.
 
-   .. code:: bash
+   ::
 
        _confluent-metrics
        _schemas
@@ -161,7 +161,7 @@ environment is properly setup.
 
    Your output should resemble this.
 
-   .. code:: bash
+   ::
 
        1491040409254    1491040409254,User_5,Page_70
        1488611895904    1488611895904,User_8,Page_76
@@ -173,7 +173,7 @@ environment is properly setup.
 
    Your output should resemble this.
 
-   .. code:: bash
+   ::
 
        User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
        User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}

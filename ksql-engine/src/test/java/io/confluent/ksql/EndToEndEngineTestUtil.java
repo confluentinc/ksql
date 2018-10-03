@@ -596,11 +596,11 @@ final class EndToEndEngineTestUtil {
       final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
 
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
-      final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig);
-      final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
-      final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-      writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
-      ksqlEngine.close();
+      try(final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig)) {
+          final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
+          final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+          writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
+      }
     });
   }
 

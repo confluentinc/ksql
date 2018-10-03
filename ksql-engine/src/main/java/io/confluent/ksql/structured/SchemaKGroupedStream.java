@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.function.udaf.KudafAggregator;
+import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlConfig;
@@ -37,6 +38,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
@@ -78,10 +80,11 @@ public class SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe) {
-    final KTable aggKtable;
+    KTable aggKtable;
     final UdafAggregator aggregator = new KudafAggregator(
         aggValToFunctionMap, aggValToValColumnMap);
-    if (windowExpression != null) {
+
+    if (windowExpression != null) { // Todo(ac): refactor into methods.
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
               Serdes.String(), topicValueSerDe);
@@ -93,6 +96,13 @@ public class SchemaKGroupedStream {
           aggregator,
           materialized
       );
+
+      // Todo(ac): Inject & test
+      final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(aggValToFunctionMap);
+      if (windowSelectMapper.hasSelects()) {
+        aggKtable = aggKtable.mapValues((readOnlyKey, value) ->
+            windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+      }
     } else {
       aggKtable = kgroupedStream.aggregate(
           initializer,

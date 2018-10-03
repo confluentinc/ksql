@@ -11,7 +11,7 @@ of the other services it communicates with both Apache Kafka and the |sr|.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
-and mutual authentication for authorization.
+  and mutual authentication for authorization.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
 file and then :ref:`start the KSQL server <start_ksql-server>` with your configuration file specified.
@@ -134,7 +134,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTPS,
 where mutual authentication is not required and |sr| SSL certificates are trusted
 by the JVM:
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
@@ -142,7 +142,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTPS, with
 mutual authentication, with an explicit trustStore, and where the SSL configuration is shared
 between Kafka and |sr|:
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
@@ -155,7 +155,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
 KSQL to |sr| SSL communication.
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
@@ -167,7 +167,8 @@ The exact settings will vary depending on the encryption and authentication mech
 You can pass authentication settings to the |sr| client used by KSQL
 by adding the following to your KSQL server config.
 
-.. code:: bash
+::
+
     ksql.schema.registry.basic.auth.credentials.source=USER_INFO
     ksql.schema.registry.basic.auth.user.info=username:password
 
@@ -188,7 +189,7 @@ Configuring Kafka Encrypted Communication
 
 This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
 
-.. code:: bash
+::
 
     security.protocol=SSL
     ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
@@ -207,7 +208,7 @@ Configuring Kafka Authentication
 This configuration enables KSQL to connect to a secure Kafka cluster using PLAIN SASL, where the SSL certificates have been
 signed by a CA trusted by the default JVM trust store.
 
-.. code:: bash
+::
 
     security.protocol=SASL_SSL
     sasl.mechanism=PLAIN
@@ -336,11 +337,11 @@ of input and output topics is well defined. Add the ACLs required to allow KSQL 
 For example, given the following setup:
 
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
-- Authenticating with the Kafka cluster as a 'KSQL1' user.
-- With 'ksql.service.id' set to 'production_'.
-- Running queries the read from input topics 'input-topic1' and 'input-topic2'.
-- Writing to output topics 'output-topic1' and 'output-topic2'.
-- Where 'output-topic1' is also used as an input for another query.
+- Authenticating with the Kafka cluster as a ``KSQL1`` user.
+- With ``ksql.service.id`` set to ``production_``.
+- Running queries the read from input topics ``input-topic1`` and ``input-topic2``.
+- Writing to output topics ``output-topic1`` and ``output-topic2``.
+- Where ``output-topic1`` is also used as an input for another query.
 
 Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:
 
@@ -378,10 +379,10 @@ access to the input and output topics, as required.
 For example, given the following setup:
 
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
-- Authenticating with the Kafka cluster as a 'KSQL1' user.
-- With 'ksql.service.id' set to 'fraud_.
-- Where users should be able to run queries against any input topics prefixed with 'accounts-', 'orders-' and 'payments-'.
-- Where 'ksql.output.topic.name.prefix' is set to 'ksql-fraud-'
+- Authenticating with the Kafka cluster as a ``KSQL1`` user.
+- With ``ksql.service.id`` set to ``fraud_``.
+- Where users should be able to run queries against any input topics prefixed with ``accounts-``, ``orders-`` and ``payments-``.
+- Where ``ksql.output.topic.name.prefix`` is set to ``ksql-fraud-``
 - And users won't use explicit topic names, i.e. users will rely on KSQL auto-creating any required topics with auto-generated names.
   (Note: If users want to use explicit topic names, then you must provide the necessary ACLs for these in addition to what's shown in the example below.)
 
@@ -443,7 +444,7 @@ the principal is the user the KSQL server has authenticated as, with the Apache 
 that includes the authenticated KSQL user.
 
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`restrict-ksql-interactive`.
+   non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -545,8 +546,7 @@ Configuring |c3-short| Monitoring Interceptors
 This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
 with |c3-short|.
 
-
-.. code:: bash
+::
 
     # Confluent Monitoring Interceptors for Control Center streams monitoring
     producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor

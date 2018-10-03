@@ -337,11 +337,11 @@ of input and output topics is well defined. Add the ACLs required to allow KSQL 
 For example, given the following setup:
 
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
-- Authenticating with the Kafka cluster as a 'KSQL1' user.
-- With 'ksql.service.id' set to 'production_'.
-- Running queries the read from input topics 'input-topic1' and 'input-topic2'.
-- Writing to output topics 'output-topic1' and 'output-topic2'.
-- Where 'output-topic1' is also used as an input for another query.
+- Authenticating with the Kafka cluster as a ``KSQL1`` user.
+- With ``ksql.service.id`` set to ``production_``.
+- Running queries the read from input topics ``input-topic1`` and ``input-topic2``.
+- Writing to output topics ``output-topic1`` and ``output-topic2``.
+- Where ``output-topic1`` is also used as an input for another query.
 
 Then the following commands would create the necessary ACLs in the Kafka cluster to allow KSQL to operate:
 
@@ -379,10 +379,10 @@ access to the input and output topics, as required.
 For example, given the following setup:
 
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
-- Authenticating with the Kafka cluster as a 'KSQL1' user.
-- With 'ksql.service.id' set to 'fraud_.
-- Where users should be able to run queries against any input topics prefixed with 'accounts-', 'orders-' and 'payments-'.
-- Where 'ksql.output.topic.name.prefix' is set to 'ksql-fraud-'
+- Authenticating with the Kafka cluster as a ``KSQL1`` user.
+- With ``ksql.service.id`` set to ``fraud_``.
+- Where users should be able to run queries against any input topics prefixed with ``accounts-``, ``orders-`` and ``payments-``.
+- Where ``ksql.output.topic.name.prefix`` is set to ``ksql-fraud-``
 - And users won't use explicit topic names, i.e. users will rely on KSQL auto-creating any required topics with auto-generated names.
   (Note: If users want to use explicit topic names, then you must provide the necessary ACLs for these in addition to what's shown in the example below.)
 

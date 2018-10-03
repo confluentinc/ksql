@@ -79,7 +79,7 @@ using a console consumer such as ``kafkacat``:
 
 This will stop after ten messages, and your output should look like this: 
 
-    .. code:: bash
+    ::
 
         Key  : 111.90.225.227
         Value: {"ip":"111.90.225.227","userid":36,"remote_user":"-","time":"11/Sep/2018:09:53:04 +0000","_time":1536659584702,"request":"GET /images/track.png HTTP/1.1","status":"302","bytes":"2048","referrer":"-","agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"}
@@ -111,7 +111,7 @@ used to enrich the click data.
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         200 --> ([ 200 | 'Successful' ])
         302 --> ([ 302 | 'Redirect' ])
@@ -136,7 +136,7 @@ used to enrich the click data.
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
         2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
@@ -183,7 +183,7 @@ Load the Streaming Data to KSQL
 
     The output will show either a blank message, or ``Executing statement``, similar to this: 
 
-    .. code:: bash
+    ::
 
          Message
         ---------
@@ -204,7 +204,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
          Table Name                 | Kafka Topic                | Format | Windowed
         -----------------------------------------------------------------------------
@@ -227,7 +227,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
          Stream Name               | Kafka Topic               | Format
         ----------------------------------------------------------------
@@ -247,7 +247,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1536662784214 | 111.168.57.122 | 1536662783614 | 11/Sep/2018:10:46:23 +0000 | 111.168.57.122 | GET /images/logo-small.png HTTP/1.1 | 200 | 35 | 1289 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
         1536662784261 | 222.245.174.248 | 1536662784260 | 11/Sep/2018:10:46:24 +0000 | 222.245.174.248 | GET /index.html HTTP/1.1 | 404 | 7 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
@@ -266,7 +266,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1536662819576 | 24 : Window{start=1536662760000 end=-} | 24 | 12
         1536662819685 | 4 : Window{start=1536662760000 end=-} | 4 | 19
@@ -284,7 +284,7 @@ Verify the data
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         1536662784977 | 21 : Window{start=1536662725000 end=-} | 21 | 2
         1536662789353 | 21 : Window{start=1536662730000 end=-} | 21 | 7
@@ -323,7 +323,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
         Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
 
@@ -348,7 +348,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
         Loading Grafana ClickStream Dashboard
         {"id":1,"slug":"click-stream-analysis","status":"success","uid":"lUHTGDTmz","url":"/d/lUHTGDTmz/click-stream-analysis","version":4}

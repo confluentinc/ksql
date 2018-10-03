@@ -396,7 +396,7 @@ may go unnoticed in the KSQL CLI if the KSQL server instance it is connected to 
 but one or more other KSQL servers don't have it installed. In these cases the errors will appear
 in the KSQL server log (ksql.log) . The error would look something like:
 
-.. code:: txt
+::
 
     [2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.StatementExecutor:210)
     io.confluent.ksql.util.KsqlException: Can't find any functions with the name 'TOSTRING'
@@ -439,7 +439,7 @@ All the entries in it are commented out, but it demonstrates how you can use the
 This file contains an entry per line, where each line is a class or package that should be blacklisted.
 The matching of the names is based on a regular expression, so if you have an entry, ``java.lang.Process``
 
-.. code:: txt
+::
 
     java.lang.Process
 
@@ -447,7 +447,7 @@ This would match any paths that begin with java.lang.Process, i.e., java.lang.Pr
 
 If you want to blacklist a single class, i.e., ``java.lang.Compiler``, then you would add:
 
-.. code:: txt
+::
 
     java.lang.Compiler$
 

@@ -18,7 +18,7 @@ Learn More
 
 .. CLI welcome
 
-::
+.. codewithvars:: text
 
                           ===========================================
                           =        _  __ _____  ____  _             =
@@ -33,7 +33,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v4.1.0, Server v4.1.0 located at http://localhost:8088
+        CLI v|release|, Server v|release| located at http://localhost:8088
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

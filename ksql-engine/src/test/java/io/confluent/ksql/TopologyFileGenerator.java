@@ -61,8 +61,8 @@ public class TopologyFileGenerator {
         System.exit(0);
     }
 
-    private static List<Query>  getQueryList() throws IOException {
-        return QueryTranslationTest.buildQueryList().stream()
+    private static List<Query>  getQueryList() {
+        return QueryTranslationTest.buildQueryList()
             .filter(q -> !q.isAnyExceptionExpected())
             .collect(Collectors.toList());
     }

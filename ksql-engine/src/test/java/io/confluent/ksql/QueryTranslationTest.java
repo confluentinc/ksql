@@ -9,14 +9,15 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -31,6 +32,8 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,10 +41,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -85,7 +92,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
+  private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
   private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
@@ -111,7 +118,7 @@ public class QueryTranslationTest {
     final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
     final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
     final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
-    return buildQueryList().stream()
+    return buildQueryList()
           .peek(q -> {
             final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
             // could be null if the query has expected errors, no topology or configs saved
@@ -124,36 +131,28 @@ public class QueryTranslationTest {
           .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  static List<Query> buildQueryList()  throws IOException {
-    final List<String> testFiles = findTests(QUERY_VALIDATION_TEST_DIR);
+  static Stream<Query> buildQueryList() {
+    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR)
+        .flatMap(test -> {
+          final JsonNode formatsNode = test.getNode().get("format");
+          if (formatsNode == null) {
+            return Stream.of(createTest(test, ""));
+          }
 
-    return testFiles.stream().flatMap(test -> {
-      final String testPath = QUERY_VALIDATION_TEST_DIR + "/" + test;
-      final JsonNode tests;
-      try {
-        tests = objectMapper.readTree(
-            EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(testPath));
-      } catch (IOException e) {
-        throw new RuntimeException("Unable to load test at path " + testPath, e);
-      }
-      final List<Query> queries = new ArrayList<>();
-      tests.findValue("tests").elements().forEachRemaining(query -> {
-        final JsonNode formats = query.get("format");
-        if (formats == null) {
-          queries.add(createTest(testPath, query, ""));
-        } else {
-          formats.iterator().forEachRemaining(
-              format -> queries.add(createTest(testPath, query, format.asText())));
-        }
-      });
-      return queries.stream();
-    }).collect(Collectors.toList());
+          final Spliterator<JsonNode> formats = Spliterators.spliteratorUnknownSize(
+              formatsNode.iterator(), Spliterator.ORDERED);
+
+          return StreamSupport.stream(formats, false)
+              .map(format -> createTest(test, format.asText()));
+        });
   }
 
-  private static Query createTest(final String testPath, final JsonNode query, final String format) {
+  private static Query createTest(final TestCase test, final String format) {
     try {
+      final JsonNode query = test.getNode();
       final StringBuilder nameBuilder = new StringBuilder();
+      nameBuilder.append(Files.getNameWithoutExtension(test.getTestPath().toString()));
+      nameBuilder.append(" - ");
       nameBuilder.append(getRequiredQueryField("Unknown", query, "name").asText());
       if (!format.equals("")) {
         nameBuilder.append(" - ").append(format);
@@ -214,10 +213,10 @@ public class QueryTranslationTest {
         }
       }
 
-      return new Query(testPath, name, properties, topics, inputs, outputs, statements,
+      return new Query(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
           expectedException);
     } catch (final Exception e) {
-      throw new RuntimeException("Failed to build a query in " + testPath, e);
+      throw new RuntimeException("Failed to build a query in " + test.getTestPath(), e);
     }
   }
 

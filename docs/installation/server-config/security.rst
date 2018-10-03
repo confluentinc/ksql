@@ -134,7 +134,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTPS,
 where mutual authentication is not required and |sr| SSL certificates are trusted
 by the JVM:
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
@@ -188,7 +188,7 @@ Configuring Kafka Encrypted Communication
 
 This configuration enables KSQL to connect to a Kafka cluster over SSL, with a user supplied trust store:
 
-.. code:: bash
+::
 
     security.protocol=SSL
     ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
@@ -207,7 +207,7 @@ Configuring Kafka Authentication
 This configuration enables KSQL to connect to a secure Kafka cluster using PLAIN SASL, where the SSL certificates have been
 signed by a CA trusted by the default JVM trust store.
 
-.. code:: bash
+::
 
     security.protocol=SASL_SSL
     sasl.mechanism=PLAIN
@@ -443,7 +443,7 @@ the principal is the user the KSQL server has authenticated as, with the Apache 
 that includes the authenticated KSQL user.
 
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`restrict-ksql-interactive`.
+   non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -545,8 +545,7 @@ Configuring |c3-short| Monitoring Interceptors
 This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
 with |c3-short|.
 
-
-.. code:: bash
+::
 
     # Confluent Monitoring Interceptors for Control Center streams monitoring
     producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor

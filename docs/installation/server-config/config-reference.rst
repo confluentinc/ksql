@@ -27,7 +27,7 @@ Determines what to do when there is no initial offset in Kafka or if the current
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
     ksql> SET 'auto.offset.reset'='earliest';
 
@@ -43,7 +43,7 @@ A list of host and port pairs that is used for establishing the initial connecti
 in the form ``host1:port1,host2:port2,...`` The default value in KSQL is ``localhost:9092``. For example, to change it to ``9095``
 by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
     ksql> SET 'bootstrap.servers'='localhost:9095';
 
@@ -58,7 +58,7 @@ ksql.streams.commit.interval.ms
 The frequency to save the position of the processor. The default value in KSQL is ``2000``. Here is an example to change
 the value to ``5000`` by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
     ksql> SET 'commit.interval.ms'='5000';
 
@@ -73,7 +73,7 @@ ksql.streams.cache.max.bytes.buffering
 The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).
 Here is an example to change the value to ``20000000`` by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
     ksql> SET 'cache.max.bytes.buffering'='20000000';
 
@@ -90,7 +90,7 @@ threads. For more information about Kafka Streams threading model, see :ref:`str
 
 
 KSQL Query Settings
-------------------
+-------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
@@ -109,7 +109,7 @@ corrupt. For example, a message is corrupt if KSQL expects message values to be 
 DELIMITED format. The default value in KSQL is ``true``. For example, to ignore corrupt messages, add this to your
 properties file:
 
-.. code:: java
+::
 
     fail.on.deserialization.error=false
 
@@ -177,7 +177,7 @@ For more info, see :ref:`ksql-rest-api`.
 Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
 bind to the default interface. For example:
 
-.. code:: bash
+::
 
     # Bind to all interfaces.
     listeners=http://0.0.0.0:8088
@@ -188,11 +188,11 @@ bind to the default interface. For example:
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings
----------------------------
+------------------------------------
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 
-.. code:: bash
+::
 
     # Set the retries to Integer.MAX_VALUE to ensure that transient failures
     # will not result in data loss.

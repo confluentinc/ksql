@@ -11,7 +11,7 @@ of the other services it communicates with both Apache Kafka and the |sr|.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
-and mutual authentication for authorization.
+  and mutual authentication for authorization.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
 file and then :ref:`start the KSQL server <start_ksql-server>` with your configuration file specified.
@@ -142,7 +142,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTPS, with
 mutual authentication, with an explicit trustStore, and where the SSL configuration is shared
 between Kafka and |sr|:
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
@@ -155,7 +155,7 @@ Use the following to configure KSQL to communicate with |sr| over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
 KSQL to |sr| SSL communication.
 
-.. code:: bash
+::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
@@ -167,7 +167,8 @@ The exact settings will vary depending on the encryption and authentication mech
 You can pass authentication settings to the |sr| client used by KSQL
 by adding the following to your KSQL server config.
 
-.. code:: bash
+::
+
     ksql.schema.registry.basic.auth.credentials.source=USER_INFO
     ksql.schema.registry.basic.auth.user.info=username:password
 

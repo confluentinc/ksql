@@ -107,7 +107,7 @@ After KSQL is started, your terminal should resemble this.
 
 .. basics_tutorial_03_start
 
-.. _create-a-stream-and-table:
+.. _create-a-stream-and-table-inc:
 
 -------------------------
 Create a Stream and Table

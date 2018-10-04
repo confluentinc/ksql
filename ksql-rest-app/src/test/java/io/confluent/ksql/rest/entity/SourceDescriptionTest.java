@@ -24,7 +24,6 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -37,9 +36,29 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class SourceDescriptionTest {
+  private final static String CLIENT_ID = "client";
+  private final static String APP_ID = "test-app";
+
+  private ConsumerCollector consumerCollector;
+
+  @Before
+  public void setUp() {
+    consumerCollector = new ConsumerCollector();
+    consumerCollector.configure(
+        Collections.singletonMap(ConsumerConfig.CLIENT_ID_CONFIG, CLIENT_ID));
+  }
+
+  @After
+  public void tearDown() {
+    StreamsErrorCollector.notifyApplicationClose(APP_ID);
+    consumerCollector.close();
+  }
+
   private StructuredDataSource buildDataSource(final String kafkaTopicName) {
     final Schema schema = SchemaBuilder.struct()
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
@@ -53,18 +72,11 @@ public class SourceDescriptionTest {
   private ConsumerRecords buildRecords(final String kafkaTopicName) {
     return new ConsumerRecords<>(
         ImmutableMap.of(
-            new TopicPartition(kafkaTopicName, 1), Arrays.asList(
+            new TopicPartition(kafkaTopicName, 1),
+            Arrays.asList(
                 new ConsumerRecord<>(
-                    kafkaTopicName,
-                    1,
-                    1,
-                    1l,
-                    TimestampType.CREATE_TIME,
-                    1l,
-                    10,
-                    10,
-                    "key",
-                    "1234567890")
+                    kafkaTopicName, 1, 1, 1l, TimestampType.CREATE_TIME, 1l,
+                    10, 10, "key", "1234567890")
             )
         )
     );
@@ -74,15 +86,11 @@ public class SourceDescriptionTest {
   public void shouldReturnStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final String appId = "app";
     final StructuredDataSource dataSource = buildDataSource(kafkaTopicName);
-    final ConsumerCollector consumerCollector = new ConsumerCollector();
-
-    // When:
-    consumerCollector.configure(
-        Collections.singletonMap(ConsumerConfig.CLIENT_ID_CONFIG, "client"));
     consumerCollector.onConsume(buildRecords(kafkaTopicName));
-    StreamsErrorCollector.recordError(appId, kafkaTopicName);
+    StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
+
+    // When
     final SourceDescription sourceDescription = new SourceDescription(
         dataSource,
         true,
@@ -94,12 +102,9 @@ public class SourceDescriptionTest {
     // Then:
     assertThat(
         sourceDescription.getStatistics(),
-        containsString(MetricCollectors.CONSUMER_TOTAL_MESSAGES));
+        containsString(ConsumerCollector.CONSUMER_TOTAL_MESSAGES));
     assertThat(
         sourceDescription.getErrorStats(),
-        containsString(MetricCollectors.CONSUMER_FAILED_MESSAGES));
-
-    StreamsErrorCollector.notifyApplicationClose(appId);
-    consumerCollector.close();
+        containsString(StreamsErrorCollector.CONSUMER_FAILED_MESSAGES));
   }
 }

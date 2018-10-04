@@ -36,15 +36,6 @@ import org.apache.kafka.common.utils.SystemTime;
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
 public final class MetricCollectors {
-  public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
-  public static final String PRODUCER_TOTAL_MESSAGES = "total-messages";
-  public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
-  public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
-  public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
-  public static final String CONSUMER_FAILED_MESSAGES = "consumer-failed-messages";
-  public static final String CONSUMER_FAILED_MESSAGES_PER_SEC
-      = "consumer-failed-messages-per-sec";
-
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
 
@@ -154,7 +145,7 @@ public final class MetricCollectors {
             Collectors.groupingBy(
               MetricCollector::getGroupId,
               Collectors.summingDouble(
-                  m -> m.aggregateStat(CONSUMER_MESSAGES_PER_SEC, false)
+                  m -> m.aggregateStat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, false)
               )
           )
         )
@@ -168,19 +159,19 @@ public final class MetricCollectors {
   }
 
   public static double currentProductionRate() {
-    return aggregateStat(PRODUCER_MESSAGES_PER_SEC, false);
+    return aggregateStat(ProducerCollector.PRODUCER_MESSAGES_PER_SEC, false);
   }
 
   public static double currentConsumptionRate() {
-    return aggregateStat(CONSUMER_MESSAGES_PER_SEC, false);
+    return aggregateStat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, false);
   }
 
   public static double totalMessageConsumption() {
-    return aggregateStat(CONSUMER_TOTAL_MESSAGES, false);
+    return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, false);
   }
 
   public static double totalBytesConsumption() {
-    return aggregateStat(CONSUMER_TOTAL_BYTES, false);
+    return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_BYTES, false);
   }
 
   public static double currentErrorRate() {

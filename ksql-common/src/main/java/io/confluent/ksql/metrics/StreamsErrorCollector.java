@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.metrics;
 
-import static io.confluent.ksql.metrics.MetricCollectors.CONSUMER_FAILED_MESSAGES;
-import static io.confluent.ksql.metrics.MetricCollectors.CONSUMER_FAILED_MESSAGES_PER_SEC;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.common.utils.Time;
@@ -38,6 +35,10 @@ import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
 public final class StreamsErrorCollector implements MetricCollector {
+  public static final String CONSUMER_FAILED_MESSAGES = "consumer-failed-messages";
+  public static final String CONSUMER_FAILED_MESSAGES_PER_SEC
+      = "consumer-failed-messages-per-sec";
+
   private static final Map<String, StreamsErrorCollector> COLLECTORS = Maps.newConcurrentMap();
 
   private final Map<String, TopicSensors<Object>> topicSensors = Maps.newConcurrentMap();

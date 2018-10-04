@@ -1,20 +1,19 @@
 package io.confluent.ksql.metrics;
 
-import io.confluent.ksql.metrics.TopicSensors.Stat;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.stream.Collectors;
 
-public class MetricUtils {
+public final class MetricUtils {
+  private MetricUtils() {
+  }
+
   public static <T> double aggregateStat(
       final String name,
       final boolean isError,
       final Collection<TopicSensors<T>> sensors) {
-    final List<Stat> allStats = new ArrayList<>();
-    sensors.forEach(record -> allStats.addAll(record.stats(isError)));
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().equals(name))
+    return sensors.stream()
+        .flatMap(r -> r.stats(isError).stream())
+        .filter(s -> s.name().equals(name))
         .mapToDouble(TopicSensors.Stat::getValue)
         .sum();
   }
@@ -23,10 +22,9 @@ public class MetricUtils {
       final String topic,
       final boolean isError,
       final Collection<TopicSensors<T>> sensors) {
-    final List<TopicSensors.Stat> list = new ArrayList<>();
-    sensors.stream()
+    return sensors.stream()
         .filter(counter -> counter.isTopic(topic))
-        .forEach(record -> list.addAll(record.stats(isError)));
-    return list;
+        .flatMap(r -> r.stats(isError).stream())
+        .collect(Collectors.toList());
   }
 }

@@ -16,10 +16,6 @@
 
 package io.confluent.ksql.metrics;
 
-import static io.confluent.ksql.metrics.MetricCollectors.CONSUMER_MESSAGES_PER_SEC;
-import static io.confluent.ksql.metrics.MetricCollectors.CONSUMER_TOTAL_BYTES;
-import static io.confluent.ksql.metrics.MetricCollectors.CONSUMER_TOTAL_MESSAGES;
-
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.Time;
 import java.util.ArrayList;
@@ -43,6 +39,10 @@ import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
 public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
+  public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
+  public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
+  public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
+
   private final Map<String, TopicSensors<ConsumerRecord>> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;

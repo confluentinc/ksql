@@ -80,7 +80,7 @@ After KSQL is started, your terminal should resemble this.
   :start-line: 19
   :end-line: 40
 
-.. _create-a-stream-and-table:
+.. _create-a-stream-and-table-inc:
 
 -------------------------
 Create a Stream and Table

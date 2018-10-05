@@ -1,4 +1,4 @@
-.. _offsetreset_start
+.. offsetreset_start
 
 .. tip:: Run the following to tell KSQL to read from the `beginning` of the topic: 
 
@@ -9,7 +9,7 @@
     `You can skip this if you have already run it within your current`
     `KSQL CLI session.`
 
-.. _offsetreset_end
+.. offsetreset_end
 
 .. Avro_note_start
 
@@ -106,8 +106,6 @@ After KSQL is started, your terminal should resemble this.
 .. basics_tutorial_02_end
 
 .. basics_tutorial_03_start
-
-.. _create-a-stream-and-table:
 
 -------------------------
 Create a Stream and Table
@@ -440,7 +438,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 
 .. log_limitations_end
 
-.. __struct_support_01_start
+.. struct_support_01_start
 
 Using Nested Schemas (STRUCT) in KSQL
 -------------------------------------
@@ -452,9 +450,9 @@ Here we’ll use the ``ksql-datagen`` tool to create some sample data
 which includes a nested ``address`` field. Run this in a new window, and 
 leave it running. 
 
-.. __struct_support_01_end
+.. struct_support_01_end
 
-.. __struct_support_02_start
+.. struct_support_02_start
 
 From the KSQL command prompt, register the topic in KSQL:
 
@@ -515,11 +513,11 @@ Your output should resemble:
 Press Ctrl-C to cancel the ``SELECT`` query. 
 
 
-.. __struct_support_02_end
+.. struct_support_02_end
 
-.. __stream_stream_join:
+.. stream_stream_join:
 
-.. __ss-join_01_start
+.. ss-join_01_start
 
 Stream-Stream join
 ------------------
@@ -531,9 +529,9 @@ key, it is possible to see shipment information alongside the order.
 
 First, populate the ``orders`` and ``shipments`` topics:
 
-.. __ss-join_01_end
+.. ss-join_01_end
 
-.. __ss-join_02_start
+.. ss-join_02_start
 
 Register both topics with KSQL:
 
@@ -557,8 +555,8 @@ After each ``CREATE STREAM`` statement you should get the message:
 Query the data to confirm that it is present in the topics. 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: _offsetreset_start
-    :end-before: _offsetreset_end
+    :start-after: offsetreset_start
+    :end-before: offsetreset_end
 
 For the ``NEW_ORDERS`` topic, run: 
 
@@ -614,11 +612,11 @@ specified.
 Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 
-.. __ss-join_02_end
+.. ss-join_02_end
 
-.. __table_table_join:
+.. table_table_join:
 
-.. __tt-join_01_start
+.. tt-join_01_start
 
 Table-Table join
 ----------------
@@ -633,9 +631,9 @@ being enriched with data about the size of the warehouse from another.
 
 First, populate the two topics:
 
-.. __tt-join_01_end
+.. tt-join_01_end
 
-.. __tt-join_02_start
+.. tt-join_02_start
 
 Register both as KSQL tables:
 
@@ -716,11 +714,9 @@ Your output should resemble:
     Limit Reached
     Query terminated
 
-.. __tt-join_02_end
+.. tt-join_02_end
 
-.. __insert_into:
-
-.. __insert-into_01_start
+.. insert-into-01-start
 
 INSERT INTO
 -----------
@@ -732,9 +728,9 @@ from different sources.
 Run two datagen processes, each writing to a different topic, simulating
 order data arriving from a local installation vs from a third-party:
 
-.. __insert-into_01_end
+.. insert-into-01-end
 
-.. __insert-into_02_start
+.. insert-into_02_start
 
 In KSQL, register the source topic for each:
 
@@ -853,5 +849,5 @@ Your output should resemble:
     InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
     -------------------------------------------------------------------------------------------------------------------
 
-.. __insert-into_02_end
+.. insert-into_02_end
 

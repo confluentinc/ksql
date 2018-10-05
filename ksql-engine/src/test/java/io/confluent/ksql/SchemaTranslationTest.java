@@ -6,15 +6,18 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTestCases;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +36,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class SchemaTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String SCHEMA_VALIDATION_TEST_DIR = "schema-validation-tests";
+  private static final Path SCHEMA_VALIDATION_TEST_DIR = Paths.get("schema-validation-tests");
   private static final String TOPIC_NAME = "TEST_INPUT";
   private static final String OUTPUT_TOPIC_NAME = "TEST_OUTPUT";
 
@@ -51,35 +54,11 @@ public class SchemaTranslationTest {
   }
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() throws IOException {
-    final List<String> testFiles = findTests(SCHEMA_VALIDATION_TEST_DIR);
-    final List<Object[]> testParams = new LinkedList<>();
-    for (final String filename : testFiles) {
-      final JsonNode tests;
-      try {
-        tests = objectMapper.readTree(
-            EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(
-                SCHEMA_VALIDATION_TEST_DIR + "/" + filename));
-      } catch (final IOException e) {
-        throw new RuntimeException("Unable to load test at path " + filename);
-      }
-      final List<Query> query = loadTests(tests);
-      testParams.addAll(
-          query
-              .stream()
-              .map(q -> new Object[]{q.getName(), q})
-              .collect(Collectors.toList())
-      );
-    }
-    return testParams;
-  }
-
-  private static List<Query> loadTests(final JsonNode node) {
-    final List<Query> tests = new ArrayList<>();
-    node.get("tests").forEach(
-        testNode -> tests.add(loadTest(testNode))
-    );
-    return tests;
+  public static Collection<Object[]> data() {
+    return findTestCases(SCHEMA_VALIDATION_TEST_DIR)
+        .map(SchemaTranslationTest::loadTest)
+        .map(q -> new Object[]{q.getName(), q})
+        .collect(Collectors.toList());
   }
 
   @SuppressWarnings("unchecked")
@@ -140,7 +119,13 @@ public class SchemaTranslationTest {
     return records;
   }
 
-  private static Query loadTest(final JsonNode node) {
+  private static Query loadTest(final TestCase testCase) {
+    final JsonNode node = testCase.getNode();
+
+    final String name = Files.getNameWithoutExtension(testCase.getTestPath().toString())
+        + " - "
+        + node.get("name").asText();
+
     final JsonNode schemaNode = node.get("schema");
     final String schemaString;
     try {
@@ -182,8 +167,8 @@ public class SchemaTranslationTest {
         );
 
     return new Query(
-        "",
-        node.get("name").asText(),
+        testCase.getTestPath(),
+        name,
         Collections.emptyMap(),
         ImmutableList.of(srcTopic, outputTopic),
         inputRecords,

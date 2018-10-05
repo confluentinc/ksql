@@ -76,11 +76,11 @@ Download the Tutorial and Start KSQL
     :start-after: basics_tutorial_03_start
     :end-before: basics_tutorial_03_end
 
-.. _struct_support: 
+.. _struct-support-docker: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_01_start
-    :end-before: __struct_support_01_end
+    :start-after: struct_support_01_start
+    :end-before: struct_support_01_end
 
 .. code:: bash
 
@@ -94,14 +94,14 @@ Download the Tutorial and Start KSQL
             schemaRegistryUrl=http://schema-registry:8081
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_02_start
-    :end-before: __struct_support_02_end
+    :start-after: struct_support_02_start
+    :end-before: struct_support_02_end
 
-.. _ss-joins: 
+.. _ss-joins-docker:
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_01_start
-    :end-before: __ss-join_01_end
+    :start-after: ss-join_01_start
+    :end-before: ss-join_01_end
 
 .. code:: bash
 
@@ -129,14 +129,14 @@ Download the Tutorial and Start KSQL
     EOF
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_02_start
-    :end-before: __ss-join_02_end
+    :start-after: ss-join_02_start
+    :end-before: ss-join_02_end
 
-.. _tt-joins: 
+.. _tt-joins-docker: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_01_start
-    :end-before: __tt-join_01_end
+    :start-after: tt-join_01_start
+    :end-before: tt-join_01_end
 
 .. code:: bash
 
@@ -165,14 +165,14 @@ Download the Tutorial and Start KSQL
     EOF
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_02_start
-    :end-before: __tt-join_02_end
+    :start-after: tt-join_02_start
+    :end-before: tt-join_02_end
 
-.. _insert-into: 
+.. _insert-into-docker:
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_01_start
-    :end-before: __insert-into_01_end
+    :start-after: insert-into-01-start
+    :end-before: insert-into-01-end
 
 .. code:: bash
 
@@ -197,10 +197,10 @@ Download the Tutorial and Start KSQL
             schemaRegistryUrl=http://schema-registry:8081
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_02_start
-    :end-before: __insert-into_02_end
+    :start-after: insert-into_02_start
+    :end-before: insert-into_02_end
 
-.. _terminate: 
+.. _terminate-docker: 
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: terminate_and_exit__start

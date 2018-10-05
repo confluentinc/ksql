@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.window;
+package io.confluent.ksql.function.udaf.placeholder;
 
 import io.confluent.ksql.function.udaf.TableUdaf;
 
 /**
  * A no-op {@link TableUdaf} that is used as a placeholder for some later hardcoded computation.
  */
-class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
+public final class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
 
-  static PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
+  public static PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
+
+  private PlaceholderTableUdaf(){
+  }
 
   @Override
   public Long undo(final Long valueToUndo, final Long aggregateValue) {

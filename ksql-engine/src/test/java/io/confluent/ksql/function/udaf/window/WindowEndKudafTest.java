@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.placeholder.PlaceholderTableUdaf;
 import org.junit.Test;
 
 public class WindowEndKudafTest {

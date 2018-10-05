@@ -154,6 +154,26 @@
         {"topic": "S2", "key": 0, "value": "0,,", "timestamp": 4999},
         {"topic": "S2", "key": 0, "value": "0,,", "timestamp": 5000}
       ]
+    },
+    {
+      "name": "in expressions",
+      "comment" : "Not currently supported, so should fail with meaningful message",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart() / 2, WindowEnd() / 2 FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 2000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 4999},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 5000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 0, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 100, "value": "100,0,15000", "timestamp": 2000, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 4999, "window": {"start": 0, "end": 30000}},
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 5000, "window": {"start": 0, "end": 30000}}
+      ]
     }
   ]
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.window;
+package io.confluent.ksql.function.udaf.placeholder;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -25,7 +25,7 @@ import org.junit.Test;
 
 public class PlaceholderTableUdafTest {
 
-  private final TableUdaf<Long, Long> udaf = new PlaceholderTableUdaf();
+  private final TableUdaf<Long, Long> udaf = PlaceholderTableUdaf.INSTANCE;
 
   @Test
   public void shouldInitializeAsNull() {

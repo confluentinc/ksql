@@ -33,8 +33,8 @@ public final class WindowSelectMapper
     implements ValueMapperWithKey<Windowed<?>, GenericRow, GenericRow> {
 
   private static final Map<String, Type> WINDOW_FUNCTION_NAMES = ImmutableMap.of(
-      WindowStartKudaf.getFunctionName(), Type.StartTime,
-      WindowEndKudaf.getFunctionName(), Type.EndTime
+      WindowStartKudaf.getFunctionName().toUpperCase(), Type.StartTime,
+      WindowEndKudaf.getFunctionName().toUpperCase(), Type.EndTime
   );
 
   private final Map<Integer, Type> windowSelects;
@@ -42,9 +42,11 @@ public final class WindowSelectMapper
   public WindowSelectMapper(
       final Map<Integer, KsqlAggregateFunction> aggFunctionsByIndex) {
     this.windowSelects = aggFunctionsByIndex.entrySet().stream()
-        .filter(e -> WINDOW_FUNCTION_NAMES.containsKey(e.getValue().getFunctionName()))
+        .filter(e ->
+            WINDOW_FUNCTION_NAMES.containsKey(e.getValue().getFunctionName().toUpperCase()))
         .collect(Collectors.toMap(
-            Map.Entry::getKey, e -> WINDOW_FUNCTION_NAMES.get(e.getValue().getFunctionName())));
+            Map.Entry::getKey,
+            e -> WINDOW_FUNCTION_NAMES.get(e.getValue().getFunctionName().toUpperCase())));
   }
 
   public boolean hasSelects() {

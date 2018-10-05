@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udaf.window;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.function.udaf.placeholder.PlaceholderTableUdaf;
 
 /**
  * A placeholder KUDAF for extracting window start times.

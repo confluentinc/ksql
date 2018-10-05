@@ -34,11 +34,11 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
       :start-after: basics_tutorial_03_start
       :end-before: basics_tutorial_03_end
 
-.. _struct_support: 
+.. _struct-support-local: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_01_start
-    :end-before: __struct_support_01_end
+    :start-after: struct_support_01_start
+    :end-before: struct_support_01_end
 
 .. code:: bash
 
@@ -48,14 +48,14 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
             topic=orders 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_02_start
-    :end-before: __struct_support_02_end
+    :start-after: struct_support_02_start
+    :end-before: struct_support_02_end
 
-.. _ss-joins: 
+.. _ss-joins-local: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_01_start
-    :end-before: __ss-join_01_end
+    :start-after: ss-join_01_start
+    :end-before: ss-join_01_end
 
 .. code:: bash
 
@@ -86,15 +86,15 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
             Error while fetching metadata with correlation id 1 : {shipments=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_02_start
-    :end-before: __ss-join_02_end
+    :start-after: ss-join_02_start
+    :end-before: ss-join_02_end
 
 
-.. _tt-joins: 
+.. _tt-joins-local: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_01_start
-    :end-before: __tt-join_01_end
+    :start-after: tt-join_01_start
+    :end-before: tt-join_01_end
 
 .. code:: bash
 
@@ -119,14 +119,14 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
     EOF
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_02_start
-    :end-before: __tt-join_02_end
+    :start-after: tt-join_02_start
+    :end-before: tt-join_02_end
 
-.. _insert-into: 
+.. _insert-into-local: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_01_start
-    :end-before: __insert-into_01_end
+    :start-after: insert-into-01-start
+    :end-before: insert-into-01-end
 
 .. tip:: Each of these commands should be run in a separate window. When the exercise is finished, exit them by pressing Ctrl-C.
 
@@ -143,10 +143,10 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
             topic=orders_3rdparty 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_02_start
-    :end-before: __insert-into_02_end
+    :start-after: insert-into_02_start
+    :end-before: insert-into_02_end
 
-.. _terminate: 
+.. _terminate-local: 
 
 .. include:: ../includes/ksql-includes.rst
       :start-after: terminate_and_exit__start

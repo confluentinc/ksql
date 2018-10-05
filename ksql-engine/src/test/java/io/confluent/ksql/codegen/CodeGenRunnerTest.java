@@ -18,15 +18,15 @@ package io.confluent.ksql.codegen;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.analyzer.Analysis;
@@ -163,10 +163,8 @@ public class CodeGenRunnerTest {
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
-        assertThat(expressionEvaluatorMetadata0.getIndexes().length, equalTo(1));
-        final int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
-        assertThat(idx0, equalTo(0));
-        assertThat(expressionEvaluatorMetadata0.getUdfs().length, equalTo(1));
+        assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
+        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
@@ -198,10 +196,8 @@ public class CodeGenRunnerTest {
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
-        assertThat(expressionEvaluatorMetadata0.getIndexes().length, equalTo(1));
-        final int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
-        assertThat(idx0, equalTo(0));
-        assertThat(expressionEvaluatorMetadata0.getUdfs().length, equalTo(1));
+        assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
+        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
@@ -473,8 +469,8 @@ public class CodeGenRunnerTest {
 
         final Object [] params = new Object[2];
         for (int i = 0; i < 2; i++) {
-            if (metadata.getIndexes()[i] == -1) {
-                params[i] = metadata.getUdfs()[i];
+            if (metadata.getIndexes().get(i) == -1) {
+                params[i] = metadata.getUdfs().get(i);
             } else {
                 params[i] = inputs;
             }
@@ -561,18 +557,14 @@ public class CodeGenRunnerTest {
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0));
-        assertThat(expressionEvaluatorMetadata0.getIndexes().length, equalTo(2));
-        final int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
-        final int idx1 = expressionEvaluatorMetadata0.getIndexes()[1];
-        assertThat(idx0, anyOf(equalTo(cola), equalTo(colb)));
-        assertThat(idx1, anyOf(equalTo(cola), equalTo(colb)));
-        assertThat(idx0, not(equalTo(idx1)));
+        assertThat(expressionEvaluatorMetadata0.getIndexes(), containsInAnyOrder(cola, colb));
+        final int idx0 = expressionEvaluatorMetadata0.getIndexes().get(0);
         if (idx0 == colb) {
             final Object tmp = values[0];
             values[0] = values[1];
             values[1] = tmp;
         }
-        assertThat(expressionEvaluatorMetadata0.getUdfs().length, equalTo(2));
+        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(2));
         final Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(values);
         assertThat(result0, instanceOf(Boolean.class));
         return (Boolean)result0;
@@ -589,13 +581,13 @@ public class CodeGenRunnerTest {
 
     private Object[] buildParams(final ExpressionMetadata metadata,
                                  final Map<Integer, Object> inputValues) {
-        final Kudf[] udfs = metadata.getUdfs();
-        final Object[] params = new Object[udfs.length];
+        final List<Kudf> udfs = metadata.getUdfs();
+        final Object[] params = new Object[udfs.size()];
 
         int argsIdx = 0;
         for (final int i : metadata.getIndexes()) {
             if (i == -1) {
-                params[argsIdx] = udfs[argsIdx++];
+                params[argsIdx] = udfs.get(argsIdx++);
             } else {
                 final Object param = genericRowValueTypeEnforcer.enforceFieldType(i, inputValues.get(i));
                 params[argsIdx++] = param;

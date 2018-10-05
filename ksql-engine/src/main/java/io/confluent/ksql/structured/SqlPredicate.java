@@ -27,6 +27,7 @@ import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
@@ -121,11 +122,11 @@ public class SqlPredicate {
         return false;
       }
       try {
-        final Kudf[] kudfs = expressionEvaluator.getUdfs();
+        final List<Kudf> kudfs = expressionEvaluator.getUdfs();
         final Object[] values = new Object[columnIndexes.length];
         for (int i = 0; i < values.length; i++) {
           if (columnIndexes[i] < 0) {
-            values[i] = kudfs[i];
+            values[i] = kudfs.get(i);
           } else {
             values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
                 .getColumns().get(columnIndexes[i]));
@@ -162,11 +163,11 @@ public class SqlPredicate {
         return false;
       }
       try {
-        final Kudf[] kudfs = expressionEvaluator.getUdfs();
+        final List<Kudf> kudfs = expressionEvaluator.getUdfs();
         final Object[] values = new Object[columnIndexes.length];
         for (int i = 0; i < values.length; i++) {
           if (columnIndexes[i] < 0) {
-            values[i] = kudfs[i];
+            values[i] = kudfs.get(i);
           } else {
             values[i] = genericRowValueTypeEnforcer
                 .enforceFieldType(

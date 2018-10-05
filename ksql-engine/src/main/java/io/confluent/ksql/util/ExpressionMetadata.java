@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,24 +17,27 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.udf.Kudf;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
 
   private final IExpressionEvaluator expressionEvaluator;
-  private final int[] indexes;
-  private final Kudf[] udfs;
+  private final List<Integer> indexes;
+  private final List<Kudf> udfs;
   private final Schema expressionType;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
-      final int[] indexes,
-      final Kudf[] udfs,
+      final List<Integer> indexes,
+      final List<Kudf> udfs,
       final Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
-    this.indexes = indexes;
-    this.udfs = udfs;
+    this.indexes = Collections.unmodifiableList(new ArrayList<>(indexes));;
+    this.udfs = Collections.unmodifiableList(new ArrayList<>(udfs));
     this.expressionType = expressionType;
   }
 
@@ -42,16 +45,12 @@ public class ExpressionMetadata {
     return expressionEvaluator;
   }
 
-  public int[] getIndexes() {
-    final int [] result = new int[indexes.length];
-    System.arraycopy(indexes, 0, result, 0, indexes.length);
-    return result;
+  public List<Integer> getIndexes() {
+    return indexes;
   }
 
-  public Kudf[] getUdfs() {
-    final Kudf[] result = new Kudf[udfs.length];
-    System.arraycopy(udfs, 0, result, 0, udfs.length);
-    return result;
+  public List<Kudf> getUdfs() {
+    return udfs;
   }
 
   public Schema getExpressionType() {

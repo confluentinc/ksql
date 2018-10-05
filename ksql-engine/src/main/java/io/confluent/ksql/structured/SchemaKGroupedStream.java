@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -39,7 +38,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
 
@@ -80,48 +78,59 @@ public class SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe) {
-    KTable aggKtable;
-    final UdafAggregator aggregator = new KudafAggregator(
-        aggValToFunctionMap, aggValToValColumnMap);
 
-    if (windowExpression != null) { // Todo(ac): refactor into methods.
-      final Materialized<String, GenericRow, ?> materialized
-          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
-              Serdes.String(), topicValueSerDe);
-
-      final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
-      aggKtable = ksqlWindowExpression.applyAggregate(
-          kgroupedStream,
-          initializer,
-          aggregator,
-          materialized
-      );
-
-      // Todo(ac): Inject & test
-      final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(aggValToFunctionMap);
-      if (windowSelectMapper.hasSelects()) {
-        aggKtable = aggKtable.mapValues((readOnlyKey, value) ->
-            windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
-      }
+    final KTable table;
+    if (windowExpression != null) {
+      table = aggregateWindowed(
+          initializer, aggValToFunctionMap, aggValToValColumnMap, windowExpression,
+          topicValueSerDe);
     } else {
-      aggKtable = kgroupedStream.aggregate(
-          initializer,
-          aggregator,
-          Materialized.with(Serdes.String(), topicValueSerDe)
-      );
+      table = aggregateNonWindowed(
+          initializer, aggValToFunctionMap, aggValToValColumnMap, topicValueSerDe);
     }
-    return new SchemaKTable(
-        schema,
-        aggKtable,
-        keyField,
-        sourceSchemaKStreams,
-        windowExpression != null,
-        SchemaKStream.Type.AGGREGATE,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
-    );
 
+    return new SchemaKTable(
+        schema, table, keyField, sourceSchemaKStreams, windowExpression != null,
+        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
   }
 
+  @SuppressWarnings("unchecked")
+  private KTable aggregateNonWindowed(
+      final Initializer initializer,
+      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
+      final Map<Integer, Integer> indexToValueMap,
+      final Serde<GenericRow> topicValueSerDe) {
+
+    final UdafAggregator aggregator = new KudafAggregator(
+        indexToFunctionMap, indexToValueMap);
+
+    return kgroupedStream.aggregate(
+        initializer, aggregator, Materialized.with(Serdes.String(), topicValueSerDe));
+  }
+
+  @SuppressWarnings("unchecked")
+  private KTable aggregateWindowed(
+      final Initializer initializer,
+      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
+      final Map<Integer, Integer> indexToValueMap,
+      final WindowExpression windowExpression,
+      final Serde<GenericRow> topicValueSerDe) {
+
+    final UdafAggregator aggregator = new KudafAggregator(
+        indexToFunctionMap, indexToValueMap);
+
+    final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
+
+    final KTable aggKtable = ksqlWindowExpression.applyAggregate(
+        kgroupedStream, initializer, aggregator,
+        Materialized.with(Serdes.String(), topicValueSerDe));
+
+    final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(indexToFunctionMap);
+    if (!windowSelectMapper.hasSelects()) {
+      return aggKtable;
+    }
+
+    return aggKtable.mapValues((readOnlyKey, value) ->
+        windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+  }
 }

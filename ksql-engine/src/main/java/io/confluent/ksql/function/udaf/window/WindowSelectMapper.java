@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function.udaf.window;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Map;
@@ -26,18 +27,24 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
- * Used to handle the special cased {@link WindowStartTimeKudaf}
+ * Used to handle the special cased {@link WindowStartKudaf} and {@link WindowEndKudaf}.
  */
 public final class WindowSelectMapper
     implements ValueMapperWithKey<Windowed<?>, GenericRow, GenericRow> {
+
+  private static final Map<String, Type> WINDOW_FUNCTION_NAMES = ImmutableMap.of(
+      WindowStartKudaf.getFunctionName(), Type.StartTime,
+      WindowEndKudaf.getFunctionName(), Type.EndTime
+  );
 
   private final Map<Integer, Type> windowSelects;
 
   public WindowSelectMapper(
       final Map<Integer, KsqlAggregateFunction> aggFunctionsByIndex) {
     this.windowSelects = aggFunctionsByIndex.entrySet().stream()
-        .filter(e -> e.getValue().getFunctionName().equals(WindowStartTimeKudaf.getFunctionName()))
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> Type.StartTime)); // Todo(ac): End time
+        .filter(e -> WINDOW_FUNCTION_NAMES.containsKey(e.getValue().getFunctionName()))
+        .collect(Collectors.toMap(
+            Map.Entry::getKey, e -> WINDOW_FUNCTION_NAMES.get(e.getValue().getFunctionName())));
   }
 
   public boolean hasSelects() {

@@ -23,44 +23,25 @@ import io.confluent.ksql.function.udaf.UdafFactory;
 /**
  * A placeholder KUDAF for extracting window start times.
  *
- * <p>The KUDAF itself does nothing.
+ * <p>The KUDAF itself does nothing. It's just a placeholder.
  *
  * @see WindowSelectMapper
  */
-@UdafDescription(name = "WindowStartTime", author = "Confluent",
+@SuppressWarnings("WeakerAccess") // Invoked via reflection.
+@UdafDescription(name = "WindowStart", author = "Confluent",
     description = "Returns the window start time, in milliseconds, for the given record. "
         + "If the given record is not part of a window the function will return NULL.")
-public final class WindowStartTimeKudaf {
+public final class WindowStartKudaf {
 
-  private WindowStartTimeKudaf() {
+  private WindowStartKudaf() {
   }
 
   static String getFunctionName() {
-    return "WindowStartTime"; // Todo(ac): Test that ensures this matches annotation.
+    return "WindowStart";
   }
 
   @UdafFactory(description = "Extracts the window start time")
   public static TableUdaf<Long, Long> createWindowStart() {
-    return new TableUdaf<Long, Long>() {
-      @Override
-      public Long undo(final Long valueToUndo, final Long aggregateValue) {
-        return null;
-      }
-
-      @Override
-      public Long initialize() {
-        return null;
-      }
-
-      @Override
-      public Long aggregate(final Long value, final Long aggregate) {
-        return null;
-      }
-
-      @Override
-      public Long merge(final Long aggOne, final Long aggTwo) {
-        return null;
-      }
-    };
+    return PlaceholderTableUdaf.INSTANCE;
   }
 }

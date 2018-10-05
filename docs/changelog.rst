@@ -115,7 +115,7 @@ Detailed Changlog
 * `PR-1349 <https://github.com/confluentinc/ksql/pull/1349>`_ - Minor: Add test around extract JSON array field.
 * `PR-1350 <https://github.com/confluentinc/ksql/pull/1350>`_ - Child first class loader for UDFs
 * `PR-1344 <https://github.com/confluentinc/ksql/pull/1344>`_ - Add syntax ref for INSERT INTO
-* `PR-1337 <https://github.com/confluentinc/ksql/pull/1337>`_ - Fix the way `LIMIT` clauses are handled
+* `PR-1337 <https://github.com/confluentinc/ksql/pull/1337>`_ - Fix the way ``LIMIT`` clauses are handled
 * `PR-1321 <https://github.com/confluentinc/ksql/pull/1321>`_ - Make FunctionRegistry an interface and make MetaStore implement it
 * `PR-1340 <https://github.com/confluentinc/ksql/pull/1340>`_ - Post fix udf instance names to ensure they are unique.
 * `PR-1341 <https://github.com/confluentinc/ksql/pull/1341>`_ - Fix system tests (ish)

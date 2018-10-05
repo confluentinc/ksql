@@ -26,7 +26,7 @@ Detailed Changlog
 * `PR-1511 <https://github.com/confluentinc/ksql/pull/1511>`_ - Fix NPE when printing null values
 * `PR-1547 <https://github.com/confluentinc/ksql/pull/1547>`_ - Fix the bug for null check in comparison expression code gen,
 * `PR-1525 <https://github.com/confluentinc/ksql/pull/1525>`_ - Add more unit tests for avro serializer
-* `PR-1521 <https://github.com/confluentinc/ksql/pull/1521>`_ - Add unit tests for deserializing a comprehensive set of avro/connect …
+* `PR-1521 <https://github.com/confluentinc/ksql/pull/1521>`_ - Add unit tests for deserializing a comprehensive set of avro/connect
 * `PR-1519 <https://github.com/confluentinc/ksql/pull/1519>`_ - Extend the query translation test to support parametrized format and add avro to some cases
 * `PR-1549 <https://github.com/confluentinc/ksql/pull/1549>`_ - Ensure that the list of interceptors is modifiable before mutating it
 * `PR-1528 <https://github.com/confluentinc/ksql/pull/1528>`_ - Include example schemas in the packaging build

@@ -31,7 +31,7 @@ KSQL can be configured to require users to authenticate using a username and pas
 HTTP authentication mechanism.
 
 .. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
-use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+          use SSL to secure communication, as the Basic protocol passes credentials in plain text.
 
 Use the following settings to configure the KSQL server to require authentication:
 

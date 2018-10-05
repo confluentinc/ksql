@@ -6,18 +6,19 @@ Version 5.0.0
 
 KSQL 5.0 includes a number of new features, including:
 
-    * User-Defined Functions (UDF).
-    * Support for nested data via the new STRUCT data type.
-    * Support for writing to existing streams using the new INSERT INTO statement.
-    * Stream-Stream Joins.
-    * Table-Table Joins.
-    * Table Aggregations.
-    * A revamped REST API that will be kept compatible from this release onwards.
-    * Confluent Platform Docker images for KSQL Server and CLI
-    * Java 10 support.
+* User-Defined Functions (UDF).
+* Support for nested data via the new STRUCT data type.
+* Support for writing to existing streams using the new INSERT INTO statement.
+* Stream-Stream Joins.
+* Table-Table Joins.
+* Table Aggregations.
+* A revamped REST API that will be kept compatible from this release onwards.
+* Confluent Platform Docker images for KSQL Server and CLI
+* Java 10 support.
 
 Detailed Changlog
 +++++++++++++++++
+
 * `PR-1610 <https://github.com/confluentinc/ksql/pull/1610>`_ - Specify a namespace for avro schemas
 * `PR-1570 <https://github.com/confluentinc/ksql/pull/1570>`_ - DOCS-400: Add troubleshooting steps for KSQL server port
 * `PR-1588 <https://github.com/confluentinc/ksql/pull/1588>`_ - Add example avro schemas to the ksql packaging build

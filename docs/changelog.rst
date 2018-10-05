@@ -5,6 +5,7 @@ Version 5.0.0
 -------------
 
 KSQL 5.0 includes a number of new features, including:
+
     * User-Defined Functions (UDF).
     * Support for nested data via the new STRUCT data type.
     * Support for writing to existing streams using the new INSERT INTO statement.

@@ -157,7 +157,6 @@
     },
     {
       "name": "in expressions",
-      "comment" : "Not currently supported, so should fail with meaningful message",
       "statements": [
         "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM S2 as SELECT id, WindowStart() / 2, WindowEnd() / 2 FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"

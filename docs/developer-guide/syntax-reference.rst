@@ -263,6 +263,17 @@ Example:
       WITH (VALUE_FORMAT = 'JSON',
             KAFKA_TOPIC = 'my-pageviews-topic');
 
+If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
+The same applies to the field names in a STRUCT type.
+For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+use the following statement to declare your stream:
+
+.. code:: sql
+
+    CREATE STREAM pageviews (viewtime BIGINT, user_id VARCHAR, page_id VARCHAR, `Properties` VARCHAR)
+      WITH (VALUE_FORMAT = 'JSON',
+            KAFKA_TOPIC = 'my-pageviews-topic');
+
 .. _create-table:
 
 CREATE TABLE
@@ -348,6 +359,17 @@ Example:
     CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
         KAFKA_TOPIC = 'my-users-topic',
         KEY = 'user_id');
+
+If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
+The same applies to the field names in a STRUCT type.
+For instance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+use the following statement to declare your table:
+
+.. code:: sql
+
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR)
+            KAFKA_TOPIC = 'my-users-topic',
+            KEY = 'user_id');
 
 .. _create-stream-as-select:
 

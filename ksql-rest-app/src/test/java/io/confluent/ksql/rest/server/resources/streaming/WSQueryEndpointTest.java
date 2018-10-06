@@ -45,6 +45,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +59,7 @@ public class WSQueryEndpointTest {
   private Session session;
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
+  private AtomicLong atomicLong;
 
   @Before
   public void setUp() {
@@ -67,8 +69,9 @@ public class WSQueryEndpointTest {
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
+    atomicLong = new AtomicLong(0L);
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, new AtomicLong(0L));
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, atomicLong);
     session = addMock(Session.class);
   }
 
@@ -131,6 +134,25 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     verifyVersionCheckFailure(expectedCloseReason, captured);
+  }
+
+  @Test
+  public void shouldUpdateLastRequestTime() throws IOException {
+    final Map<String, List<String>> parameters =
+        Collections.singletonMap(
+            Versions.KSQL_V1_WS_PARAM, Arrays.asList(
+                Versions.KSQL_V1_WS, "2"));
+    final Capture<CloseReason> captured = Capture.newInstance();
+    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
+    expect(session.getId()).andReturn("session-id").anyTimes();
+    session.close(capture(captured));
+    expectLastCall().once();
+
+    replayMocks();
+    assertThat(atomicLong.get(), Matchers.equalTo(0L));
+    wsQueryEndpoint.onOpen(session, null);
+
+    assertThat(atomicLong.get(), Matchers.greaterThan(0L));
   }
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {

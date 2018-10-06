@@ -17,12 +17,14 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -67,6 +69,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
@@ -680,6 +683,21 @@ public class KsqlResourceTest {
     // Then:
     assertThat(props.getProperties().keySet(),
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
+  }
+
+  @Test
+  public void shouldUpdateTheLastRequestTime() {
+    final AtomicLong atomicLong = new AtomicLong(0L);
+    final KsqlEngine mockEngine = EasyMock.mock(KsqlEngine.class);
+
+    EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString())).andStubReturn(Collections.emptyList());
+    final KsqlResource ksqlResource = new KsqlResource(ksqlConfig, mockEngine, EasyMock.mock(
+        ReplayableCommandQueue.class), Long.MAX_VALUE, atomicLong);
+    EasyMock.replay(mockEngine);
+    assertThat(atomicLong.get(), equalTo(0L));
+    ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
+    EasyMock.verify(mockEngine);
+    assertThat(atomicLong.get(), greaterThan(0L));
   }
 
   @SuppressWarnings("SameParameterValue")

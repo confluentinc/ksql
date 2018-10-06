@@ -59,6 +59,11 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =
       "The number of websocket threads to handle query results";
 
+  public static final String COMMAND_RETRY_LIMIT_CONFIG = "command.retry.limit";
+  private static final String COMMAND_RETRY_LIMIT_DOC =
+      "The max number of times to retry a command before failing";
+  private static final int COMMAND_RETRY_LIMIT_DEFAULT = Integer.MAX_VALUE;
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -86,6 +91,12 @@ public class KsqlRestConfig extends RestConfig {
         5,
         Importance.LOW,
         KSQL_WEBSOCKETS_NUM_THREADS_DOC
+    ).define(
+        COMMAND_RETRY_LIMIT_CONFIG,
+        Type.INT,
+        COMMAND_RETRY_LIMIT_DEFAULT,
+        Importance.LOW,
+        COMMAND_RETRY_LIMIT_DOC
     );
   }
 

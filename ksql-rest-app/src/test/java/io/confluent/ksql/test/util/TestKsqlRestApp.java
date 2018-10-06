@@ -61,6 +61,7 @@ import org.junit.rules.ExternalResource;
  * }</pre>
  */
 public class TestKsqlRestApp extends ExternalResource {
+  private final int COMMAND_RETRY_LIMIT = 3;
 
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
@@ -187,6 +188,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
     config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
+    config.put(KsqlRestConfig.COMMAND_RETRY_LIMIT_CONFIG, COMMAND_RETRY_LIMIT);
     return new KsqlRestConfig(config);
   }
 

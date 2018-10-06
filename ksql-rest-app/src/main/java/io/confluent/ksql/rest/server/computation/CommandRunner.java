@@ -21,7 +21,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,18 +35,22 @@ public class CommandRunner implements Runnable, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
+  private static final int STATEMENT_RETRY_MS = 1000;
+
   private final StatementExecutor statementExecutor;
   private final CommandStore commandStore;
-  private final AtomicBoolean closed;
+  private volatile boolean closed;
+  private final int maxRetries;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
-      final CommandStore commandStore
+      final CommandStore commandStore,
+      final int maxRetries
   ) {
     this.statementExecutor = statementExecutor;
     this.commandStore = commandStore;
-
-    closed = new AtomicBoolean(false);
+    this.maxRetries = maxRetries;
+    closed = false;
   }
 
   /**
@@ -57,12 +60,12 @@ public class CommandRunner implements Runnable, Closeable {
   @Override
   public void run() {
     try {
-      while (!closed.get()) {
+      while (!closed) {
         log.debug("Polling for new writes to command topic");
         fetchAndRunCommands();
       }
     } catch (final WakeupException wue) {
-      if (!closed.get()) {
+      if (!closed) {
         throw wue;
       }
     }
@@ -73,7 +76,7 @@ public class CommandRunner implements Runnable, Closeable {
    */
   @Override
   public void close() {
-    closed.set(true);
+    closed = true;
     commandStore.close();
   }
 
@@ -85,28 +88,63 @@ public class CommandRunner implements Runnable, Closeable {
         .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
   }
 
+
+
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    statementExecutor.handleRestoration(restoreCommands);
+    restoreCommands.forEach(
+        (commandId, command, terminatedQueries, wasDropped) -> {
+          executeStatementWithRetries(
+              () -> statementExecutor.handleStatementWithTerminatedQueries(
+                  command,
+                  commandId,
+                  Optional.empty(),
+                  terminatedQueries,
+                  wasDropped
+              )
+          );
+        }
+    );
   }
 
   private void executeStatement(final Command command,
                                 final CommandId commandId,
                                 final Optional<QueuedCommandStatus> status) {
     log.info("Executing statement: " + command.getStatement());
-    try {
-      statementExecutor.handleStatement(command, commandId, status);
-    } catch (final WakeupException wue) {
-      throw wue;
-    } catch (final Exception exception) {
-      final StringWriter stringWriter = new StringWriter();
-      final PrintWriter printWriter = new PrintWriter(stringWriter);
-      exception.printStackTrace(printWriter);
-      log.error("Exception encountered during poll-parse-execute loop: " + stringWriter.toString());
+    executeStatementWithRetries(
+        () -> statementExecutor.handleStatement(command, commandId, status)
+    );
+  }
+
+  private void executeStatementWithRetries(final Runnable runnable) {
+    RuntimeException finalException = null;
+    for (int i = 0; i < maxRetries && !closed; i++) {
+      try {
+        runnable.run();
+        return;
+      } catch (final WakeupException wue) {
+        throw wue;
+      } catch (final RuntimeException exception) {
+        final StringWriter stringWriter = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(stringWriter);
+        finalException = exception;
+        exception.printStackTrace(printWriter);
+        log.error(
+            "Exception encountered running command: {}. Retrying in {} ms",
+            exception.getMessage(),
+            STATEMENT_RETRY_MS);
+        log.error("Stack trace: " + stringWriter.toString());
+        try {
+          Thread.sleep(STATEMENT_RETRY_MS);
+        } catch (final InterruptedException e) {
+          log.debug("Interrupted while sleeping on command retry.");
+        }
+      }
     }
+    throw finalException;
   }
 }

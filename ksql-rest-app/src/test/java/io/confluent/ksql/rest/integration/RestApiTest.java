@@ -70,6 +70,7 @@ public class RestApiTest {
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
 
   private static final int NUM_RETRIES = 5;
+  private static final int COMMAND_RETRY_LIMIT = 3;
   private static KsqlRestApplication restApplication;
 
   private static String serverAddress;
@@ -175,6 +176,7 @@ public class RestApiTest {
         final int port = randomFreeLocalPort();
         serverAddress = "http://localhost:" + port;
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
+        configs.put(KsqlRestConfig.COMMAND_RETRY_LIMIT_CONFIG, COMMAND_RETRY_LIMIT);
         restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
                                                                new DummyVersionCheckerAgent());
         restApplication.start();

@@ -18,9 +18,12 @@ package io.confluent.ksql.version.metrics;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 public interface VersionCheckerAgent {
 
   void start(KsqlModuleType moduleType, Properties ksqlProperties);
+
+  AtomicLong getLastRequestTime();
 
 }

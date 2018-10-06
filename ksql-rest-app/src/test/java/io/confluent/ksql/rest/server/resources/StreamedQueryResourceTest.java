@@ -59,6 +59,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
@@ -71,6 +72,7 @@ import org.junit.Test;
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
+  private final AtomicLong lastRequestTime = new AtomicLong(0L);
 
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
@@ -88,7 +90,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -119,7 +121,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -207,7 +209,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));

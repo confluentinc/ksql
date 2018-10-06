@@ -85,6 +85,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
@@ -791,7 +792,7 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, new AtomicLong(0L));
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

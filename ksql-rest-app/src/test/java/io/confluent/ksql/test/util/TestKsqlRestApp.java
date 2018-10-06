@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -233,6 +234,11 @@ public class TestKsqlRestApp extends ExternalResource {
   private static class NoOpVersionCheckerAgent implements VersionCheckerAgent {
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
+    }
+
+    @Override
+    public AtomicLong getLastRequestTime() {
+      return new AtomicLong(0L);
     }
   }
 }

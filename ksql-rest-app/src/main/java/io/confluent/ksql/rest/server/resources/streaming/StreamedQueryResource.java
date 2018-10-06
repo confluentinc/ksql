@@ -29,11 +29,13 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -55,12 +57,15 @@ public class StreamedQueryResource {
   private final StatementParser statementParser;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
+  private final AtomicLong lastRequestTime;
+  private final TimeUtils timeUtils;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final Duration disconnectCheckInterval
+      final Duration disconnectCheckInterval,
+      final AtomicLong lastRequestTime
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
@@ -68,6 +73,8 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    this.lastRequestTime = lastRequestTime;
+    this.timeUtils = new TimeUtils();
   }
 
   @POST
@@ -77,6 +84,7 @@ public class StreamedQueryResource {
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }
+    lastRequestTime.set(timeUtils.nowInUnixTime());
     final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {

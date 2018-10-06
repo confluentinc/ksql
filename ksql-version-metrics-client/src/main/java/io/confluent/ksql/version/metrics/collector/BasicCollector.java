@@ -20,16 +20,22 @@ import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.TimeUtils;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.avro.generic.GenericContainer;
 
 public class BasicCollector extends Collector {
 
   private final TimeUtils timeUtils;
   private final KsqlModuleType moduleType;
+  private final AtomicLong lastRequestTime;
 
-  public BasicCollector(final KsqlModuleType moduleType, final TimeUtils timeUtils) {
+  public BasicCollector(
+      final KsqlModuleType moduleType,
+      final TimeUtils timeUtils,
+      final AtomicLong lastRequestTime) {
     this.timeUtils = timeUtils;
     this.moduleType = moduleType;
+    this.lastRequestTime = lastRequestTime;
   }
 
   @Override
@@ -38,6 +44,13 @@ public class BasicCollector extends Collector {
     metricsRecord.setTimestamp(timeUtils.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
+    metricsRecord.setIsActive(isActive());
     return metricsRecord;
+  }
+
+  private boolean isActive() {
+    final long lastInterval = timeUtils.nowInUnixTime() - lastRequestTime.get();
+    // One hour
+    return lastInterval < 60 * 60 * 1000;
   }
 }

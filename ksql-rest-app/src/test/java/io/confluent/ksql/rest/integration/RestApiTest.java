@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -144,6 +145,11 @@ public class RestApiTest {
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
       // do nothing;
+    }
+
+    @Override
+    public AtomicLong getLastRequestTime() {
+      return new AtomicLong(0L);
     }
   }
 

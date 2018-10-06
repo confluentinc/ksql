@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.Session;
@@ -67,7 +68,7 @@ public class WSQueryEndpointTest {
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec);
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, new AtomicLong(0L));
     session = addMock(Session.class);
   }
 

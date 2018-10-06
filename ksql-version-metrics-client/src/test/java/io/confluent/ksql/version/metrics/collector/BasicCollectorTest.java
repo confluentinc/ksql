@@ -17,6 +17,7 @@
 package io.confluent.ksql.version.metrics.collector;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
@@ -24,6 +25,7 @@ import io.confluent.support.metrics.common.time.Clock;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicLong;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,21 +61,24 @@ public class BasicCollectorTest {
 
   private MockClock mockClock;
   private TimeUtils timeUtils;
+  private AtomicLong lastRequestTime;
 
   @Before
   public void setUp() throws Exception {
     mockClock = new MockClock();
     timeUtils = new TimeUtils(mockClock);
+    lastRequestTime = new AtomicLong(timeUtils.nowInUnixTime() - 15 * 60 * 1000);
   }
 
   @Test
   public void testGetCollector() {
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, lastRequestTime);
 
     final KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
     expectedMetrics.setTimestamp(timeUtils.nowInUnixTime());
     expectedMetrics.setConfluentPlatformVersion(Version.getVersion());
     expectedMetrics.setKsqlComponentType(moduleType.name());
+    expectedMetrics.setIsActive(true);
 
     // should match because we don't advance the clock
     Assert.assertThat(basicCollector.collectMetrics(), CoreMatchers.equalTo(expectedMetrics));
@@ -84,7 +89,7 @@ public class BasicCollectorTest {
     Long currentTimeSec = 1000l;
 
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, lastRequestTime);
 
     currentTimeSec += 12300l;
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);

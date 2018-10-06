@@ -262,7 +262,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      exec
+                      exec,
+                      versionCheckerAgent.getLastRequestTime()
                   );
                 }
 
@@ -366,13 +367,15 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlEngine,
         statementParser,
         Duration.ofMillis(
-            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG))
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        versionCheckerAgent.getLastRequestTime()
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         commandStore,
-        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
+        versionCheckerAgent.getLastRequestTime()
     );
 
     commandRunner.processPriorCommands();

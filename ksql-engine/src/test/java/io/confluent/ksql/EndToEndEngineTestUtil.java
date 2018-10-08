@@ -596,7 +596,7 @@ final class EndToEndEngineTestUtil {
       final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
 
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
-      try(final KsqlEngine ksqlEngine = getKsqlEngine(schemaRegistryClientFactory, ksqlConfig)) {
+      try(final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig)) {
           final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
           final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
           writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
@@ -797,8 +797,7 @@ final class EndToEndEngineTestUtil {
   }
 
   static void shouldBuildAndExecuteQuery(final Query query, final String optimizationsSetting) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory = () -> schemaRegistryClient;
+
     final Map<String, Object> optimizationConfig = new HashMap<>();
     optimizationConfig.put(StreamsConfig.TOPOLOGY_OPTIMIZATION, optimizationsSetting);
 

@@ -75,7 +75,7 @@ public class SchemaTranslationTest {
   public static Collection<Object[]> data() {
     return findTestCases(SCHEMA_VALIDATION_TEST_DIR)
         .map(SchemaTranslationTest::loadTest)
-        .map(q -> new Object[]{q.getName(), q})
+        .map(q -> new Object[]{q.getName(), q, StreamsConfig.OPTIMIZE, StreamsConfig.NO_OPTIMIZATION})
         .collect(Collectors.toList());
   }
 

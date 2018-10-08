@@ -6,7 +6,7 @@ KSQL
 What Is KSQL?
 -------------
 
-KSQL is the open source streaming SQL engine for Apache Kafka®. It provides an easy-to-use yet powerful interactive SQL
+KSQL is the open source streaming SQL engine for Apache Kafka\ :sup:`®`\ . It provides an easy-to-use yet powerful interactive SQL
 interface for stream processing on Kafka, without the need to write code in a programming language such as Java or
 Python. KSQL is scalable, elastic, fault-tolerant, and real-time. It supports a wide range of streaming operations,
 including data filtering, transformations, aggregations, joins, windowing, and sessionization.
@@ -66,8 +66,8 @@ in separate JVM instances, or in separate clusters entirely.
 KSQL Resources
 --------------
 
-- The `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
-  provides in-depth tutorials and recommended deployment scenarios.
+- The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+  contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 - Check out :ref:`ksql_tutorials` to learn about stream processing with KSQL.
 - Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
 

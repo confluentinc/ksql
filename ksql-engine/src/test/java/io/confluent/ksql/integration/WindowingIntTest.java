@@ -1,23 +1,25 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.integration.IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
@@ -31,237 +33,155 @@ import org.junit.experimental.categories.Category;
 @Category({IntegrationTest.class})
 public class WindowingIntTest {
 
+  private static final AtomicInteger COUNTER = new AtomicInteger();
   private static final int WINDOW_SIZE_SEC = 5;
-  private static final TimeWindowedDeserializer<String> WINDOWED_DESERIALIZER =
-      new TimeWindowedDeserializer<>(new StringDeserializer());
+  private static final StringDeserializer STRING_DESERIALIZER = new StringDeserializer();
+  private static final TimeWindowedDeserializer<String> TIME_WINDOWED_DESERIALIZER =
+      new TimeWindowedDeserializer<>(STRING_DESERIALIZER);
+
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
-  private Map<String, RecordMetadata> datasetOneMetaData;
-  private final String topicName = "TestTopic";
-  private OrderDataProvider dataProvider;
-  private long now;
+  private String streamName;
+  private Schema resultSchema;
 
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start(Collections.emptyMap());
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
-    testHarness.createTopic(topicName);
+    testHarness.createTopic("TestTopic");
     UdfLoaderUtil.load(ksqlContext.getMetaStore());
     /*
      * Setup test data - align to the next time unit to support tumbling window alignment
      */
-    alignTimeToWindowSize(WINDOW_SIZE_SEC);
+    alignTimeToWindowSize();
 
-    now = System.currentTimeMillis()+500;
+    final long now = System.currentTimeMillis() + 500;
 
     testHarness.createTopic("ORDERS");
-    dataProvider = new OrderDataProvider();
-    datasetOneMetaData = testHarness.publishTestData(topicName, dataProvider, now - 500);
+    final OrderDataProvider dataProvider = new OrderDataProvider();
+    testHarness.publishTestData("TestTopic", dataProvider, now - 500);
     createOrdersStream();
+
+    testHarness.publishTestData("TestTopic", dataProvider, now);
+
+    streamName = "STREAM_" + COUNTER.getAndIncrement();
   }
 
   @After
-  public void after() throws Exception {
+  public void after() {
     ksqlContext.close();
     testHarness.stop();
   }
 
   @Test
   public void shouldAggregateWithNoWindow() throws Exception {
-
-    testHarness.publishTestData(topicName, dataProvider, now);
-
-    final String streamName = "NOWINDOW_AGGTEST";
-
-    final String queryString = String.format(
-        "CREATE TABLE %s AS SELECT %s FROM ORDERS WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-        streamName,
-        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2)"
-    );
-
-    ksqlContext.sql(queryString);
-
-    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    // Given:
+    givenTable("CREATE TABLE %s AS "
+        + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2) "
+        + "FROM ORDERS WHERE ITEMID = 'ITEM_1' "
+        + "GROUP BY ITEMID;");
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0));
 
-    final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
-      final Map<String, GenericRow> aggregateResults = testHarness.consumeData(
-          streamName,
-          resultSchema, 1, new
-          StringDeserializer(), RESULTS_POLL_MAX_TIME_MS);
-      final GenericRow actual = aggregateResults.get("ITEM_1");
-      return expected.equals(actual);
-    }, 60000, "didn't receive correct results within timeout");
-
-    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size(), equalTo(5));
-    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
-
-    queryMetadata.close();
-    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
+    // Then:
+    assertOutputOf(1, "ITEM_1", expected, STRING_DESERIALIZER);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT);
   }
-  
+
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
-    final String streamName = "TUMBLING_AGGTEST";
-
-    ksqlContext.sql(String.format(
-        "CREATE TABLE %s AS SELECT "
-            + "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
-            + "FROM ORDERS WINDOW TUMBLING ( SIZE 10 SECONDS) "
-            + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-        streamName
-    ));
-
-    testHarness.publishTestData(topicName, dataProvider, now);
-
-    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    // Given:
+    givenTable("CREATE TABLE %s AS "
+        + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
+        + "FROM ORDERS WINDOW TUMBLING ( SIZE 10 SECONDS) "
+        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0));
 
-    final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
-          streamName, resultSchema, 1,
-          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
-      updateResults(results, windowedResults);
-      final GenericRow actual = results.get("ITEM_1");
-      return expected.equals(actual);
-    }, 60000, "didn't receive correct results within timeout");
-
-    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size(), equalTo(5));
-    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
-
-    queryMetadata.close();
-    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.DELETE));
-  }
-
-  private void updateResults(final Map<String, GenericRow> results, final Map<Windowed<String>, GenericRow> windowedResults) {
-    for (final Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
-      results.put(entry.getKey().key(), entry.getValue());
-    }
+    // Then:
+    assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
   @Test
   public void shouldAggregateHoppingWindow() throws Exception {
+    // Given:
+    givenTable("CREATE TABLE %s AS "
+        + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10) "
+        + "FROM ORDERS WINDOW HOPPING ( SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
+        + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
-    testHarness.publishTestData(topicName, dataProvider, now);
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0));
 
-
-    final String streamName = "HOPPING_AGGTEST";
-
-    final String queryString = String.format(
-            "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
-            streamName,
-            "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)",
-            "HOPPING ( SIZE 10 SECONDS, ADVANCE BY 5 SECONDS)"
-    );
-
-    ksqlContext.sql(queryString);
-
-    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
-
-
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x
-     items **/, 20.0, 200.0));
-
-    final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
-          streamName, resultSchema, 1,
-          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
-      updateResults(results, windowedResults);
-      final GenericRow actual = results.get("ITEM_1");
-      return expected.equals(actual);
-    }, 60000, "didn't receive correct results within timeout");
-
-    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size(), equalTo(5));
-    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
-
-    queryMetadata.close();
-    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.DELETE));
+    // Then:
+    assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
   @Test
   public void shouldAggregateSessionWindow() throws Exception {
+    // Given:
+    givenTable("CREATE TABLE %s AS "
+        + "SELECT ORDERID, COUNT(*), SUM(ORDERUNITS) "
+        + "FROM ORDERS WINDOW SESSION (10 SECONDS) "
+        + "GROUP BY ORDERID;");
 
-    testHarness.publishTestData(topicName, dataProvider, now);
+    final GenericRow expectedRow = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0));
 
-
-    final String streamName = "SESSION_AGGTEST";
-
-    final String queryString = String.format(
-            "CREATE TABLE %s AS SELECT %s FROM ORDERS WINDOW %s GROUP BY ORDERID;",
-            streamName,
-            "ORDERID, COUNT(*), SUM(ORDERUNITS)",
-            "SESSION (10 SECONDS)"
-    );
-
-    ksqlContext.sql(queryString);
-
-    final Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
-
-
-    final GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
-
-    final Map<String, GenericRow> results = new HashMap<>();
-
-    TestUtils.waitForCondition(() -> {
-      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(
-          streamName, resultSchema, datasetOneMetaData.size(),
-          WINDOWED_DESERIALIZER, RESULTS_POLL_MAX_TIME_MS);
-      updateResults(results, windowedResults);
-      final GenericRow actual = results.get("ORDER_6");
-      return expectedResults.equals(actual) && results.size() == 6;
-    }, 60000, "didn't receive correct results within timeout");
-
-    final Set<String> topicBeforeCleanup = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size(), equalTo(5));
-    final QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
-
-    queryMetadata.close();
-    final Set<String> topicsAfterCleanUp = testHarness.topicClient().listTopicNames();
-
-    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size(), equalTo(3));
-    assertThat(testHarness.topicClient().getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.DELETE));
-
+    // Then:
+    assertOutputOf(6, "ORDER_6", expectedRow, TIME_WINDOWED_DESERIALIZER);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
-  private int alignTimeToWindowSize(final int secondOfMinuteModulus) throws InterruptedException {
-    while (LocalTime.now().getSecond() % secondOfMinuteModulus != 0){
-      Thread.sleep(500);
-    }
-    return LocalTime.now().getSecond();
+  private void givenTable(final String sql) {
+    ksqlContext.sql(String.format(sql, streamName));
+    resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+  }
+
+  @SuppressWarnings("unchecked")
+  private <K> Map<K, GenericRow> getOutput(
+      final int expectedMsgCount,
+      final Deserializer deserializer
+  ) {
+    return testHarness.consumeData(
+        streamName, resultSchema, expectedMsgCount, deserializer, RESULTS_POLL_MAX_TIME_MS);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void assertOutputOf(
+      final int expectedMsgCount,
+      final String expectedKey,
+      final GenericRow expectedValue,
+      final Deserializer<?> deserializer) throws InterruptedException {
+    TestUtils.waitForCondition(() -> {
+      final Map<?, GenericRow> results = getOutput(expectedMsgCount, deserializer);
+
+      final GenericRow actual;
+      if (deserializer == STRING_DESERIALIZER) {
+        actual = results.get(expectedKey);
+      } else {
+        actual = results.entrySet().stream()
+            .filter(e -> ((Windowed<String>) e.getKey()).key().equals(expectedKey))
+            .findAny()
+            .map(Entry::getValue)
+            .orElse(null);
+      }
+
+      return expectedValue.equals(actual);
+    }, 60000, "didn't receive correct results within timeout");
+  }
+
+  private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {
+    final KafkaTopicClient topicClient = testHarness.topicClient();
+
+    assertThat("Initial topics", topicClient.listTopicNames(), hasSize(5));
+
+    ksqlContext.getRunningQueries().forEach(QueryMetadata::close);
+
+    assertThat("After cleanup", topicClient.listTopicNames(), hasSize(3));
+
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), is(topicCleanupPolicy));
   }
 
   private void createOrdersStream() {
@@ -275,4 +195,9 @@ public class WindowingIntTest {
         + "WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
   }
 
+  private static void alignTimeToWindowSize() throws InterruptedException {
+    while (LocalTime.now().getSecond() % WINDOW_SIZE_SEC != 0) {
+      Thread.sleep(500);
+    }
+  }
 }

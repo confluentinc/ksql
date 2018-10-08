@@ -17,7 +17,6 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.udf.Kudf;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
@@ -36,8 +35,8 @@ public class ExpressionMetadata {
       final List<Kudf> udfs,
       final Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
-    this.indexes = Collections.unmodifiableList(new ArrayList<>(indexes));;
-    this.udfs = Collections.unmodifiableList(new ArrayList<>(udfs));
+    this.indexes = Collections.unmodifiableList(indexes);
+    this.udfs = Collections.unmodifiableList(udfs);
     this.expressionType = expressionType;
   }
 

@@ -8,7 +8,6 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
@@ -19,6 +18,7 @@ import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
+import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -193,7 +193,7 @@ public class QueryTranslationTest {
           );
       final List<Topic> topics = new LinkedList<>(topicsMap.values());
 
-      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
+      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getValueSerdeSupplier();
 
       getRequiredQueryField(name, query, "inputs").elements()
           .forEachRemaining(
@@ -327,7 +327,7 @@ public class QueryTranslationTest {
     final Object topicValue;
     if (node.findValue("value").asText().equals("null")) {
       topicValue = null;
-    } else if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
+    } else if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
       topicValue = node.findValue("value").asText();
     } else {
       try {
@@ -338,24 +338,27 @@ public class QueryTranslationTest {
       }
     }
 
+    final WindowData window = createWindowIfExists(node);
+
     return new Record(
         topic,
         node.findValue("key").asText(),
         topicValue,
         node.findValue("timestamp").asLong(),
-        createWindowIfExists(node)
+        window
     );
   }
 
-  private static Window createWindowIfExists(final JsonNode node) {
+  private static WindowData createWindowIfExists(final JsonNode node) {
     final JsonNode windowNode = node.findValue("window");
     if (windowNode == null) {
       return null;
     }
 
-    return new Window(
+    return new WindowData(
         windowNode.findValue("start").asLong(),
-        windowNode.findValue("end").asLong());
+        windowNode.findValue("end").asLong(),
+        windowNode.findValue("type").asText());
   }
 
   @SuppressWarnings("unchecked")

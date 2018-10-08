@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -119,13 +120,14 @@ public class SqlFormatterTest {
         ksqlTopicOrders =
         new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream(
+    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
         schemaBuilderOrders.field("ORDERTIME"),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders);
+        ksqlTopicOrders,
+        Serdes.String());
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
@@ -133,7 +135,7 @@ public class SqlFormatterTest {
     final KsqlTopic
         ksqlTopicItems =
         new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
-    final KsqlTable ksqlTableOrders = new KsqlTable(
+    final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
@@ -141,7 +143,7 @@ public class SqlFormatterTest {
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         "items",
-        false);
+        Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }

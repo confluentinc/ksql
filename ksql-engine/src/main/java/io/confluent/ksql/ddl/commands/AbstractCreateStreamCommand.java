@@ -16,10 +16,12 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
@@ -33,9 +35,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 
 /**
@@ -43,14 +48,20 @@ import org.apache.kafka.connect.data.SchemaBuilder;
  */
 abstract class AbstractCreateStreamCommand implements DdlCommand {
 
-  String sqlExpression;
-  String sourceName;
-  String topicName;
-  Schema schema;
-  String keyColumnName;
-  boolean isWindowed;
-  RegisterTopicCommand registerTopicCommand;
-  private KafkaTopicClient kafkaTopicClient;
+  private static final Map<String, Serde<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
+      "SESSION", WindowedSerdes.sessionWindowedSerdeFrom(String.class),
+      "TUMBLING", WindowedSerdes.timeWindowedSerdeFrom(String.class),
+      "HOPPING", WindowedSerdes.timeWindowedSerdeFrom(String.class)
+  );
+
+  final String sqlExpression;
+  final String sourceName;
+  final String topicName;
+  final Schema schema;
+  final String keyColumnName;
+  final RegisterTopicCommand registerTopicCommand;
+  private final KafkaTopicClient kafkaTopicClient;
+  final Serde<?> keySerde;
   final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
@@ -61,7 +72,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
-    this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;
 
     // TODO: get rid of toUpperCase in following code
@@ -74,19 +84,19 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
           properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 
       checkTopicNameNotNull(properties);
+      registerTopicCommand = null;
     } else {
+      this.topicName = this.sourceName;
       this.registerTopicCommand = registerTopicFirst(properties,
           enforceTopicExistence);
     }
 
     this.schema = getStreamTableSchema(statement.getElements());
 
-    this.keyColumnName = "";
-
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
-      keyColumnName = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      keyColumnName = StringUtil.cleanQuotes(keyColumnName);
+      keyColumnName = StringUtil.cleanQuotes(name);
       if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
         throw new KsqlException(String.format(
             "No column with the provided key column name in the WITH "
@@ -94,6 +104,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
             keyColumnName
         ));
       }
+    } else {
+      this.keyColumnName = "";
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
@@ -106,16 +118,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
         timestampName,
         timestampFormat);
 
-    this.isWindowed = false;
-    if (properties.containsKey(DdlConfig.IS_WINDOWED_PROPERTY)) {
-      final String isWindowedProp =
-          properties.get(DdlConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
-      try {
-        isWindowed = Boolean.parseBoolean(isWindowedProp);
-      } catch (final Exception e) {
-        throw new KsqlException("isWindowed property is not set correctly: " + isWindowedProp);
-      }
-    }
+    this.keySerde = extractKeySerde(properties);
   }
 
   private void checkTopicNameNotNull(final Map<String, Expression> properties) {
@@ -188,7 +191,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.IS_WINDOWED_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
@@ -202,4 +205,26 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
   }
 
+  private static Serde<?> extractKeySerde(
+      final Map<String, Expression> properties
+  ) {
+    final String windowType = StringUtil.cleanQuotes(properties
+        .getOrDefault(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral(""))
+        .toString()
+        .toUpperCase());
+
+    if (windowType.isEmpty()) {
+      return Serdes.String();
+    }
+
+    final Serde<Windowed<String>> type = WINDOW_TYPES.get(windowType);
+    if (type != null) {
+      return type;
+    }
+
+    throw new KsqlException(
+        DdlConfig.WINDOW_TYPE_PROPERTY + " property is not set correctly."
+            + ", was: " + windowType
+            + ", validValues: " + WINDOW_TYPES.keySet());
+  }
 }

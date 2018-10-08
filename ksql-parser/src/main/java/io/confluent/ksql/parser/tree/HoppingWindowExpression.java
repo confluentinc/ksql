@@ -21,11 +21,14 @@ import io.confluent.ksql.function.UdafAggregator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class HoppingWindowExpression extends KsqlWindowExpression {
 
@@ -115,5 +118,10 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
         TimeWindows.of(sizeUnit.toMillis(size))
             .advanceBy(advanceByUnit.toMillis(advanceBy))
     ).aggregate(initializer, aggregator, materialized);
+  }
+
+  @Override
+  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
+    return WindowedSerdes.timeWindowedSerdeFrom(innerType);
   }
 }

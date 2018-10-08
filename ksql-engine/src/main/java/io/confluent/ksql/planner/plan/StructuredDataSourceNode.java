@@ -21,7 +21,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -43,7 +45,6 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -53,8 +54,9 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
+import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
@@ -72,16 +74,15 @@ public class StructuredDataSourceNode
   private static final ValueMapperWithKey<Windowed<String>, GenericRow, GenericRow>
       windowedMapper = (key, row) -> {
         if (row != null) {
-          row.getColumns().add(0,
-              String.format("%s : Window{start=%d end=-}", key
-                  .key(), key.window().start())
-          );
+          final Window window = key.window();
+          final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
+          final String rowKey = String.format("%s : Window{start=%d end=%s}",
+              key.key(), window.start(), end);
+          row.getColumns().add(0, rowKey);
         }
         return row;
       };
 
-  private final Serde<Windowed<String>> windowedSerde
-          = WindowedSerdes.timeWindowedSerdeFrom(String.class);
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
 
@@ -140,8 +141,9 @@ public class StructuredDataSourceNode
     return visitor.visitStructuredDataSourceNode(this, context);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -166,18 +168,17 @@ public class StructuredDataSourceNode
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
           getAutoOffsetReset(props),
-          table,
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(), ksqlConfig, true, schemaRegistryClientFactory),
           timestampExtractor
       );
-      return new SchemaKTable(
+      return new SchemaKTable<>(
           getSchema(),
           kTable,
           getKeyField(),
           new ArrayList<>(),
-          table.isWindowed(),
+          table.getKeySerde(),
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
           functionRegistry,
@@ -185,14 +186,14 @@ public class StructuredDataSourceNode
       );
     }
 
-    return new SchemaKStream(
+    final KsqlStream stream = (KsqlStream) getStructuredDataSource();
+    final KStream kstream = createKStream(builder, timestampExtractor, genericRowSerde);
+
+    return new SchemaKStream<>(
         getSchema(),
-        builder.stream(
-            getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-            Consumed.with(Serdes.String(), genericRowSerde)
-                .withTimestampExtractor(timestampExtractor)
-        ).mapValues(nonWindowedValueMapper).transformValues(new AddTimestampColumn()),
+        kstream,
         getKeyField(), new ArrayList<>(),
+        stream.getKeySerde(),
         SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry,
         schemaRegistryClientFactory.get()
     );
@@ -255,10 +256,43 @@ public class StructuredDataSourceNode
     return null;
   }
 
+  @SuppressWarnings("unchecked")
+  private KStream<?, GenericRow> createKStream(
+      final StreamsBuilder builder,
+      final TimestampExtractor timestampExtractor,
+      final Serde<GenericRow> genericRowSerde) {
+    final KsqlStream ksqlTable = (KsqlStream) getStructuredDataSource();
+
+    if (ksqlTable.isWindowed()) {
+      return stream(builder, timestampExtractor, genericRowSerde,
+          (Serde<Windowed<String>>)ksqlTable.getKeySerde(), windowedMapper);
+    }
+
+    return stream(builder, timestampExtractor, genericRowSerde,
+        (Serde<String>)ksqlTable.getKeySerde(), nonWindowedValueMapper);
+  }
+
+  private <K> KStream<K, GenericRow> stream(
+      final StreamsBuilder builder,
+      final TimestampExtractor timestampExtractor,
+      final Serde<GenericRow> genericRowSerde,
+      final Serde<K> keySerde,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper) {
+
+    final Consumed<K, GenericRow> consumed = Consumed
+        .with(keySerde, genericRowSerde)
+        .withTimestampExtractor(timestampExtractor);
+
+    return builder
+        .stream(getStructuredDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
+        .mapValues(mapper)
+        .transformValues(new AddTimestampColumn());
+  }
+
+  @SuppressWarnings("unchecked")
   private KTable<?, GenericRow> createKTable(
       final StreamsBuilder builder, 
       final Topology.AutoOffsetReset autoOffsetReset,
-      final KsqlTable ksqlTable,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
       final TimestampExtractor timestampExtractor) {
@@ -275,45 +309,46 @@ public class StructuredDataSourceNode
     //    that the key was deleted. So we preserve these "tombstone" records by converting them
     //    to a not-null representation.
     // 5. Aggregate the KStream into a KTable using a custom aggregator that handles Optional.EMPTY
+    final KsqlTable ksqlTable = (KsqlTable) getStructuredDataSource();
+
     if (ksqlTable.isWindowed()) {
       return table(
-          builder.stream(
-              ksqlTable.getKsqlTopic().getKafkaTopicName(),
-              Consumed.with(windowedSerde, genericRowSerde)
-                  .withOffsetResetPolicy(autoOffsetReset)
-                  .withTimestampExtractor(timestampExtractor))
-              .mapValues(windowedMapper)
-              .transformValues(new AddTimestampColumn())
-              .mapValues(Optional::ofNullable),
-          windowedSerde,
-          genericRowSerdeAfterRead
-      );
-    } else {
-      return table(
-          builder.stream(
-              ksqlTable.getKsqlTopic().getKafkaTopicName(),
-              Consumed.with(
-                  Serdes.String(), genericRowSerde)
-                  .withOffsetResetPolicy(autoOffsetReset)
-                  .withTimestampExtractor(timestampExtractor))
-              .mapValues(nonWindowedValueMapper)
-              .transformValues(new AddTimestampColumn())
-              .mapValues(Optional::ofNullable),
-          Serdes.String(),
-          genericRowSerdeAfterRead
-      );
+          builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
+          (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
+          genericRowSerde, genericRowSerdeAfterRead);
     }
+
+    return table(
+        builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
+        nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
+        genericRowSerde, genericRowSerdeAfterRead);
   }
 
   private <K> KTable<?, GenericRow> table(
-      final KStream<K, Optional<GenericRow>> stream,
+      final StreamsBuilder builder,
+      final Topology.AutoOffsetReset autoOffsetReset,
+      final TimestampExtractor timestampExtractor,
+      final KsqlTopic ksqlTopic,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> valueMapper,
       final Serde<K> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericRow> genericRowSerde,
+      final Serde<GenericRow> genericRowSerdeAfterRead
   ) {
-    return stream.groupByKey().aggregate(
-        () -> null,
-        (k, value, oldValue) -> value.orElse(null),
-        Materialized.with(keySerde, valueSerde));
+    final Consumed<K, GenericRow> consumed = Consumed
+        .with(keySerde, genericRowSerde)
+        .withOffsetResetPolicy(autoOffsetReset)
+        .withTimestampExtractor(timestampExtractor);
+
+    return builder
+        .stream(ksqlTopic.getKafkaTopicName(), consumed)
+        .mapValues(valueMapper)
+        .transformValues(new AddTimestampColumn())
+        .mapValues(Optional::ofNullable)
+        .groupByKey()
+        .aggregate(
+            () -> null,
+            (k, value, oldValue) -> value.orElse(null),
+            Materialized.with(keySerde, genericRowSerdeAfterRead));
   }
 
   public StructuredDataSource.DataSourceType getDataSourceType() {

@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -169,7 +168,7 @@ public class AggregateNode extends PlanNode {
 
   @SuppressWarnings("unchecked") // needs investigating
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -208,7 +207,7 @@ public class AggregateNode extends PlanNode {
         getGroupByExpressions());
 
     final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupBy(Serdes.String(), genericRowSerde, internalGroupByColumns);
+        aggregateArgExpanded.groupBy(genericRowSerde, internalGroupByColumns);
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
@@ -245,12 +244,12 @@ public class AggregateNode extends PlanNode {
         getWindowExpression(),
         aggValueGenericRowSerde);
 
-    SchemaKTable result = new SchemaKTable(
+    SchemaKTable<?> result = new SchemaKTable<>(
         aggStageSchema,
         schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.isWindowed(),
+        schemaKTable.getKeySerde(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,

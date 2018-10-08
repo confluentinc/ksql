@@ -72,7 +72,7 @@ public class SchemaKGroupedStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKTable aggregate(
+  public SchemaKTable<?> aggregate(
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
@@ -81,7 +81,11 @@ public class SchemaKGroupedStream {
     final KTable aggKtable;
     final UdafAggregator aggregator = new KudafAggregator(
         aggValToFunctionMap, aggValToValColumnMap);
+
+    final Serde<?> keySerde;
     if (windowExpression != null) {
+      keySerde = windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
+
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
               Serdes.String(), topicValueSerDe);
@@ -94,24 +98,24 @@ public class SchemaKGroupedStream {
           materialized
       );
     } else {
+      keySerde = Serdes.String();
       aggKtable = kgroupedStream.aggregate(
           initializer,
           aggregator,
           Materialized.with(Serdes.String(), topicValueSerDe)
       );
     }
-    return new SchemaKTable(
+    return new SchemaKTable<>(
         schema,
         aggKtable,
         keyField,
         sourceSchemaKStreams,
-        windowExpression != null,
+        keySerde,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
-
   }
 
 }

@@ -28,7 +28,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -50,11 +49,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,12 +74,12 @@ public class KsqlStructuredDataOutputNodeTest {
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
-  private final KsqlStream dataSource = new KsqlStream("sqlExpression", "datasource",
+  private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
       schema.field("key"),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("input", "input",
-          new KsqlJsonTopicSerDe()));
+          new KsqlJsonTopicSerDe()), Serdes.String());
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       dataSource,
@@ -186,7 +188,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyNonWindowedTable() {
     final KafkaTopicClient topicClientForNonWindowTable = EasyMock.mock(KafkaTopicClient.class);
-    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(false);
+    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(Serdes.String());
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final Map<String, String> topicConfig = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
@@ -207,7 +209,8 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
     final KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
-    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(true);
+    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(
+        WindowedSerdes.timeWindowedSerdeFrom(String.class));
 
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     topicClientForWindowTable.createTopic("output", 4, (short) 3, Collections.emptyMap());
@@ -243,21 +246,21 @@ public class KsqlStructuredDataOutputNodeTest {
 
   }
 
-  private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNode(final boolean isWindowed) {
+  private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNode(final Serde<?> keySerde) {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
 
     final StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable(
+        new KsqlTable<>(
             "sqlExpression", "datasource",
             schema,
             schema.field("key"),
             new MetadataTimestampExtractionPolicy(),
             new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
             "TableStateStore",
-            isWindowed),
+            keySerde),
         schema);
 
     return new KsqlStructuredDataOutputNode(

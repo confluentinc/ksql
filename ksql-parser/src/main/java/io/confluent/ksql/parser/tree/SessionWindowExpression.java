@@ -21,11 +21,14 @@ import io.confluent.ksql.function.UdafAggregator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.SessionWindows;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class SessionWindowExpression extends KsqlWindowExpression {
 
@@ -88,5 +91,10 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return groupedStream.windowedBy(SessionWindows.with(sizeUnit.toMillis(gap)))
         .aggregate(initializer, aggregator, aggregator.getMerger(),
             materialized);
+  }
+
+  @Override
+  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
+    return WindowedSerdes.sessionWindowedSerdeFrom(innerType);
   }
 }

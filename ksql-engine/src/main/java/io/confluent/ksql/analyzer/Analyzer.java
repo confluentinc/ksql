@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -63,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -176,20 +179,31 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);
       if (newIntoKsqlTopic == null) {
         throw new KsqlException(
-            "Sink topic " + intoKafkaTopicName + " does not exist in th e metastore.");
+            "Sink topic " + intoKafkaTopicName + " does not exist in the metastore.");
       }
     }
 
-    final KsqlStream intoKsqlStream = new KsqlStream(
+    final KsqlStream intoKsqlStream = new KsqlStream<>(
         sqlExpression,
         intoStructuredDataSource.getName(),
         null,
         null,
         null,
-        newIntoKsqlTopic
+        newIntoKsqlTopic,
+        getKeySerde(intoStructuredDataSource)
     );
     analysis.setInto(intoKsqlStream, doCreateInto);
 
+  }
+
+  private static Serde<?> getKeySerde(final StructuredDataSource intoStructuredDataSource) {
+    if (intoStructuredDataSource instanceof KsqlStream) {
+      return ((KsqlStream<?>) intoStructuredDataSource).getKeySerde();
+    } else if (intoStructuredDataSource instanceof KsqlTable) {
+      return ((KsqlTable<?>) intoStructuredDataSource).getKeySerde();
+    } else {
+      throw new KsqlException("source is not a stream or table");
+    }
   }
 
   private void analyzeExpressions() {
@@ -514,13 +528,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private StructuredDataSource analyzeNonStdOutTable(final Table node) {
-    final StructuredDataSource into = new KsqlStream(
+    final StructuredDataSource into = new KsqlStream<>(
         sqlExpression,
         node.getName().getSuffix(),
         null,
         null,
         null,
-        null
+        null,
+        Serdes.String()
     );
 
     setIntoProperties(into, node);

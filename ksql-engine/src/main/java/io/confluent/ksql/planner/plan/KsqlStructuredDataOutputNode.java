@@ -86,7 +86,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -120,7 +120,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
         ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
 
-    final SchemaKStream result = createOutputStream(
+    final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
         ksqlConfig,
@@ -156,11 +156,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
-           && !((SchemaKTable) result).isWindowed();
+           && !((SchemaKTable<?>) result).isWindowed();
   }
 
   @SuppressWarnings("unchecked")
-  private SchemaKStream createOutputStream(
+  private SchemaKStream<?> createOutputStream(
       final SchemaKStream schemaKStream,
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
       final KsqlConfig ksqlConfig,
@@ -178,6 +178,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         schemaKStream.getKstream(),
         this.getKeyField(),
         Collections.singletonList(schemaKStream),
+        schemaKStream.getKeySerde(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,

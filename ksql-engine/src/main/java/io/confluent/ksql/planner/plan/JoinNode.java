@@ -167,7 +167,7 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -369,6 +369,7 @@ public class JoinNode extends PlanNode {
             schemaRegistryClientFactory, joinNode);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public SchemaKStream join() {
       if (joinNode.withinExpression == null) {
@@ -428,6 +429,7 @@ public class JoinNode extends PlanNode {
             schemaRegistryClientFactory, joinNode);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public SchemaKStream join() {
       if (joinNode.withinExpression != null) {
@@ -479,6 +481,7 @@ public class JoinNode extends PlanNode {
             schemaRegistryClientFactory, joinNode);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public SchemaKTable join() {
       if (joinNode.withinExpression != null) {

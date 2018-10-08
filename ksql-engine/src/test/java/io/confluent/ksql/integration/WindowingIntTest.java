@@ -13,9 +13,9 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
-import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,19 +51,15 @@ public class WindowingIntTest {
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic("TestTopic");
     UdfLoaderUtil.load(ksqlContext.getMetaStore());
-    /*
-     * Setup test data - align to the next time unit to support tumbling window alignment
-     */
-    alignTimeToWindowSize();
 
-    final long now = System.currentTimeMillis() + 500;
+    final long now = 1438997955143L;
 
     testHarness.createTopic("ORDERS");
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    testHarness.publishTestData("TestTopic", dataProvider, now - 500);
+    testHarness.publishTestData("TestTopic", dataProvider, now);
     createOrdersStream();
 
-    testHarness.publishTestData("TestTopic", dataProvider, now);
+    testHarness.publishTestData("TestTopic", dataProvider, now + 500);
 
     streamName = "STREAM_" + COUNTER.getAndIncrement();
   }
@@ -86,6 +82,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(1, "ITEM_1", expected, STRING_DESERIALIZER);
+    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, STRING_DESERIALIZER);
     assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT);
   }
 
@@ -101,6 +98,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
@@ -116,6 +114,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
@@ -127,11 +126,24 @@ public class WindowingIntTest {
         + "FROM ORDERS WINDOW SESSION (10 SECONDS) "
         + "GROUP BY ORDERID;");
 
-    final GenericRow expectedRow = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0));
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0));
 
     // Then:
-    assertOutputOf(6, "ORDER_6", expectedRow, TIME_WINDOWED_DESERIALIZER);
+    assertOutputOf(6, "ORDER_6", expected, TIME_WINDOWED_DESERIALIZER);
+    assertTableCanBeUsedAsSource(6, "ORDER_6", expected, TIME_WINDOWED_DESERIALIZER);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
+  }
+
+  private void assertTableCanBeUsedAsSource(
+      final int expectedMsgCount,
+      final String expectedKey,
+      final GenericRow expected,
+      final Deserializer deserializer) throws InterruptedException {
+    ksqlContext.sql(String.format("CREATE STREAM %s_TWO AS SELECT * FROM %s;", streamName, streamName));
+    streamName = streamName + "_TWO";
+    resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+
+    assertOutputOf(expectedMsgCount, expectedKey, expected, deserializer);
   }
 
   private void givenTable(final String sql) {
@@ -154,32 +166,39 @@ public class WindowingIntTest {
       final String expectedKey,
       final GenericRow expectedValue,
       final Deserializer<?> deserializer) throws InterruptedException {
-    TestUtils.waitForCondition(() -> {
-      final Map<?, GenericRow> results = getOutput(expectedMsgCount, deserializer);
 
-      final GenericRow actual;
-      if (deserializer == STRING_DESERIALIZER) {
-        actual = results.get(expectedKey);
-      } else {
-        actual = results.entrySet().stream()
-            .filter(e -> ((Windowed<String>) e.getKey()).key().equals(expectedKey))
-            .findAny()
-            .map(Entry::getValue)
-            .orElse(null);
-      }
+    final Map<Object, Object> allResults = new HashMap<>();
+    try {
+      TestUtils.waitForCondition(() -> {
+        final Map<?, GenericRow> results = getOutput(expectedMsgCount, deserializer);
+        allResults.putAll(results);
 
-      return expectedValue.equals(actual);
-    }, 60000, "didn't receive correct results within timeout");
+        final GenericRow actual;
+        if (deserializer == STRING_DESERIALIZER) {
+          actual = results.get(expectedKey);
+        } else {
+          actual = results.entrySet().stream()
+              .filter(e -> ((Windowed<String>) e.getKey()).key().equals(expectedKey))
+              .findAny()
+              .map(Entry::getValue)
+              .orElse(null);
+        }
+
+        return expectedValue.equals(actual);
+      }, 60000, "didn't receive correct results within timeout.");
+    } catch (final AssertionError e) {
+      throw new AssertionError(e.getMessage() + " Got: " + allResults, e);
+    }
   }
 
   private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {
     final KafkaTopicClient topicClient = testHarness.topicClient();
 
-    assertThat("Initial topics", topicClient.listTopicNames(), hasSize(5));
+    assertThat("Initial topics", topicClient.listTopicNames(), hasSize(7));
 
     ksqlContext.getRunningQueries().forEach(QueryMetadata::close);
 
-    assertThat("After cleanup", topicClient.listTopicNames(), hasSize(3));
+    assertThat("After cleanup", topicClient.listTopicNames(), hasSize(4));
 
     assertThat(topicClient.getTopicCleanupPolicy(streamName), is(topicCleanupPolicy));
   }
@@ -193,11 +212,5 @@ public class WindowingIntTest {
         + "PRICEARRAY array<double>, "
         + "KEYVALUEMAP map<varchar, double>) "
         + "WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
-  }
-
-  private static void alignTimeToWindowSize() throws InterruptedException {
-    while (LocalTime.now().getSecond() % WINDOW_SIZE_SEC != 0) {
-      Thread.sleep(500);
-    }
   }
 }

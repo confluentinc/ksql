@@ -66,8 +66,8 @@ in separate JVM instances, or in separate clusters entirely.
 KSQL Resources
 --------------
 
-- The `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
-  provides in-depth tutorials and recommended deployment scenarios.
+- The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+  contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 - Check out :ref:`ksql_tutorials` to learn about stream processing with KSQL.
 - Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
 

@@ -170,7 +170,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       newIntoKsqlTopic = new KsqlTopic(
           intoKafkaTopicName,
           intoKafkaTopicName,
-          intoTopicSerde
+          intoTopicSerde,
+          true
       );
     } else {
       newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);

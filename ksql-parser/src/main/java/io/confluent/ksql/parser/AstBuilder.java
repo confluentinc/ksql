@@ -1531,7 +1531,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     final KsqlTopic ksqlTopic =
-        new KsqlTopic(into.getName().toString(), into.getName().toString(), null);
+        new KsqlTopic(into.getName().toString(), into.getName().toString(), null, true);
 
     final StructuredDataSource resultStream =
         new KsqlStream(

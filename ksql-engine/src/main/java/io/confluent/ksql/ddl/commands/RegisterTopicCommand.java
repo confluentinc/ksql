@@ -99,7 +99,7 @@ public class RegisterTopicCommand implements DdlCommand {
       }
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe);
+    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe, false);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore

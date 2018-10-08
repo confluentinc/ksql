@@ -193,7 +193,7 @@ public class QueryTranslationTest {
           );
       final List<Topic> topics = new LinkedList<>(topicsMap.values());
 
-      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getValueSerdeSupplier();
+      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
 
       getRequiredQueryField(name, query, "inputs").elements()
           .forEachRemaining(
@@ -327,7 +327,7 @@ public class QueryTranslationTest {
     final Object topicValue;
     if (node.findValue("value").asText().equals("null")) {
       topicValue = null;
-    } else if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
+    } else if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
       topicValue = node.findValue("value").asText();
     } else {
       try {

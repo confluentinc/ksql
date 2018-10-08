@@ -72,7 +72,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -315,15 +314,15 @@ final class EndToEndEngineTestUtil {
   static class Topic {
     private final String name;
     private final org.apache.avro.Schema schema;
-    private final SerdeSupplier valueSerdeSupplier;
+    private final SerdeSupplier serdeSupplier;
 
     Topic(
         final String name,
         final org.apache.avro.Schema schema,
-        final SerdeSupplier valueSerdeSupplier) {
+        final SerdeSupplier serdeSupplier) {
       this.name = name;
       this.schema = schema;
-      this.valueSerdeSupplier = valueSerdeSupplier;
+      this.serdeSupplier = serdeSupplier;
     }
 
     public String getName() {
@@ -334,16 +333,16 @@ final class EndToEndEngineTestUtil {
       return schema;
     }
 
-    SerdeSupplier getValueSerdeSupplier() {
-      return valueSerdeSupplier;
+    SerdeSupplier getSerdeSupplier() {
+      return serdeSupplier;
     }
 
     private Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return valueSerdeSupplier.getSerializer(schemaRegistryClient);
+      return serdeSupplier.getSerializer(schemaRegistryClient);
     }
 
     private Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return valueSerdeSupplier.getDeserializer(schemaRegistryClient);
+      return serdeSupplier.getDeserializer(schemaRegistryClient);
     }
   }
 

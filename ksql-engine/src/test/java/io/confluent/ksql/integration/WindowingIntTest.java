@@ -1,10 +1,12 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.integration.IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
@@ -17,13 +19,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -71,79 +73,89 @@ public class WindowingIntTest {
   }
 
   @Test
-  public void shouldAggregateWithNoWindow() throws Exception {
+  public void shouldAggregateWithNoWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(KEYVALUEMAP['key2']/2) "
         + "FROM ORDERS WHERE ITEMID = 'ITEM_1' "
         + "GROUP BY ITEMID;");
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0));
+    final Map<String, GenericRow> expected = ImmutableMap.of(
+        "ITEM_1",
+        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0)));
 
     // Then:
-    assertOutputOf(1, "ITEM_1", expected, STRING_DESERIALIZER);
-    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, STRING_DESERIALIZER);
+    assertOutputOf(expected);
+    assertTableCanBeUsedAsSource(expected);
     assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT);
   }
 
   @Test
-  public void shouldAggregateTumblingWindow() throws Exception {
+  public void shouldAggregateTumblingWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
         + "FROM ORDERS WINDOW TUMBLING ( SIZE 10 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0));
+    final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
+        new Windowed<>("ITEM_1", new TimeWindow(1438997950000L, Long.MAX_VALUE)),
+        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0)));
 
     // Then:
-    assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
-    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertOutputOf(expected);
+    assertTableCanBeUsedAsSource(expected);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
   @Test
-  public void shouldAggregateHoppingWindow() throws Exception {
+  public void shouldAggregateHoppingWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10) "
         + "FROM ORDERS WINDOW HOPPING ( SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0));
+    final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
+        new Windowed<>("ITEM_1", new TimeWindow(1438997950000L, Long.MAX_VALUE)),
+        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)),
+        new Windowed<>("ITEM_1", new TimeWindow(1438997955000L, Long.MAX_VALUE)),
+        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)));
 
     // Then:
-    assertOutputOf(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
-    assertTableCanBeUsedAsSource(1, "ITEM_1", expected, TIME_WINDOWED_DESERIALIZER);
+    assertOutputOf(expected);
+    assertTableCanBeUsedAsSource(expected);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
   @Test
-  public void shouldAggregateSessionWindow() throws Exception {
+  public void shouldAggregateSessionWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ORDERID, COUNT(*), SUM(ORDERUNITS) "
         + "FROM ORDERS WINDOW SESSION (10 SECONDS) "
         + "GROUP BY ORDERID;");
 
-    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0));
+    final ImmutableMap<Windowed<String>, GenericRow> expected = ImmutableMap
+        .<Windowed<String>, GenericRow>builder()
+        .put(new Windowed<>("ORDER_1", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_1", 2, 20.0)))
+        .put(new Windowed<>("ORDER_2", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_2", 2, 40.0)))
+        .put(new Windowed<>("ORDER_3", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_3", 2, 60.0)))
+        .put(new Windowed<>("ORDER_4", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_4", 2, 80.0)))
+        .put(new Windowed<>("ORDER_5", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_5", 2, 100.0)))
+        .put(new Windowed<>("ORDER_6", new TimeWindow(1438997955143L, Long.MAX_VALUE)),
+            new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0)))
+        .build();
 
     // Then:
-    assertOutputOf(6, "ORDER_6", expected, TIME_WINDOWED_DESERIALIZER);
-    assertTableCanBeUsedAsSource(6, "ORDER_6", expected, TIME_WINDOWED_DESERIALIZER);
+    assertOutputOf(expected);
+    assertTableCanBeUsedAsSource(expected);
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
-  }
-
-  private void assertTableCanBeUsedAsSource(
-      final int expectedMsgCount,
-      final String expectedKey,
-      final GenericRow expected,
-      final Deserializer deserializer) throws InterruptedException {
-    ksqlContext.sql(String.format("CREATE STREAM %s_TWO AS SELECT * FROM %s;", streamName, streamName));
-    streamName = streamName + "_TWO";
-    resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
-
-    assertOutputOf(expectedMsgCount, expectedKey, expected, deserializer);
   }
 
   private void givenTable(final String sql) {
@@ -161,34 +173,36 @@ public class WindowingIntTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void assertOutputOf(
-      final int expectedMsgCount,
-      final String expectedKey,
-      final GenericRow expectedValue,
-      final Deserializer<?> deserializer) throws InterruptedException {
+  private void assertOutputOf(final Map<?, GenericRow> expected) {
+    final Deserializer keyDeserializer;
+    final Object aKey = expected.keySet().iterator().next();
+    if (aKey instanceof Windowed) {
+      keyDeserializer = TIME_WINDOWED_DESERIALIZER;
+    } else {
+      keyDeserializer = STRING_DESERIALIZER;
+    }
 
-    final Map<Object, Object> allResults = new HashMap<>();
+    final Map<Object, Object> actual = new HashMap<>();
     try {
       TestUtils.waitForCondition(() -> {
-        final Map<?, GenericRow> results = getOutput(expectedMsgCount, deserializer);
-        allResults.putAll(results);
-
-        final GenericRow actual;
-        if (deserializer == STRING_DESERIALIZER) {
-          actual = results.get(expectedKey);
-        } else {
-          actual = results.entrySet().stream()
-              .filter(e -> ((Windowed<String>) e.getKey()).key().equals(expectedKey))
-              .findAny()
-              .map(Entry::getValue)
-              .orElse(null);
-        }
-
-        return expectedValue.equals(actual);
+        final Map<?, GenericRow> results = getOutput(expected.size(), keyDeserializer);
+        actual.putAll(results);
+        return expected.equals(actual);
       }, 60000, "didn't receive correct results within timeout.");
     } catch (final AssertionError e) {
-      throw new AssertionError(e.getMessage() + " Got: " + allResults, e);
+      throw new AssertionError(e.getMessage() + " Got: " + actual, e);
+    } catch (final InterruptedException e) {
+      throw new AssertionError("Invalid test", e);
     }
+  }
+
+  private void assertTableCanBeUsedAsSource(final Map<?, GenericRow> expected) {
+    ksqlContext
+        .sql(String.format("CREATE STREAM %s_TWO AS SELECT * FROM %s;", streamName, streamName));
+    streamName = streamName + "_TWO";
+    resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+
+    assertOutputOf(expected);
   }
 
   private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {
@@ -198,7 +212,7 @@ public class WindowingIntTest {
 
     ksqlContext.getRunningQueries().forEach(QueryMetadata::close);
 
-    assertThat("After cleanup", topicClient.listTopicNames(), hasSize(4));
+    assertThatEventually("After cleanup", topicClient::listTopicNames, hasSize(4));
 
     assertThat(topicClient.getTopicCleanupPolicy(streamName), is(topicCleanupPolicy));
   }

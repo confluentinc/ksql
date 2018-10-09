@@ -85,6 +85,69 @@
         {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":40.0}, "timestamp": 0},
         {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":50.0}, "timestamp": 0}
       ]
+    },
+    {
+      "name": "sum with constant int arg",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(2) AS sum_val FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sum with constant long arg",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(cast (2 as BIGINT)) AS sum_val FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sum with constant double arg",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(1.0) AS sum_val FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":1.0}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2.0}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":3.0}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4.0}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":5.0}, "timestamp": 0}
+      ]
     }
   ]
 }

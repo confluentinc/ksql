@@ -42,13 +42,19 @@ public final class HistogramUdaf {
 
       @Override
       public Map<T, Long> aggregate(final T current, final Map<T, Long> aggregate) {
-        aggregate.merge(current, aggregate.size() < LIMIT ? 1L : null, Long::sum);
+        if (aggregate.size() < LIMIT || aggregate.containsKey(current)) {
+          aggregate.merge(current, 1L, Long::sum);
+        }
         return aggregate;
       }
 
       @Override
       public Map<T, Long> merge(final Map<T, Long> agg1, final Map<T, Long> agg2) {
-        agg2.forEach((k, v) -> agg1.merge(k, agg1.size() < LIMIT ? v : null, Long::sum));
+        agg2.forEach((k, v) -> {
+          if (agg1.size() < LIMIT || agg1.containsKey(k)) {
+            agg1.merge(k, v, Long::sum);
+          }
+        });
         return agg1;
       }
 

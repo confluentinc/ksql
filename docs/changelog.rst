@@ -5,18 +5,20 @@ Version 5.0.0
 -------------
 
 KSQL 5.0 includes a number of new features, including:
-    * User-Defined Functions (UDF).
-    * Support for nested data via the new STRUCT data type.
-    * Support for writing to existing streams using the new INSERT INTO statement.
-    * Stream-Stream Joins.
-    * Table-Table Joins.
-    * Table Aggregations.
-    * A revamped REST API that will be kept compatible from this release onwards.
-    * Confluent Platform Docker images for KSQL Server and CLI
-    * Java 10 support.
+
+* User-Defined Functions (UDF).
+* Support for nested data via the new STRUCT data type.
+* Support for writing to existing streams using the new INSERT INTO statement.
+* Stream-Stream Joins.
+* Table-Table Joins.
+* Table Aggregations.
+* A revamped REST API that will be kept compatible from this release onwards.
+* Confluent Platform Docker images for KSQL Server and CLI
+* Java 10 support.
 
 Detailed Changlog
 +++++++++++++++++
+
 * `PR-1610 <https://github.com/confluentinc/ksql/pull/1610>`_ - Specify a namespace for avro schemas
 * `PR-1570 <https://github.com/confluentinc/ksql/pull/1570>`_ - DOCS-400: Add troubleshooting steps for KSQL server port
 * `PR-1588 <https://github.com/confluentinc/ksql/pull/1588>`_ - Add example avro schemas to the ksql packaging build
@@ -24,7 +26,7 @@ Detailed Changlog
 * `PR-1511 <https://github.com/confluentinc/ksql/pull/1511>`_ - Fix NPE when printing null values
 * `PR-1547 <https://github.com/confluentinc/ksql/pull/1547>`_ - Fix the bug for null check in comparison expression code gen,
 * `PR-1525 <https://github.com/confluentinc/ksql/pull/1525>`_ - Add more unit tests for avro serializer
-* `PR-1521 <https://github.com/confluentinc/ksql/pull/1521>`_ - Add unit tests for deserializing a comprehensive set of avro/connect …
+* `PR-1521 <https://github.com/confluentinc/ksql/pull/1521>`_ - Add unit tests for deserializing a comprehensive set of avro/connect types
 * `PR-1519 <https://github.com/confluentinc/ksql/pull/1519>`_ - Extend the query translation test to support parametrized format and add avro to some cases
 * `PR-1549 <https://github.com/confluentinc/ksql/pull/1549>`_ - Ensure that the list of interceptors is modifiable before mutating it
 * `PR-1528 <https://github.com/confluentinc/ksql/pull/1528>`_ - Include example schemas in the packaging build
@@ -113,7 +115,7 @@ Detailed Changlog
 * `PR-1349 <https://github.com/confluentinc/ksql/pull/1349>`_ - Minor: Add test around extract JSON array field.
 * `PR-1350 <https://github.com/confluentinc/ksql/pull/1350>`_ - Child first class loader for UDFs
 * `PR-1344 <https://github.com/confluentinc/ksql/pull/1344>`_ - Add syntax ref for INSERT INTO
-* `PR-1337 <https://github.com/confluentinc/ksql/pull/1337>`_ - Fix the way `LIMIT` clauses are handled
+* `PR-1337 <https://github.com/confluentinc/ksql/pull/1337>`_ - Fix the way LIMIT clauses are handled
 * `PR-1321 <https://github.com/confluentinc/ksql/pull/1321>`_ - Make FunctionRegistry an interface and make MetaStore implement it
 * `PR-1340 <https://github.com/confluentinc/ksql/pull/1340>`_ - Post fix udf instance names to ensure they are unique.
 * `PR-1341 <https://github.com/confluentinc/ksql/pull/1341>`_ - Fix system tests (ish)
@@ -157,7 +159,7 @@ Detailed Changlog
 * `PR-1050 <https://github.com/confluentinc/ksql/pull/1050>`_ - Escape discovered avro field name if it is a ksql lexer token literal #(1043)
 * `PR-1198 <https://github.com/confluentinc/ksql/pull/1198>`_ - text is the new binary
 * `PR-1147 <https://github.com/confluentinc/ksql/pull/1147>`_ - SourceDescription cleanup + listing with descriptions
-* `PR-637 <https://github.com/confluentinc/ksql/pull/637>`_ - [DOC] Small java doc improvement for KsqlAggregateFunction
+* `PR-637 <https://github.com/confluentinc/ksql/pull/637>`_ - Small java doc improvement for KsqlAggregateFunction
 * `PR-1183 <https://github.com/confluentinc/ksql/pull/1183>`_ - MINOR: Make README ksql blurb consistent with the one on 4.1.x
 * `PR-1179 <https://github.com/confluentinc/ksql/pull/1179>`_ - Shutdown cleaning should there be an error on start up.
 * `PR-1177 <https://github.com/confluentinc/ksql/pull/1177>`_ - Minor: Fix flakey KafkaTopicClient integration tests

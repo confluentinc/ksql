@@ -140,7 +140,7 @@ public class SchemaKTableTest {
                                            SchemaKStream.Type.SOURCE, ksqlConfig,
                                            functionRegistry, schemaRegistryClient);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable
-        .select(projectNode.getProjectNameExpressionPairList());
+        .select(projectNode.getProjectSelectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
@@ -173,7 +173,7 @@ public class SchemaKTableTest {
                                            SchemaKStream.Type.SOURCE, ksqlConfig,
                                            functionRegistry, schemaRegistryClient);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable
-        .select(projectNode.getProjectNameExpressionPairList());
+        .select(projectNode.getProjectSelectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));

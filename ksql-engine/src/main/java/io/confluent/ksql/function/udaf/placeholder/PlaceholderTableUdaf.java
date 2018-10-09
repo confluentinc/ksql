@@ -23,7 +23,7 @@ import io.confluent.ksql.function.udaf.TableUdaf;
  */
 public final class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
 
-  public static PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
+  public static final PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
 
   private PlaceholderTableUdaf(){
   }

@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.udf.Kudf;
+import java.lang.reflect.InvocationTargetException;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -38,10 +39,6 @@ public class ExpressionMetadata {
     this.expressionType = expressionType;
   }
 
-  public IExpressionEvaluator getExpressionEvaluator() {
-    return expressionEvaluator;
-  }
-
   public int[] getIndexes() {
     final int [] result = new int[indexes.length];
     System.arraycopy(indexes, 0, result, 0, indexes.length);
@@ -56,5 +53,13 @@ public class ExpressionMetadata {
 
   public Schema getExpressionType() {
     return expressionType;
+  }
+
+  public Object evaluate(final Object[] parameterObjects) {
+    try {
+      return expressionEvaluator.evaluate(parameterObjects);
+    } catch (InvocationTargetException e) {
+      throw new KsqlException(e.getMessage(), e);
+    }
   }
 }

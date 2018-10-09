@@ -1120,20 +1120,22 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | Function               | Example                   | Description                                                         |
 +========================+===========================+=====================================================================+
-| COUNT                  | ``COUNT(col1)``           |  Count the number of rows                                           |
+| COUNT                  | ``COUNT(col1)``           | Count the number of rows                                            |
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | HISTOGRAM              | ``HISTOGRAM(col1)``       | Returns a map containing the distinct values of ``col1`` mapped to  |
 |                        |                           | the number of times each one occurs for the given window.           |
+|                        |                           | This version limits the number of distinct values which can be      |
+|                        |                           | counted to 1000, beyond which any additional entries are ignored.   |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-| MAX                    | ``MAX(col1)``             |  Return the maximum value for a given column and window             |
+| MAX                    | ``MAX(col1)``             | Return the maximum value for a given column and window              |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-| MIN                    | ``MIN(col1)``             |  Return the minimum value for a given column and window             |
+| MIN                    | ``MIN(col1)``             | Return the minimum value for a given column and window              |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-| SUM                    | ``SUM(col1)``             |  Sums the column values                                             |
+| SUM                    | ``SUM(col1)``             | Sums the column values                                              |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPK                   | ``TOPK(col1, k)``         |  Return the Top *K* values for the given column and window          |
+| TOPK                   | ``TOPK(col1, k)``         | Return the Top *K* values for the given column and window           |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
+| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Return the distinct Top *K* values for the given column and window  |
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
 

@@ -249,6 +249,11 @@ The WITH clause supports the following properties:
 |                         | characters requiring single quotes, you can escape them with '', for example:              |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
+|                         | ``SESSION``, ``HOPPING` and ``TUMBLING``.                                                  |
++-------------------------+--------------------------------------------------------------------------------------------+
 
 
 .. include:: ../includes/ksql-includes.rst
@@ -346,6 +351,11 @@ The WITH clause supports the following properties:
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with '', for example:              |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
+|                         | ``SESSION``, ``HOPPING` and ``TUMBLING``.                                                  |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst

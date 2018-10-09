@@ -223,8 +223,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
 
     throw new KsqlException(
-        DdlConfig.WINDOW_TYPE_PROPERTY + " property is not set correctly."
-            + ", was: " + windowType
+        DdlConfig.WINDOW_TYPE_PROPERTY + " property is not set correctly"
+            + ". value: " + windowType
             + ", validValues: " + WINDOW_TYPES.keySet());
   }
 }

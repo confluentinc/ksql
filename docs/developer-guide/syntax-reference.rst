@@ -407,43 +407,43 @@ must be the table key.
 
 The WITH clause for the result supports the following properties:
 
-+---------------+------------------------------------------------------------------------------------------------------+
-| Property      | Description                                                                                          |
-+===============+======================================================================================================+
-| KAFKA_TOPIC   | The name of the Kafka topic that backs this stream. If this property is not set, then the            |
-|               | name of the stream in upper case will be used as default.                                            |
-+---------------+------------------------------------------------------------------------------------------------------+
-| VALUE_FORMAT  | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|               | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|               | set, then the format of the input stream/table is used.                                              |
-+---------------+------------------------------------------------------------------------------------------------------+
-| PARTITIONS    | The number of partitions in the backing topic. If this property is not set, then the number          |
-|               | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
-|               | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
-|               | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
-+---------------+------------------------------------------------------------------------------------------------------+
-| REPLICAS      | The replication factor for the topic. If this property is not set, then the number of                |
-|               | replicas of the input stream or table will be used.                                                  |
-+---------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP     | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for         |
-|               | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
-|               | will process records in this stream based on the timestamp in this field. By default,                |
-|               | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
-|               | Timestamps have a millisecond accuracy.                                                              |
-|               |                                                                                                      |
-|               | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
-|               |                                                                                                      |
-|               | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|               | e.g. given the statement                                                                             |
-|               | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|               | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
-+---------------+------------------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
-+-------------------------+--------------------------------------------------------------------------------------------+
++-------------------------+------------------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                          |
++=========================+======================================================================================================+
+| KAFKA_TOPIC             | The name of the Kafka topic that backs this stream. If this property is not set, then the            |
+|                         | name of the stream in upper case will be used as default.                                            |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
+|                         | set, then the format of the input stream/table is used.                                              |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
+|                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
+|                         | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
+|                         | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
+|                         | replicas of the input stream or table will be used.                                                  |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP               | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for         |
+|                         | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
+|                         | will process records in this stream based on the timestamp in this field. By default,                |
+|                         | such queries will also use this field to set the timestamp on any records emitted to Kafka.          |
+|                         | Timestamps have a millisecond accuracy.                                                              |
+|                         |                                                                                                      |
+|                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
+|                         |                                                                                                      |
+|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
+|                         | e.g. given the statement                                                                             |
+|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
+|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
+|                         | characters requiring single quotes, you can escape them with '', for example:                        |
+|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
++-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -524,7 +524,7 @@ The WITH clause supports the following properties:
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with '', for example:                        |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
-+-----------------------------------+--------------------------------------------------------------------------------------------+
++-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -1095,123 +1095,123 @@ The explanation for each operator includes a supporting example based on the fol
 Scalar functions
 ================
 
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| Function               | Example                                                    | Description                                       |
-+========================+============================================================+===================================================+
-| ABS                    |  ``ABS(col1)``                                             | The absolute value of a value                     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search       |
-|                        |                                                            | value contains in it                              |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CEIL                   |  ``CEIL(col1)``                                            | The ceiling of a value.                           |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| CONCAT                 |  ``CONCAT(col1, '_hello')``                                | Concatenate two strings.                          |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract     |
-|                        |                                                            | the field that matches.                           |
-|                        |                                                            |                                                   |
-|                        |                                                            | Example where EXTRACTJSONFIELD is needed:         |
-|                        |                                                            |                                                   |
-|                        |                                                            | ``{"foo": \"{\"bar\": \"quux\"}\"}``              |
-|                        |                                                            |                                                   |
-|                        |                                                            | However, in cases where the column is really an   |
-|                        |                                                            | object but declared as a STRING you can use the   |
-|                        |                                                            | ``STRUCT`` type, which is easier to work with.    |
-|                        |                                                            |                                                   |
-|                        |                                                            | Example where ``STRUCT`` will work:               |
-|                        |                                                            |                                                   |
-|                        |                                                            | ``{"foo": {"bar": "quux"}}``                      |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
-|                        |                                                            | points, both specified in decimal degrees. An     |
-|                        |                                                            | optional final parameter specifies ``KM``         |
-|                        |                                                            | (the default) or ``miles``.                       |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| LEN                    |  ``LEN(col1)``                                             | The length of a string.                           |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                        | Convert a string to a masked or obfuscated        |
-|                        |                                                            | version of itself. The optional arguments         |
-|                        |                                                            | following the input string to be masked are the   |
-|                        |                                                            | characters to be substituted for upper-case,      |
-|                        |                                                            | lower-case, numeric and other characters of the   |
-|                        |                                                            | input, respectively. If the mask characters are   |
-|                        |                                                            | omitted then the default values, illustrated in   |
-|                        |                                                            | the example to the left, will be applied.         |
-|                        |                                                            | Set a given mask character to NULL to prevent any |
-|                        |                                                            | masking of that character type.                   |
-|                        |                                                            | For example: ``MASK("My Test $123")`` will return |
-|                        |                                                            | ``Xx-Xxxx--nnn``, applying all default masks.     |
-|                        |                                                            | ``MASK("My Test $123", '*', NULL, '1', NULL)``    |
-|                        |                                                            | will yield ``*y *est $111``.                      |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| MASK_KEEP_LEFT         |  ``MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')``    | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that the first or left-most ``numChars``          |
-|                        |                                                            | characters will not be masked in any way.         |
-|                        |                                                            | For example: ``MASK_KEEP_LEFT("My Test $123", 4)``|
-|                        |                                                            | will return ``My Txxx--nnn``.                     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``   | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that the last or rightt-most ``numChars``         |
-|                        |                                                            | characters will not be masked in any way.         |
-|                        |                                                            | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
-|                        |                                                            | will return ``Xx-Xxxx-$123``.                     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| MASK_LEFT              |  ``MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')``         | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that only the first or left-most ``numChars``     |
-|                        |                                                            | characters will have any masking applied to them. |
-|                        |                                                            | For example: ``MASK_LEFT("My Test $123", 4)``     |
-|                        |                                                            | will return ``Xx-Xest $123``.                     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``        | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that only the last or rightt-most ``numChars``    |
-|                        |                                                            | characters will have any masking applied to them. |
-|                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
-|                        |                                                            | will return ``My Test -nnn``.                     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| RANDOM                 |  ``RANDOM()``                                              | Return a random DOUBLE value between 0.0 and 1.0. |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value.        |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given              |
-|                        |                                                            | format into the BIGINT value                      |
-|                        |                                                            | that represents the millisecond timestamp. Single |
-|                        |                                                            | quotes in the timestamp format can be escaped with|
-|                        |                                                            | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                 | ``SUBSTRING(str, pos, [len]``.                    |
-|                        |                                                            | Return a substring of ``str`` that starts at      |
-|                        |                                                            | ``pos`` and had length ``len``, or continues to   |
-|                        |                                                            | the end of the string.                            |
-|                        |                                                            |                                                   |
-|                        |                                                            | NOTE: prior to v5.1 of KSQL the syntax was:       |
-|                        |                                                            | ``SUBSTRING(str, start, [end]``                   |
-|                        |                                                            | Where ``start`` and ``end`` where base-zero       |
-|                        |                                                            | indexes to start (inclusive) and end (exclusive)  |
-|                        |                                                            | the substring.                                    |
-|                        |                                                            |                                                   |
-|                        |                                                            | It is possible to switch back to this legacy mode |
-|                        |                                                            | by setting                                        |
-|                        |                                                            | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                            | ``true``. Though this is not recommended.         |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS'    | Converts a BIGINT millisecond timestamp value into|
-|                        |    [, TIMEZONE])``                                         | the string representation of the timestamp in     |
-|                        |                                                            | the given format. Single quotes in the            |
-|                        |                                                            | timestamp format can be escaped with '', for      |
-|                        |                                                            | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
-|                        |                                                            | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                            | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                            | "America/Los_Angeles", "PDT", "Europe/London"     |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| TRIM                   |  ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of     |
-|                        |                                                            | a string.                                         |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
-| UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase.                    |
-+------------------------+------------------------------------------------------------+---------------------------------------------------+
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| Function               | Example                                                                   | Description                                       |
++========================+===========================================================================+===================================================+
+| ABS                    |  ``ABS(col1)``                                                            | The absolute value of a value                     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
+|                        |                                                                           | value contains in it                              |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
+|                        |                                                                           | the field that matches.                           |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Example where EXTRACTJSONFIELD is needed:         |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | ``{"foo": \"{\"bar\": \"quux\"}\"}``              |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | However, in cases where the column is really an   |
+|                        |                                                                           | object but declared as a STRING you can use the   |
+|                        |                                                                           | ``STRUCT`` type, which is easier to work with.    |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Example where ``STRUCT`` will work:               |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | ``{"foo": {"bar": "quux"}}``                      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| FLOOR                  |  ``FLOOR(col1)``                                                          | The floor of a value.                             |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``                           | The great-circle distance between two lat-long    |
+|                        |                                                                           | points, both specified in decimal degrees. An     |
+|                        |                                                                           | optional final parameter specifies ``KM``         |
+|                        |                                                                           | (the default) or ``miles``.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| LEN                    |  ``LEN(col1)``                                                            | The length of a string.                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                                       | Convert a string to a masked or obfuscated        |
+|                        |                                                                           | version of itself. The optional arguments         |
+|                        |                                                                           | following the input string to be masked are the   |
+|                        |                                                                           | characters to be substituted for upper-case,      |
+|                        |                                                                           | lower-case, numeric and other characters of the   |
+|                        |                                                                           | input, respectively. If the mask characters are   |
+|                        |                                                                           | omitted then the default values, illustrated in   |
+|                        |                                                                           | the example to the left, will be applied.         |
+|                        |                                                                           | Set a given mask character to NULL to prevent any |
+|                        |                                                                           | masking of that character type.                   |
+|                        |                                                                           | For example: ``MASK("My Test $123")`` will return |
+|                        |                                                                           | ``Xx-Xxxx--nnn``, applying all default masks.     |
+|                        |                                                                           | ``MASK("My Test $123", '*', NULL, '1', NULL)``    |
+|                        |                                                                           | will yield ``*y *est $111``.                      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_LEFT         |  ``MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')``                   | Similar to the ``MASK`` function above, except    |
+|                        |                                                                           | that the first or left-most ``numChars``          |
+|                        |                                                                           | characters will not be masked in any way.         |
+|                        |                                                                           | For example: ``MASK_KEEP_LEFT("My Test $123", 4)``|
+|                        |                                                                           | will return ``My Txxx--nnn``.                     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``                  | Similar to the ``MASK`` function above, except    |
+|                        |                                                                           | that the last or rightt-most ``numChars``         |
+|                        |                                                                           | characters will not be masked in any way.         |
+|                        |                                                                           | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
+|                        |                                                                           | will return ``Xx-Xxxx-$123``.                     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MASK_LEFT              |  ``MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')``                        | Similar to the ``MASK`` function above, except    |
+|                        |                                                                           | that only the first or left-most ``numChars``     |
+|                        |                                                                           | characters will have any masking applied to them. |
+|                        |                                                                           | For example: ``MASK_LEFT("My Test $123", 4)``     |
+|                        |                                                                           | will return ``Xx-Xest $123``.                     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``                       | Similar to the ``MASK`` function above, except    |
+|                        |                                                                           | that only the last or rightt-most ``numChars``    |
+|                        |                                                                           | characters will have any masking applied to them. |
+|                        |                                                                           | For example: ``MASK_RIGHT("My Test $123", 4)``    |
+|                        |                                                                           | will return ``My Test -nnn``.                     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``                   | Converts a string value in the given              |
+|                        |                                                                           | format into the BIGINT value                      |
+|                        |                                                                           | that represents the millisecond timestamp. Single |
+|                        |                                                                           | quotes in the timestamp format can be escaped with|
+|                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
+|                        |                                                                           | Return a substring of ``str`` that starts at      |
+|                        |                                                                           | ``pos`` and had length ``len``, or continues to   |
+|                        |                                                                           | the end of the string.                            |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | NOTE: prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                                           | ``SUBSTRING(str, start, [end]``                   |
+|                        |                                                                           | Where ``start`` and ``end`` where base-zero       |
+|                        |                                                                           | indexes to start (inclusive) and end (exclusive)  |
+|                        |                                                                           | the substring.                                    |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | It is possible to switch back to this legacy mode |
+|                        |                                                                           | by setting                                        |
+|                        |                                                                           | ``ksql.functions.substring.legacy.args`` to       |
+|                        |                                                                           | ``true``. Though this is not recommended.         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``   | Converts a BIGINT millisecond timestamp value into|
+|                        |                                                                           | the string representation of the timestamp in     |
+|                        |                                                                           | the given format. Single quotes in the            |
+|                        |                                                                           | timestamp format can be escaped with '', for      |
+|                        |                                                                           | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
+|                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| TRIM                   |  ``TRIM(col1)``                                                           | Trim the spaces from the beginning and end of     |
+|                        |                                                                           | a string.                                         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 
 ===================
 Aggregate functions

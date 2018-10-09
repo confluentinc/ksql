@@ -31,11 +31,11 @@ KSQL can be configured to require users to authenticate using a username and pas
 HTTP authentication mechanism.
 
 .. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
-use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+          use SSL to secure communication, as the Basic protocol passes credentials in plain text.
 
 Use the following settings to configure the KSQL server to require authentication:
 
-.. code:: bash
+::
 
     authentication.method=BASIC
     authentication.roles=some-ksql-cluster-id
@@ -48,7 +48,7 @@ to use the KSQL server an authenticated user must belong to at least one of thes
 The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which
 defines how the server authenticates users, for example:
 
-.. code:: bash
+::
 
     KsqlServer-Props {
       org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
@@ -64,13 +64,13 @@ You can also use other implementations of the standard Java ``LoginModule`` inte
 
 The file parameter is the location of the properties file, The format is:
 
-.. code:: bash
+::
 
     <username>: <password-hash>[,<rolename> ...]
 
 Here’s an example:
 
-.. code:: bash
+::
 
     fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
     harry: changeme,user,developer
@@ -86,7 +86,7 @@ utility, for example running:
 
 Which results in an output similar to:
 
-.. code:: bash
+::
 
     letmein
     OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x

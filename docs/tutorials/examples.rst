@@ -9,8 +9,8 @@ These examples use a ``pageviews`` stream and a ``users`` table.
     :local:
     :depth: 2
 
-.. tip:: For in-depth tutorials and recommended deployment scenarios, see the
-   `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.
+.. tip:: The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+         contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 
 Creating streams
 ----------------

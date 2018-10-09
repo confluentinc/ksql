@@ -16,19 +16,20 @@ package io.confluent.ksql.function.udaf.map;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import io.confluent.ksql.function.udaf.TableUdaf;
 import java.util.Map;
 import org.junit.Test;
-import io.confluent.ksql.function.udaf.TableUdaf;
 
 public class HistogramUdafTest {
 
   @Test
   public void shouldCountStrings() {
-    TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
+    final TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
     Map<String, Long> agg = udaf.initialize();
-    String[] values = new String[] {"foo", "bar", "foo", "foo", "baz"};
-    for (String thisValue : values) {
+    final String[] values = new String[] {"foo", "bar", "foo", "foo", "baz"};
+    for (final String thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
     assertThat(agg.entrySet(), hasSize(3));
@@ -39,11 +40,11 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldMergeIntsIncludingNulls() {
-    TableUdaf<Integer, Map<Integer, Long>> udaf = HistogramUdaf.histogramInt();
+    final TableUdaf<Integer, Map<Integer, Long>> udaf = HistogramUdaf.histogramInt();
 
     Map<Integer, Long> lhs = udaf.initialize();
-    Integer[] leftValues = new Integer[] {1, 2, 1, null, 4};
-    for (Integer thisValue : leftValues) {
+    final Integer[] leftValues = new Integer[] {1, 2, 1, null, 4};
+    for (final Integer thisValue : leftValues) {
       lhs = udaf.aggregate(thisValue, lhs);
     }
     assertThat(lhs.entrySet(), hasSize(4));
@@ -53,8 +54,8 @@ public class HistogramUdafTest {
     assertThat(lhs, hasEntry(4, 1L));
 
     Map<Integer, Long> rhs = udaf.initialize();
-    Integer[] rightValues = new Integer[] {1, 3, null, null};
-    for (Integer thisValue : rightValues) {
+    final Integer[] rightValues = new Integer[] {1, 3, null, null};
+    for (final Integer thisValue : rightValues) {
       rhs = udaf.aggregate(thisValue, rhs);
     }
     assertThat(rhs.entrySet(), hasSize(3));
@@ -62,7 +63,7 @@ public class HistogramUdafTest {
     assertThat(rhs, hasEntry(3, 1L));
     assertThat(rhs, hasEntry(null, 2L));
 
-    Map<Integer, Long> merged = udaf.merge(lhs, rhs);
+    final Map<Integer, Long> merged = udaf.merge(lhs, rhs);
     assertThat(merged.entrySet(), hasSize(5));
     assertThat(merged, hasEntry(1, 3L));
     assertThat(merged, hasEntry(2, 1L));
@@ -73,10 +74,10 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldUndoCountedBools() {
-    TableUdaf<Boolean, Map<Boolean, Long>> udaf = HistogramUdaf.histogramBool();
+    final TableUdaf<Boolean, Map<Boolean, Long>> udaf = HistogramUdaf.histogramBool();
     Map<Boolean, Long> agg = udaf.initialize();
-    Boolean[] values = new Boolean[] {true, true, false, null, true};
-    for (Boolean thisValue : values) {
+    final Boolean[] values = new Boolean[] {true, true, false, null, true};
+    for (final Boolean thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
     assertThat(agg.entrySet(), hasSize(3));
@@ -90,4 +91,18 @@ public class HistogramUdafTest {
     assertThat(agg, hasEntry(false, 1L));
     assertThat(agg, hasEntry(null, 1L));
   }
+
+  @Test
+  public void shouldNotExceedSizeLimit() {
+    final TableUdaf<Integer, Map<Integer, Long>> udaf = HistogramUdaf.histogramInt();
+    Map<Integer, Long> agg = udaf.initialize();
+    for (int thisValue = 1; thisValue < 2500; thisValue++) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    assertThat(agg.entrySet(), hasSize(1000));
+    assertThat(agg, hasEntry(1, 1L));
+    assertThat(agg, hasEntry(1000, 1L));
+    assertThat(agg, not(hasEntry(1001, 1L)));
+  }
+
 }

@@ -22,11 +22,12 @@ import java.util.Map;
 
 @UdafDescription(name = "histogram", description = "Returns a map of each distinct value from the"
     + " input Stream or Table and how many times each occurs."
-    + " Not applicable for complex types (map, array, or struct)."
-    + " This version limits the size of the resultant Map to 100000 entries.")
+    + " \nNot applicable for complex types (map, array, or struct)."
+    + " \nThis version limits the size of the resultant Map to 1000 entries. Any entries added"
+    + " beyond this limit will be ignored.")
 public final class HistogramUdaf {
 
-  private static final int LIMIT = 100000;
+  private static final int LIMIT = 1000;
   
   private HistogramUdaf() {
   }
@@ -41,13 +42,19 @@ public final class HistogramUdaf {
 
       @Override
       public Map<T, Long> aggregate(final T current, final Map<T, Long> aggregate) {
-        aggregate.merge(current, aggregate.size() < LIMIT ? 1L : null, Long::sum);
+        if (aggregate.size() < LIMIT || aggregate.containsKey(current)) {
+          aggregate.merge(current, 1L, Long::sum);
+        }
         return aggregate;
       }
 
       @Override
       public Map<T, Long> merge(final Map<T, Long> agg1, final Map<T, Long> agg2) {
-        agg2.forEach((k, v) -> agg1.merge(k, agg1.size() < LIMIT ? v : null, Long::sum));
+        agg2.forEach((k, v) -> {
+          if (agg1.size() < LIMIT || agg1.containsKey(k)) {
+            agg1.merge(k, v, Long::sum);
+          }
+        });
         return agg1;
       }
 
@@ -67,25 +74,21 @@ public final class HistogramUdaf {
   @UdafFactory(description = "Build a value-to-count histogram of input Booleans")
   public static TableUdaf<Boolean, Map<Boolean, Long>> histogramBool() {
     return histogram();
-
   }
 
   @UdafFactory(description = "Build a value-to-count histogram of input Integers")
   public static TableUdaf<Integer, Map<Integer, Long>> histogramInt() {
     return histogram();
-
   }
 
   @UdafFactory(description = "Build a value-to-count histogram of input Bigints")
   public static TableUdaf<Long, Map<Long, Long>> histogramLong() {
     return histogram();
-
   }
 
   @UdafFactory(description = "Build a value-to-count histogram of input Doubles")
   public static TableUdaf<Double, Map<Double, Long>> histogramDouble() {
     return histogram();
-
   }
 
 }

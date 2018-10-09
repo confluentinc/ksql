@@ -29,6 +29,9 @@ public class BasicCollector extends Collector {
   private final KsqlModuleType moduleType;
   private final AtomicLong lastRequestTime;
 
+  // 24 hours
+  private final int maxInterval = 24 * 60 * 60 * 1000;
+
   public BasicCollector(
       final KsqlModuleType moduleType,
       final TimeUtils timeUtils,
@@ -48,9 +51,13 @@ public class BasicCollector extends Collector {
     return metricsRecord;
   }
 
+  /**
+   * Is active if there was a use in the last 24 hours.
+   *
+   * @return
+   */
   private boolean isActive() {
     final long lastInterval = timeUtils.nowInUnixTime() - lastRequestTime.get();
-    // One hour
-    return lastInterval < 60 * 60 * 1000;
+    return lastInterval < maxInterval;
   }
 }

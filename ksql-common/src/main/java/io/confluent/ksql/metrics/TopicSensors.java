@@ -19,11 +19,11 @@ package io.confluent.ksql.metrics;
 import com.google.common.base.MoreObjects;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -60,7 +60,7 @@ class TopicSensors<R> {
     return sensors
         .stream()
         .filter(sensor -> sensor.errorMetric == isError)
-        .map(sensor -> sensor.asStat())
+        .map(SensorMetric::asStat)
         .collect(Collectors.toList());
   }
 
@@ -84,7 +84,7 @@ class TopicSensors<R> {
     }
 
     @SuppressFBWarnings("FE_FLOATING_POINT_EQUALITY")
-    public String formatted() {
+    String formatted() {
       if (value == Math.round(value)) {
         return String.format("%16s:%10.0f", name, value);
       } else {
@@ -96,12 +96,10 @@ class TopicSensors<R> {
       if (timestamp == 0) {
         return "n/a";
       }
-      return SimpleDateFormat.getDateTimeInstance(
-          3,
-          1,
-          Locale.getDefault()
-      ).format(new Date(timestamp)
-      );
+
+      return Instant.ofEpochMilli(timestamp)
+          .atOffset(ZoneOffset.UTC)
+          .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     @Override
@@ -210,7 +208,7 @@ class TopicSensors<R> {
       return super.toString() + " " + asStat().toString();
     }
 
-    public Stat asStat() {
+    Stat asStat() {
       return new Stat(metric.metricName().name(), value(), lastEvent);
     }
   }

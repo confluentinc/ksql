@@ -430,17 +430,16 @@ public class SchemaUtil {
     return schema;
   }
 
-
   private static Schema handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
         return SchemaBuilder.map(getSchemaFromType(
             parameterizedType.getActualTypeArguments()[0]),
-            getSchemaFromType(parameterizedType.getActualTypeArguments()[1]));
+            getSchemaFromType(parameterizedType.getActualTypeArguments()[1])).build();
       } else if (parameterizedType.getRawType() == List.class) {
         return SchemaBuilder.array(getSchemaFromType(
-            parameterizedType.getActualTypeArguments()[0]));
+            parameterizedType.getActualTypeArguments()[0])).build();
       }
     }
     throw new KsqlException("Type is not supported: " + type);

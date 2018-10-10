@@ -21,9 +21,9 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class KsqlStream<K> extends StructuredDataSource {
 
@@ -51,7 +51,8 @@ public class KsqlStream<K> extends StructuredDataSource {
   }
 
   public boolean isWindowed() {
-    return !(keySerde instanceof Serdes.StringSerde);
+    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
+        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 
   public Serde<K> getKeySerde() {

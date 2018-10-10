@@ -84,7 +84,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
           properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 
       checkTopicNameNotNull(properties);
-      registerTopicCommand = null;
+      this.registerTopicCommand = null;
     } else {
       this.topicName = this.sourceName;
       this.registerTopicCommand = registerTopicFirst(properties,
@@ -96,7 +96,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      keyColumnName = StringUtil.cleanQuotes(name);
+      this.keyColumnName = StringUtil.cleanQuotes(name);
       if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
         throw new KsqlException(String.format(
             "No column with the provided key column name in the WITH "

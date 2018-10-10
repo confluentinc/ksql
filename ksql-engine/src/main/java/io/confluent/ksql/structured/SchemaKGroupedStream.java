@@ -37,6 +37,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
@@ -84,7 +85,7 @@ public class SchemaKGroupedStream {
 
     final Serde<?> keySerde;
     if (windowExpression != null) {
-      keySerde = windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
+      keySerde = getKeySerde(windowExpression);
 
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
@@ -116,6 +117,10 @@ public class SchemaKGroupedStream {
         functionRegistry,
         schemaRegistryClient
     );
+  }
+
+  private static Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 
 }

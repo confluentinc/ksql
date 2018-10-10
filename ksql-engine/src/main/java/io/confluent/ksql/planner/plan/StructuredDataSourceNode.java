@@ -261,15 +261,15 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final TimestampExtractor timestampExtractor,
       final Serde<GenericRow> genericRowSerde) {
-    final KsqlStream ksqlTable = (KsqlStream) getStructuredDataSource();
+    final KsqlStream ksqlStream = (KsqlStream) getStructuredDataSource();
 
-    if (ksqlTable.isWindowed()) {
+    if (ksqlStream.isWindowed()) {
       return stream(builder, timestampExtractor, genericRowSerde,
-          (Serde<Windowed<String>>)ksqlTable.getKeySerde(), windowedMapper);
+          (Serde<Windowed<String>>)ksqlStream.getKeySerde(), windowedMapper);
     }
 
     return stream(builder, timestampExtractor, genericRowSerde,
-        (Serde<String>)ksqlTable.getKeySerde(), nonWindowedValueMapper);
+        (Serde<String>)ksqlStream.getKeySerde(), nonWindowedValueMapper);
   }
 
   private <K> KStream<K, GenericRow> stream(

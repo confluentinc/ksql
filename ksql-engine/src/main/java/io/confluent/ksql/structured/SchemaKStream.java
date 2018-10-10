@@ -50,6 +50,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.codehaus.commons.compiler.CompileException;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -100,7 +101,8 @@ public class SchemaKStream<K> {
   }
 
   public boolean isWindowed() {
-    return !(keySerde instanceof Serdes.StringSerde);
+    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
+        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 
   public SchemaKStream into(

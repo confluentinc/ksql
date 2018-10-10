@@ -71,4 +71,9 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     final SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
     return sessionWindowExpression.gap == gap && sessionWindowExpression.sizeUnit == sizeUnit;
   }
+
+  @Override
+  public WindowType getWindowType() {
+    return WindowType.SESSION;
+  }
 }

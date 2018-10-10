@@ -20,6 +20,10 @@ import java.util.Optional;
 
 public abstract class KsqlWindowExpression extends Node {
 
+  public enum WindowType { TUMBLING, HOPPING, SESSION }
+
+  public abstract WindowType getWindowType();
+
   protected KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);
   }

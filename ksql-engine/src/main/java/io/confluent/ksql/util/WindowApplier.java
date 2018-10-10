@@ -38,32 +38,33 @@ public final class WindowApplier {
       final UdafAggregator aggregator,
       final Materialized<String, GenericRow, ?> materialized
   ) {
-    if (ksqlWindowExpression instanceof TumblingWindowExpression) {
-      return applyTumblingWindow(
-          (TumblingWindowExpression) ksqlWindowExpression,
-          groupedStream,
-          initializer,
-          aggregator,
-          materialized
-      );
-    } else if (ksqlWindowExpression instanceof HoppingWindowExpression) {
-      return applyHoppingWindow(
-          (HoppingWindowExpression) ksqlWindowExpression,
-          groupedStream,
-          initializer,
-          aggregator,
-          materialized
-      );
-    } else if (ksqlWindowExpression instanceof SessionWindowExpression) {
-      return applySessionWindow(
-          (SessionWindowExpression) ksqlWindowExpression,
-          groupedStream,
-          initializer,
-          aggregator,
-          materialized
-      );
-    } else {
-      throw new KsqlException("Unsupported window type: " + ksqlWindowExpression);
+    switch (ksqlWindowExpression.getWindowType()) {
+      case TUMBLING:
+        return applyTumblingWindow(
+            (TumblingWindowExpression) ksqlWindowExpression,
+            groupedStream,
+            initializer,
+            aggregator,
+            materialized
+        );
+      case HOPPING:
+        return applyHoppingWindow(
+            (HoppingWindowExpression) ksqlWindowExpression,
+            groupedStream,
+            initializer,
+            aggregator,
+            materialized
+        );
+      case SESSION:
+        return applySessionWindow(
+            (SessionWindowExpression) ksqlWindowExpression,
+            groupedStream,
+            initializer,
+            aggregator,
+            materialized
+        );
+      default:
+        throw new KsqlException("Invalid window type: " + ksqlWindowExpression.getWindowType());
     }
   }
 

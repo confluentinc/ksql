@@ -70,4 +70,9 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
   }
+
+  @Override
+  public WindowType getWindowType() {
+    return WindowType.TUMBLING;
+  }
 }

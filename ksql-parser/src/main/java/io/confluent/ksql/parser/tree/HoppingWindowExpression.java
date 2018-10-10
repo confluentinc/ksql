@@ -95,4 +95,9 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
         && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
         .advanceByUnit == advanceByUnit;
   }
+
+  @Override
+  public WindowType getWindowType() {
+    return WindowType.HOPPING;
+  }
 }

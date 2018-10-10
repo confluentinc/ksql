@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -84,7 +85,11 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
                                final Initializer initializer,
                                final UdafAggregator aggregator,
                                final Materialized<String, GenericRow, ?> materialized) {
-    return groupedStream.windowedBy(TimeWindows.of(sizeUnit.toMillis(size)))
+
+    final TimeWindows windows = TimeWindows.of(Duration.ofMillis(sizeUnit.toMillis(size)));
+
+    return groupedStream
+        .windowedBy(windows)
         .aggregate(initializer, aggregator, materialized);
 
   }

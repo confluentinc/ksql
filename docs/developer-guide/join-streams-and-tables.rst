@@ -110,7 +110,7 @@ The following table shows the supported combinations.
 Stream-Stream Joins
 *******************
 
-KSQL supports INNER, LEFT OUTER, and FULL OUTER, joins between streams.
+KSQL supports INNER, LEFT OUTER, and FULL OUTER joins between streams.
 
 All of these operations support out-of-order records.
 
@@ -119,7 +119,7 @@ produces a join output for each matching record on the other side, and there
 can be multiple such matching records within a join window.
 
 INNER joins cause data re-partitioning of a stream only if the stream was
-marked for re-partitioning If both streams are marked, both are re-partitioned.
+marked for re-partitioning. If both streams are marked, both are re-partitioned.
 
 LEFT OUTER joins will contain leftRecord-NULL records in the result stream,
 which means that the join contains NULL values for fields selected from the
@@ -257,7 +257,7 @@ synchronized: [TBD: Details on how to do these steps]:
 
 #. Start the query, which starts consumers. TBD: sample statement
 #. Populate the table fully. This ensures that the table items exist when the stream events come in to trigger the join. TBD: sample statement
-#. Populate the stream fully. TBD: sample statement
+#. Populate the stream fully. TBD: sample statement 
 
 Table-Table Joins
 *****************

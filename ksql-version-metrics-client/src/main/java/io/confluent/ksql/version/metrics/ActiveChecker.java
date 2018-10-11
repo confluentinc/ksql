@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
 
 package io.confluent.ksql.version.metrics;
 
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import java.util.Properties;
+public interface ActiveChecker {
 
-public interface VersionCheckerAgent {
+  void onRequest(long requestTime, boolean hasActiveQuery);
 
-  void start(KsqlModuleType moduleType, Properties ksqlProperties);
-
-  ActiveChecker getActiveChecker();
+  boolean isActive();
 
 }

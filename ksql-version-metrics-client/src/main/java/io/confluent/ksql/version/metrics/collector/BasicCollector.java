@@ -16,29 +16,29 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
+import io.confluent.ksql.version.metrics.ActiveChecker;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.TimeUtils;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.avro.generic.GenericContainer;
 
 public class BasicCollector extends Collector {
 
   private final TimeUtils timeUtils;
   private final KsqlModuleType moduleType;
-  private final AtomicLong lastRequestTime;
+  private final ActiveChecker activeChecker;
 
   // 24 hours
-  private final int maxInterval = 24 * 60 * 60 * 1000;
+  private static final int maxInterval = 24 * 60 * 60 * 1000;
 
   public BasicCollector(
       final KsqlModuleType moduleType,
       final TimeUtils timeUtils,
-      final AtomicLong lastRequestTime) {
+      final ActiveChecker activeChecker) {
     this.timeUtils = timeUtils;
     this.moduleType = moduleType;
-    this.lastRequestTime = lastRequestTime;
+    this.activeChecker = activeChecker;
   }
 
   @Override
@@ -47,17 +47,8 @@ public class BasicCollector extends Collector {
     metricsRecord.setTimestamp(timeUtils.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
-    metricsRecord.setIsActive(isActive());
+    metricsRecord.setIsActive(activeChecker.isActive());
     return metricsRecord;
   }
 
-  /**
-   * Is active if there was a use in the last 24 hours.
-   *
-   * @return
-   */
-  private boolean isActive() {
-    final long lastInterval = timeUtils.nowInUnixTime() - lastRequestTime.get();
-    return lastInterval < maxInterval;
-  }
 }

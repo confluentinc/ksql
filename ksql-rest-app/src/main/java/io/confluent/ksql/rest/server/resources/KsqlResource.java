@@ -108,6 +108,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
+import io.confluent.ksql.version.metrics.ActiveChecker;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collection;
@@ -117,7 +118,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -142,7 +142,7 @@ public class KsqlResource {
   private final KsqlEngine ksqlEngine;
   private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
-  private final AtomicLong lastRequestTime;
+  private final ActiveChecker activeChecker;
   private final TimeUtils timeUtils;
 
   public KsqlResource(
@@ -150,14 +150,14 @@ public class KsqlResource {
       final KsqlEngine ksqlEngine,
       final ReplayableCommandQueue replayableCommandQueue,
       final long distributedCommandResponseTimeout,
-      final AtomicLong lastRequestTime
+      final ActiveChecker activeChecker
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
-    this.lastRequestTime = lastRequestTime;
+    this.activeChecker = activeChecker;
     this.timeUtils = new TimeUtils();
   }
 
@@ -166,7 +166,9 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
-    lastRequestTime.set(timeUtils.nowInUnixTime());
+    activeChecker.onRequest(
+        timeUtils.nowInUnixTime(),
+        !ksqlEngine.getLivePersistentQueries().isEmpty());
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
     } catch (final ParseFailedException e) {

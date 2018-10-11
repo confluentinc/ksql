@@ -49,6 +49,8 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -59,7 +61,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
@@ -72,7 +73,7 @@ import org.junit.Test;
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
-  private final AtomicLong lastRequestTime = new AtomicLong(0L);
+  private final ActiveChecker activeChecker = new KsqlServerActiveCheckerImpl();
 
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
@@ -82,6 +83,7 @@ public class StreamedQueryResourceTest {
     final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString))
@@ -90,7 +92,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activeChecker);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -110,6 +112,7 @@ public class StreamedQueryResourceTest {
     final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString))
@@ -121,7 +124,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activeChecker);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -189,6 +192,7 @@ public class StreamedQueryResourceTest {
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
+    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     replay(mockOutputNode, mockKafkaStreams);
     final QueuedQueryMetadata queuedQueryMetadata =
@@ -209,7 +213,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, lastRequestTime);
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activeChecker);
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));

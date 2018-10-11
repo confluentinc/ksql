@@ -17,15 +17,15 @@
 package io.confluent.ksql.version.metrics.collector;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.Clock;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.concurrent.atomic.AtomicLong;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,24 +61,25 @@ public class BasicCollectorTest {
 
   private MockClock mockClock;
   private TimeUtils timeUtils;
-  private AtomicLong lastRequestTime;
+  private ActiveChecker activeChecker;
 
   @Before
   public void setUp() throws Exception {
     mockClock = new MockClock();
     timeUtils = new TimeUtils(mockClock);
-    lastRequestTime = new AtomicLong(timeUtils.nowInUnixTime() - 15 * 60 * 1000);
+    activeChecker = new KsqlServerActiveCheckerImpl();
   }
 
   @Test
   public void testGetCollector() {
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, lastRequestTime);
+    activeChecker.onRequest(timeUtils.nowInUnixTime() - 15 * 60 * 1000, false);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, activeChecker);
 
     final KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
     expectedMetrics.setTimestamp(timeUtils.nowInUnixTime());
     expectedMetrics.setConfluentPlatformVersion(Version.getVersion());
     expectedMetrics.setKsqlComponentType(moduleType.name());
-    expectedMetrics.setIsActive(true);
+    expectedMetrics.setIsActive(activeChecker.isActive());
 
     // should match because we don't advance the clock
     Assert.assertThat(basicCollector.collectMetrics(), CoreMatchers.equalTo(expectedMetrics));
@@ -89,7 +90,7 @@ public class BasicCollectorTest {
     Long currentTimeSec = 1000l;
 
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, lastRequestTime);
+    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils, activeChecker);
 
     currentTimeSec += 12300l;
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);

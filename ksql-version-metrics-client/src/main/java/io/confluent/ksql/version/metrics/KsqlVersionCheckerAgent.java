@@ -20,7 +20,6 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.PhoneHomeConfig;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private boolean enableSettlingTime;
 
-  private final AtomicLong lastRequestTime = new AtomicLong(0L);
+  private final ActiveChecker activeChecker = new KsqlServerActiveCheckerImpl();
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
@@ -63,7 +62,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
                   serverRuntime,
                   moduleType,
                   enableSettlingTime,
-                  lastRequestTime
+                  activeChecker
                   );
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
@@ -83,9 +82,10 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   @Override
-  public AtomicLong getLastRequestTime() {
-    return lastRequestTime;
+  public ActiveChecker getActiveChecker() {
+    return activeChecker;
   }
+
 
   private static String legalDisclaimerProactiveSupportEnabled(final long reportIntervalHours) {
     return "Please note that the version check feature of KSQL is enabled.  "

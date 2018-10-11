@@ -80,6 +80,8 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.util.Collection;
@@ -490,8 +492,11 @@ public class KsqlResourceTest {
   public void shouldReturn5xxOnSystemError() {
     // Given:
     givenMockEngine(mockEngine ->
-        EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-            .andThrow(new RuntimeException("internal error")));
+        {
+          EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+              .andThrow(new RuntimeException("internal error"));
+          EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+        });
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -514,6 +519,7 @@ public class KsqlResourceTest {
 
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
+      EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     });
 
     // Then:
@@ -687,17 +693,19 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldUpdateTheLastRequestTime() {
-    final AtomicLong atomicLong = new AtomicLong(0L);
+    final ActiveChecker activeChecker = new KsqlServerActiveCheckerImpl();
+    activeChecker.onRequest(0L, false);
     final KsqlEngine mockEngine = EasyMock.mock(KsqlEngine.class);
 
     EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString())).andStubReturn(Collections.emptyList());
+    EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     final KsqlResource ksqlResource = new KsqlResource(ksqlConfig, mockEngine, EasyMock.mock(
-        ReplayableCommandQueue.class), Long.MAX_VALUE, atomicLong);
+        ReplayableCommandQueue.class), Long.MAX_VALUE, activeChecker);
     EasyMock.replay(mockEngine);
-    assertThat(atomicLong.get(), equalTo(0L));
+    assertThat(activeChecker.isActive(), equalTo(false));
     ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
     EasyMock.verify(mockEngine);
-    assertThat(atomicLong.get(), greaterThan(0L));
+    assertThat(activeChecker.isActive(), equalTo(true));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -810,7 +818,7 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, new AtomicLong(0L));
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, new KsqlServerActiveCheckerImpl());
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

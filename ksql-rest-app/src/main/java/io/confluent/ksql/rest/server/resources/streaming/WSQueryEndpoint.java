@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.ActiveChecker;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -59,7 +59,7 @@ public class WSQueryEndpoint {
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
   private final ListeningScheduledExecutorService exec;
-  private final AtomicLong lastRequestTime;
+  private final ActiveChecker activeChecker;
   private final TimeUtils timeUtils;
 
   private WebSocketSubscriber subscriber;
@@ -70,14 +70,14 @@ public class WSQueryEndpoint {
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
       final ListeningScheduledExecutorService exec,
-      final AtomicLong lastRequestTime
+      final ActiveChecker activeChecker
   ) {
     this.ksqlConfig = ksqlConfig;
     this.mapper = mapper;
     this.statementParser = statementParser;
     this.ksqlEngine = ksqlEngine;
     this.exec = exec;
-    this.lastRequestTime = lastRequestTime;
+    this.activeChecker = activeChecker;
     this.timeUtils = new TimeUtils();
   }
 
@@ -85,7 +85,9 @@ public class WSQueryEndpoint {
   public void onOpen(final Session session, final EndpointConfig endpointConfig) {
     log.debug("Opening websocket session {}", session.getId());
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
-    lastRequestTime.set(timeUtils.nowInUnixTime());
+    activeChecker.onRequest(
+        timeUtils.nowInUnixTime(),
+        !ksqlEngine.getLivePersistentQueries().isEmpty());
 
     final List<String> versionParam = parameters.getOrDefault(
         Versions.KSQL_V1_WS_PARAM, Arrays.asList(Versions.KSQL_V1_WS));

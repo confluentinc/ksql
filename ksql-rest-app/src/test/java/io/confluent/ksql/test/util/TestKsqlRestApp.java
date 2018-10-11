@@ -23,6 +23,8 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -237,8 +239,9 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     @Override
-    public AtomicLong getLastRequestTime() {
-      return new AtomicLong(0L);
+    public ActiveChecker getActiveChecker() {
+      return new KsqlServerActiveCheckerImpl();
     }
+
   }
 }

@@ -9,7 +9,9 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -25,6 +27,8 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,19 +63,21 @@ public class WSQueryEndpointTest {
   private Session session;
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
-  private AtomicLong atomicLong;
+  private ActiveChecker activeChecker;
 
   @Before
   public void setUp() {
     mocks = new LinkedList();
     ksqlConfig = addMock(KsqlConfig.class);
     ksqlEngine = addMock(KsqlEngine.class);
+    expect(ksqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
-    atomicLong = new AtomicLong(0L);
+    activeChecker = new KsqlServerActiveCheckerImpl();
+    activeChecker.onRequest(0L, false);
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, atomicLong);
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activeChecker);
     session = addMock(Session.class);
   }
 
@@ -149,10 +155,10 @@ public class WSQueryEndpointTest {
     expectLastCall().once();
 
     replayMocks();
-    assertThat(atomicLong.get(), Matchers.equalTo(0L));
+    assertFalse(activeChecker.isActive());
     wsQueryEndpoint.onOpen(session, null);
 
-    assertThat(atomicLong.get(), Matchers.greaterThan(0L));
+    assertTrue(activeChecker.isActive());
   }
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
@@ -175,7 +181,7 @@ public class WSQueryEndpointTest {
     final Query query = addMock(Query.class);
     final QueuedQueryMetadata queryMetadata = addMock(QueuedQueryMetadata.class);
     final KafkaStreams kafkaStreams = addMock(KafkaStreams.class);
-    final  RemoteEndpoint.Async async = addMock(RemoteEndpoint.Async.class);
+    final RemoteEndpoint.Async async = addMock(RemoteEndpoint.Async.class);
     final RemoteEndpoint.Basic basic = addMock(RemoteEndpoint.Basic.class);
     final ListenableScheduledFuture future = addMock(ListenableScheduledFuture.class);
 

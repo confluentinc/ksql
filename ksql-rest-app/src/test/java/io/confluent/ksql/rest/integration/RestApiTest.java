@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -148,9 +150,10 @@ public class RestApiTest {
     }
 
     @Override
-    public AtomicLong getLastRequestTime() {
-      return new AtomicLong(0L);
+    public ActiveChecker getActiveChecker() {
+      return new KsqlServerActiveCheckerImpl();
     }
+
   }
 
   private static Client buildClient() {

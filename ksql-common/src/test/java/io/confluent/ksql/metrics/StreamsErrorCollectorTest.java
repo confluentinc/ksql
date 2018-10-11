@@ -36,17 +36,17 @@ public class StreamsErrorCollectorTest {
   private final static String TOPIC_NAME = "test-topic";
   private final static String APPLICATION_ID_PREFIX = "test-app-id-";
 
-  private static int nApps;
+  private static int appCounter;
 
   private String applicationId;
 
-  private String buildApplicationId(final int index) {
+  private static String buildApplicationId(final int index) {
     return APPLICATION_ID_PREFIX + index;
   }
 
-  private String buildApplicationId() {
-    nApps++;
-    return buildApplicationId(nApps);
+  private static String buildApplicationId() {
+    appCounter++;
+    return buildApplicationId(appCounter);
   }
 
   @Before
@@ -56,9 +56,9 @@ public class StreamsErrorCollectorTest {
 
   @After
   public void tearDown() {
-    while (nApps > 0) {
-      StreamsErrorCollector.notifyApplicationClose(buildApplicationId(nApps));
-      nApps--;
+    while (appCounter > 0) {
+      StreamsErrorCollector.notifyApplicationClose(buildApplicationId(appCounter));
+      appCounter--;
     }
   }
 

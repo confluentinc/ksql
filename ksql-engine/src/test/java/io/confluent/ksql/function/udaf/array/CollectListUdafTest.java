@@ -56,4 +56,16 @@ public class CollectListUdafTest {
     assertThat(merged, contains(1, 2, null, 3, 2, null, 3, 4, 5, 6));
   }
 
+  @Test
+  public void shouldRespectSizeLimit() {
+    final Udaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 0; i < 2500; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, hasSize(1000));
+    assertThat(runningList, contains(1));
+    assertThat(runningList, contains(1000));
+  }
+
 }

@@ -1223,10 +1223,14 @@ Aggregate functions
 | COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Stream,    | Return an array containing all the values of ``col1`` from each     |
 |                        |                           | Table      | input row (for the specified grouping and time window, if any).     |
 |                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | COLLECT_SET            | ``COLLECT_SET(col1)``     | Stream     | Return an array containing the distinct values of ``col1`` from     |
 |                        |                           |            | each input row (for the specified grouping and time window, if any).|
 |                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
 |                        |                           | Table      |                                                                     |

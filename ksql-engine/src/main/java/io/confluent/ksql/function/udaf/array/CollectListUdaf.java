@@ -25,12 +25,14 @@ import java.util.List;
 
 @UdafDescription(
     name = "collect_list",
-    description = "Gather all the grouped values from an input Stream into a single Array field."
-    + " Not available for aggregating values from an input Table."
-    + " This version limits the size of the resultant Array to 100000 entries.")
+    description = "Gather all of the values from an input grouping into a single Array field."
+        + "\nAlthough this aggregate works on both Stream and Table inputs, the order of entries"
+        + " in the result array is not guaranteed when working on Table input data."
+        + "\nThis version limits the size of the resultant Array to 1000 entries, beyond which"
+        + " any further values will be silently ignored.")
 public final class CollectListUdaf {
 
-  private static final int LIMIT = 100000;
+  private static final int LIMIT = 1000;
 
   private CollectListUdaf() {
     // just to make the checkstyle happy
@@ -39,24 +41,28 @@ public final class CollectListUdaf {
   private static <T> TableUdaf<T, List<T>> listCollector() {
     return new TableUdaf<T, List<T>>() {
 
+      @Override
       public List<T> initialize() {
         return Lists.newArrayList();
       }
 
-      public List<T> aggregate(T thisValue, List<T> aggregate) {
+      @Override
+      public List<T> aggregate(final T thisValue, final List<T> aggregate) {
         if (aggregate.size() < LIMIT) {
           aggregate.add(thisValue);
         }
         return aggregate;
       }
 
-      public List<T> merge(List<T> aggOne, List<T> aggTwo) {
-        int remainingCapacity = LIMIT - aggOne.size();
+      @Override
+      public List<T> merge(final List<T> aggOne, final List<T> aggTwo) {
+        final int remainingCapacity = LIMIT - aggOne.size();
         aggOne.addAll(aggTwo.subList(0, Math.min(remainingCapacity, aggTwo.size())));
         return aggOne;
       }
 
-      public List<T> undo(T valueToUndo, List<T> aggregateValue) {
+      @Override
+      public List<T> undo(final T valueToUndo, final List<T> aggregateValue) {
         aggregateValue.remove(aggregateValue.lastIndexOf(valueToUndo));
         return aggregateValue;
       }

@@ -16,19 +16,20 @@
 
 package io.confluent.ksql.function.udaf.array;
 
-import avro.shaded.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import java.util.List;
 
 @UdafDescription(name = "collect_set", 
-    description = "Gather all of the distinct grouped values into a single Array field."
-        + " Not available for aggregating values from an input Table."
-        + " This version limits the size of the resultant Array to 100000 entries.")
+    description = "Gather all of the distinct values from an input grouping into a single Array."
+        + "\nNot available for aggregating values from an input Table."
+        + "\nThis version limits the size of the resultant Array to 1000 entries, beyond which"
+        + " any further values will be silently ignored.")
 public final class CollectSetUdaf {
 
-  private static final int LIMIT = 100000;
+  private static final int LIMIT = 1000;
 
   private CollectSetUdaf() {
     // just to make the checkstyle happy
@@ -51,8 +52,11 @@ public final class CollectSetUdaf {
 
       @Override
       public List<T> merge(final List<T> aggOne, final List<T> aggTwo) {
-        for (T thisEntry : aggTwo) {
-          if (aggOne.size() < LIMIT && !aggOne.contains(thisEntry)) {
+        for (final T thisEntry : aggTwo) {
+          if (aggOne.size() == LIMIT) {
+            break;
+          }
+          if (!aggOne.contains(thisEntry)) {
             aggOne.add(thisEntry);
           }
         }

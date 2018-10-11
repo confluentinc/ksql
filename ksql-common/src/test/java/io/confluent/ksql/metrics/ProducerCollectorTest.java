@@ -13,7 +13,7 @@ public class ProducerCollectorTest {
 
   private static final String TEST_TOPIC = "test-topic".toLowerCase();
   @Test
-  public void shouldDisplayRateThroughput() throws Exception {
+  public void shouldDisplayRateThroughput() {
 
     final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
 
@@ -25,21 +25,4 @@ public class ProducerCollectorTest {
 
     assertThat( stats.toString(), containsString("name=messages-per-sec,"));
   }
-
-  @Test
-  public void shouldRecordErrors() throws Exception {
-
-    final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
-
-    for (int i = 0; i < 1000; i++){
-      collector.recordError(TEST_TOPIC);
-    }
-
-    final Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
-
-    assertThat( stats.toString(), containsString("failed-messages"));
-    assertThat( stats.toString(), containsString("value=1000"));
-  }
-
-
 }

@@ -96,7 +96,10 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldLoadFunctionWithListReturnType() {
+    // When:
     final UdfFactory toList = metaStore.getUdfFactory("tolist");
+
+    // Then:
     assertThat(toList, not(nullValue()));
     final KsqlFunction function
         = toList.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
@@ -109,10 +112,13 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldLoadFunctionWithMapReturnType() {
-    final UdfFactory toList = metaStore.getUdfFactory("tomap");
-    assertThat(toList, not(nullValue()));
+    // When:
+    final UdfFactory toMap = metaStore.getUdfFactory("tomap");
+
+    // Then:
+    assertThat(toMap, not(nullValue()));
     final KsqlFunction function
-        = toList.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+        = toMap.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(
         function.getReturnType(),
         equalTo(

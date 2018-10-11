@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.internal.QueryStateListener;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
@@ -116,7 +117,6 @@ public class QueryMetadata {
   }
 
   public void close() {
-
     kafkaStreams.close();
     if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
       kafkaStreams.cleanUp();
@@ -126,6 +126,7 @@ public class QueryMetadata {
                 queryApplicationId, kafkaStreams.state());
     }
     queryStateListener.ifPresent(QueryStateListener::close);
+    StreamsErrorCollector.notifyApplicationClose(queryApplicationId);
   }
 
   private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {

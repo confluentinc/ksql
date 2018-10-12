@@ -3,17 +3,17 @@
 Join Streams and Tables with KSQL
 =================================
 
-You can use KSQL to merge streams of data in realtime by using a SQL-like
-*join* syntax. A join in KSQL is similar to a join clause in a relational
-database, which combines data from two sources based on values common to
-both. The result of a KSQL join is a new stream or table that's populated
-with the column values that you specify in a SELECT statement.
+You can use KSQL to merge streams of data in real time by using a SQL-like
+*join* syntax. A KSQL join and a relational database join are similar in that
+they both combine data from two sources based on common values. The result of
+a KSQL join is a new stream or table that's populated with the column values
+that you specify in a SELECT statement.
 
-KSQL automates creating Kafka Streams applications. You don’t need to write
-the low-level logic around joining streams, so you can focus on the business
-logic for combining your streaming data.
+With KSQL, you don’t need to write the low-level logic around joining streams
+and tables, so you can focus on the business logic for combining your streaming
+data.
 
-You can join streams and tables in three different ways:
+You can join streams and tables in these ways:
 
 * Join two streams to create a new stream.
 * Join two tables to create a new table.
@@ -37,7 +37,7 @@ For the full code example, see :ref:`ksql_quickstart-docker`.
 
 Here's an example stream-stream join that combines a ``shipments`` stream with
 an ``orders`` stream, within a time window. The resulting ``late_orders`` stream
-detects late orders by matching each shipments row with all orders rows that
+detects late orders by matching ``shipments`` rows with ``orders`` rows that
 occur within a two-hour window. If there's no match, the right-hand side of the
 join result is NULL, which indicates that the order wasn't shipped within the
 expected time of two hours.
@@ -60,6 +60,8 @@ this retention period controls how long KSQL will wait for out-of-order and
 late-arriving records. If a record arrives after the window’s retention period
 has passed, the record is discarded and isn’t processed in that window.
 
+Only stream-stream joins are windowed.
+
 Windows are tracked per record key. In join operations, KSQL uses a windowing
 *state store* to store all of the records received so far within the defined
 window boundary. Old records in the state store are purged after the specified
@@ -70,17 +72,19 @@ Join Requirements
 
 Your KSQL applications must meet specific requirements for joins to be successful. 
 
-**Co-partitioned data**: Input data must be co-partitioned when joining. This ensures
-that input records with the same key, from both sides of the join, are delivered
-to the same stream task during processing. It’s your responsibility to ensure data
-co-partitioning when joining. For more info, see Partition Data to Enable Joins [TBD new topic].
+Co-partitioned data
+    Input data must be co-partitioned when joining. This ensures that input
+    records with the same key, from both sides of the join, are delivered to
+    the same stream task during processing. It’s your responsibility to ensure
+    data co-partitioning when joining. For more info, see Partition Data to Enable Joins [TBD new topic].
 
-**KEY property**: If you set the KEY property in a KSQL query, ensure that both of the following
-conditions are true:
+KEY property
+    If you set the KEY property when you create a table, ensure that both of the
+    following conditions are true:
 
-* For every record, the contents of the message key of the Kafka message itself must be
-  the same as the contents of the column set in KEY.
-* The KEY property must be set to a column of type VARCHAR or STRING.
+    * For every record, the contents of the message key of the Kafka message itself must be
+      the same as the contents of the column set in KEY.
+    * The KEY property must be set to a column of type VARCHAR or STRING.
 
 TBD: code snippet
 
@@ -118,8 +122,8 @@ Joins between streams are always windowed joins. A new input record on one side
 produces a join output for each matching record on the other side, and there
 can be multiple such matching records within a join window.
 
-INNER joins cause data re-partitioning of a stream only if the stream was
-marked for re-partitioning. If both streams are marked, both are re-partitioned.
+Joins cause data re-partitioning of a stream only if the stream was marked
+for re-partitioning. If both streams are marked, both are re-partitioned.
 
 LEFT OUTER joins will contain leftRecord-NULL records in the result stream,
 which means that the join contains NULL values for fields selected from the
@@ -181,7 +185,7 @@ don’t trigger the join.
 Stream-Table Joins
 ******************
 
-KSQL supports only INNER and LEFT joins between a stream and a table.
+KSQL only supports INNER and LEFT joins between a stream and a table.
 
 Stream-table joins are always non-windowed joins. You can perform table lookups
 against a table when a new record arrives on the stream. Only events arriving on
@@ -194,8 +198,9 @@ in offset order and doesn't check for out-of-order records.
 Stream-table joins cause data re-partitioning of the stream only if the stream
 was marked for re-partitioning.
 
-KSQL currently provides best-effort on time synchronization, but there are no
-guarantees, which can cause missing results or leftRecord-NULL results.
+.. important:: KSQL currently provides best-effort on time synchronization,
+               but there are no guarantees, which can cause missing results
+               or leftRecord-NULL results.
 
 Semantics of Stream-Table Joins
 -------------------------------
@@ -270,10 +275,11 @@ Table-table joins are always non-windowed joins.
 Out-of-order records are not supported, which means that KSQL processes all
 records in offset order and does not check for out-of-order records.
 
-KSQL provides best-effort on time synchronization, but there are no guarantees,
-which can cause missing results or leftRecord-NULL results.
-
 Table-table joins are eventually consistent.
+
+.. important:: KSQL currently provides best-effort on time synchronization,
+               but there are no guarantees, which can cause missing results
+               or leftRecord-NULL results.
 
 Semantics of Table-Table Joins
 ------------------------------

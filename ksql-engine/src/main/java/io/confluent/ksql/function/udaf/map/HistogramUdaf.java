@@ -71,24 +71,4 @@ public final class HistogramUdaf {
     return histogram();
   }
 
-  @UdafFactory(description = "Build a value-to-count histogram of input Booleans")
-  public static TableUdaf<Boolean, Map<Boolean, Long>> histogramBool() {
-    return histogram();
-  }
-
-  @UdafFactory(description = "Build a value-to-count histogram of input Integers")
-  public static TableUdaf<Integer, Map<Integer, Long>> histogramInt() {
-    return histogram();
-  }
-
-  @UdafFactory(description = "Build a value-to-count histogram of input Bigints")
-  public static TableUdaf<Long, Map<Long, Long>> histogramLong() {
-    return histogram();
-  }
-
-  @UdafFactory(description = "Build a value-to-count histogram of input Doubles")
-  public static TableUdaf<Double, Map<Double, Long>> histogramDouble() {
-    return histogram();
-  }
-
 }

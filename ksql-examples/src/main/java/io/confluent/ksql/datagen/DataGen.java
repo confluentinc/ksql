@@ -277,7 +277,7 @@ public final class DataGen {
       // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
       private Builder parseArg(final String arg) throws IOException {
         // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-        if ("help".equals(arg)) {
+        if ("help".equals(arg) || "--help".equals(arg)) {
           help = true;
           return this;
         }

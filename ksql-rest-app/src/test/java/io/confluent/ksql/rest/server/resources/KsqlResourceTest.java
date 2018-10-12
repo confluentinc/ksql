@@ -832,7 +832,7 @@ public class KsqlResourceTest {
       return;
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
     kafkaTopicClient.createTopic(topicName, 1, (short) 1);
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {

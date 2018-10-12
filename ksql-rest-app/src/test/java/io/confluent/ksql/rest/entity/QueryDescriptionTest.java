@@ -55,7 +55,7 @@ public class QueryDescriptionTest {
           new KsqlStream(
               STATEMENT, name, SCHEMA, SCHEMA.fields().get(0),
               new MetadataTimestampExtractionPolicy(),
-              new KsqlTopic(name, name, new KsqlJsonTopicSerDe())),
+              new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false)),
           SCHEMA);
     }
   }
@@ -121,7 +121,7 @@ public class QueryDescriptionTest {
     final TopologyDescription topologyDescription = mock(TopologyDescription.class);
     expect(topology.describe()).andReturn(topologyDescription);
     replay(topology, topologyDescription);
-    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe());
+    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
     final KsqlStream fakeSink = new KsqlStream(
         STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
         new MetadataTimestampExtractionPolicy(), sinkTopic);

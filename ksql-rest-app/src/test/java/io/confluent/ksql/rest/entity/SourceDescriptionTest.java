@@ -63,7 +63,7 @@ public class SourceDescriptionTest {
     final Schema schema = SchemaBuilder.struct()
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
-    final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe());
+    final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe(), true);
     return new KsqlStream(
         "query", "stream", schema, schema.fields().get(0),
         new MetadataTimestampExtractionPolicy(), topic);

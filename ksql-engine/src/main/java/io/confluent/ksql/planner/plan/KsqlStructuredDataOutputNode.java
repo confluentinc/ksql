@@ -206,7 +206,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     builder.withKsqlTopic(new KsqlTopic(
         getKsqlTopic().getName(),
         getKsqlTopic().getKafkaTopicName(),
-        ksqlAvroTopicSerDe
+        ksqlAvroTopicSerDe,
+        true
     ));
   }
 

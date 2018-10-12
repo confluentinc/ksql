@@ -15,6 +15,7 @@
 package io.confluent.ksql.function.udaf.array;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.udaf.Udaf;
@@ -60,12 +61,12 @@ public class CollectSetUdafTest {
   public void shouldRespectSizeLimit() {
     final Udaf<Integer, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
     List<Integer> runningList = udaf.initialize();
-    for (int i = 0; i < 2500; i++) {
+    for (int i = 1; i < 2500; i++) {
       runningList = udaf.aggregate(i, runningList);
     }
     assertThat(runningList, hasSize(1000));
-    assertThat(runningList, contains(1));
-    assertThat(runningList, contains(1000));
+    assertThat(runningList, hasItem(1));
+    assertThat(runningList, hasItem(1000));
   }
 
 }

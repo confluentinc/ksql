@@ -490,30 +490,39 @@ public class SqlToJavaVisitor {
     ) {
 
       // For now we just support simple prefix/suffix cases only.
-      String paternString = process(node.getPattern(), true).getLeft().substring(1);
-      paternString = paternString.substring(0, paternString.length() - 1);
+      String patternString = process(node.getPattern(), true).getLeft().substring(1);
+      patternString = patternString.substring(0, patternString.length() - 1);
       final String valueString = process(node.getValue(), true).getLeft();
-      if (paternString.startsWith("%")) {
-        if (paternString.endsWith("%")) {
+      if (patternString.startsWith("%")) {
+        if (patternString.endsWith("%")) {
           return new Pair<>(
               "(" + valueString + ").contains(\""
-                  + paternString.substring(1, paternString.length() - 1)
+                  + patternString.substring(1, patternString.length() - 1)
                   + "\")",
               Schema.OPTIONAL_STRING_SCHEMA
           );
         } else {
           return new Pair<>(
-              "(" + valueString + ").endsWith(\"" + paternString.substring(1) + "\")",
+              "(" + valueString + ").endsWith(\"" + patternString.substring(1) + "\")",
               Schema.OPTIONAL_STRING_SCHEMA
           );
         }
       }
 
-      if (paternString.endsWith("%")) {
+      if (patternString.endsWith("%")) {
         return new Pair<>(
             "(" + valueString + ")"
                 + ".startsWith(\""
-                + paternString.substring(0, paternString.length() - 1) + "\")",
+                + patternString.substring(0, patternString.length() - 1) + "\")",
+            Schema.OPTIONAL_STRING_SCHEMA
+        );
+      }
+
+      if (!patternString.contains("%")) {
+        return new Pair<>(
+            "(" + valueString + ")"
+                + ".equals(\""
+                + patternString + "\")",
             Schema.OPTIONAL_STRING_SCHEMA
         );
       }

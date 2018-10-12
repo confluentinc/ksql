@@ -20,9 +20,9 @@ import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import java.util.Map;
 
-@UdafDescription(name = "histogram", description = "Returns a map of each distinct value from the"
+@UdafDescription(name = "histogram",
+    description = "Returns a map of each distinct String from the"
     + " input Stream or Table and how many times each occurs."
-    + " \nNot applicable for complex types (map, array, or struct)."
     + " \nThis version limits the size of the resultant Map to 1000 entries. Any entries added"
     + " beyond this limit will be ignored.")
 public final class HistogramUdaf {

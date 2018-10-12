@@ -1249,8 +1249,8 @@ Aggregate functions
 | COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
 |                        |                           | Table      |                                                                     |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct values of ``col1`` mapped to   |
-|                        |                           | Table      | the number of times each one occurs for the given window.           |
+| HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct String values of ``col1``      |
+|                        |                           | Table      | mapped to the number of times each one occurs for the given window. |
 |                        |                           |            | This version limits the number of distinct values which can be      |
 |                        |                           |            | counted to 1000, beyond which any additional entries are ignored.   |
 |                        |                           |            | When using with a window type of ``session``, it can sometimes      |

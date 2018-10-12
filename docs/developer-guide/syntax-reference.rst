@@ -1217,22 +1217,61 @@ Scalar functions
 Aggregate functions
 ===================
 
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| Function               | Example                   | Description                                                         |
-+========================+===========================+=====================================================================+
-| COUNT                  | ``COUNT(col1)``           |  Count the number of rows                                           |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| MAX                    | ``MAX(col1)``             |  Return the maximum value for a given column and window             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| MIN                    | ``MIN(col1)``             |  Return the minimum value for a given column and window             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| SUM                    | ``SUM(col1)``             |  Sums the column values                                             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPK                   | ``TOPK(col1, k)``         |  Return the Top *K* values for the given column and window          |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-
++------------------------+---------------------------+----------------------------------------------------------------------------------+
+| Function               | Example                   | Input Type | Description                                                         |
++========================+===========================+============+=====================================================================+
+| COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Stream,    | Return an array containing all the values of ``col1`` from each     |
+|                        |                           | Table      | input row (for the specified grouping and time window, if any).     |
+|                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| COLLECT_SET            | ``COLLECT_SET(col1)``     | Stream     | Return an array containing the distinct values of ``col1`` from     |
+|                        |                           |            | each input row (for the specified grouping and time window, if any).|
+|                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
+|                        |                           | Table      |                                                                     |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct String values of ``col1``      |
+|                        |                           | Table      | mapped to the number of times each one occurs for the given window. |
+|                        |                           |            | This version limits the number of distinct values which can be      |
+|                        |                           |            | counted to 1000, beyond which any additional entries are ignored.   |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window              |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window              |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| SUM                    | ``SUM(col1)``             | Stream,    | Sums the column values                                              |
+|                        |                           | Table      |                                                                     |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| TOPK                   | ``TOPK(col1, k)``         | Stream     | Return the Top *K* values for the given column and window           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
 .. _ksql_key_requirements:
 

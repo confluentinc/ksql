@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udaf.array;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.List;
@@ -67,6 +68,7 @@ public class CollectSetUdafTest {
     assertThat(runningList, hasSize(1000));
     assertThat(runningList, hasItem(1));
     assertThat(runningList, hasItem(1000));
+    assertThat(runningList, not(hasItem(1001)));
   }
 
 }

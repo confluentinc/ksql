@@ -38,6 +38,7 @@ import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,6 +92,40 @@ public class UdfLoaderTest {
     final UdfFactory multi = metaStore.getUdfFactory("multiply");
     assertThat(toString, not(nullValue()));
     assertThat(multi, not(nullValue()));
+  }
+
+  @Test
+  public void shouldLoadFunctionWithListReturnType() {
+    // When:
+    final UdfFactory toList = metaStore.getUdfFactory("tolist");
+
+    // Then:
+    assertThat(toList, not(nullValue()));
+    final KsqlFunction function
+        = toList.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(
+        function.getReturnType(),
+        equalTo(
+            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build())
+    );
+  }
+
+  @Test
+  public void shouldLoadFunctionWithMapReturnType() {
+    // When:
+    final UdfFactory toMap = metaStore.getUdfFactory("tomap");
+
+    // Then:
+    assertThat(toMap, not(nullValue()));
+    final KsqlFunction function
+        = toMap.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(
+        function.getReturnType(),
+        equalTo(
+            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+                .build()
+        )
+    );
   }
 
   @Test

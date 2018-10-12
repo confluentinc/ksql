@@ -242,7 +242,7 @@ public class UdfLoader {
             path)));
 
     metaStore.addFunction(new KsqlFunction(
-        SchemaUtil.getSchemaFromType(method.getReturnType()),
+        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
         Arrays.stream(method.getGenericParameterTypes())
             .map(SchemaUtil::getSchemaFromType).collect(Collectors.toList()),
         classLevelAnnotaion.name(),

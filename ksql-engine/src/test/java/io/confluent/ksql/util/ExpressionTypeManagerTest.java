@@ -54,7 +54,7 @@ public class ExpressionTypeManagerTest {
     }
 
     @Test
-    public void testArithmaticExpr() {
+    public void testArithmeticExpr() {
         final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0+10, col0*25 FROM test1 WHERE col0 > 100;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
         final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
@@ -81,6 +81,18 @@ public class ExpressionTypeManagerTest {
         Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
         Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
+    }
+
+    @Test
+    public void testLikeExpr() {
+      final String simpleQuery = "SELECT col1 LIKE 'foo%', col2 NOT LIKE '%bar' FROM test1;";
+      final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+      final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
+          functionRegistry);
+      final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+      final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+      Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
+      Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
     }
 
     @Test

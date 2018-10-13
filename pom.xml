@@ -37,6 +37,7 @@
         <module>ksql-rest-app</module>
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
+        <module>ksql-etc</module>
         <module>ksql-package</module>
         <module>ksql-test-util</module>
         <module>cp-ksql-cli</module>

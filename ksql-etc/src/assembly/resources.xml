@@ -6,11 +6,8 @@
 
   <fileSets>
     <fileSet>
-      <directory>../bin</directory>
+      <directory>../config</directory>
       <outputDirectory></outputDirectory>
-      <includes>
-        <include>ksql*</include>
-      </includes>
     </fileSet>
   </fileSets>
 </assembly>

@@ -1,7 +1,7 @@
 .. _ksql-udfs:
 
-KSQL Custom Function Reference (UDF & UDAF)
-===========================================
+KSQL Custom Function Reference (UDF and UDAF)
+=============================================
 
 KSQL has many built-in functions that help with processing records in
 streaming data, like ABS and SUM. Functions are used within a KSQL query
@@ -13,16 +13,16 @@ a pre-trained machine learning model to a stream.
 
 KSQL supports these kinds of functions: 
 
-Stateless scalar function
-    A scalar function takes one input row and returns one output value. No
-    state is retained between function calls. When you implement a custom
-    scalar function, it's called a *User Defined Function (UDF)*.  
+Stateless scalar function (UDF)
+    A scalar function that takes one input row and returns one output value.
+    No state is retained between function calls. When you implement a custom
+    scalar function, it's called a *User-Defined Function (UDF)*.
 
-Stateful aggregate function 
-    An aggregate function takes *N* input rows and returns one output value.
-    During the function call, state is retained over all of the input records,
-    which enables returning an aggregated result. When you implement a custom
-    aggregate function, it's called a *User Defined Aggregate Function (UDAF)*.
+Stateful aggregate function (UDAF)
+    An aggregate function that takes *N* input rows and returns one output value.
+    During the function call, state is retained for all input records, which
+    enables aggregating results. When you implement a custom aggregate function,
+    it's called a *User-Defined Aggregate Function (UDAF)*.
 
 .. note:: Tabular functions, which take one input row and return *N* output
           values, aren't supported.
@@ -33,11 +33,14 @@ Implement a Custom Function
 Folow these steps to create your custom functions:
 
 #. Write your UDF or UDAF class in Java.
-#. If your Java class is a UDF, mark it with the ``@UdfDescription`` and
-   ``@Udf`` annotations. If your class is a UDAF, mark it with the ``@UdafDescription``
-   and ``@UdafFactory`` annotations. For more information, see :ref:`example-udf-class`
-   and :ref:`example-udaf-class`. 
-#. Deploy the jar file to the KSQL extensions directory. For more information,
+
+   * If your Java class is a UDF, mark it with the ``@UdfDescription`` and
+     ``@Udf`` annotations.
+   * If your class is a UDAF, mark it with the ``@UdafDescription`` and
+     ``@UdafFactory`` annotations.
+   For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
+
+#. Deploy the JAR file to the KSQL extensions directory. For more information,
    see :ref:`deploying-udf`.
 #. Use your function like any other KSQL function in your queries.
 
@@ -45,9 +48,9 @@ Folow these steps to create your custom functions:
          KSQL server, including your custom UDF and UDAF functions. Use the
          DESCRIBE FUNCTION statement to display details about your custom functions.
 
-================
-Creating UD(A)Fs
-================
+======================
+Creating UDF and UDAFs
+======================
 
 KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAF) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.

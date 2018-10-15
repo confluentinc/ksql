@@ -51,11 +51,12 @@ public class RegisterTopicCommand implements DdlCommand {
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     final String serde = StringUtil.cleanQuotes(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(serde);
+    this.topicSerDe = extractTopicSerDe(serde, properties);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(final String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(final String serde,
+                                           final Map<String, Expression> properties) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
@@ -64,6 +65,10 @@ public class RegisterTopicCommand implements DdlCommand {
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:
+        if (properties.containsKey(DdlConfig.DELIMITER_PROPERTY)) {
+          return new KsqlDelimitedTopicSerDe(
+              properties.get(DdlConfig.DELIMITER_PROPERTY).toString());
+        }
         return new KsqlDelimitedTopicSerDe();
       default:
         throw new KsqlException("The specified topic serde is not supported.");

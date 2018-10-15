@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.apache.commons.csv.CSVFormat;
+
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -30,10 +32,19 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 
 
+
 public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
+
+  private final CSVFormat csvFormat;
 
   public KsqlDelimitedTopicSerDe() {
     super(DataSource.DataSourceSerDe.DELIMITED);
+    this.csvFormat = CSVFormat.DEFAULT;
+  }
+
+  public KsqlDelimitedTopicSerDe(final String csvFormat) {
+    super(DataSource.DataSourceSerDe.DELIMITED);
+    this.csvFormat = csvFormat == null ? CSVFormat.DEFAULT : CSVFormat.valueOf(csvFormat);
   }
 
   @Override
@@ -44,10 +55,12 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(
+        schema, csvFormat);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(schema);
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(
+        schema, csvFormat);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

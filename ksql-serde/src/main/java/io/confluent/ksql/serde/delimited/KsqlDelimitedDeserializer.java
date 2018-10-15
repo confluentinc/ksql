@@ -30,9 +30,16 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
+  private final CSVFormat csvFormat;
 
   public KsqlDelimitedDeserializer(final Schema schema) {
     this.schema = schema;
+    this.csvFormat = CSVFormat.DEFAULT;
+  }
+
+  public KsqlDelimitedDeserializer(final Schema schema, final CSVFormat csvFormat) {
+    this.schema = schema;
+    this.csvFormat = csvFormat;
   }
 
   @Override
@@ -46,7 +53,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     }
     final String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
     try {
-      final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
+      final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, csvFormat)
           .getRecords();
 
       if (csvRecords == null || csvRecords.isEmpty()) {

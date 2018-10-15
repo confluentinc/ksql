@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.ksql.GenericRow;
 import java.nio.charset.StandardCharsets;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -67,6 +68,35 @@ public class KsqlDelimitedDeserializerTest {
     assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat(genericRow.getColumns().get(1), equalTo(1L));
     assertThat(genericRow.getColumns().get(2), equalTo("item_1"));
+    Assert.assertNull(genericRow.getColumns().get(3));
+  }
+
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithOtherDelimiters() {
+    final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
+
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
+
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+  }
+
+  @Test
+  public void shouldDeserializeJsonCorrectlyWithRedundantFieldsWithOtherDelimiters() throws JsonProcessingException {
+
+    final String rowString = "1511897796092\t1\titem_1\t\r\n";
+
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
+
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
     Assert.assertNull(genericRow.getColumns().get(3));
   }
 

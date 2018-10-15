@@ -17,6 +17,7 @@ package io.confluent.ksql.ddl;
 public final class DdlConfig {
 
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
+  public static final String DELIMITER_PROPERTY = "DELIMITER";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
   public static final String AVRO_SCHEMA = "AVROSCHEMA";
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";

@@ -49,8 +49,6 @@ expected time of two hours.
      FULL OUTER JOIN shipments s WITHIN 2 HOURS
      ON s.orderid = o.orderid WHERE s.orderid IS NULL;
 
-For more information, see Join Syntax in the KSQL Syntax Reference (TBD).
-
 Joins and Windows
 *****************
 
@@ -65,7 +63,7 @@ Only stream-stream joins are windowed.
 Windows are tracked per record key. In join operations, KSQL uses a windowing
 *state store* to store all of the records received so far within the defined
 window boundary. Old records in the state store are purged after the specified
-window retention period. For more information, see Windows and Time [TBD in Concepts node].
+window retention period.
 
 Join Requirements
 *****************
@@ -76,7 +74,7 @@ Co-partitioned data
     Input data must be co-partitioned when joining. This ensures that input
     records with the same key, from both sides of the join, are delivered to
     the same stream task during processing. It’s your responsibility to ensure
-    data co-partitioning when joining. For more info, see Partition Data to Enable Joins [TBD new topic].
+    data co-partitioning when joining.
 
 KEY property
     If you set the KEY property when you create a table, ensure that both of the
@@ -86,9 +84,7 @@ KEY property
       the same as the contents of the column set in KEY.
     * The KEY property must be set to a column of type VARCHAR or STRING.
 
-TBD: code snippet
-
-For more information, see :ref:`ksql_key_requirements`.
+    For more information, see :ref:`ksql_key_requirements`.
 
 Join Capabilities
 *****************
@@ -142,7 +138,7 @@ The following assumptions apply:
 
 * All records have the same key. 
 * All records belong to a single join window.
-* All records are processed in timestamp order [TBD: link to Windows and Time].
+* All records are processed in timestamp order.
 
 When new input is received, the join is triggered under the conditions listed
 in the table. Input records with a NULL key or a NULL value are ignored and
@@ -210,7 +206,7 @@ following table. In the table, each row represents a new incoming record.
 The following assumptions apply: 
 
 * All records have the same key. 
-* All records are processed in timestamp order [TBD: link to Windows and Time].
+* All records are processed in timestamp order.
 
 Input records for the stream with a NULL key or a NULL value are ignored and
 don’t trigger the join.
@@ -258,11 +254,12 @@ Tombstones don’t trigger the join.
 
 For stream-table joins, KSQL assumes that the joining stream and table follow
 the event-time ordering exactly. Follow these steps to ensure that joins are
-synchronized: [TBD: Details on how to do these steps]:
+synchronized:
 
-#. Start the query, which starts consumers. TBD: sample statement
-#. Populate the table fully. This ensures that the table items exist when the stream events come in to trigger the join. TBD: sample statement
-#. Populate the stream fully. TBD: sample statement 
+#. Start the query, which starts consumers.
+#. Populate the table completely. This ensures that the table items exist when
+   the stream events come in to trigger the join.
+#. Populate the stream completely.
 
 Table-Table Joins
 *****************
@@ -288,8 +285,8 @@ The semantics of the various table-table join variants are shown in the
 following table. In the table, each row represents a new incoming record.
 The following assumptions apply: 
 
-* All records have the same key. 
-* All records are processed in timestamp order [TBD: link to Windows and Time].
+* All records have the same key.
+* All records are processed in timestamp order.
 
 Input records with a NULL value are interpreted as tombstones for the
 corresponding key, which indicate the deletion of the key from the table.

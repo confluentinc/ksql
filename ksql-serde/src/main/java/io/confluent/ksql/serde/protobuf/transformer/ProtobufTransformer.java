@@ -25,7 +25,6 @@ import java.util.Map;
  */
 public class ProtobufTransformer {
   private final Schema schema;
-  public int loopCount = 0;
 
   /**
    * Constructor.
@@ -58,7 +57,6 @@ public class ProtobufTransformer {
     // Find the field.
     // TODO cache this?
     for (final Map.Entry<Descriptors.FieldDescriptor, Object> fieldEntry : protobuf.getAllFields().entrySet()) {
-      loopCount++;
       final Descriptors.FieldDescriptor fieldDescriptor = fieldEntry.getKey();
       if (!fieldDescriptor.getName().equalsIgnoreCase(name)) {
         continue;

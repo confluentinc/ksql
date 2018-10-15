@@ -128,7 +128,27 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForLikePattern() {
+  public void shouldGenerateCorrectCodeForLikePatternWithLeadingWildcard() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE '%foo';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).endsWith(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithTrailingWildcard() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE 'foo%';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).startsWith(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithLeadingAndTrailingWildcards() {
     final Analysis analysis = analyzeQuery(
         "SELECT * FROM test1 WHERE col1 LIKE '%foo%';", metaStore);
 

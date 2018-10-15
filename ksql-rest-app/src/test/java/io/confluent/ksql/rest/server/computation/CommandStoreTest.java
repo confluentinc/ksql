@@ -46,11 +46,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -69,8 +69,8 @@ public class CommandStoreTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
   private static final Map<String, Object> OVERRIDE_PROPERTIES = Collections.emptyMap();
 
-  private final Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
-  private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
+  private final KafkaConsumer<CommandId, Command> commandConsumer = niceMock(KafkaConsumer.class);
+  private final KafkaProducer<CommandId, Command> commandProducer = mock(KafkaProducer.class);
   private final String statementText = "test-statement";
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -286,9 +286,9 @@ public class CommandStoreTest {
   private CommandStore createCommandStore(final CommandIdAssigner commandIdAssigner) {
     return new CommandStore(
         COMMAND_TOPIC,
+        commandIdAssigner,
         commandConsumer,
-        commandProducer,
-        commandIdAssigner);
+        commandProducer);
   }
 
   private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore command) {

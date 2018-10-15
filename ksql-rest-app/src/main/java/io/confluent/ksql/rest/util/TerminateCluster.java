@@ -25,33 +25,24 @@ import java.util.Optional;
 public class TerminateCluster extends Statement {
 
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
+  public static final String DELETE_TOPIC_LIST_PARAM_NAME = "DELETE_TOPIC_LIST";
 
-  public static final String SOURCES_LIST_PARAM_NAME = "SOURCES_LIST";
-  public static final String SOURCES_LIST_TYPE_PARAM_NAME = "SOURCES_LIST_TYPE";
 
-  public enum SourceListType { KEEP, DELETE }
+  private final List<String> deleteTopicList;
 
-  private final List<String> sourcesList;
-  private final boolean isKeep;
-
-  public TerminateCluster(final List<String> sourcesList, final boolean isKeep) {
+  public TerminateCluster(final List<String> deleteTopicList) {
     super(Optional.empty());
-    Objects.requireNonNull(sourcesList, "SOURCES_LIST cannot be null.");
-    this.sourcesList = ImmutableList.copyOf(Objects.requireNonNull(sourcesList, "sourceList"));
-    this.isKeep = isKeep;
+    Objects.requireNonNull(deleteTopicList, "DELETE_TOPIC_LIST cannot be null.");
+    this.deleteTopicList = ImmutableList.copyOf(deleteTopicList);
   }
 
-  public List<String> getSourcesList() {
-    return sourcesList;
-  }
-
-  public boolean isKeep() {
-    return isKeep;
+  public List<String> getDeleteTopicList() {
+    return deleteTopicList;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, sourcesList, isKeep);
+    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, deleteTopicList);
   }
 
   @Override
@@ -63,8 +54,7 @@ public class TerminateCluster extends Statement {
       return false;
     }
     final TerminateCluster terminateCluster = (TerminateCluster) obj;
-    return sourcesList.equals(terminateCluster.getSourcesList())
-        && isKeep == terminateCluster.isKeep();
+    return deleteTopicList.equals(terminateCluster.getDeleteTopicList());
   }
 
   @Override

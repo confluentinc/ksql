@@ -17,17 +17,8 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.commands.DdlCommand;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -37,62 +28,51 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ClusterTerminator {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final List<String> sourcesList;
-  private final boolean isKeep;
+  private final List<String> deleteTopicList;
+  private final KafkaTopicClient kafkaTopicClient;
 
   public ClusterTerminator(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final List<String> sourcesList,
-      final boolean isKeep
+      final List<String> deleteTopicList
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
-    this.sourcesList = sourcesList;
-    this.isKeep = isKeep;
+    this.kafkaTopicClient = ksqlEngine.getTopicClient();
+    this.deleteTopicList = deleteTopicList;
   }
 
   @SuppressWarnings("unchecked")
   public void terminateCluster() {
     ksqlEngine.stopAcceptingStatemens();
-    terminateCluster(ksqlEngine, sourcesList, isKeep);
+    terminateCluster(ksqlEngine, deleteTopicList);
     // Delete the command topic
     deleteCommandTopic(ksqlConfig, ksqlEngine);
   }
 
   private void terminateCluster(
       final KsqlEngine ksqlEngine,
-      final List<String> sourcesList,
-      final boolean isKeep
+      final List<String> deleteTopicList
   ) {
     terminateAllQueries();
 
-    // if we have the explicit list of stream/table to delete.
+    // if we have the explicit list of topics to delete.
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    if (sourcesList.isEmpty()) {
-      metaStore.getAllStructuredDataSources().forEach((s, structuredDataSource) ->
-          deleteSource(s, structuredDataSource, ksqlEngine));
-    } else {
-      if (isKeep) {
-        metaStore.getAllStructuredDataSources().forEach(
-            (sourceName, structuredDataSource) -> {
-              if (!sourcesList.contains(sourceName)) {
-                deleteSource(sourceName, structuredDataSource, ksqlEngine);
-              }
+    final List<Pattern> patterns = getDeleteTopicPatterns(deleteTopicList);
+    if (!deleteTopicList.isEmpty()) {
+      metaStore.getAllKsqlTopics()
+          .forEach((s, structuredDataSource) -> {
+            if (structuredDataSource.isKsqlSink()) {
+              deleteKafkaTopicIfRequested(structuredDataSource.getKafkaTopicName(), patterns);
             }
-        );
-      } else {
-        sourcesList
-            .forEach(sourceName -> deleteSource(
-                sourceName,
-                metaStore.getSource(sourceName),
-                ksqlEngine));
-      }
+          });
     }
   }
 
@@ -119,32 +99,14 @@ public class ClusterTerminator {
     return queryMetadataList;
   }
 
-  private void deleteSource(
-      final String sourceName,
-      final StructuredDataSource structuredDataSource,
-      final KsqlEngine ksqlEngine) {
-    if (structuredDataSource == null) {
-      return;
-    }
-    final DdlCommand ddlCommand = new DropSourceCommand(
-        getAbstractStreamDropStatement(sourceName,
-            structuredDataSource.getDataSourceType() == DataSourceType.KSTREAM),
-        structuredDataSource.getDataSourceType(),
-        ksqlEngine.getTopicClient(),
-        ksqlEngine.getSchemaRegistryClient(),
-        true
-    );
-    final DdlCommandExec ddlCommandExec = ksqlEngine.getDdlCommandExec();
-    ddlCommandExec.execute(ddlCommand, false);
-  }
-
-  private static AbstractStreamDropStatement getAbstractStreamDropStatement(
-      final String sourceName,
-      final boolean isStream) {
-    if (isStream) {
-      return new DropStream(QualifiedName.of(sourceName), false, true);
-    } else {
-      return new DropTable(QualifiedName.of(sourceName), false, true);
+  private void deleteKafkaTopicIfRequested(
+      final String kafkaTopicName,
+      final List<Pattern> patterns) {
+    for (final Pattern pattern: patterns) {
+      if (pattern.matcher(kafkaTopicName).matches()) {
+        kafkaTopicClient.deleteTopics(Collections.singletonList(kafkaTopicName));
+        return;
+      }
     }
   }
 
@@ -163,6 +125,13 @@ public class ClusterTerminator {
       throw new KsqlException("Could not delete the command topic: "
           + commandTopic, e);
     }
+  }
+
+  private List<Pattern> getDeleteTopicPatterns(final List<String> deleteTopicList) {
+    return deleteTopicList
+        .stream()
+        .map(Pattern::compile)
+        .collect(Collectors.toList());
   }
 
 }

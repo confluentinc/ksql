@@ -99,7 +99,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser, mock(Consumer.class), mock(Producer.class));
+    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser, mock(CommandStore.class));
   }
 
   @After
@@ -183,7 +183,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser, mock(Consumer.class), mock(Producer.class));
+        ksqlConfig, mockEngine, statementParser, mock(CommandStore.class));
 
     final Command csasCommand = new Command(
         statementText,
@@ -449,8 +449,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldTerminateClusterAndKeepList() throws IOException {
     final List<String> keepSources = Collections.singletonList("FOO");
     final Map<String, Object> props = new HashMap<>();
-    props.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, keepSources);
-    props.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "KEEP");
+    props.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, keepSources);
     final Command command = new Command(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         props,
@@ -462,8 +461,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldTerminateClusterAndDeleteList() throws IOException {
     final List<String> deleteSources = Collections.singletonList("FOO");
     final Map<String, Object> props = new HashMap<>();
-    props.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, deleteSources);
-    props.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "DELETE");
+    props.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, deleteSources);
     final Command command = new Command(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         props,
@@ -491,8 +489,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(ksqlEngine.getTopicClient()).andReturn(kafkaTopicClient).anyTimes();
     expect(ksqlEngine.getSchemaRegistryClient()).andReturn(schemaRegistryClient).anyTimes();
 
-    final Consumer consumer = niceMock(Consumer.class);
-    final Producer producer = niceMock(Producer.class);
+    final CommandStore commandStore = mock(CommandStore.class);
     final PersistentQueryMetadata persistentQueryMetadata = niceMock(PersistentQueryMetadata.class);
     final QueuedQueryMetadata queuedQueryMetadata = niceMock(QueuedQueryMetadata.class);
     final Set<QueryMetadata> queryMetadata = new HashSet<>();
@@ -550,12 +547,11 @@ public class StatementExecutorTest extends EasyMockSupport {
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
         mock(StatementParser.class),
-        consumer,
-        producer
+        commandStore
     );
-    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, consumer, producer, ddlCommandExec);
+    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore, ddlCommandExec);
     statementExecutor.handleStatement(command, commandId, Optional.empty());
-    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, consumer, producer, ddlCommandExec);
+    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore, ddlCommandExec);
   }
 
   private void createStreamsAndTables() {

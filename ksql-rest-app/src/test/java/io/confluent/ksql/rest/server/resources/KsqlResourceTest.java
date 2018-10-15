@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.isNull;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -34,6 +33,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.serializers.KafkaJsonDeserializer;
+import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -66,7 +68,9 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -75,6 +79,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -88,12 +93,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -445,51 +458,8 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailPrintTopic() {
-<<<<<<< 35f6e99376982be18ce96ff32d1365e8596253f1
     // When:
     final KsqlErrorMessage result = makeFailingRequest("PRINT 'orders-topic';", Code.BAD_REQUEST);
-=======
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
-    final String ksqlString = "PRINT 'orders-topic';";
-    final Response response = handleKsqlStatements(
-        testResource, new KsqlRequest(ksqlString, new HashMap<>()));
-    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    final KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
-    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_QUERY_ENDPOINT));
-  }
-
-  @Test
-  public void shouldFailForInvalidTerminateClusterParameters() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, Collections.singletonList("FOO"));
-    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
-    final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getEntity().toString(), equalTo("You need to send both SOURCES_LIST and SOURCES_LIST_TYPE parameters as part of your request.\n"));
-  }
-
-  @Test
-  public void shouldFailForMisSpelledTerminateClusterParameters() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(TerminateCluster.SOURCES_LIST_PARAM_NAME, Collections.singletonList("FOO"));
-    properties.put(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME, "KEEEP");
-    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
-    final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getEntity().toString(), equalTo("Invalid SOURCES_LIST_TYPE : KEEEP. SOURCES_LIST_TYPE can either be KEEP or DELETE.\n"));
-  }
-
-
-  private void validateQueryDescription(
-      final String ksqlQueryString,
-      final Map<String, Object> overriddenProperties,
-      final KsqlEntity entity) {
-    final QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
-        ksqlQueryString, ksqlConfig, overriddenProperties).get(0);
-    validateQueryDescription(queryMetadata, overriddenProperties, entity);
-  }
->>>>>>> Review feedback applied.
 
     // Then:
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
@@ -542,24 +512,6 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
-    // Set up a mock engine to mirror the returns of the real engine
-    final KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
-    EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
-    EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
-    EasyMock.expect(
-        mockEngine.parseStatements(ksqlString)).andThrow(
-            new RuntimeException("internal error"));
-    expect(mockEngine.isAcceptingStatements()).andReturn(true);
-    EasyMock.replay(mockEngine);
-
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, mockEngine);
-    final Response response = handleKsqlStatements(
-        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage result = (KsqlErrorMessage)response.getEntity();
-    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
     EasyMock.verify(ksqlEngine);
   }
@@ -575,29 +527,6 @@ public class KsqlResourceTest {
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
-
-    // Set up a mock engine to mirror the returns of the real engine
-    final KsqlEngine mockEngine = EasyMock.niceMock(KsqlEngine.class);
-    EasyMock.expect(mockEngine.getMetaStore()).andReturn(ksqlEngine.getMetaStore()).anyTimes();
-    EasyMock.expect(mockEngine.getTopicClient()).andReturn(ksqlEngine.getTopicClient()).anyTimes();
-    EasyMock.replay(mockEngine);
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, mockEngine);
-
-    EasyMock.reset(mockEngine);
-    EasyMock.expect(
-        mockEngine.parseStatements(ksqlString)).andReturn(ksqlEngine.parseStatements(ksqlString));
-    EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
-        .andThrow(new RuntimeException("internal error"));
-    expect(mockEngine.isAcceptingStatements()).andReturn(true);
-    EasyMock.replay(mockEngine);
-
-    final Response response = handleKsqlStatements(
-        testResource, new KsqlRequest(ksqlString, Collections.emptyMap()));
-    assertThat(response.getStatus(), equalTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
-    assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(), containsString("internal error"));
 
     // Then:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -766,6 +695,144 @@ public class KsqlResourceTest {
     // Then:
     assertThat(props.getProperties().keySet(),
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
+  }
+
+  @Test
+  public void shouldFailForInvalidTerminateClusterParameters() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.singletonList("FOO"));
+    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final Response response = testResource.terminateCluster(ksqlRequest);
+    assertThat(response.getEntity().toString(), equalTo("You need to send both SOURCES_LIST and SOURCES_LIST_TYPE parameters as part of your request.\n"));
+  }
+  @Test
+  public void shouldFailForMisSpelledTerminateClusterParameters() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.singletonList("FOO"));
+    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
+    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final Response response = testResource.terminateCluster(ksqlRequest);
+    assertThat(response.getEntity().toString(), equalTo("Invalid SOURCES_LIST_TYPE : KEEEP. SOURCES_LIST_TYPE can either be KEEP or DELETE.\n"));
+  }
+
+  private static class TestKsqlResourceUtil {
+
+    public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
+
+    public static KsqlResource get(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
+      final Properties defaultKsqlConfig = getDefaultKsqlConfig();
+
+      final KafkaConsumer<CommandId, Command> commandConsumer = new TestCommandConsumer<>(
+          defaultKsqlConfig,
+          getJsonDeserializer(CommandId.class, true),
+          getJsonDeserializer(Command.class, false)
+      );
+
+      final KafkaProducer<CommandId, Command> commandProducer = new TestCommandProducer<>(
+          defaultKsqlConfig,
+          getJsonSerializer(true),
+          getJsonSerializer(false)
+      );
+
+      final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
+          new CommandIdAssigner(ksqlEngine.getMetaStore()), commandConsumer, commandProducer);
+      return get(ksqlConfig, ksqlEngine, commandStore);
+    }
+
+    public static KsqlResource get(final KsqlConfig ksqlConfig,
+        final KsqlEngine ksqlEngine,
+        final CommandStore commandStore) {
+      addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
+      return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+    }
+
+    private static Properties getDefaultKsqlConfig() {
+      final Map<String, Object> configMap = new HashMap<>();
+      configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+      configMap.put("commit.interval.ms", 0);
+      configMap.put("cache.max.bytes.buffering", 0);
+      configMap.put("auto.offset.reset", "earliest");
+      configMap.put("ksql.command.topic.suffix", "commands");
+      configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
+
+      final Properties properties = new Properties();
+      properties.putAll(configMap);
+
+      return properties;
+    }
+
+    private static void addTestTopicAndSources(final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient) {
+      final Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
+          "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
+      final Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
+      addSource(
+          metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
+          "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
+      kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
+    }
+
+    private static void addSource(
+        final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient, final DataSource.DataSourceType type, final String sourceName,
+        final String topicName, final String ksqlTopicName, final Schema schema) {
+      final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
+      kafkaTopicClient.createTopic(topicName, 1, (short)1);
+      metaStore.putTopic(ksqlTopic);
+      if (type == DataSource.DataSourceType.KSTREAM) {
+        metaStore.putSource(
+            new KsqlStream(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
+      }
+      if (type == DataSource.DataSourceType.KTABLE) {
+        metaStore.putSource(
+            new KsqlTable(
+                "statementText", sourceName, schema, schema.fields().get(0),
+                new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", Serdes.String()));
+      }
+    }
+
+    private static <T> Deserializer<T> getJsonDeserializer(final Class<T> classs, final boolean isKey) {
+      final Deserializer<T> result = new KafkaJsonDeserializer<>();
+      final String typeConfigProperty = isKey
+          ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+          : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+
+      final Map<String, ?> props = Collections.singletonMap(
+          typeConfigProperty,
+          classs
+      );
+      result.configure(props, isKey);
+      return result;
+    }
+
+    private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
+      final Serializer<T> result = new KafkaJsonSerializer<>();
+      result.configure(Collections.emptyMap(), isKey);
+      return result;
+    }
+
+  }
+
+  private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
+    public TestCommandProducer(final Map configs, final Serializer keySerializer, final Serializer valueSerializer) {
+      super(configs, keySerializer, valueSerializer);
+    }
+
+    @Override
+    public Future<RecordMetadata> send(final ProducerRecord record) {
+      // Fake result: only for testing purpose
+      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0));
+    }
+  }
+
+  private static class TestCommandConsumer<K, V> extends KafkaConsumer<K, V> {
+    public TestCommandConsumer(
+        final Map configs, final Deserializer keyDeserializer, final Deserializer valueDeserializer) {
+      super(configs, keyDeserializer, valueDeserializer);
+    }
   }
 
   @SuppressWarnings("SameParameterValue")

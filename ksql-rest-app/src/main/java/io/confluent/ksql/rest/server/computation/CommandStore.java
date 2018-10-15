@@ -18,6 +18,9 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.confluent.kafka.serializers.KafkaJsonDeserializer;
+import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -32,10 +35,14 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,17 +65,39 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   public CommandStore(
       final String commandTopic,
-      final Consumer<CommandId, Command> commandConsumer,
-      final Producer<CommandId, Command> commandProducer,
+      final Map<String, Object> commandConsumerProperties,
       final CommandIdAssigner commandIdAssigner
+  ) {
+    this.commandTopic = commandTopic;
+    this.commandConsumer = new KafkaConsumer<>(
+        commandConsumerProperties,
+        getJsonDeserializer(CommandId.class, true),
+        getJsonDeserializer(Command.class, false)
+    );
+
+    this.commandProducer = new KafkaProducer<>(
+        commandConsumerProperties,
+        getJsonSerializer(true),
+        getJsonSerializer(false)
+    );
+    this.commandIdAssigner = commandIdAssigner;
+    this.commandStatusMap = Maps.newConcurrentMap();
+
+    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
+  }
+
+  // For testing
+  public CommandStore(
+      final String commandTopic,
+      final CommandIdAssigner commandIdAssigner,
+      final KafkaConsumer<CommandId, Command> commandConsumer,
+      final KafkaProducer<CommandId, Command> commandProducer
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-
-    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
   }
 
   /**
@@ -182,6 +211,28 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     for (final PartitionInfo partitionInfo : partitionInfoList) {
       result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
     }
+    return result;
+  }
+
+  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
+    final Serializer<T> result = new KafkaJsonSerializer<>();
+    result.configure(Collections.emptyMap(), isKey);
+    return result;
+  }
+
+  private static <T> Deserializer<T> getJsonDeserializer(
+      final Class<T> classs,
+      final boolean isKey) {
+    final Deserializer<T> result = new KafkaJsonDeserializer<>();
+    final String typeConfigProperty = isKey
+        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+
+    final Map<String, ?> props = Collections.singletonMap(
+        typeConfigProperty,
+        classs
+    );
+    result.configure(props, isKey);
     return result;
   }
 }

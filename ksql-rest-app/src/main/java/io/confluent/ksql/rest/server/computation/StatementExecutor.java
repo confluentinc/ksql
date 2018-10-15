@@ -33,11 +33,8 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.rest.util.TerminateCluster.SourceListType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -51,8 +48,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,27 +66,22 @@ public class StatementExecutor {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
-  private final Consumer<CommandId, Command> commandConsumer;
-  private final Producer<CommandId, Command> commandProducer;
+  private final CommandStore commandStore;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final Consumer<CommandId, Command> commandConsumer,
-      final Producer<CommandId, Command> commandProducer
+      final CommandStore commandStore
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
-    Objects.requireNonNull(commandConsumer, "commandConsumer cannot be null.");
-    Objects.requireNonNull(commandProducer, "commandProducer cannot be null.");
+    Objects.requireNonNull(commandStore, "commandStore cannot be null.");
 
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-    this.commandConsumer = commandConsumer;
-    this.commandProducer = commandProducer;
-
+    this.commandStore = commandStore;
     this.statusStore = new ConcurrentHashMap<>();
   }
 
@@ -442,36 +432,18 @@ public class StatementExecutor {
   @SuppressWarnings("unchecked")
   private void terminateCluster(final Command command) {
     this.ksqlEngine.stopAcceptingStatemens();
-    final List<String> sourcesList = command
-        .getOverwriteProperties().containsKey(TerminateCluster.SOURCES_LIST_PARAM_NAME)
+    final List<String> deleteTopicList = command
+        .getOverwriteProperties().containsKey(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME)
         ? ((List<String>) command.getOverwriteProperties()
-        .get(TerminateCluster.SOURCES_LIST_PARAM_NAME))
+        .get(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME))
         .stream()
         .map(String::toUpperCase).collect(Collectors.toList())
         : Collections.emptyList();
-    final String isKeepString = command.getOverwriteProperties()
-        .containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
-        ? command.getOverwriteProperties()
-        .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME).toString()
-        : null;
-    if (isKeepString != null && !isKeepString.equalsIgnoreCase(
-        String.valueOf(SourceListType.KEEP))
-        && !isKeepString.equalsIgnoreCase(String.valueOf(SourceListType.DELETE))) {
-      throw new KsqlRestException(Errors.badRequest("Invalid value for "
-          + "SOURCES_LIST_TYPE parameter: " + isKeepString
-      + ". You can only pass KEEP or DELETE for this parameter."));
-    }
-    final boolean iskeep = command
-        .getOverwriteProperties().containsKey(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
-        && command.getOverwriteProperties()
-        .get(TerminateCluster.SOURCES_LIST_TYPE_PARAM_NAME)
-        .toString().equalsIgnoreCase(String.valueOf(SourceListType.KEEP));
-    commandConsumer.close();
-    commandProducer.close();
+    commandStore.close();
     new ClusterTerminator(
         ksqlConfig,
         ksqlEngine,
-        sourcesList,
-        iskeep).terminateCluster();
+        deleteTopicList)
+        .terminateCluster();
   }
 }

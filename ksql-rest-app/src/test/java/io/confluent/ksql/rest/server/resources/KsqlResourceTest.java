@@ -74,6 +74,7 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.rest.util.CommandTopicUtil;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
@@ -736,7 +737,7 @@ public class KsqlResourceTest {
       );
 
       final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          new CommandIdAssigner(ksqlEngine.getMetaStore()), commandConsumer, commandProducer);
+          new CommandIdAssigner(ksqlEngine.getMetaStore()), new CommandTopicUtil(commandConsumer, commandProducer));
       return get(ksqlConfig, ksqlEngine, commandStore);
     }
 

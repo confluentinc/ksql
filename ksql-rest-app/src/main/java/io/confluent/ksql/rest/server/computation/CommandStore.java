@@ -16,33 +16,16 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.util.CommandTopicUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +41,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
   private final String commandTopic;
-  private final Consumer<CommandId, Command> commandConsumer;
-  private final Producer<CommandId, Command> commandProducer;
+  private final CommandTopicUtil commandTopicUtil;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
@@ -69,35 +51,21 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final CommandIdAssigner commandIdAssigner
   ) {
     this.commandTopic = commandTopic;
-    this.commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        getJsonDeserializer(CommandId.class, true),
-        getJsonDeserializer(Command.class, false)
-    );
-
-    this.commandProducer = new KafkaProducer<>(
-        commandConsumerProperties,
-        getJsonSerializer(true),
-        getJsonSerializer(false)
-    );
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-
-    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
+    this.commandTopicUtil = new CommandTopicUtil(commandTopic, commandConsumerProperties);
   }
 
   // For testing
   public CommandStore(
       final String commandTopic,
       final CommandIdAssigner commandIdAssigner,
-      final KafkaConsumer<CommandId, Command> commandConsumer,
-      final KafkaProducer<CommandId, Command> commandProducer
+      final CommandTopicUtil commandTopicUtil
   ) {
     this.commandTopic = commandTopic;
-    this.commandConsumer = commandConsumer;
-    this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
+    this.commandTopicUtil = commandTopicUtil;
   }
 
   /**
@@ -105,8 +73,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    */
   @Override
   public void close() {
-    commandConsumer.wakeup();
-    commandProducer.close();
+    commandTopicUtil.close();
   }
 
   /**
@@ -147,7 +114,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
         }
     );
     try {
-      commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
+      commandTopicUtil.send(new ProducerRecord<>(commandTopic, commandId, command));
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
       throw new KsqlException(
@@ -168,71 +135,11 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
-        c -> queuedCommands.add(
-            new QueuedCommand(
-                c.key(),
-                Optional.ofNullable(c.value()),
-                Optional.ofNullable(commandStatusMap.remove(c.key()))
-            )
-        )
-    );
-    return queuedCommands;
+    return commandTopicUtil.getNewCommands(commandStatusMap);
   }
 
   public RestoreCommands getRestoreCommands() {
-    final RestoreCommands restoreCommands = new RestoreCommands();
-
-    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
-
-    commandConsumer.seekToBeginning(cmdTopicPartitions);
-
-    log.debug("Reading prior command records");
-
-    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
-    ConsumerRecords<CommandId, Command> records =
-        commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
-    while (!records.isEmpty()) {
-      log.debug("Received {} records from poll", records.count());
-      for (final ConsumerRecord<CommandId, Command> record : records) {
-        restoreCommands.addCommand(record.key(), record.value());
-      }
-      records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
-    }
-    log.debug("Retrieved records:" + commands.size());
-    return restoreCommands;
+    return commandTopicUtil.getRestoreCommands(commandTopic, POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 
-  private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
-    final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
-
-    final Collection<TopicPartition> result = new HashSet<>();
-    for (final PartitionInfo partitionInfo : partitionInfoList) {
-      result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
-    }
-    return result;
-  }
-
-  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
-    final Serializer<T> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), isKey);
-    return result;
-  }
-
-  private static <T> Deserializer<T> getJsonDeserializer(
-      final Class<T> classs,
-      final boolean isKey) {
-    final Deserializer<T> result = new KafkaJsonDeserializer<>();
-    final String typeConfigProperty = isKey
-        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
-
-    final Map<String, ?> props = Collections.singletonMap(
-        typeConfigProperty,
-        classs
-    );
-    result.configure(props, isKey);
-    return result;
-  }
 }

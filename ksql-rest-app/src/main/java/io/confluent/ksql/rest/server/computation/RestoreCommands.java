@@ -27,14 +27,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class RestoreCommands {
+public class RestoreCommands {
 
   private final Map<Pair<Integer, CommandId>, Command> toRestore = new LinkedHashMap<>();
   private final Map<QueryId, CommandId> allTerminatedQueries = new HashMap<>();
   private final Map<String, CommandId> dropped = new HashMap<>();
   private final List<CommandId> allCommandIds = new ArrayList<>();
 
-  void addCommand(final CommandId key, final Command value) {
+  public void addCommand(final CommandId key, final Command value) {
     if (key.getType() == CommandId.Type.TERMINATE) {
       allTerminatedQueries.put(new QueryId(key.getEntity()), key);
       if (allCommandIds.contains(key)) {
@@ -59,7 +59,7 @@ class RestoreCommands {
     );
   }
 
-  void forEach(final ForEach action) {
+  public void forEach(final ForEach action) {
     toRestore.forEach((commandIdIndexPair, command) -> {
       final Map<QueryId, CommandId> terminatedAfter = new HashMap<>();
       allTerminatedQueries.entrySet().stream()

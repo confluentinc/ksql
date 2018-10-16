@@ -14,10 +14,6 @@ Docker support
     You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
     production. These images are coming soon.
 
-.. contents::
-    :local:
-
-
 ---------------------------------------
 Supported Versions and Interoperability
 ---------------------------------------

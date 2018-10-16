@@ -16,9 +16,6 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. contents:: Table of Contents
-    :local:
-
 Configuring KSQL for |ccloud|
 -----------------------------
 

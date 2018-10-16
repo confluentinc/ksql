@@ -3,10 +3,6 @@
 Frequently Asked Questions
 ==========================
 
-.. contents:: Contents
-    :local:
-    :depth: 1
-
 ==============================
 What are the benefits of KSQL?
 ==============================

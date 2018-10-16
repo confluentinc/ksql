@@ -8,11 +8,6 @@ KSQL has similar semantics to SQL:
 - Terminate KSQL statements with a semicolon ``;``
 - Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
 
-.. contents:: Contents
-    :local:
-    :depth: 1
-
-
 ===========
 Terminology
 ===========
@@ -135,11 +130,6 @@ KSQL statements
        -  In the CLI you must use a backslash (``\``) to indicate
           continuation of a statement on the next line.
        -  Do not use ``\`` for multi-line statements in ``.sql`` files.
-
-
-.. contents:: Available KSQL statements:
-    :local:
-    :depth: 1
 
 .. _create-stream:
 

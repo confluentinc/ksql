@@ -5,11 +5,6 @@ KSQL Examples
 
 These examples use a ``pageviews`` stream and a ``users`` table.
 
-.. contents:: Contents
-    :local:
-    :depth: 2
-
-
 Creating streams
 ----------------
 

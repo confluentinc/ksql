@@ -19,9 +19,6 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
 .. include:: ../../../../includes/installation-types-zip-tar.rst
 
-.. contents:: Table of Contents
-    :local:
-
 Configuring KSQL for |ccloud|
 -----------------------------
 

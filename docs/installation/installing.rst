@@ -17,10 +17,6 @@ Docker support
     "Interactive Server with Interceptors", see
     :ref:`Docker Configuration Parameters <config_reference>`.
 
-.. contents::
-    :local:
-
-
 ---------------------------------------
 Supported Versions and Interoperability
 ---------------------------------------

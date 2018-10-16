@@ -152,6 +152,53 @@
       ]
     },
     {
+      "name": "Filter on string literal",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3='foo';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "Filter on like pattern",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f%';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "Filter on like pattern without wildcards",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+      ]
+    },
+    {
       "name": "Null row filter",
       "statements": [
         "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",

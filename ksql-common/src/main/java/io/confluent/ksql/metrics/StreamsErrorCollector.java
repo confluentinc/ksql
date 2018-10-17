@@ -61,7 +61,7 @@ public final class StreamsErrorCollector implements MetricCollector {
         .increment(null, true);
   }
 
-  private TopicSensors buildSensors(final String topic) {
+  private TopicSensors<Object> buildSensors(final String topic) {
     final List<TopicSensors.SensorMetric<Object>> sensors = new ArrayList<>();
     synchronized (this.metrics) {
       sensors.add(

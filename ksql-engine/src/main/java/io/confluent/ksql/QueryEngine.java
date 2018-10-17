@@ -272,7 +272,7 @@ class QueryEngine {
       }
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
+    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null, true);
     return new KsqlStream<>(
         "QueryEngine-DDLCommand-Not-Needed",
         name,

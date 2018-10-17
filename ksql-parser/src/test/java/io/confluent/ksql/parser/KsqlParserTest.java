@@ -128,7 +128,7 @@ public class KsqlParserTest {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe(), false);
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
@@ -144,7 +144,7 @@ public class KsqlParserTest {
 
     final KsqlTopic
         ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe(), false);
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",

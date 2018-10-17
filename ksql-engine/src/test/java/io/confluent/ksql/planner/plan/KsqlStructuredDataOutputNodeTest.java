@@ -79,7 +79,7 @@ public class KsqlStructuredDataOutputNodeTest {
       schema.field("key"),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("input", "input",
-          new KsqlJsonTopicSerDe()), Serdes.String());
+          new KsqlJsonTopicSerDe(), false), Serdes.String());
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       dataSource,
@@ -110,7 +110,7 @@ public class KsqlStructuredDataOutputNodeTest {
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
         schema.field("key"),
-        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
+        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe(), true),
         "output",
         props,
         Optional.empty(),
@@ -258,7 +258,7 @@ public class KsqlStructuredDataOutputNodeTest {
             schema,
             schema.field("key"),
             new MetadataTimestampExtractionPolicy(),
-            new KsqlTopic("input", "input", new KsqlJsonTopicSerDe()),
+            new KsqlTopic("input", "input", new KsqlJsonTopicSerDe(), false),
             "TableStateStore",
             keySerde),
         schema);
@@ -269,7 +269,7 @@ public class KsqlStructuredDataOutputNodeTest {
         schema,
         new MetadataTimestampExtractionPolicy(),
         schema.field("key"),
-        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
+        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe(), true),
         "output",
         props,
         Optional.empty(),

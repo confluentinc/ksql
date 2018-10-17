@@ -17,67 +17,17 @@
 package io.confluent.ksql.metrics;
 
 import java.util.Collection;
-import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerInterceptor;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.ProducerInterceptor;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 
-interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
-  default ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
-    return consumerRecords;
-  }
-
-  default ProducerRecord onSend(final ProducerRecord producerRecord) {
-    return producerRecord;
-  }
-
-  default void onAcknowledgement(final RecordMetadata recordMetadata, final Exception e) {  }
-
-  default void close() {  }
-
-  default void onCommit(final Map map) {  }
-
-  default void configure(final Map<String, ?> map) {  }
-
+interface MetricCollector {
   default String getGroupId() {
     return null;
   }
 
-  String getId();
-
   Collection<TopicSensors.Stat> stats(String topic, boolean isError);
 
-  void recordError(String topic);
-
-  double errorRate();
-
-  /**
-   * Get the current message production across all topics tracked by this collector.
-   */
-  default double currentMessageProductionRate() {
-    return 0;
+  default double errorRate() {
+    return 0.0;
   }
 
-  /**
-   * Get the current message consumption rate across all topics tracked by this collector.
-   */
-  default double currentMessageConsumptionRate() {
-    return 0;
-  }
-
-  /**
-   * Get the total message consumption across all topics tracked by this collector.
-   */
-  default double totalMessageConsumption() {
-    return 0;
-  }
-
-  /**
-   * Get the total bytes consumed across all topics tracked by this collector.
-   */
-  default double totalBytesConsumption() {
-    return 0;
-  }
+  double aggregateStat(String name, boolean isError);
 }

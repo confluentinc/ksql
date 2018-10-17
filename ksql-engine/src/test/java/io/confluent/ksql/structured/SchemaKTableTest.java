@@ -62,6 +62,7 @@ import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -266,7 +267,7 @@ public class SchemaKTableTest {
     final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
     final Capture<KeyValueMapper> capturedKeySelector = Capture.newInstance();
     expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
-    expect(mockKTable.groupBy(capture(capturedKeySelector), anyObject()))
+    expect(mockKTable.groupBy(capture(capturedKeySelector), anyObject(Serialized.class)))
         .andReturn(mockKGroupedTable);
     replay(mockKTable, mockKGroupedTable);
 

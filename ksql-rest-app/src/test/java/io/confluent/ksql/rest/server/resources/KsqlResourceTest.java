@@ -203,7 +203,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("TIMESTAMPTOSTRING", FunctionType.scalar),
+        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.scalar),
         new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
         new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
         new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
@@ -833,7 +833,7 @@ public class KsqlResourceTest {
       return;
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
     kafkaTopicClient.createTopic(topicName, 1, (short) 1);
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {

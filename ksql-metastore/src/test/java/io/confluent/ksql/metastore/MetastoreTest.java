@@ -42,7 +42,7 @@ public class MetastoreTest {
 
   @Test
   public void testTopicMap() {
-    final KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe(), false);
     metaStore.putTopic(ksqlTopic1);
     final KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);

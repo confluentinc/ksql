@@ -1,7 +1,56 @@
 .. _ksql-udfs:
 
-KSQL Custom Function Reference (UDF & UDAF)
-===========================================
+KSQL Custom Function Reference (UDF and UDAF)
+=============================================
+
+KSQL has many built-in functions that help with processing records in
+streaming data, like ABS and SUM. Functions are used within a KSQL query
+to filter, transform, or aggregate data.
+
+With the KSQL API, you can implement custom functions that go beyond the
+built-in functions. For example, you can create a custom function that applies
+a pre-trained machine learning model to a stream.
+
+KSQL supports these kinds of functions: 
+
+Stateless scalar function (UDF)
+    A scalar function that takes one input row and returns one output value.
+    No state is retained between function calls. When you implement a custom
+    scalar function, it's called a *User-Defined Function (UDF)*.
+
+Stateful aggregate function (UDAF)
+    An aggregate function that takes *N* input rows and returns one output value.
+    During the function call, state is retained for all input records, which
+    enables aggregating results. When you implement a custom aggregate function,
+    it's called a *User-Defined Aggregate Function (UDAF)*.
+
+.. note:: Tabular functions, which take one input row and return *N* output
+          values, aren't supported.
+
+Implement a Custom Function
+*************************** 
+
+Folow these steps to create your custom functions:
+
+#. Write your UDF or UDAF class in Java.
+
+   * If your Java class is a UDF, mark it with the ``@UdfDescription`` and
+     ``@Udf`` annotations.
+   * If your class is a UDAF, mark it with the ``@UdafDescription`` and
+     ``@UdafFactory`` annotations.
+   For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
+
+#. Deploy the JAR file to the KSQL extensions directory. For more information,
+   see :ref:`deploying-udf`.
+#. Use your function like any other KSQL function in your queries.
+
+.. tip:: The SHOW FUNCTIONS statement lists the available functions in your
+         KSQL server, including your custom UDF and UDAF functions. Use the
+         DESCRIBE FUNCTION statement to display details about your custom functions.
+
+======================
+Creating UDF and UDAFs
+======================
 
 KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAF) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
@@ -19,10 +68,6 @@ part of ``org.apache.kafka`` and ``io.confluent``. Further, the ``ClassLoader`` 
 to other classes via a blacklist. The blacklist file is ``resource-blacklist.txt``. You can add
 any classes or packages that you want blacklisted from UDF use, for example you may not
 want a UDF to be able to fork processes. Further details on how to blacklist are available below.
-
-================
-Creating UD(A)Fs
-================
 
 UDFs
 ----
@@ -54,6 +99,8 @@ the function will never return ``null``, where as a boxed type indicates it may 
 The KSQL server will check the value being passed to each parameter and report an error to the server
 log for any null values being passed to a primitive type. The associated column in the output row
 will be ``null``.
+
+.. _example-udf-class:
 
 Example UDF class
 ~~~~~~~~~~~~~~~~~
@@ -187,6 +234,7 @@ be annotated with ``@UdafFactory``, and must return either ``Udaf`` or ``TableUd
 you create represents a collection of UDAFs all with the same name but may have different
 arguments and return types.
 
+.. _example-udaf-class:
 
 Example UDAF class
 ~~~~~~~~~~~~~~~~~~
@@ -376,6 +424,7 @@ The types supported by UDFs are currently limited to:
 
 Note: Complex types other than List and Map are not currently supported
 
+.. _deploying-udf:
 
 =========
 Deploying

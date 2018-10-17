@@ -130,7 +130,7 @@ public class CodeGenRunnerTest {
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
-            new KsqlJsonTopicSerDe());
+            new KsqlJsonTopicSerDe(), false);
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
             "CODEGEN_TEST", metaStoreSchema,

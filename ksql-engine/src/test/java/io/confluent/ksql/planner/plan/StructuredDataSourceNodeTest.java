@@ -71,7 +71,7 @@ public class StructuredDataSourceNodeTest {
           schema.field("key"),
           new LongColumnTimestampExtractionPolicy("timestamp"),
           new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe()), Serdes.String()),
+              new KsqlJsonTopicSerDe(), false), Serdes.String()),
       schema);
 
   @Before
@@ -135,7 +135,7 @@ public class StructuredDataSourceNodeTest {
             schema.field("field"),
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+                new KsqlJsonTopicSerDe(), false),
             "statestore",
             Serdes.String()),
         schema);
@@ -152,7 +152,7 @@ public class StructuredDataSourceNodeTest {
             schema.field("field"),
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+                new KsqlJsonTopicSerDe(), false),
             "statestore",
             Serdes.String()),
         schema);

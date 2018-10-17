@@ -7,9 +7,6 @@ KSQL can read and write messages in Avro format by integrating with :ref:`Conflu
 KSQL automatically retrieves (read) and registers (write) Avro schemas as needed and thus saves you from both having to
 manually define columns and data types in KSQL and from manual interaction with |sr|.
 
-.. contents:: Contents
-    :local:
-
 Supported functionality
 ^^^^^^^^^^^^^^^^^^^^^^^
 

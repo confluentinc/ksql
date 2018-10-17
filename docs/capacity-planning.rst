@@ -18,10 +18,6 @@ KSQL is a simple and powerful tool for building streaming applications on top of
          Streams capacity planning guide <streams_sizing>`
          is another useful resource for KSQL capacity planning.
 
-.. contents:: Contents
-    :local:
-    :depth: 2
-
 Approach To Sizing
 ==================
 

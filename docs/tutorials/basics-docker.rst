@@ -38,27 +38,27 @@ Download the Tutorial and Start KSQL
 
 #. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
-    .. code:: bash
+   .. code:: bash
 
-        $ docker run --network tutorials_default --rm --name datagen-pageviews \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:39092 \
-                quickstart=pageviews \
-                format=delimited \
-                topic=pageviews \
-                maxInterval=500 
+      $ docker run --network tutorials_default --rm --name datagen-pageviews \
+          confluentinc/ksql-examples:5.0.0 \
+          ksql-datagen \
+              bootstrap-server=kafka:39092 \
+              quickstart=pageviews \
+              format=delimited \
+              topic=pageviews \
+              maxInterval=500 
 
-    .. code:: bash
+   .. code:: bash
 
-        $ docker run --network tutorials_default --rm --name datagen-users \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:39092 \
-                quickstart=users \
-                format=json \
-                topic=users \
-                maxInterval=100 
+      $ docker run --network tutorials_default --rm --name datagen-users \
+          confluentinc/ksql-examples:5.0.0 \
+          ksql-datagen \
+              bootstrap-server=kafka:39092 \
+              quickstart=users \
+              format=json \
+              topic=users \
+              maxInterval=100 
 
 #. From the host machine, start KSQL CLI
 
@@ -211,17 +211,17 @@ Docker
 
 To stop all Data Generator containers, run the following: 
 
-    .. code:: bash
+.. code:: bash
 
-        docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
+    docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
 
 If you are running |cp| using Docker Compose, you can stop it and remove 
 the containers and their data with this command.
 
-   .. code:: bash
+.. code:: bash
 
-       $ cd docs/tutorials/
-       $ docker-compose down
+    $ cd docs/tutorials/
+    $ docker-compose down
 
 
 Appendix

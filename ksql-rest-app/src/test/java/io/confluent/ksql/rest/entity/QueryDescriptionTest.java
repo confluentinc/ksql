@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -52,10 +53,10 @@ public class QueryDescriptionTest {
     FakeSourceNode(final String name) {
       super(
           new PlanNodeId("fake"),
-          new KsqlStream(
+          new KsqlStream<>(
               STATEMENT, name, SCHEMA, SCHEMA.fields().get(0),
               new MetadataTimestampExtractionPolicy(),
-              new KsqlTopic(name, name, new KsqlJsonTopicSerDe())),
+              new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false), Serdes.String()),
           SCHEMA);
     }
   }
@@ -73,7 +74,7 @@ public class QueryDescriptionTest {
     }
 
     @Override
-    public SchemaKStream buildStream(
+    public SchemaKStream<?> buildStream(
         final StreamsBuilder builder, final KsqlConfig ksqlConfig,
         final KafkaTopicClient kafkaTopicClient,
         final FunctionRegistry functionRegistry, final Map<String, Object> props,
@@ -121,10 +122,10 @@ public class QueryDescriptionTest {
     final TopologyDescription topologyDescription = mock(TopologyDescription.class);
     expect(topology.describe()).andReturn(topologyDescription);
     replay(topology, topologyDescription);
-    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe());
-    final KsqlStream fakeSink = new KsqlStream(
+    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
+    final KsqlStream fakeSink = new KsqlStream<>(
         STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
-        new MetadataTimestampExtractionPolicy(), sinkTopic);
+        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes.String());
     final Map<String, Object> streamsProperties = Collections.singletonMap("k", "v");
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(

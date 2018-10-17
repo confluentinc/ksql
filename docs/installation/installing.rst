@@ -19,10 +19,6 @@ Docker support
 
 Watch the `screencast of Installing and Running KSQL <https://www.youtube.com/embed/icwHpPm-TCA>`_ on YouTube.
 
-.. contents::
-    :local:
-
-
 ---------------------------------------
 Supported Versions and Interoperability
 ---------------------------------------

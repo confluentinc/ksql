@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -94,8 +95,10 @@ public class WithinExpression extends Node {
   }
 
   private JoinWindows createJoinWindows() {
-    final JoinWindows joinWindow = JoinWindows.of(beforeTimeUnit.toMillis(before));
-    return joinWindow.after(afterTimeUnit.toMillis(after));
+
+    return JoinWindows
+        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)))
+        .after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
   }
 
   // Visible for testing

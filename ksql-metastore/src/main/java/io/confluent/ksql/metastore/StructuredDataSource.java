@@ -88,6 +88,10 @@ public abstract class StructuredDataSource implements DataSource {
     return ksqlTopic.getTopicName();
   }
 
+  public String getKafkaTopicName() {
+    return ksqlTopic.getKafkaTopicName();
+  }
+
   public abstract QueryId getPersistentQueryId();
 
   public String getSqlExpression() {

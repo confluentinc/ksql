@@ -9,11 +9,6 @@ KSQL has similar semantics to SQL:
 - Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
 - You can escape ' characters inside string literals by using '', i.e., 'yyyy-MM-dd''T''HH:mm:ssX'
 
-.. contents:: Contents
-    :local:
-    :depth: 1
-
-
 ===========
 Terminology
 ===========
@@ -179,11 +174,6 @@ KSQL statements
           continuation of a statement on the next line.
        -  Do not use ``\`` for multi-line statements in ``.sql`` files.
 
-
-.. contents:: Available KSQL statements:
-    :local:
-    :depth: 1
-
 .. _create-stream:
 
 CREATE STREAM
@@ -248,6 +238,11 @@ The WITH clause supports the following properties:
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with '', for example:              |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
@@ -346,6 +341,11 @@ The WITH clause supports the following properties:
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with '', for example:              |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -1107,6 +1107,14 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
+|                        |                                                                           | a string representing the date in                 |
+|                        |                                                                           | the given format. Single quotes in the            |
+|                        |                                                                           | timestamp format can be escaped with '', for      |
+|                        |                                                                           | example: 'yyyy-MM-dd''T'''.                       |
+|                        |                                                                           | The integer represents days since epoch           |
+|                        |                                                                           | matching the encoding used by Kafka Connect dates.|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
 |                        |                                                                           | the field that matches.                           |
 |                        |                                                                           |                                                   |
@@ -1176,11 +1184,20 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``                   | Converts a string value in the given              |
+| STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
+|                        |                                                                           | given format into an integer representing days    |
+|                        |                                                                           | since epoch. Single quotes in the timestamp       |
+|                        |                                                                           | format can be escaped with '', for example:       |
+|                        |                                                                           | 'yyyy-MM-dd''T'''.                                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``      | Converts a string value in the given              |
 |                        |                                                                           | format into the BIGINT value                      |
 |                        |                                                                           | that represents the millisecond timestamp. Single |
 |                        |                                                                           | quotes in the timestamp format can be escaped with|
 |                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
+|                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
 |                        |                                                                           | Return a substring of ``str`` that starts at      |
@@ -1217,22 +1234,61 @@ Scalar functions
 Aggregate functions
 ===================
 
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| Function               | Example                   | Description                                                         |
-+========================+===========================+=====================================================================+
-| COUNT                  | ``COUNT(col1)``           |  Count the number of rows                                           |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| MAX                    | ``MAX(col1)``             |  Return the maximum value for a given column and window             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| MIN                    | ``MIN(col1)``             |  Return the minimum value for a given column and window             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| SUM                    | ``SUM(col1)``             |  Sums the column values                                             |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPK                   | ``TOPK(col1, k)``         |  Return the Top *K* values for the given column and window          |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
-+------------------------+---------------------------+---------------------------------------------------------------------+
-
++------------------------+---------------------------+----------------------------------------------------------------------------------+
+| Function               | Example                   | Input Type | Description                                                         |
++========================+===========================+============+=====================================================================+
+| COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Stream,    | Return an array containing all the values of ``col1`` from each     |
+|                        |                           | Table      | input row (for the specified grouping and time window, if any).     |
+|                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| COLLECT_SET            | ``COLLECT_SET(col1)``     | Stream     | Return an array containing the distinct values of ``col1`` from     |
+|                        |                           |            | each input row (for the specified grouping and time window, if any).|
+|                        |                           |            | Currently only works for simple types (not Map, Array, or Struct).  |
+|                        |                           |            | This version limits the size of the result Array to a maximum of    |
+|                        |                           |            | 1000 entries and any values beyond this limit are silently ignored. |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
+|                        |                           | Table      |                                                                     |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct String values of ``col1``      |
+|                        |                           | Table      | mapped to the number of times each one occurs for the given window. |
+|                        |                           |            | This version limits the number of distinct values which can be      |
+|                        |                           |            | counted to 1000, beyond which any additional entries are ignored.   |
+|                        |                           |            | When using with a window type of ``session``, it can sometimes      |
+|                        |                           |            | happen that two session windows get merged together into one when a |
+|                        |                           |            | late-arriving record with a timestamp between the two windows is    |
+|                        |                           |            | processed. In this case the 1000 record limit is calculated by      |
+|                        |                           |            | first considering all the records from the first window, then the   |
+|                        |                           |            | late-arriving record, then the records from the second window in    |
+|                        |                           |            | the order they were originally processed.                           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window              |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window              |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| SUM                    | ``SUM(col1)``             | Stream,    | Sums the column values                                              |
+|                        |                           | Table      |                                                                     |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| TOPK                   | ``TOPK(col1, k)``         | Stream     | Return the Top *K* values for the given column and window           |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
 .. _ksql_key_requirements:
 

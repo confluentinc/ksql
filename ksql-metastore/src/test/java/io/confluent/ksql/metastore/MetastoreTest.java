@@ -16,18 +16,19 @@
 
 package io.confluent.ksql.metastore;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MetastoreTest {
 
@@ -41,7 +42,7 @@ public class MetastoreTest {
 
   @Test
   public void testTopicMap() {
-    final KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe(), false);
     metaStore.putTopic(ksqlTopic1);
     final KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);
@@ -65,11 +66,13 @@ public class MetastoreTest {
   @Test
   public void testDelete() {
     final StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    final StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
-                                                               structuredDataSource1.getSchema(),
-                                                               structuredDataSource1.getKeyField(),
-                                                               structuredDataSource1.getTimestampExtractionPolicy(),
-                                                               structuredDataSource1.getKsqlTopic());
+    final StructuredDataSource structuredDataSource2 = new KsqlStream<>(
+        "sqlexpression", "testStream",
+        structuredDataSource1.getSchema(),
+        structuredDataSource1.getKeyField(),
+        structuredDataSource1.getTimestampExtractionPolicy(),
+        structuredDataSource1.getKsqlTopic(),
+        Serdes.String());
 
     metaStore.putSource(structuredDataSource2);
     final StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");

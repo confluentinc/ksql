@@ -42,7 +42,7 @@ Clickstream Data Analysis Pipeline
     
     - :ref:`ksql_clickstream-docker`
 
-    If you do not have Docker, you can also run an `automated version <https://github.com/confluentinc/quickstart-demos/tree/master/clickstream>`_ of the Clickstream tutorial designed for local Confluent Platform installs. Running the Clickstream demo locally without Docker requires that you have Confluent Platform installed locally, along with Elasticsearch and Grafana.
+    If you do not have Docker, you can also run an `automated version <https://github.com/confluentinc/examples/tree/master/clickstream>`_ of the Clickstream tutorial designed for local Confluent Platform installs. Running the Clickstream demo locally without Docker requires that you have Confluent Platform installed locally, along with Elasticsearch and Grafana.
 
 KSQL Examples
     :ref:`These examples <ksql_examples>` provide common KSQL usage operations.

@@ -22,8 +22,9 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -38,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -117,7 +119,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     final SchemaKStream stream = build();
-    assertTrue(((SchemaKTable)stream).isWindowed());
+    assertThat(((SchemaKTable)stream).getKeySerde(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {

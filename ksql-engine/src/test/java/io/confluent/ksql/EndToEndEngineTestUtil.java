@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
@@ -63,7 +64,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -77,8 +77,13 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
+import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
+import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
+import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
@@ -311,8 +316,10 @@ final class EndToEndEngineTestUtil {
     private final org.apache.avro.Schema schema;
     private final SerdeSupplier serdeSupplier;
 
-    Topic(final String name, final org.apache.avro.Schema schema,
-          final SerdeSupplier serdeSupplier) {
+    Topic(
+        final String name,
+        final org.apache.avro.Schema schema,
+        final SerdeSupplier serdeSupplier) {
       this.name = name;
       this.schema = schema;
       this.serdeSupplier = serdeSupplier;
@@ -339,13 +346,17 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static class Window {
+  static class WindowData {
+
+    enum Type {SESSION, TIME}
     private final long start;
     private final long end;
+    private final Type type;
 
-    Window(final long start, final long end) {
+    WindowData(final long start, final long end, final String type) {
       this.start = start;
       this.end = end;
+      this.type = Type.valueOf(Objects.requireNonNull(type, "type").toUpperCase());
     }
 
     public long size() {
@@ -358,13 +369,13 @@ final class EndToEndEngineTestUtil {
     private final String key;
     private final Object value;
     private final long timestamp;
-    private final Window window;
+    private final WindowData window;
 
     Record(final Topic topic,
            final String key,
            final Object value,
            final long timestamp,
-           final Window window) {
+           final WindowData window) {
       this.topic = topic;
       this.key = key;
       this.value = value;
@@ -372,12 +383,27 @@ final class EndToEndEngineTestUtil {
       this.window = window;
     }
 
+    private Serializer<?> keySerializer() {
+      final Serializer<String> stringDe = Serdes.String().serializer();
+      if (window == null) {
+        return stringDe;
+      }
+
+      return window.type == Type.SESSION
+          ? new SessionWindowedSerializer<>(stringDe)
+          : new TimeWindowedSerializer<>(stringDe);
+    }
+
     @SuppressWarnings("unchecked")
     private Deserializer keyDeserializer() {
       if (window == null) {
         return Serdes.String().deserializer();
       }
-      return new TimeWindowedDeserializer(Serdes.String().deserializer(), window.size());
+
+      final Deserializer<String> inner = Serdes.String().deserializer();
+      return window.type == Type.SESSION
+          ? new SessionWindowedDeserializer<>(inner)
+          : new TimeWindowedDeserializer<>(inner, window.size());
     }
 
     @SuppressWarnings("unchecked")
@@ -385,15 +411,15 @@ final class EndToEndEngineTestUtil {
       if (window == null) {
         return (W) key;
       }
-      return (W) new Windowed<>(key, new TimeWindow(window.start, window.end));
+
+      final Window w = window.type == Type.SESSION
+          ? new SessionWindow(this.window.start, this.window.end)
+          : new TimeWindow(this.window.start, this.window.end);
+      return (W) new Windowed<>(key, w);
     }
 
     public Object value() {
       return value;
-    }
-
-    public Window window() {
-      return window;
     }
 
     public long timestamp() {
@@ -509,9 +535,9 @@ final class EndToEndEngineTestUtil {
       inputRecords.forEach(
           r -> testDriver.pipeInput(
               new ConsumerRecordFactory<>(
-                  Serdes.String().serializer(),
+                  r.keySerializer(),
                   r.topic.getSerializer(schemaRegistryClient)
-              ).create(r.topic.name, r.key, r.value, r.timestamp)
+              ).create(r.topic.name, r.key(), r.value, r.timestamp)
           )
       );
     }

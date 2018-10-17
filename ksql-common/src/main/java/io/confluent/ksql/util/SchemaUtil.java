@@ -441,7 +441,6 @@ public final class SchemaUtil {
     return schema;
   }
 
-
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;

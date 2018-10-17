@@ -9,7 +9,7 @@
       <directory>../bin</directory>
       <outputDirectory></outputDirectory>
       <includes>
-        <include>ksql-*</include>
+        <include>ksql*</include>
       </includes>
     </fileSet>
   </fileSets>

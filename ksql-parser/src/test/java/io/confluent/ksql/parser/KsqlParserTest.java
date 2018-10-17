@@ -69,11 +69,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,13 +130,14 @@ public class KsqlParserTest {
         ksqlTopicOrders =
         new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe(), false);
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream(
+    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
         schemaBuilderOrders.field("ORDERTIME"),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders);
+        ksqlTopicOrders,
+        Serdes.String());
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
@@ -144,7 +145,7 @@ public class KsqlParserTest {
     final KsqlTopic
         ksqlTopicItems =
         new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe(), false);
-    final KsqlTable ksqlTableOrders = new KsqlTable(
+    final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
@@ -152,7 +153,7 @@ public class KsqlParserTest {
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         "items",
-        false);
+        Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }

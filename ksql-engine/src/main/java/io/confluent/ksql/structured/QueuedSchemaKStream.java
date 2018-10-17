@@ -34,18 +34,19 @@ import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public class QueuedSchemaKStream extends SchemaKStream {
+public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
   @SuppressWarnings("unchecked") // needs investigating
-  QueuedSchemaKStream(final SchemaKStream schemaKStream) {
+  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
     super(
         schemaKStream.schema,
         schemaKStream.getKstream(),
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
+        schemaKStream.keySerde,
         Type.SINK,
         schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
@@ -62,7 +63,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream into(
+  public SchemaKStream<K> into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
       final Set<Integer> rowkeyIndexes
@@ -71,18 +72,18 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream filter(final Expression filterExpression) {
+  public SchemaKStream<K> filter(final Expression filterExpression) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream select(final List<Pair<String, Expression>> expressions) {
+  public SchemaKStream<K> select(final List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream leftJoin(
-      final SchemaKTable schemaKTable,
+  public SchemaKStream<K> leftJoin(
+      final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> joinSerde
@@ -91,13 +92,13 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream selectKey(final Field newKeyField, final boolean updateRowKey) {
+  public SchemaKStream<K> selectKey(final Field newKeyField, final boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKGroupedStream groupBy(
-      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
     throw new UnsupportedOperationException();
   }
@@ -113,7 +114,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public KStream<String, GenericRow> getKstream() {
+  public KStream<K, GenericRow> getKstream() {
     return super.getKstream();
   }
 

@@ -132,6 +132,7 @@ import java.util.concurrent.TimeUnit;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -1533,14 +1534,14 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final KsqlTopic ksqlTopic =
         new KsqlTopic(into.getName().toString(), into.getName().toString(), null, true);
 
-    final StructuredDataSource resultStream =
-        new KsqlStream(
+    final StructuredDataSource resultStream = new KsqlStream<>(
             "AstBuilder-Into",
             into.getName().toString(),
             dataSource.schema(),
             dataSource.fields().get(0),
             null,
-            ksqlTopic
+            ksqlTopic,
+            Serdes.String()
         );
     return resultStream;
   }

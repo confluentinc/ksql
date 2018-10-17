@@ -72,10 +72,11 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
 
   @Override
   public StructuredDataSource getSource(final String sourceName) {
-    if (!dataSourceMap.containsKey(sourceName)) {
+    final Pair<StructuredDataSource, ?> source = dataSourceMap.get(sourceName);
+    if (source == null) {
       return null;
     }
-    return dataSourceMap.get(sourceName).getLeft();
+    return source.getLeft();
   }
 
   @Override

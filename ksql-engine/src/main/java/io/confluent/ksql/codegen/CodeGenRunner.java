@@ -90,15 +90,15 @@ public class CodeGenRunner {
 
     final String[] parameterNames = new String[parameters.size()];
     final Class[] parameterTypes = new Class[parameters.size()];
-    final int[] columnIndexes = new int[parameters.size()];
-    final Kudf[] kudfObjects = new Kudf[parameters.size()];
+    final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
+    final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
 
     int index = 0;
     for (final ParameterType param : parameters) {
       parameterNames[index] = param.name;
       parameterTypes[index] = param.type;
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, param.name);
-      kudfObjects[index] = param.getKudf();
+      columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
+      kudfObjects.add(param.getKudf());
       index++;
     }
 

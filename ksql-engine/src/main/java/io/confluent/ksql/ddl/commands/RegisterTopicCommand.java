@@ -49,7 +49,7 @@ public class RegisterTopicCommand implements DdlCommand {
     enforceTopicProperties(properties);
     this.kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    final String serde = StringUtil.cleanQuotes(
+    final String serde = cleanQuotesAndUpperCase(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
     this.topicSerDe = extractTopicSerDe(serde, properties);
     this.notExists = notExist;
@@ -57,22 +57,25 @@ public class RegisterTopicCommand implements DdlCommand {
 
   private KsqlTopicSerDe extractTopicSerDe(final String serde,
                                            final Map<String, Expression> properties) {
-    // TODO: Find a way to avoid calling toUpperCase() here;
-    // if the property can be an unquoted identifier, then capitalization will have already happened
-    switch (serde.toUpperCase()) {
+    switch (serde) {
       case DataSource.AVRO_SERDE_NAME:
         return new KsqlAvroTopicSerDe();
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:
-        if (properties.containsKey(DdlConfig.DELIMITER_PROPERTY)) {
+        if (properties.containsKey(DdlConfig.DELIMITER_FORMAT_PROPERTY)) {
           return new KsqlDelimitedTopicSerDe(
-              properties.get(DdlConfig.DELIMITER_PROPERTY).toString());
+            cleanQuotesAndUpperCase(properties.get(DdlConfig.DELIMITER_FORMAT_PROPERTY).toString())
+          );
         }
         return new KsqlDelimitedTopicSerDe();
       default:
         throw new KsqlException("The specified topic serde is not supported.");
     }
+  }
+
+  private String cleanQuotesAndUpperCase(final String string) {
+    return StringUtil.cleanQuotes(string.toUpperCase());
   }
 
   private void enforceTopicProperties(final Map<String, Expression> properties) {
@@ -82,6 +85,16 @@ public class RegisterTopicCommand implements DdlCommand {
 
     if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw new KsqlException("Topic format(format) should be set in WITH clause.");
+    }
+
+    if (properties.containsKey(DdlConfig.DELIMITER_FORMAT_PROPERTY) && (
+         !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)
+         || !cleanQuotesAndUpperCase(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString())
+           .equals(DataSource.DELIMITED_SERDE_NAME))) {
+      throw new KsqlException(
+          DdlConfig.DELIMITER_FORMAT_PROPERTY + " can only be used with "
+           + DdlConfig.VALUE_FORMAT_PROPERTY + "='" + DataSource.DELIMITED_SERDE_NAME + "'"
+      );
     }
 
     if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {

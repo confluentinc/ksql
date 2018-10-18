@@ -28,16 +28,9 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
   private final Schema schema;
-  private final CSVFormat csvFormat;
 
   public KsqlDelimitedSerializer(final Schema schema) {
     this.schema = schema;
-    this.csvFormat = CSVFormat.DEFAULT;
-  }
-
-  public KsqlDelimitedSerializer(final Schema schema, final CSVFormat csvFormat) {
-    this.schema = schema;
-    this.csvFormat = csvFormat;
   }
 
   @Override
@@ -52,7 +45,7 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
     }
     try {
       final StringWriter stringWriter = new StringWriter();
-      final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, csvFormat);
+      final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
       csvPrinter.printRecord(genericRow.getColumns());
       final String result = stringWriter.toString();
       return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);

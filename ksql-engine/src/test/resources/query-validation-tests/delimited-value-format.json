@@ -1,0 +1,48 @@
+{
+  "comments": [
+    "When using value_format DELIMITED, we can define DELIMITER_FORMAT as per org.apache.commons.csv.CSVFormat ",
+    "Supported value DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE, POSTGRESQL_CSV,",
+    ",POSTGRESQL_TEXT, TDF.",
+    "More details on https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html"
+  ],
+  "tests": [
+    {
+      "name": "select delimited value_format",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE S2 as SELECT id, name, value FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,100,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100,500", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100,100", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "select delimited value_format with tab separated values",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', delimiter_format='TDF');",
+        "CREATE TABLE S2 as SELECT id, name, value FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0\tzero\t0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0\t100\t100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100\t100\t500", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100\t100\t100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,100,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100,500", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100,100", "timestamp": 0}
+      ]
+    }
+  ]
+}

@@ -55,8 +55,7 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(
-        schema, csvFormat);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(

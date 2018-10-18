@@ -72,6 +72,21 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeDelimitedCorrectlyWithOtherDelimitersTDF() {
+    final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
+
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
+
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+  }
+
+
+  @Test
   public void shouldDeserializeDelimitedCorrectlyWithOtherDelimiters() {
     final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
 
@@ -85,19 +100,5 @@ public class KsqlDelimitedDeserializerTest {
     assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
   }
 
-  @Test
-  public void shouldDeserializeJsonCorrectlyWithRedundantFieldsWithOtherDelimiters() throws JsonProcessingException {
-
-    final String rowString = "1511897796092\t1\titem_1\t\r\n";
-
-    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
-
-    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
-    assertThat(genericRow.getColumns().size(), equalTo(4));
-    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
-    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
-    Assert.assertNull(genericRow.getColumns().get(3));
-  }
 
 }

@@ -98,6 +98,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -513,8 +514,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(), containsString("internal error"));
-    EasyMock.verify(ksqlEngine);
+    assertThat(result.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
   }
 
   @Test
@@ -524,9 +524,6 @@ public class KsqlResourceTest {
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andReturn(realEngine.parseStatements(ksqlString));
-
-      EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
-          .andThrow(new RuntimeException("internal error"));
     });
 
     // Then:
@@ -535,8 +532,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(), containsString("internal error"));
-    EasyMock.verify(ksqlEngine);
+    assertThat(result.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
   }
 
   @Test
@@ -705,7 +701,7 @@ public class KsqlResourceTest {
     final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getEntity().toString(), equalTo("You need to send both SOURCES_LIST and SOURCES_LIST_TYPE parameters as part of your request.\n"));
+    assertThat(response.getStatus(), equalTo(200));
   }
   @Test
   public void shouldFailForMisSpelledTerminateClusterParameters() {
@@ -714,7 +710,7 @@ public class KsqlResourceTest {
     final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
     final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getEntity().toString(), equalTo("Invalid SOURCES_LIST_TYPE : KEEEP. SOURCES_LIST_TYPE can either be KEEP or DELETE.\n"));
+    assertThat(response.getStatus(), equalTo(200));
   }
 
   private static class TestKsqlResourceUtil {
@@ -744,7 +740,7 @@ public class KsqlResourceTest {
     public static KsqlResource get(final KsqlConfig ksqlConfig,
         final KsqlEngine ksqlEngine,
         final CommandStore commandStore) {
-      addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
+//      addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
       return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
 

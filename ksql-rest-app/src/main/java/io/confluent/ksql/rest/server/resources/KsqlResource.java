@@ -183,7 +183,11 @@ public class KsqlResource {
     // CHECKSTYLE_RULES.ON: NPathComplexity
 
     if (!ksqlEngine.isAcceptingStatements()) {
-      return Errors.badRequest("The cluster has been terminated. No new request will be accepted.");
+      return Errors.serverErrorForStatement(
+          new KsqlException("The cluster has been terminated. No new request will be accepted."),
+          request.getKsql(),
+          new KsqlEntityList()
+      );
     }
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();

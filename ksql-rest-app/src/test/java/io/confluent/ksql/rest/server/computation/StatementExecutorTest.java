@@ -502,6 +502,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(ksqlEngine.terminateQuery(eq(queryId), eq(true))).andReturn(true);
     queuedQueryMetadata.close();
     expectLastCall();
+    commandStore.close();
+    expectLastCall();
 
     final StructuredDataSource structuredDataSource1 = new KsqlStream(
         "",
@@ -537,21 +539,15 @@ public class StatementExecutorTest extends EasyMockSupport {
     metaStore.putSource(structuredDataSource3);
 
     expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
-
-    final DdlCommandResult ddlCommandResult = niceMock(DdlCommandResult.class);
-    final DdlCommandExec ddlCommandExec = niceMock(DdlCommandExec.class);
-    expect(ddlCommandExec.execute(anyObject(), anyBoolean())).andReturn(ddlCommandResult).times(deleteCount);
-    expect(ksqlEngine.getDdlCommandExec()).andReturn(ddlCommandExec).times(deleteCount);
-
     final StatementExecutor statementExecutor = new StatementExecutor(
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
         mock(StatementParser.class),
         commandStore
     );
-    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore, ddlCommandExec);
+    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
     statementExecutor.handleStatement(command, commandId, Optional.empty());
-    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore, ddlCommandExec);
+    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
   }
 
   private void createStreamsAndTables() {

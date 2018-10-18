@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-version-metrics-client</artifactId>
@@ -91,7 +91,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-unchecked</arg>
+                        <arg>-Xlint:all,-options,-path,-unchecked,-deprecation</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>

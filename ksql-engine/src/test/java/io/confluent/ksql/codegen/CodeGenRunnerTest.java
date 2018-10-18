@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -128,13 +129,13 @@ public class CodeGenRunnerTest {
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
-            new KsqlJsonTopicSerDe());
-        final KsqlStream ksqlStream = new KsqlStream(
+            new KsqlJsonTopicSerDe(), false);
+        final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
             "CODEGEN_TEST", metaStoreSchema,
             metaStoreSchema.field("COL0"),
             null,
-            ksqlTopic);
+            ksqlTopic,Serdes.String());
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
         codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);

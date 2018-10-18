@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.errors;
 
-import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
@@ -42,7 +42,7 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
         exception
     );
 
-    MetricCollectors.recordError(record.topic());
+    StreamsErrorCollector.recordError(context.applicationId(), record.topic());
     return DeserializationHandlerResponse.CONTINUE;
   }
 

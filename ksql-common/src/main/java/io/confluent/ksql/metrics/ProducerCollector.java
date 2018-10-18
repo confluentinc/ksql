@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MeasurableStat;
@@ -33,9 +35,11 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-public class ProducerCollector implements MetricCollector {
+public class ProducerCollector implements MetricCollector, ProducerInterceptor {
+  public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
+  public static final String PRODUCER_TOTAL_MESSAGES = "total-messages";
 
-  private final Map<String, TopicSensors<?>> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<ProducerRecord>> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private Time time;
@@ -57,18 +61,13 @@ public class ProducerCollector implements MetricCollector {
   }
 
   @Override
-  public String getId() {
-    return id;
+  public void onAcknowledgement(final RecordMetadata recordMetadata, final Exception e) {
   }
 
   @Override
   public ProducerRecord onSend(final ProducerRecord record) {
     collect(record, false);
     return record;
-  }
-
-  public void recordError(final String topic) {
-    collect(true, topic.toLowerCase());
   }
 
   private void collect(final ProducerRecord record, final boolean isError) {
@@ -88,10 +87,8 @@ public class ProducerCollector implements MetricCollector {
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
     synchronized (metrics) {
-      addSensor(key, "messages-per-sec", new Rate(), sensors, false);
-      addSensor(key, "total-messages", new Total(), sensors, false);
-      addSensor(key, "failed-messages", new Total(), sensors, true);
-      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
+      addSensor(key, PRODUCER_MESSAGES_PER_SEC, new Rate(), sensors);
+      addSensor(key, PRODUCER_TOTAL_MESSAGES, new Total(), sensors);
     }
     return sensors;
   }
@@ -100,8 +97,7 @@ public class ProducerCollector implements MetricCollector {
       final String key,
       final String metricNameString,
       final MeasurableStat stat,
-      final List<TopicSensors.SensorMetric<ProducerRecord>> results,
-      final boolean isError
+      final List<TopicSensors.SensorMetric<ProducerRecord>> results
   ) {
     final String name = "prod-" + key + "-" + metricNameString + "-" + id;
 
@@ -120,7 +116,7 @@ public class ProducerCollector implements MetricCollector {
     }
     final KafkaMetric metric = metrics.metrics().get(metricName);
 
-    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time, isError) {
+    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time, false) {
       void record(final ProducerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -140,36 +136,12 @@ public class ProducerCollector implements MetricCollector {
 
   @Override
   public Collection<TopicSensors.Stat> stats(final String topic, final boolean isError) {
-    final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors
-        .values()
-        .stream()
-        .filter(counter -> counter.isTopic(topic))
-        .forEach(record -> list.addAll(record.stats(isError)));
-    return list;
+    return MetricUtils.stats(topic, isError, topicSensors.values());
   }
 
   @Override
-  public double currentMessageProductionRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
-
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().contains("messages-per-sec"))
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
-  }
-
-  @Override
-  public double errorRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.errorRateStats()));
-
-    return allStats
-        .stream()
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
+  public double aggregateStat(final String name, final boolean isError) {
+    return MetricUtils.aggregateStat(name, isError, topicSensors.values());
   }
 
   @Override

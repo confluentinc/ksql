@@ -93,9 +93,9 @@ public class SqlPredicateTest {
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
                                              functionRegistry, schemaRegistryClient);
     final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
@@ -113,9 +113,9 @@ public class SqlPredicateTest {
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
                                              functionRegistry, schemaRegistryClient);
     final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
@@ -140,9 +140,9 @@ public class SqlPredicateTest {
     final Expression filterExpr = querySpecification.getWhere().get();
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
         kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(),
+        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
     final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, ksqlConfig, functionRegistry);
     final boolean result = sqlPredicate.getPredicate().test("key", null);

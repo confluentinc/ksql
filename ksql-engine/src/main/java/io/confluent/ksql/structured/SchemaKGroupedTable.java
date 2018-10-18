@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,7 +59,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable aggregate(
+  public SchemaKTable<String> aggregate(
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
@@ -72,7 +72,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
         .stream()
         .filter(function -> !(function instanceof TableAggregationFunction))
-        .map(function -> function.getFunctionName())
+        .map(KsqlAggregateFunction::getFunctionName)
         .collect(Collectors.toList());
     if (!unsupportedFunctionNames.isEmpty()) {
       throw new KsqlException(
@@ -92,22 +92,21 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
                     k -> ((TableAggregationFunction) aggValToFunctionMap.get(k))));
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
         aggValToUndoFunctionMap, aggValToValColumnMap);
-    final KTable aggKtable = kgroupedTable.aggregate(
+    final KTable<String, GenericRow> aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,
         subtractor,
         Materialized.with(Serdes.String(), topicValueSerDe));
-    return new SchemaKTable(
+    return new SchemaKTable<>(
         schema,
         aggKtable,
         keyField,
         sourceSchemaKStreams,
-        false,
+        Serdes.String(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
-
   }
 }

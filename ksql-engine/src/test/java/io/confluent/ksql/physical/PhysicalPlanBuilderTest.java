@@ -618,6 +618,32 @@ public class PhysicalPlanBuilderTest {
     ksqlEngine.close();
   }
 
+  @Test
+  public void shouldSetIsKSQLSinkInMetastoreCorrectly() throws Exception {
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+        + "DOUBLE) "
+        + "WITH ( "
+        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
+    final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        kafkaTopicClient,
+        schemaRegistryClientFactory,
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig);
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+        createStream + "\n " + csasQuery + "\n " + ctasQuery,
+        ksqlConfig,
+        Collections.emptyMap());
+    assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
+    assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
+    assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
+    ksqlEngine.close();
+  }
+
+
   private void closeQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(QueryMetadata::close);
   }

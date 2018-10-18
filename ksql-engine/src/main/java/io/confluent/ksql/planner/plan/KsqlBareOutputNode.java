@@ -55,7 +55,7 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,

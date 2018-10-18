@@ -663,8 +663,8 @@ key (``WAREHOUSE_ID``) - the output should show that they are equal. If
 they are not, the join will not succeed or behave as expected.
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: _offsetreset_start
-    :end-before: _offsetreset_end
+    :start-after: offsetreset_start
+    :end-before: offsetreset_end
 
 .. code:: sql
 

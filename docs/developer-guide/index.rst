@@ -10,6 +10,7 @@ These topics show how to develop KSQL applications for |cp|.
     :maxdepth: 1
 
     ../installation/cli-config
+    join-streams-and-tables
     syntax-reference
     api
     udf

@@ -25,21 +25,27 @@ import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class StringToTimestampTest {
 
   private StringToTimestamp udf;
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Before
-  public void setUp(){
+  public void setUp() {
     udf = new StringToTimestamp();
   }
 
   @Test
-  public void shouldCovertStringToTimestamp() throws ParseException {
+  public void shouldConvertStringToTimestamp() throws ParseException {
     // When:
-    final Object result = udf.evaluate("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS");
+    final Object result = udf.stringToTimestamp("2021-12-01 12:10:11.123",
+        "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
     final long expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
@@ -50,7 +56,8 @@ public class StringToTimestampTest {
   @Test
   public void shouldSupportEmbeddedChars() throws ParseException {
     // When:
-    final Object result = udf.evaluate("2021-12-01T12:10:11.123Fred", "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+    final Object result = udf.stringToTimestamp("2021-12-01T12:10:11.123Fred",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
     final long expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
@@ -58,29 +65,45 @@ public class StringToTimestampTest {
     assertThat(result, is(expectedResult));
   }
 
-  @Test(expected = KsqlFunctionException.class)
-  public void shouldThrowIfTooFewParameters() {
-    udf.evaluate("2021-12-01 12:10:11.123");
+  @Test
+  public void shouldSupportUTCTimeZone() {
+    // When:
+    final Object result = udf.stringToTimestamp("2018-08-15 17:10:43",
+        "yyyy-MM-dd HH:mm:ss", "UTC");
+
+    // Then:
+    assertThat(result, is(1534353043000L));
   }
 
-  @Test(expected = KsqlFunctionException.class)
-  public void shouldThrowIfTooManyParameters() {
-    udf.evaluate("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS", "extra");
+  @Test
+  public void shouldSupportPSTTimeZone() {
+    // When:
+    final Object result = udf.stringToTimestamp("2018-08-15 10:10:43",
+        "yyyy-MM-dd HH:mm:ss", "America/Los_Angeles");
+
+    // Then:
+    assertThat(result, is(1534353043000L));
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfFormatInvalid() {
-    udf.evaluate("2021-12-01 12:10:11.123", "invalid");
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Unknown pattern letter: i");
+    udf.stringToTimestamp("2021-12-01 12:10:11.123", "invalid");
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowIfParseFails() {
-    udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Text 'invalid' could not be parsed at index 0");
+    udf.stringToTimestamp("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
   }
 
-  @Test(expected = KsqlFunctionException.class)
+  @Test
   public void shouldThrowOnEmptyString() {
-    udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Text '' could not be parsed at index 0");
+    udf.stringToTimestamp("", "yyyy-MM-dd'T'HH:mm:ss.SSS");
   }
 
   @Test
@@ -89,11 +112,29 @@ public class StringToTimestampTest {
         .parallel()
         .forEach(idx -> {
           try {
-            shouldCovertStringToTimestamp();
+            shouldConvertStringToTimestamp();
           } catch (final ParseException e) {
             Assert.fail(e.getMessage());
           }
-          udf.evaluate("1988-01-12 10:12:13.456", "yyyy-MM-dd HH:mm:ss.SSS");
+          udf.stringToTimestamp("1988-01-12 10:12:13.456",
+              "yyyy-MM-dd HH:mm:ss.SSS");
+        });
+  }
+
+  @Test
+  public void shouldWorkWithManyDifferentFormatters() {
+    IntStream.range(0, 10_000)
+        .parallel()
+        .forEach(idx -> {
+          try {
+            final String sourceDate = "2018-12-01 10:12:13.456X" + idx;
+            final String pattern = "yyyy-MM-dd HH:mm:ss.SSS'X" + idx + "'";
+            final long result = udf.stringToTimestamp(sourceDate, pattern);
+            final long expectedResult = new SimpleDateFormat(pattern).parse(sourceDate).getTime();
+            assertThat(result, is(expectedResult));
+          } catch (final Exception e) {
+            Assert.fail(e.getMessage());
+          }
         });
   }
 
@@ -122,7 +163,8 @@ public class StringToTimestampTest {
 
   private void assertLikeSimpleDateFormat(final String value, final String format) throws Exception {
     final long expected = new SimpleDateFormat(format).parse(value).getTime();
-    final Object result = new StringToTimestamp().evaluate(value, format);
+    final Object result = new StringToTimestamp().stringToTimestamp(value, format);
     assertThat(result, is(expected));
   }
+
 }

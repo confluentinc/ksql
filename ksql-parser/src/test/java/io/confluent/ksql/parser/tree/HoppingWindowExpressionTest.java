@@ -21,6 +21,7 @@ import static org.easymock.EasyMock.same;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -44,7 +45,7 @@ public class HoppingWindowExpressionTest {
     final Initializer initializer = () -> 0;
     final Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store = Materialized.as("store");
 
-    EasyMock.expect(stream.windowedBy(TimeWindows.of(10000L).advanceBy(4L))).andReturn(windowedKStream);
+    EasyMock.expect(stream.windowedBy(TimeWindows.of(Duration.ofMillis(10000L)).advanceBy(Duration.ofMillis(4L)))).andReturn(windowedKStream);
     EasyMock.expect(windowedKStream.aggregate(same(initializer), same(aggregator), same(store))).andReturn(null);
     EasyMock.replay(stream, windowedKStream);
 

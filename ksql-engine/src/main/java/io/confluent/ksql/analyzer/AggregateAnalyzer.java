@@ -68,7 +68,8 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
         aggregateAnalysis.addAggregateFunctionArgument(argExpression);
         node.getArguments().add(argExpression);
       } else {
-        aggregateAnalysis.addAggregateFunctionArgument(node.getArguments().get(0));
+        node.getArguments().forEach(argExpression ->
+            aggregateAnalysis.addAggregateFunctionArgument(argExpression));
       }
       aggregateAnalysis.addFunction(node);
       hasAggregateFunction = true;

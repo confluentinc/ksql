@@ -179,8 +179,8 @@ ResourcePattern
     - Resource name. How the pattern uses the name to match Resources is dependant on the pattern type.
     - ``PATTERN_TYPE``, controls how the pattern matches a Resource's name to the patterns. Valid values are:
 
-        - ``LITERAL`` pattern types match the name of a resource exactly, or, in the case of the special wildcard resource name `*`, resources of any name.
-        - ``PREFIXED`` pattern types match when the resource's name is prefixed with the pattern's name.
+      - ``LITERAL`` pattern types match the name of a resource exactly, or, in the case of the special wildcard resource name `*`, resources of any name.
+      - ``PREFIXED`` pattern types match when the resource's name is prefixed with the pattern's name.
 
     The ``CLUSTER`` resource type is implicitly a literal pattern with a constant name because it refers to the entire Kafka cluster.
 

@@ -41,6 +41,7 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -85,7 +86,8 @@ public class SchemaKGroupedStreamTest {
   private WindowExpression windowExp;
   @Mock(MockType.NICE)
   private KsqlWindowExpression ksqlWindowExp;
-
+  @Mock(MockType.NICE)
+  private Serde<Windowed<String>> windowedKeySerde;
   private SchemaKGroupedStream schemaGroupedStream;
 
   @Before
@@ -97,6 +99,7 @@ public class SchemaKGroupedStreamTest {
     EasyMock.expect(windowEndFunc.getFunctionName()).andReturn("WindowEnd").anyTimes();
     EasyMock.expect(otherFunc.getFunctionName()).andReturn("NotWindowStartFunc").anyTimes();
     EasyMock.expect(windowExp.getKsqlWindowExpression()).andReturn(ksqlWindowExp).anyTimes();
+    EasyMock.expect(ksqlWindowExp.getKeySerde(String.class)).andReturn(windowedKeySerde).anyTimes();
     EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp);
   }
 

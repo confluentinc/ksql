@@ -52,5 +52,4 @@ KSQL Examples
         :end-line: 6
 
 KSQL in a Kafka Streaming ETL
-
     To learn how to deploy a Kafka streaming ETL using KSQL for stream processing, you can run the :ref:`Confluent Platform demo<cp-demo>`. All components in the |cp| demo have encryption, authentication, and authorization configured end-to-end.

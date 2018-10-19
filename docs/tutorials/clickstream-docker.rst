@@ -161,15 +161,15 @@ Load the Streaming Data to KSQL
 
 #.  Launch the KSQL CLI
 
-       .. code:: bash
+    .. code:: bash
 
-           $ ksql
+        $ ksql
 
-       You should now be in the KSQL CLI.
+    You should now be in the KSQL CLI.
 
-       .. include:: ../includes/ksql-includes.rst
-            :start-line: 19
-            :end-line: 40
+    .. include:: ../includes/ksql-includes.rst
+         :start-line: 19
+         :end-line: 40
 
 #.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
 

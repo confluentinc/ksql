@@ -69,24 +69,24 @@ Create the Clickstream Data
 A data generator is already running, simulating the stream of clicks. You can sample this stream by 
 using a console consumer such as ``kafkacat``: 
 
-    .. code:: bash
+.. code:: bash
 
-        docker run --network ksql-clickstream-demo_default --tty --interactive --rm \
-                confluentinc/cp-kafkacat \
-                kafkacat -b kafka:29092 -C -c 10 -K: \
-                -f '\nKey  : %k\t\nValue: %s\n' \
-                -t clickstream
+    docker run --network ksql-clickstream-demo_default --tty --interactive --rm \
+            confluentinc/cp-kafkacat \
+            kafkacat -b kafka:29092 -C -c 10 -K: \
+            -f '\nKey  : %k\t\nValue: %s\n' \
+            -t clickstream
 
 This will stop after ten messages, and your output should look like this: 
 
-    ::
+::
 
-        Key  : 111.90.225.227
-        Value: {"ip":"111.90.225.227","userid":36,"remote_user":"-","time":"11/Sep/2018:09:53:04 +0000","_time":1536659584702,"request":"GET /images/track.png HTTP/1.1","status":"302","bytes":"2048","referrer":"-","agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"}
+    Key  : 111.90.225.227
+    Value: {"ip":"111.90.225.227","userid":36,"remote_user":"-","time":"11/Sep/2018:09:53:04 +0000","_time":1536659584702,"request":"GET /images/track.png HTTP/1.1","status":"302","bytes":"2048","referrer":"-","agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"}
 
-        Key  : 233.173.215.103
-        Value: {"ip":"233.173.215.103","userid":15,"remote_user":"-","time":"11/Sep/2018:09:53:05 +0000","_time":1536659585434,"request":"GET /index.html HTTP/1.1","status":"406","bytes":"278","referrer":"-","agent":"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"}
-        [...]
+    Key  : 233.173.215.103
+    Value: {"ip":"233.173.215.103","userid":15,"remote_user":"-","time":"11/Sep/2018:09:53:05 +0000","_time":1536659585434,"request":"GET /index.html HTTP/1.1","status":"406","bytes":"278","referrer":"-","agent":"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"}
+    [...]
 
 If you remove the ``-c 10`` argument from the previous command you can run it and see a complete 
 stream of all messages on the topic. If you do run this, press Ctrl-C to cancel it and 

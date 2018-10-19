@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -43,10 +44,12 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -101,19 +104,61 @@ public class AggregateNodeTest {
   }
 
   @Test
-  public void shouldHaveSourceNodeForSecondSubtopolgy() {
+  public void shouldHaveSourceNodeForSecondSubtopolgyWithKsqlNameForRepartition() {
     // When:
-    buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
-        + "window TUMBLING (size 2 second) "
-        + "GROUP BY col1;");
+    buildRequireRekey();
 
     // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
+    assertThat(node.topicSet(), hasItem(containsString("Aggregate-GROUP-BY-repartition")));
+  }
+
+  @Test
+  public void shouldHaveSourceNodeForSecondSubtopolgyWithDefaultNameForRepartition() {
+    buildRequireRekey(
+        new KsqlConfig(
+            Collections.singletonMap(
+                StreamsConfig.TOPOLOGY_OPTIMIZATION,
+                StreamsConfig.NO_OPTIMIZATION)
+        )
+    );
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
+        builder.build(),
+        "KSTREAM-SOURCE-0000000010");
+    final List<String> successors = node.successors().stream()
+        .map(TopologyDescription.Node::name)
+        .collect(Collectors.toList());
+    assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
-    assertThat(node.topicSet(), hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000006")));
+    assertThat(
+        node.topicSet(),
+        hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000006")));
     assertThat(node.topicSet(), hasItem(containsString("-repartition")));
+  }
+
+  @Test
+  public void shouldHaveDefaultNameForAggregationStateStoreIfOptimizationsOff() {
+    build(
+        new KsqlConfig(
+            Collections.singletonMap(
+                StreamsConfig.TOPOLOGY_OPTIMIZATION,
+                StreamsConfig.NO_OPTIMIZATION)
+        )
+    );
+    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
+        builder.build(), "KSTREAM-AGGREGATE-0000000006");
+    assertThat(node.stores(), hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000005")));
+  }
+
+  @Test
+  public void shouldHaveKsqlNameForAggregationStateStore() {
+    build();
+    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
+        builder.build(), "KSTREAM-AGGREGATE-0000000005");
+    assertThat(node.stores(), hasItem(equalTo("Aggregate-AGGREGATION")));
   }
 
   @Test
@@ -124,8 +169,8 @@ public class AggregateNodeTest {
         + "GROUP BY col1;");
 
     // Then:
-    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }
@@ -146,33 +191,54 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBeSchemaKTableResult() {
-    // When:
-    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
-        + "WHERE col0 > 100 GROUP BY col0;");
-
-    // Then:
-    assertThat(stream, is(instanceOf(SchemaKTable.class)));
+    final SchemaKStream stream = build();
+    assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
   @Test
-  public void shouldBeWindowedTableWhenStatementSpecifiesWindowing() {
-    // Given:
-    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
-        + "window TUMBLING (size 2 second) "
-        + "GROUP BY col0;");
+  public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
+    final SchemaKStream stream = build();
+    assertThat(((SchemaKTable)stream).getKeySerde(), is(not(Optional.empty())));
+  }
 
-    // Then:
-    assertThat(stream, is(instanceOf(SchemaKTable.class)));
-    assertThat(stream.hasWindowedKey(), is(true));
+  private SchemaKStream build() {
+    return build(ksqlConfig);
+  }
+
+  private SchemaKStream build(final KsqlConfig ksqlConfig) {
+    return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
+        + "size 2 "
+        + "second) "
+        + "WHERE col0 > 100 GROUP BY col0;", ksqlConfig);
+  }
+
+  @SuppressWarnings("UnusedReturnValue")
+  private SchemaKStream buildRequireRekey() {
+    return buildRequireRekey(ksqlConfig);
+  }
+
+  @SuppressWarnings("UnusedReturnValue")
+  private SchemaKStream buildRequireRekey(final KsqlConfig ksqlConfig) {
+    return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
+        + "size 2 "
+        + "second) "
+        + "GROUP BY col1;", ksqlConfig);
   }
 
   private SchemaKStream buildQuery(final String queryString) {
+    return buildQuery(queryString, ksqlConfig);
+  }
+
+  private SchemaKStream buildQuery(final String queryString, final KsqlConfig ksqlConfig) {
     return buildAggregateNode(queryString)
-        .buildStream(builder,
+        .buildStream(
+            builder,
             ksqlConfig,
             topicClient,
             new InternalFunctionRegistry(),
-            new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
+            new HashMap<>(),
+            new MockSchemaRegistryClientFactory()::get);
+
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

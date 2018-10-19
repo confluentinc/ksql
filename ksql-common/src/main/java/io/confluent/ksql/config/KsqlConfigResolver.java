@@ -33,7 +33,7 @@ import org.apache.kafka.streams.StreamsConfig;
  */
 public class KsqlConfigResolver implements ConfigResolver {
 
-  private static final ConfigDef STEAMS_CONFIG_DEF = StreamsConfig.configDef();
+  private static final ConfigDef STREAMS_CONFIG_DEF = StreamsConfig.configDef();
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
   private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
   private static final ConfigDef KSQL_CONFIG_DEF = KsqlConfig.CURRENT_DEF;
@@ -43,7 +43,7 @@ public class KsqlConfigResolver implements ConfigResolver {
       new PrefixedConfig(StreamsConfig.PRODUCER_PREFIX, PRODUCER_CONFIG_DEF),
       new PrefixedConfig("", CONSUMER_CONFIG_DEF),
       new PrefixedConfig("", PRODUCER_CONFIG_DEF),
-      new PrefixedConfig("", STEAMS_CONFIG_DEF)
+      new PrefixedConfig("", STREAMS_CONFIG_DEF)
   );
 
   @Override
@@ -56,7 +56,8 @@ public class KsqlConfigResolver implements ConfigResolver {
     return resolveStreamsConfig(propertyName, strict);
   }
 
-  private static Optional<ConfigItem> resolveStreamsConfig(
+  @Override
+  public Optional<ConfigItem> resolveStreamsConfig(
       final String propertyName,
       final boolean strict) {
 
@@ -86,13 +87,14 @@ public class KsqlConfigResolver implements ConfigResolver {
     return strict ? Optional.empty() : Optional.of(ConfigItem.unresolved(key));
   }
 
-  private static Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
+  @Override
+  public Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
     final Optional<ConfigItem> possibleItem = resolveConfig("", KSQL_CONFIG_DEF, propertyName);
     if (possibleItem.isPresent()) {
       return possibleItem;
     }
 
-    if (propertyName.startsWith(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX)) {
+    if (propertyName.startsWith(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX)) {
       // Functions properties are free form, so can not be resolved / validated:
       return Optional.of(ConfigItem.unresolved(propertyName));
     }

@@ -265,7 +265,7 @@ public class KsqlConfigTest {
     final String functionName = "bob";
 
     final String udfConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         udfConfigName, "should-be-visible"
@@ -284,10 +284,10 @@ public class KsqlConfigTest {
     final String functionName = "BOB";
 
     final String correctConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
 
     final String invalidConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-other-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-other-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         invalidConfigName, "should-not-be-visible",
@@ -306,7 +306,7 @@ public class KsqlConfigTest {
     final String functionName = "BOB";
 
     final String correctConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         correctConfigName, "should-be-visible"
@@ -343,7 +343,7 @@ public class KsqlConfigTest {
     final String functionName = "bob";
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "not a udf property",
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "different_udf.some-setting", "different udf property"
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "different_udf.some-setting", "different udf property"
     ));
 
     // When:
@@ -386,14 +386,14 @@ public class KsqlConfigTest {
   public void shouldListUnknownKsqlFunctionConfigObfuscated() {
     // Given:
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
     ));
 
     // When:
     final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
 
     // Then:
-    assertThat(result.get(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+    assertThat(result.get(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
         is("[hidden]"));
   }
 
@@ -433,5 +433,47 @@ public class KsqlConfigTest {
 
     // Then:
     assertThat(result.get("some.random.property"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDefaultOptimizationsToOn() {
+    // When:
+    final KsqlConfig config = new KsqlConfig(Collections.emptyMap());
+
+    // Then:
+    assertThat(
+        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.OPTIMIZE));
+  }
+
+  @Test
+  public void shouldDefaultOptimizationsToOffForOldConfigs() {
+    // When:
+    final KsqlConfig config = new KsqlConfig(false, Collections.emptyMap());
+
+    // Then:
+    assertThat(
+        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldPreserveOriginalOptimizationConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE));
+    final KsqlConfig saved = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION));
+
+    // When:
+    final KsqlConfig merged = config.overrideBreakingConfigsWithOriginalValues(
+        saved.getAllConfigPropsWithSecretsObfuscated());
+
+    // Then:
+    assertThat(
+        merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.NO_OPTIMIZATION));
   }
 }

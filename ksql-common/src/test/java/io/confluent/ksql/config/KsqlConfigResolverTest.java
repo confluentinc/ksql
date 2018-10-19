@@ -76,8 +76,8 @@ public class KsqlConfigResolverTest {
   @Test
   public void shouldReturnUnresolvedForOtherKsqlFunctionProperty() {
     assertThat(
-        resolver.resolve(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", true),
-        is(unresolvedItem(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop")));
+        resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", true),
+        is(unresolvedItem(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop")));
   }
 
   @Test

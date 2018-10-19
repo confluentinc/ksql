@@ -209,10 +209,10 @@ public class JoinNodeTest {
     buildJoin();
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
+        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
     final List<String> predecessors = leftJoin.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
-    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000014")));
+    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-REDUCE")));
+    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000013")));
   }
 
   @Test
@@ -264,7 +264,8 @@ public class JoinNodeTest {
                                       eq(joinKey),
                                       eq(withinExpression.joinWindow()),
                                       anyObject(Serde.class),
-                                      anyObject(Serde.class)))
+                                      anyObject(Serde.class),
+                                      eq("join-JOIN")))
         .andReturn(niceMock(SchemaKStream.class));
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -312,7 +313,8 @@ public class JoinNodeTest {
                                   eq(joinKey),
                                   eq(withinExpression.joinWindow()),
                                   anyObject(Serde.class),
-                                  anyObject(Serde.class)))
+                                  anyObject(Serde.class),
+                                  eq("join-JOIN")))
         .andReturn(niceMock(SchemaKStream.class));
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -360,7 +362,8 @@ public class JoinNodeTest {
                                        eq(joinKey),
                                        eq(withinExpression.joinWindow()),
                                        anyObject(Serde.class),
-                                       anyObject(Serde.class)))
+                                       anyObject(Serde.class),
+                                       eq("join-JOIN")))
         .andReturn(niceMock(SchemaKStream.class));
 
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -557,7 +560,8 @@ public class JoinNodeTest {
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKTable),
                                       eq(joinSchema),
                                       eq(joinKey),
-                                      anyObject(Serde.class)))
+                                      anyObject(Serde.class),
+                                      eq("join-JOIN")))
         .andReturn(niceMock(SchemaKStream.class));
 
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -601,7 +605,8 @@ public class JoinNodeTest {
     expect(leftSchemaKStream.join(eq(rightSchemaKTable),
                                   eq(joinSchema),
                                   eq(joinKey),
-                                  anyObject(Serde.class)))
+                                  anyObject(Serde.class),
+                                  eq("join-JOIN")))
         .andReturn(niceMock(SchemaKStream.class));
 
     replay(left, right, leftSchemaKStream, rightSchemaKTable);

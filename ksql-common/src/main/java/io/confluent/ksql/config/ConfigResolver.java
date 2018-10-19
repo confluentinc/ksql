@@ -38,7 +38,7 @@ public interface ConfigResolver {
    *
    * <p>For {@code strict} resolution, only known configuration, i.e. those that map directly to an
    * item in a {@code  ConfigDef} instance, or UDF properties, i.e. those prefixed with
-   * {@link io.confluent.ksql.util.KsqlConfig#KSQ_FUNCTIONS_PROPERTY_PREFIX}, will be resolved.
+   * {@link io.confluent.ksql.util.KsqlConfig#KSQL_FUNCTIONS_PROPERTY_PREFIX}, will be resolved.
    * All others will result in {@code empty}.
    *
    * <p>For non-{@code strict} resolution, only configuration <i>known</i> to be invalid, e.g.
@@ -49,4 +49,8 @@ public interface ConfigResolver {
    * @param strict if resolution should use strict mode or not.
    */
   Optional<ConfigItem> resolve(String propertyName, boolean strict);
+
+  Optional<ConfigItem> resolveKsqlConfig(String propertyName);
+
+  Optional<ConfigItem> resolveStreamsConfig(String propertyName, boolean strict);
 }

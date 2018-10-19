@@ -21,6 +21,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.streams.GroupedFactory;
+import io.confluent.ksql.streams.JoinedFactory;
+import io.confluent.ksql.streams.KsqlGroupedFactory;
+import io.confluent.ksql.streams.KsqlJoinedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -39,11 +43,12 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+// CHECKSTYLE_RULES.OFF: ParameterNumber
 public class SchemaKTable<K> extends SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<K, GenericRow> ktable;
 
-  public SchemaKTable(
+  SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
       final Field keyField,
@@ -52,7 +57,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final GroupedFactory groupedFactory,
+      final JoinedFactory joinedFactory
   ) {
     super(
         schema,
@@ -63,9 +70,36 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         type,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        groupedFactory,
+        joinedFactory
     );
     this.ktable = ktable;
+  }
+
+  public SchemaKTable(
+      final Schema schema,
+      final KTable<K, GenericRow> ktable,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final Serde<K> keySerde,
+      final Type type,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry,
+      final SchemaRegistryClient schemaRegistryClient) {
+    this(
+        schema,
+        ktable,
+        keyField,
+        sourceSchemaKStreams,
+        keySerde,
+        type,
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient,
+        new KsqlGroupedFactory(ksqlConfig),
+        new KsqlJoinedFactory(ksqlConfig)
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -152,14 +186,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
-      final List<Expression> groupByExpressions) {
+      final List<Expression> groupByExpressions,
+      final String opName) {
 
     final GroupBy groupBy = new GroupBy(groupByExpressions);
 
     final KGroupedTable kgroupedTable = ktable
         .filter((key, value) -> value != null)
         .groupBy((key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
-            Grouped.with(Serdes.String(), valSerde));
+            groupedFactory.create(opName, Serdes.String(), valSerde));
 
     final Field newKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
@@ -247,3 +282,4 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 }
+// CHECKSTYLE_RULES.ON: ParameterNumber

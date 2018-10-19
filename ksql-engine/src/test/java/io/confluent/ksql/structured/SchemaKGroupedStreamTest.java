@@ -33,6 +33,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serde;
@@ -105,6 +106,7 @@ public class SchemaKGroupedStreamTest {
     EasyMock.expect(windowExp.getKsqlWindowExpression()).andReturn(ksqlWindowExp).anyTimes();
     EasyMock.expect(ksqlWindowExp.getKeySerde(String.class)).andReturn(windowedKeySerde).anyTimes();
     EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).andReturn(false);
+    EasyMock.expect(config.getKsqlStreamConfigProps()).andReturn(Collections.emptyMap());
     EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp, config);
   }
 
@@ -151,7 +153,8 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseStringKeySerdeForNoneWindowed() {
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), null, topicValueSerDe);
+        .aggregate(
+            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, "GROUP");
 
     // Then:
     assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
@@ -164,7 +167,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
@@ -176,12 +179,13 @@ public class SchemaKGroupedStreamTest {
     EasyMock.reset(config);
     EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG))
         .andReturn(true);
+    EasyMock.expect(config.getKsqlStreamConfigProps()).andReturn(Collections.emptyMap());
 
     EasyMock.replay(config);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "GROUP");
 
     // Then:
     assertThat(result.getKeySerde(),
@@ -214,7 +218,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
@@ -236,7 +240,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));

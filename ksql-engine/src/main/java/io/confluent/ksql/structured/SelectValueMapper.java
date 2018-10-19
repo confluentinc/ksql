@@ -65,8 +65,8 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
     try {
       final ExpressionMetadata expression = expressionEvaluators.get(column);
 
-      final List<Integer> parameterIndexes = expressionEvaluators.get(i).getIndexes();
-      final List<Kudf> kudfs = expressionEvaluators.get(i).getUdfs();
+      final List<Integer> parameterIndexes = expressionEvaluators.get(column).getIndexes();
+      final List<Kudf> kudfs = expressionEvaluators.get(column).getUdfs();
       final Object[] parameterObjects = new Object[parameterIndexes.size()];
       for (int j = 0; j < parameterIndexes.size(); j++) {
         final Integer paramIndex = parameterIndexes.get(j);

@@ -28,7 +28,7 @@
       "name": "import session table",
       "statements": [
         "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='SeSSion');",
-        "CREATE STREAM S2 as SELECT *, ROWKEY as KEY FROM test;"
+        "CREATE TABLE S2 as SELECT *, ROWKEY as KEY FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,0", "timestamp": 10, "window": {"start": 10, "end": 10, "type": "session"}},
@@ -49,7 +49,7 @@
       "name": "import session stream",
       "statements": [
         "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='SESSION');",
-        "CREATE TABLE S2 as SELECT *, ROWKEY as Key FROM test;"
+        "CREATE STREAM S2 as SELECT *, ROWKEY as Key FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
@@ -64,6 +64,26 @@
         {"topic": "S2", "key": 0, "value": "0,5,0 : Window{start=0 end=10000}", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
         {"topic": "S2", "key": 1, "value": "1,100,1 : Window{start=10000 end=10000}", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
         {"topic": "S2", "key": 1, "value": "1,200,1 : Window{start=10000 end=40000}", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
+      ]
+    },
+    {
+      "name": "import session stream and group by",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='SESSION');",
+        "CREATE TABLE S2 as SELECT ROWKEY as Id, count(*) FROM test GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": 1, "value": "1,100", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": 1, "value": "1,200", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": "0 : Window{start=0 end=0}", "value": "0 : Window{start=0 end=0},1", "timestamp": 0},
+        {"topic": "S2", "key": "0 : Window{start=0 end=10000}", "value": "0 : Window{start=0 end=10000},1", "timestamp": 10000},
+        {"topic": "S2", "key": "1 : Window{start=10000 end=10000}", "value": "1 : Window{start=10000 end=10000},1", "timestamp": 10000},
+        {"topic": "S2", "key": "1 : Window{start=10000 end=10000}", "value": "1 : Window{start=10000 end=10000},2", "timestamp": 10000}
       ]
     }
   ]

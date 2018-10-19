@@ -514,7 +514,7 @@ The WITH clause supports the following properties:
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with '', for example:                        |
 |                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
-+-----------------------------------+--------------------------------------------------------------------------------------------+
++-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start

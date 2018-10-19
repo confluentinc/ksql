@@ -34,6 +34,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -64,9 +65,9 @@ public class SourceDescriptionTest {
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe(), true);
-    return new KsqlStream(
+    return new KsqlStream<>(
         "query", "stream", schema, schema.fields().get(0),
-        new MetadataTimestampExtractionPolicy(), topic);
+        new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
   }
 
   private ConsumerRecords buildRecords(final String kafkaTopicName) {

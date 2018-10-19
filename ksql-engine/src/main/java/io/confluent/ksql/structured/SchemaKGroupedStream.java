@@ -37,6 +37,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
@@ -72,7 +73,7 @@ public class SchemaKGroupedStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKTable aggregate(
+  public SchemaKTable<?> aggregate(
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
@@ -81,7 +82,11 @@ public class SchemaKGroupedStream {
     final KTable aggKtable;
     final UdafAggregator aggregator = new KudafAggregator(
         aggValToFunctionMap, aggValToValColumnMap);
+
+    final Serde<?> keySerde;
     if (windowExpression != null) {
+      keySerde = getKeySerde(windowExpression);
+
       final Materialized<String, GenericRow, ?> materialized
           = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
               Serdes.String(), topicValueSerDe);
@@ -94,24 +99,28 @@ public class SchemaKGroupedStream {
           materialized
       );
     } else {
+      keySerde = Serdes.String();
       aggKtable = kgroupedStream.aggregate(
           initializer,
           aggregator,
           Materialized.with(Serdes.String(), topicValueSerDe)
       );
     }
-    return new SchemaKTable(
+    return new SchemaKTable<>(
         schema,
         aggKtable,
         keyField,
         sourceSchemaKStreams,
-        windowExpression != null,
+        keySerde,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
+  }
 
+  private static Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 
 }

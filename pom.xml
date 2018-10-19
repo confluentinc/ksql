@@ -320,7 +320,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-deprecation</arg>
+                        <arg>-Xlint:all,-options,-path</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>

@@ -22,7 +22,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.SchemaUtil;
 
-
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
 
   public CreateStreamCommand(
@@ -43,14 +42,15 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    final KsqlStream ksqlStream = new KsqlStream(
+    final KsqlStream ksqlStream = new KsqlStream<>(
         sqlExpression,
         sourceName,
         schema,
         (keyColumnName.length() == 0)
           ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
         timestampExtractionPolicy,
-        metaStore.getTopic(topicName)
+        metaStore.getTopic(topicName),
+        keySerde
     );
 
     // TODO: Need to check if the topic exists.

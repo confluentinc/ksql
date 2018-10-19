@@ -149,19 +149,19 @@ Load the Streaming Data to KSQL
 
 #.  Launch the KSQL CLI
 
-       .. code:: bash
+    .. code:: bash
 
-            $ docker run --network ksql-clickstream-demo_default \
-                        --interactive --tty --rm \
-                        --volume $PWD/demo:/usr/share/doc/ksql-clickstream-demo \
-                confluentinc/cp-ksql-cli:latest \
-                http://ksql-server:8088
+        $ docker run --network ksql-clickstream-demo_default \
+                    --interactive --tty --rm \
+                    --volume $PWD/demo:/usr/share/doc/ksql-clickstream-demo \
+            confluentinc/cp-ksql-cli:latest \
+            http://ksql-server:8088
 
-       You should now be in the KSQL CLI.
+    You should now be in the KSQL CLI.
 
-        .. include:: ../includes/ksql-includes.rst
-            :start-after: CLI_welcome_start
-            :end-before: CLI_welcome_end
+    .. include:: ../includes/ksql-includes.rst
+        :start-after: CLI_welcome_start
+        :end-before: CLI_welcome_end
 
 #.  Set up the environment for the demo to run: 
 

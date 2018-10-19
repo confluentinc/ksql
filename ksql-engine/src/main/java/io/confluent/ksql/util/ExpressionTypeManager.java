@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -92,6 +93,12 @@ public class ExpressionTypeManager
     process(node.getRight(), expressionTypeContext);
     final Schema rightType = expressionTypeContext.getSchema();
     expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
+    return null;
+  }
+
+  protected Expression visitNotExpression(
+      final NotExpression node, final ExpressionTypeContext expressionTypeContext) {
+    expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 

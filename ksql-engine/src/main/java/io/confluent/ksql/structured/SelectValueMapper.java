@@ -65,17 +65,16 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
     try {
       final ExpressionMetadata expression = expressionEvaluators.get(column);
 
-      final int[] parameterIndexes = expression.getIndexes();
-      final Kudf[] kudfs = expression.getUdfs();
-      final Object[] parameterObjects = new Object[parameterIndexes.length];
-
-      for (int j = 0; j < parameterIndexes.length; j++) {
-        final int parameterIndex = parameterIndexes[j];
-        if (parameterIndex < 0) {
-          parameterObjects[j] = kudfs[j];
+      final List<Integer> parameterIndexes = expressionEvaluators.get(i).getIndexes();
+      final List<Kudf> kudfs = expressionEvaluators.get(i).getUdfs();
+      final Object[] parameterObjects = new Object[parameterIndexes.size()];
+      for (int j = 0; j < parameterIndexes.size(); j++) {
+        final Integer paramIndex = parameterIndexes.get(j);
+        if (paramIndex < 0) {
+          parameterObjects[j] = kudfs.get(j);
         } else {
           parameterObjects[j] = typeEnforcer
-              .enforceFieldType(parameterIndex, row.getColumns().get(parameterIndex));
+              .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
         }
       }
 

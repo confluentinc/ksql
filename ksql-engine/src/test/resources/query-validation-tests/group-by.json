@@ -46,6 +46,23 @@
       ]
     },
     {
+      "name": "group by with aggregate arithmetic",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*)*2 AS COUNT FROM TEST GROUP BY DATA;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,4", "timestamp": 0}
+      ]
+    },
+    {
       "name": "group by function",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -139,20 +156,33 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Group by elements should match the SELECT expressions."
+        "message": "GROUP BY expression must be part of SELECT: [TEST.DATA]"
       },
       "inputs": [],
       "outputs": []
     },
     {
-      "name": "group by with ungrouped select",
+      "name": "group by with expression not in select",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "GROUP BY expression must be part of SELECT: TEST.D2"
+        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [TEST.D1]"
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "group by with function not in select",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 1);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 2)]"
       },
       "inputs": [],
       "outputs": []

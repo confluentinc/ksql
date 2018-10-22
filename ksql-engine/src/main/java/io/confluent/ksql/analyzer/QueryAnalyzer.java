@@ -16,16 +16,22 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.Sets;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
@@ -121,14 +127,30 @@ public class QueryAnalyzer {
   }
 
   private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
-    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
+    final Optional<GroupBy> groupBy = ((QuerySpecification) query.getQueryBody()).getGroupBy();
+    if (!groupBy.isPresent()) {
       return;
     }
-    final int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
-    final int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
-        .getGroupingElements().size();
-    if (numberOfNonAggProjections != groupBySize) {
-      throw new KsqlException("Group by elements should match the SELECT expressions.");
+
+    final Set<Expression> selects = new HashSet<>(aggregateAnalysis.getNonAggResultColumns());
+
+    final Set<Expression> groups = groupBy.get()
+        .getGroupingElements()
+        .stream()
+        .flatMap(group -> group.enumerateGroupingSets().stream())
+        .flatMap(Set::stream)
+        .collect(Collectors.toSet());
+
+    final Set<Expression> selectOnly = Sets.difference(selects, groups);
+    if (!selectOnly.isEmpty()) {
+      throw new KsqlException(
+          "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
+    }
+
+    final Set<Expression> groupByOnly = Sets.difference(groups, selects);
+    if (!groupByOnly.isEmpty()) {
+      throw new KsqlException(
+          "GROUP BY expression must be part of SELECT: " + groupByOnly);
     }
   }
 

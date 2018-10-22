@@ -16,7 +16,8 @@
 
 package io.confluent.ksql.structured;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
@@ -35,54 +36,90 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class SelectValueMapperTest {
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore =
+      MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
-
   @Test
-  public void shouldSelectChosenColumns() throws Exception {
-    final SelectValueMapper mapper = createMapper("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
-    final GenericRow transformed = mapper.apply(new GenericRow(Arrays.asList(1521834663L,
-                                                                             "key1", 1L, "hi", "bye", 2.0F, "blah")));
-    assertThat(transformed, equalTo(new GenericRow(Arrays.asList(1L, "bye", 2.0F))));
+  public void shouldSelectChosenColumns() {
+    // Given:
+    final SelectValueMapper selectMapper = givenSelectMapperFor(
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+
+    // When:
+    final GenericRow transformed = selectMapper.apply(
+        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0F, "blah"));
+
+    // Then:
+    assertThat(transformed, is(genericRow(1L, "bye", 2.0F)));
   }
 
   @Test
-  public void shouldApplyUdfsToColumns() throws Exception {
-    final SelectValueMapper mapper = createMapper("SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
-    final GenericRow row = mapper.apply(new GenericRow(Arrays.asList(1521834663L, "key1", 2L,
-                                                                     "foo",
-        "whatever", 6.9F, "boo", "hoo")));
-    assertThat(row, equalTo(new GenericRow(Arrays.asList(2L, "foo", "whatever",
-                                                         7.0F))));
+  public void shouldApplyUdfsToColumns() {
+    // Given:
+    final SelectValueMapper selectMapper = givenSelectMapperFor(
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+
+    // When:
+    final GenericRow row = selectMapper.apply(
+        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9F, "boo", "hoo"));
+
+    // Then:
+    assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0F)));
   }
 
-  private SelectValueMapper createMapper(final String query) throws Exception {
+  @Test
+  public void shouldHandleNullRows() {
+    // Given:
+    final SelectValueMapper selectMapper = givenSelectMapperFor(
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+
+    // When:
+    final GenericRow row = selectMapper.apply(null);
+
+    // Then:
+    assertThat(row, is(nullValue()));
+  }
+
+  private SelectValueMapper givenSelectMapperFor(final String query) {
     final PlanNode planNode = planBuilder.buildLogicalPlan(query);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final Schema schema = planNode.getTheSourceNode().getSchema();
-    final List<Pair<String, Expression>> expressionPairList = projectNode.getProjectNameExpressionPairList();
-    final List<ExpressionMetadata> metadata = createExpressionMetadata(expressionPairList, schema);
-    return new SelectValueMapper(new GenericRowValueTypeEnforcer(schema), expressionPairList, metadata);
+    final List<Pair<String, Expression>> selectExpressions = projectNode.getProjectNameExpressionPairList();
+    final List<ExpressionMetadata> metadata = createExpressionMetadata(selectExpressions, schema);
+    final List<String> selectFieldNames = selectExpressions.stream()
+        .map(Pair::getLeft)
+        .collect(Collectors.toList());
+    return new SelectValueMapper(selectFieldNames, metadata);
   }
 
+  private List<ExpressionMetadata> createExpressionMetadata(
+      final List<Pair<String, Expression>> selectExpressions,
+      final Schema schema
+  ) {
+    try {
+      final CodeGenRunner codeGenRunner = new CodeGenRunner(
+          schema, ksqlConfig, new InternalFunctionRegistry());
 
-  private List<ExpressionMetadata> createExpressionMetadata(final List<Pair<String, Expression>> expressionPairList,
-                                                            final Schema schema) throws Exception {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, new InternalFunctionRegistry());
-    final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-    for (final Pair<String, Expression> expressionPair : expressionPairList) {
-      final ExpressionMetadata
-          expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());
-      expressionEvaluators.add(expressionEvaluator);
+      final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
+      for (final Pair<String, Expression> expressionPair : selectExpressions) {
+        expressionEvaluators
+            .add(codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), "Select"));
+      }
+      return expressionEvaluators;
+    } catch (final Exception e) {
+      throw new AssertionError("Invalid test", e);
     }
-    return expressionEvaluators;
+  }
+
+  private static GenericRow genericRow(final Object... columns) {
+    return new GenericRow(Arrays.asList(columns));
   }
 }

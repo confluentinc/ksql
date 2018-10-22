@@ -1,0 +1,161 @@
+{
+  "comments": [
+    "Tests covering use of the GROUP BY clause"
+  ],
+  "tests": [
+    {
+      "name": "group by field",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": "d2", "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": "d2", "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,3", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by field with re-key",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": 5, "value": "d1", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,3", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by function",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "some string again", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "another string again", "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": "some other string", "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "so", "value": "so,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "an", "value": "an,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "so", "value": "so,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "an", "value": "an,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "so", "value": "so,3", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "th", "value": "th,1", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by json field",
+      "statements": [
+        "CREATE STREAM TEST (data STRUCT<field VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something"}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something Else"}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"data": {}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something"}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"data": {}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "Something Else", "value": {"FIELD": "Something Else", "COUNT": 1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 2}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 2}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by ROWKEY",
+      "statements": [
+        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2", "value": "1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2", "value": "2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "3", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by constant",
+      "statements": [
+        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT 1, COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,3", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,4", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,5", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by missing matching select element",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Group by elements should match the SELECT expressions."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "group by with ungrouped select",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "GROUP BY expression must be part of SELECT: TEST.D2"
+      },
+      "inputs": [],
+      "outputs": []
+    }
+  ]
+}

@@ -117,3 +117,5 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
       WITH (VALUE_FORMAT = 'AVRO') AS
       SELECT * FROM pageviews_json;
 
+For more information, see `Changing Data Serialization Format from JSON to Avro <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro>`__ 
+in the `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.

@@ -131,7 +131,7 @@
       "name": "group by constant",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT 1, COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
+        "CREATE STREAM OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
@@ -141,11 +141,11 @@
         {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,4", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,5", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": "1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "3", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "4", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "5", "timestamp": 0}
       ]
     },
     {
@@ -154,12 +154,16 @@
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "GROUP BY expression must be part of SELECT: [TEST.DATA]"
-      },
-      "inputs": [],
-      "outputs": []
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "d1", "value": "1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d2", "value": "1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "d1", "value": "2", "timestamp": 0}
+      ]
     },
     {
       "name": "group by with expression not in select",

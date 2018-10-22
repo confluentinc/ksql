@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import com.google.common.collect.Sets;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
@@ -27,7 +26,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -72,6 +71,11 @@ public class QueryAnalyzer {
       throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
     }
 
+    processGroupByExpression(
+        analysis,
+        aggregateAnalyzer
+    );
+
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       processHavingExpression(
@@ -92,19 +96,21 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    aggregateAnalyzer.process(
-        analysis.getHavingExpression(),
-        new AnalysisContext()
-    );
-    if (!aggregateAnalyzer.isHasAggregateFunction()) {
-      aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
+    final Expression exp = analysis.getHavingExpression();
+
+    processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+
+    aggregateAnalysis.setHavingExpression(
+        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
+  }
+
+  private void processGroupByExpression(
+      final Analysis analysis,
+      final AggregateAnalyzer aggregateAnalyzer
+  ) {
+    for (final Expression exp : analysis.getGroupByExpressions()) {
+      aggregateAnalyzer.process(exp, new AnalysisContext());
     }
-    aggregateAnalysis
-        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(
-            aggregateExpressionRewriter,
-            analysis.getHavingExpression()
-        ));
-    aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
   private void processSelectExpressions(
@@ -113,17 +119,23 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    for (final Expression expression : analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext());
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(expression);
-      }
-      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(
-          aggregateExpressionRewriter,
-          expression
-      ));
-      aggregateAnalyzer.setHasAggregateFunction(false);
+    for (final Expression exp : analysis.getSelectExpressions()) {
+      processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+
+      aggregateAnalysis.addFinalSelectExpression(
+          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
     }
+  }
+
+  private static void processExpression(
+      final Expression expression,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer) {
+    aggregateAnalyzer.process(expression, new AnalysisContext());
+    if (!aggregateAnalyzer.isHasAggregateFunction()) {
+      aggregateAnalysis.addNonAggResultColumns(expression);
+    }
+    aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
   private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
@@ -132,8 +144,6 @@ public class QueryAnalyzer {
       return;
     }
 
-    final Set<Expression> selects = new HashSet<>(aggregateAnalysis.getNonAggResultColumns());
-
     final Set<Expression> groups = groupBy.get()
         .getGroupingElements()
         .stream()
@@ -141,16 +151,13 @@ public class QueryAnalyzer {
         .flatMap(Set::stream)
         .collect(Collectors.toSet());
 
-    final Set<Expression> selectOnly = Sets.difference(selects, groups);
+    final List<Expression> selectOnly = aggregateAnalysis.getNonAggResultColumns().stream()
+        .filter(exp -> !groups.contains(exp))
+        .collect(Collectors.toList());
+
     if (!selectOnly.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
-    }
-
-    final Set<Expression> groupByOnly = Sets.difference(groups, selects);
-    if (!groupByOnly.isEmpty()) {
-      throw new KsqlException(
-          "GROUP BY expression must be part of SELECT: " + groupByOnly);
     }
   }
 

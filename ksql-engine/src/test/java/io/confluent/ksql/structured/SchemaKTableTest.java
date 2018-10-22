@@ -267,7 +267,7 @@ public class SchemaKTableTest {
     final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
     final Capture<KeyValueMapper> capturedKeySelector = Capture.newInstance();
     expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
-    expect(mockKTable.groupBy(capture(capturedKeySelector), mock(Grouped.class)))
+    expect(mockKTable.groupBy(capture(capturedKeySelector), anyObject(Grouped.class)))
         .andReturn(mockKGroupedTable);
     replay(mockKTable, mockKGroupedTable);
 

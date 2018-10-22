@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.support.metrics.common.time.TimeUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,7 +59,6 @@ public class WSQueryEndpoint {
   private final KsqlEngine ksqlEngine;
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
-  private final TimeUtils timeUtils;
 
   private WebSocketSubscriber subscriber;
 
@@ -78,7 +76,6 @@ public class WSQueryEndpoint {
     this.ksqlEngine = ksqlEngine;
     this.exec = exec;
     this.activenessRegistrar = activenessRegistrar;
-    this.timeUtils = new TimeUtils();
   }
 
   @OnOpen

@@ -72,7 +72,12 @@ public class KsqlServerMain {
       final String installDir
   ) throws Exception {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutor.create(properties, queriesFile.get(), installDir);
+      return StandaloneExecutor.create(
+          properties,
+          queriesFile.get(),
+          installDir,
+          new KsqlVersionCheckerAgent()
+          );
     }
 
     if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {

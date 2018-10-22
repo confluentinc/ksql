@@ -109,7 +109,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -143,7 +142,6 @@ public class KsqlResource {
   private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
-  private final TimeUtils timeUtils;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
@@ -158,7 +156,6 @@ public class KsqlResource {
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
     this.activenessRegistrar = activenessRegistrar;
-    this.timeUtils = new TimeUtils();
   }
 
   @POST

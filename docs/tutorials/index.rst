@@ -23,8 +23,10 @@ Get started with these instructions:
 - :ref:`ksql_quickstart-local`
 
 Stream Processing Cookbook
-    The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
-    contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
+**************************
+
+The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 
 Clickstream Data Analysis Pipeline
 **********************************

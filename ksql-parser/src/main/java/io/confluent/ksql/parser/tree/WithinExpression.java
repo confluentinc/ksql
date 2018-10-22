@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -94,8 +95,9 @@ public class WithinExpression extends Node {
   }
 
   private JoinWindows createJoinWindows() {
-    final JoinWindows joinWindow = JoinWindows.of(beforeTimeUnit.toMillis(before));
-    return joinWindow.after(afterTimeUnit.toMillis(after));
+    final JoinWindows joinWindow = JoinWindows
+        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)));
+    return joinWindow.after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
   }
 
   // Visible for testing

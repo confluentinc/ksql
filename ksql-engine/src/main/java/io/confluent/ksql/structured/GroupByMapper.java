@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -36,7 +37,7 @@ class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, String> {
   private final List<ExpressionMetadata> expressions;
 
   GroupByMapper(final List<ExpressionMetadata> expressions) {
-    this.expressions = Objects.requireNonNull(expressions, "expressions");
+    this.expressions = ImmutableList.copyOf(Objects.requireNonNull(expressions, "expressions"));
     if (expressions.isEmpty()) {
       throw new IllegalArgumentException("Empty group by");
     }

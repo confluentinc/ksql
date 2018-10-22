@@ -16,10 +16,25 @@
 
 package io.confluent.ksql.version.metrics;
 
-public interface ActiveChecker {
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-  void onRequest(long requestTime, boolean hasActiveQuery);
+public class ActivenessRegistrarImpl implements ActivenessRegistrar, Supplier<Boolean> {
 
-  boolean isActive();
+  // 24 hours
+  private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
+  private long requestTime;
+  private boolean hasActiveQuery;
+
+  @Override
+  public void fire(final boolean hasActiveQuery) {
+    this.requestTime = System.currentTimeMillis();
+    this.hasActiveQuery = hasActiveQuery;
+  }
+
+  @Override
+  public Boolean get() {
+    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL || hasActiveQuery;
+  }
 }

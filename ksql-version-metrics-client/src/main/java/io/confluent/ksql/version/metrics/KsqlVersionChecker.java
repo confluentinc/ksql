@@ -23,6 +23,7 @@ import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
@@ -37,7 +38,7 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
       final Runtime serverRuntime,
       final KsqlModuleType moduleType,
       final boolean enableSettlingTime,
-      final ActiveChecker activeChecker
+      final Supplier<Boolean> activenessStatusSupplier
   ) {
     super(
         threadName,
@@ -49,7 +50,9 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     );
     Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
-    this.metricsCollector = new BasicCollector(moduleType, new TimeUtils(), activeChecker);
+    this.metricsCollector = new BasicCollector(
+        moduleType, new TimeUtils(),
+        activenessStatusSupplier);
   }
 
   @Override

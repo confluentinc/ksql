@@ -16,18 +16,18 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import io.confluent.ksql.version.metrics.ActiveChecker;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.TimeUtils;
+import java.util.function.Supplier;
 import org.apache.avro.generic.GenericContainer;
 
 public class BasicCollector extends Collector {
 
   private final TimeUtils timeUtils;
   private final KsqlModuleType moduleType;
-  private final ActiveChecker activeChecker;
+  private final Supplier<Boolean> activenessStatusSupplier;
 
   // 24 hours
   private static final int maxInterval = 24 * 60 * 60 * 1000;
@@ -35,10 +35,10 @@ public class BasicCollector extends Collector {
   public BasicCollector(
       final KsqlModuleType moduleType,
       final TimeUtils timeUtils,
-      final ActiveChecker activeChecker) {
+      final Supplier<Boolean> activenessStatusSupplier) {
     this.timeUtils = timeUtils;
     this.moduleType = moduleType;
-    this.activeChecker = activeChecker;
+    this.activenessStatusSupplier = activenessStatusSupplier;
   }
 
   @Override
@@ -47,7 +47,7 @@ public class BasicCollector extends Collector {
     metricsRecord.setTimestamp(timeUtils.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
-    metricsRecord.setIsActive(activeChecker.isActive());
+    metricsRecord.setIsActive(activenessStatusSupplier.get());
     return metricsRecord;
   }
 

@@ -108,7 +108,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
-import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collection;
@@ -142,7 +142,7 @@ public class KsqlResource {
   private final KsqlEngine ksqlEngine;
   private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
-  private final ActiveChecker activeChecker;
+  private final ActivenessRegistrar activenessRegistrar;
   private final TimeUtils timeUtils;
 
   public KsqlResource(
@@ -150,14 +150,14 @@ public class KsqlResource {
       final KsqlEngine ksqlEngine,
       final ReplayableCommandQueue replayableCommandQueue,
       final long distributedCommandResponseTimeout,
-      final ActiveChecker activeChecker
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
-    this.activeChecker = activeChecker;
+    this.activenessRegistrar = activenessRegistrar;
     this.timeUtils = new TimeUtils();
   }
 
@@ -166,9 +166,7 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
-    activeChecker.onRequest(
-        timeUtils.nowInUnixTime(),
-        !ksqlEngine.getLivePersistentQueries().isEmpty());
+    activenessRegistrar.fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
     } catch (final ParseFailedException e) {

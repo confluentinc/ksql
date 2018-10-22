@@ -23,8 +23,8 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.version.metrics.ActiveChecker;
-import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -239,8 +239,8 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     @Override
-    public ActiveChecker getActiveChecker() {
-      return new KsqlServerActiveCheckerImpl();
+    public ActivenessRegistrar getActivenessRegistrar() {
+      return new ActivenessRegistrarImpl();
     }
 
   }

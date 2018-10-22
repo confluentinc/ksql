@@ -20,9 +20,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.confluent.ksql.version.metrics.ActiveChecker;
-import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
-import java.util.concurrent.atomic.AtomicLong;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -150,9 +149,10 @@ public class RestApiTest {
     }
 
     @Override
-    public ActiveChecker getActiveChecker() {
-      return new KsqlServerActiveCheckerImpl();
+    public ActivenessRegistrar getActivenessRegistrar() {
+      return new ActivenessRegistrarImpl();
     }
+
 
   }
 

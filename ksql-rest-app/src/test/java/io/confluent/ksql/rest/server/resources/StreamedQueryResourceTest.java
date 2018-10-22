@@ -49,8 +49,7 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.version.metrics.ActiveChecker;
-import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
+import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -73,7 +72,7 @@ import org.junit.Test;
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
-  private final ActiveChecker activeChecker = new KsqlServerActiveCheckerImpl();
+  private final ActivenessRegistrarImpl activeChecker = new ActivenessRegistrarImpl();
 
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {

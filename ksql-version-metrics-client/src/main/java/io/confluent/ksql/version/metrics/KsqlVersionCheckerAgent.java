@@ -29,7 +29,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private boolean enableSettlingTime;
 
-  private final ActiveChecker activeChecker = new KsqlServerActiveCheckerImpl();
+  private final ActivenessRegistrarImpl activenessRegistrar = new ActivenessRegistrarImpl();
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
@@ -62,7 +62,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
                   serverRuntime,
                   moduleType,
                   enableSettlingTime,
-                  activeChecker
+                  activenessRegistrar
                   );
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
@@ -82,8 +82,8 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   @Override
-  public ActiveChecker getActiveChecker() {
-    return activeChecker;
+  public ActivenessRegistrar getActivenessRegistrar() {
+    return activenessRegistrar;
   }
 
 

@@ -25,10 +25,9 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.version.metrics.ActiveChecker;
-import io.confluent.ksql.version.metrics.KsqlServerActiveCheckerImpl;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,11 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.websocket.CloseReason;
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.Session;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -63,7 +60,7 @@ public class WSQueryEndpointTest {
   private Session session;
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
-  private ActiveChecker activeChecker;
+  private ActivenessRegistrarImpl activenessRegistrarImpl;
 
   @Before
   public void setUp() {
@@ -74,10 +71,10 @@ public class WSQueryEndpointTest {
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
-    activeChecker = new KsqlServerActiveCheckerImpl();
-    activeChecker.onRequest(0L, false);
+    activenessRegistrarImpl = new ActivenessRegistrarImpl();
+    activenessRegistrarImpl.fire(false);
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activeChecker);
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activenessRegistrarImpl);
     session = addMock(Session.class);
   }
 
@@ -155,10 +152,10 @@ public class WSQueryEndpointTest {
     expectLastCall().once();
 
     replayMocks();
-    assertFalse(activeChecker.isActive());
+    assertFalse(activenessRegistrarImpl.get());
     wsQueryEndpoint.onOpen(session, null);
 
-    assertTrue(activeChecker.isActive());
+    assertTrue(activenessRegistrarImpl.get());
   }
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {

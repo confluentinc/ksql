@@ -29,7 +29,7 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.version.metrics.ActiveChecker;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collections;
@@ -57,7 +57,7 @@ public class StreamedQueryResource {
   private final StatementParser statementParser;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
-  private final ActiveChecker activeChecker;
+  private final ActivenessRegistrar activenessRegistrar;
   private final TimeUtils timeUtils;
 
   public StreamedQueryResource(
@@ -65,7 +65,7 @@ public class StreamedQueryResource {
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final Duration disconnectCheckInterval,
-      final ActiveChecker activeChecker
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
@@ -73,7 +73,7 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
-    this.activeChecker = activeChecker;
+    this.activenessRegistrar = activenessRegistrar;
     this.timeUtils = new TimeUtils();
   }
 
@@ -84,9 +84,7 @@ public class StreamedQueryResource {
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }
-    activeChecker.onRequest(
-        timeUtils.nowInUnixTime(),
-        !ksqlEngine.getLivePersistentQueries().isEmpty());
+    activenessRegistrar.fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
     final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {

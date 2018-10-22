@@ -27,6 +27,17 @@ public class ActivenessRegistrarImpl implements ActivenessRegistrar, Supplier<Bo
   private long requestTime;
   private boolean hasActiveQuery;
 
+  public ActivenessRegistrarImpl() {
+    this.requestTime = System.currentTimeMillis();
+    this.hasActiveQuery = false;
+  }
+
+  // Only for test purposes.
+  public ActivenessRegistrarImpl(final long requestTime) {
+    this.requestTime = requestTime;
+    this.hasActiveQuery = false;
+  }
+
   @Override
   public void fire(final boolean hasActiveQuery) {
     this.requestTime = System.currentTimeMillis();

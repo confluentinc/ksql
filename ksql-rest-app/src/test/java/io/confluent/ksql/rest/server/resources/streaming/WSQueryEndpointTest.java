@@ -71,8 +71,7 @@ public class WSQueryEndpointTest {
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
     objectMapper = new ObjectMapper();
-    activenessRegistrarImpl = new ActivenessRegistrarImpl();
-    activenessRegistrarImpl.fire(false);
+    activenessRegistrarImpl = new ActivenessRegistrarImpl(0L);
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activenessRegistrarImpl);
     session = addMock(Session.class);

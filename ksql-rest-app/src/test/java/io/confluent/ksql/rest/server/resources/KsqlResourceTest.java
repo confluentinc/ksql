@@ -28,7 +28,9 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -692,8 +694,8 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldUpdateTheLastRequestTime() {
-    final ActivenessRegistrarImpl activenessRegistrarImpl = new ActivenessRegistrarImpl();
-    activenessRegistrarImpl.fire(false);
+    final ActivenessRegistrarImpl activenessRegistrarImpl = new ActivenessRegistrarImpl(0L);
+//    activenessRegistrarImpl.fire(false);
     final KsqlEngine mockEngine = EasyMock.mock(KsqlEngine.class);
 
     EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString())).andStubReturn(Collections.emptyList());
@@ -701,7 +703,7 @@ public class KsqlResourceTest {
     final KsqlResource ksqlResource = new KsqlResource(ksqlConfig, mockEngine, EasyMock.mock(
         ReplayableCommandQueue.class), Long.MAX_VALUE, activenessRegistrarImpl);
     EasyMock.replay(mockEngine);
-    assertThat(activenessRegistrarImpl.get(), equalTo(false));
+    assertFalse(activenessRegistrarImpl.get());
     ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
     EasyMock.verify(mockEngine);
     assertThat(activenessRegistrarImpl.get(), equalTo(true));

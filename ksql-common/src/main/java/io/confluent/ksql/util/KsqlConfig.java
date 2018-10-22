@@ -110,7 +110,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   private static final String KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC = ""
       + "Version 5.1 of KSQL and earlier incorrectly excluded the end time in the record key in "
       + "Kafka for session windowed data. Setting this value to true will make KSQL expect and "
-      + "continue to store session keys without the end time. With the default value of true "
+      + "continue to store session keys without the end time. With the default value of false "
       + "new queries will now correctly store the session end time as part of the key";
 
   public static final String

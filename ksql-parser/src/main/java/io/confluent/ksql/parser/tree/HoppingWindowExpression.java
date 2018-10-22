@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -112,8 +113,8 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       final Materialized<String, GenericRow, ?> materialized
   ) {
     final TimeWindows windows = TimeWindows
-        .of(sizeUnit.toMillis(size))
-        .advanceBy(advanceByUnit.toMillis(advanceBy));
+        .of(Duration.ofMillis(sizeUnit.toMillis(size)))
+        .advanceBy(Duration.ofMillis(advanceByUnit.toMillis(advanceBy)));
 
     return groupedStream
         .windowedBy(windows)

@@ -48,6 +48,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -365,7 +366,7 @@ public class SchemaKStreamTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
-    final JoinWindows joinWindow = JoinWindows.of(10);
+    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
     expect(mockKStream.leftJoin(eq(secondSchemaKStream.kstream),
                                 anyObject(SchemaKStream.KsqlValueJoiner.class),
                                 eq(joinWindow),
@@ -394,7 +395,7 @@ public class SchemaKStreamTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
-    final JoinWindows joinWindow = JoinWindows.of(10);
+    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
     expect(mockKStream.join(eq(secondSchemaKStream.kstream),
                             anyObject(SchemaKStream.KsqlValueJoiner.class),
                             eq(joinWindow),
@@ -424,7 +425,7 @@ public class SchemaKStreamTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
-    final JoinWindows joinWindow = JoinWindows.of(10);
+    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
     expect(mockKStream.outerJoin(eq(secondSchemaKStream.kstream),
                                  anyObject(SchemaKStream.KsqlValueJoiner.class),
                                  eq(joinWindow),

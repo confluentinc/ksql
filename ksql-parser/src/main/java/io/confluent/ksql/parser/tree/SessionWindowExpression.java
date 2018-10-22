@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -87,7 +86,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
                                final UdafAggregator aggregator,
                                final Materialized<String, GenericRow, ?> materialized) {
 
-    final SessionWindows windows = SessionWindows.with(Duration.ofMillis(sizeUnit.toMillis(gap)));
+    final SessionWindows windows = SessionWindows.with(sizeUnit.toMillis(gap));
 
     return groupedStream
         .windowedBy(windows)

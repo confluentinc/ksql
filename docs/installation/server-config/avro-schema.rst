@@ -44,12 +44,11 @@ Here's what you can do with Avro in KSQL:
 - Convert data to different formats with ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements. For example,
   you can convert a stream from Avro to JSON.
 
-Example KSQL statements that use Avro
-=====================================
+Example KSQL Statements with Avro
+=================================
 
 
-
-Create a new stream by reading Avro-formatted data
+Create a New Stream by Reading Avro-formatted Data
 --------------------------------------------------
 
 The following statement shows how to create a new ``pageviews`` stream by reading
@@ -61,7 +60,7 @@ from a Kafka topic that has Avro-formatted messages.
       WITH (KAFKA_TOPIC='pageviews-avro-topic',
             VALUE_FORMAT='AVRO');
 
-Create a new table by reading Avro-formatted data
+Create a New Table by Reading Avro-formatted Data
 -------------------------------------------------
 
 The following statement shows how to create a new ``users`` table by reading from
@@ -79,7 +78,7 @@ KSQL infers this information automatically from the latest registered Avro schem
 ``pageviews-avro-topic`` topic. KSQL uses the most recent schema at the time the statement
 is first executed.
 
-Create a new stream with selected fields of Avro-formatted data
+Create a New Stream with Selected Fields of Avro-formatted Data
 ---------------------------------------------------------------
 
 If you want to create a STREAM or TABLE with only a subset of all the
@@ -97,8 +96,8 @@ columns are picked.
       WITH (KAFKA_TOPIC='pageviews-avro-topic',
             VALUE_FORMAT='AVRO');
 
-Convert a JSON stream into an Avro stream
------------------------------------------
+Convert a JSON Stream to an Avro Stream
+---------------------------------------
 
 KSQL allows you to work with streams and tables regardless of their underlying data format. This means that you can
 easily mix and match streams and tables with different data formats and also convert between data formats. For
@@ -115,7 +114,5 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
     CREATE STREAM pageviews_avro
       WITH (VALUE_FORMAT = 'AVRO') AS
       SELECT * FROM pageviews_json;
-
-
 
     

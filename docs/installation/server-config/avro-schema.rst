@@ -115,4 +115,5 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
       WITH (VALUE_FORMAT = 'AVRO') AS
       SELECT * FROM pageviews_json;
 
+
     

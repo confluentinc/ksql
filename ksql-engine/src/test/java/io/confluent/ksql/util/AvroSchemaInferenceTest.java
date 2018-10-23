@@ -205,10 +205,20 @@ public class AvroSchemaInferenceTest {
   }
 
   @Test
-  public void shouldIgnoreUnion() {
+  public void shouldInferUnionAsStruct() {
     shouldInferType(
-        org.apache.avro.SchemaBuilder.unionOf().intType().and().stringType().endUnion(),
-        null
+        org.apache.avro.SchemaBuilder
+            .unionOf()
+            .intType()
+            .and()
+            .stringType()
+            .endUnion(),
+        SchemaBuilder
+            .struct()
+            .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build()
     );
   }
 
@@ -414,7 +424,7 @@ public class AvroSchemaInferenceTest {
 
     final StatementWithSchema inferred
         = StatementWithSchema.forStatement(
-        statement, statementText, new HashMap<>(), schemaRegistryClient);
+        statement, statementText, schemaRegistryClient);
 
     final Statement statementWithSchema
         = parser.buildAst(inferred.getStatementText(), metaStore).get(0).getStatement();

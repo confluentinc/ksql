@@ -43,12 +43,12 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.codehaus.commons.compiler.CompileException;
@@ -494,7 +494,7 @@ public class SchemaKStream<K> {
     final boolean rekey = rekeyRequired(groupByExpressions);
 
     if (!rekey) {
-      final KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
+      final KGroupedStream kgroupedStream = kstream.groupByKey(Grouped.with(keySerde, valSerde));
       return new SchemaKGroupedStream(
           schema,
           kgroupedStream,
@@ -512,7 +512,7 @@ public class SchemaKStream<K> {
     final KGroupedStream kgroupedStream = kstream
         .filter((key, value) -> value != null)
         .groupBy((key, value) -> buildGroupByKey(newKeyIndexes, value),
-            Serialized.with(Serdes.String(), valSerde));
+            Grouped.with(Serdes.String(), valSerde));
 
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to

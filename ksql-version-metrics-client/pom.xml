@@ -91,7 +91,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-unchecked,-deprecation</arg>
+                        <arg>-Xlint:all,-options,-path,-unchecked</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>

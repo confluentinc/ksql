@@ -319,14 +319,12 @@ class QueryEngine {
       return StatementWithSchema.forStatement(
           statementWithProperties,
           SqlFormatter.formatSql(statementWithProperties),
-          new HashMap<>(),
           ksqlEngine.getSchemaRegistryClient()
       );
     }
     return StatementWithSchema.forStatement(
         streamCreateStatement,
         statementText,
-        new HashMap<>(),
         ksqlEngine.getSchemaRegistryClient());
   }
 }

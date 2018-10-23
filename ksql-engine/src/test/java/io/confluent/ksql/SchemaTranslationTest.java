@@ -65,7 +65,7 @@ public class SchemaTranslationTest {
   private static List<Record> generateInputRecords(
       final Topic topic, final org.apache.avro.Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
-    return IntStream.range(0, 3).mapToObj(
+    return IntStream.range(0, 100).mapToObj(
         i -> new Record(
             topic,
             "test-key",

@@ -40,8 +40,6 @@
         <module>ksql-etc</module>
         <module>ksql-package</module>
         <module>ksql-test-util</module>
-        <module>cp-ksql-cli</module>
-        <module>cp-ksql-server</module>
     </modules>
 
     <repositories>
@@ -322,7 +320,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-deprecation</arg>
+                        <arg>-Xlint:all,-options,-path</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>

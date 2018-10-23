@@ -17,7 +17,6 @@
         <main-class>io.confluent.ksql.datagen.DataGen</main-class>
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
-        <docker.skip-build>false</docker.skip-build>
         <arg.version>0.2.0</arg.version>
     </properties>
 

@@ -16,17 +16,6 @@
 
 package io.confluent.ksql.function.udf.json;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.ArrayUtil;
-import io.confluent.ksql.util.KsqlException;
-
-import java.io.IOException;
-import java.util.Arrays;
-
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;
 import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
@@ -37,39 +26,69 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_INT;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 
-public class ArrayContainsKudf
-        implements Kudf {
-  private static final JsonFactory JSON_FACTORY = new JsonFactory()
-          .disable(CANONICALIZE_FIELD_NAMES);
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.ArrayUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
-  @Override
-  public void init() {
+public class ArrayContainsKudf implements Kudf {
+  private static final JsonFactory JSON_FACTORY =
+      new JsonFactory().disable(CANONICALIZE_FIELD_NAMES);
+
+  interface Matcher {
+    boolean matches(JsonParser parser, Object searchValue) throws IOException;
+  }
+
+  private final Map<JsonToken, Matcher> matchers = new HashMap<>();
+
+
+  ArrayContainsKudf() {
+    matchers.put(JsonToken.VALUE_NULL, (parser, value) -> value == null);
+    matchers.put(JsonToken.VALUE_STRING,
+        (parser, value) -> parser.getText().equals(value));
+    final Matcher booleanMatcher =
+        (parser, value) -> parser.getBooleanValue() == (boolean) value;
+    matchers.put(JsonToken.VALUE_FALSE, booleanMatcher);
+    matchers.put(JsonToken.VALUE_TRUE, booleanMatcher);
+    matchers.put(JsonToken.VALUE_NUMBER_INT,
+        (parser, value) ->
+            value instanceof Integer && parser.getIntValue() == (int) value
+                || value instanceof Long && parser.getLongValue() == (long) value);
+    matchers.put(JsonToken.VALUE_NUMBER_FLOAT,
+        (parser, value) -> parser.getDoubleValue() == (double) value);
   }
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
-      throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. " +
-          "Given: " + Arrays.toString(args));
+      throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. "
+          + "Given: " + Arrays.toString(args));
     }
-    Object searchValue = args[1];
-    if(args[0] instanceof String) {
+    final Object searchValue = args[1];
+    if (args[0] instanceof String) {
       return jsonStringArrayContains(searchValue, (String) args[0]);
-    } else if(args[0] instanceof Object[]) {
+    } else if (args[0] instanceof Object[]) {
       return ArrayUtil.containsValue(searchValue, (Object[]) args[0]);
     }
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
-  private boolean jsonStringArrayContains(Object searchValue, String jsonArray) {
-    JsonToken valueType = getType(searchValue);
+  private boolean jsonStringArrayContains(final Object searchValue, final String jsonArray) {
+    final JsonToken valueType = getType(searchValue);
     try (JsonParser parser = JSON_FACTORY.createParser(jsonArray)) {
       if (parser.nextToken() != START_ARRAY) {
         return false;
       }
 
       while (parser.currentToken() != null) {
-        JsonToken token = parser.nextToken();
+        final JsonToken token = parser.nextToken();
         if (token == null) {
           return searchValue == null;
         }
@@ -78,28 +97,13 @@ public class ArrayContainsKudf
         }
         parser.skipChildren();
         if (valueType == token) {
-          if (valueType == VALUE_NULL && searchValue == null) {
-            return true;
-          } else if ((valueType == VALUE_STRING)
-                  && parser.getText().equals(searchValue)) {
-            return true;
-          } else if((valueType == VALUE_FALSE || valueType == VALUE_TRUE)
-                  && (parser.getBooleanValue() == (boolean)searchValue)) {
-            return true;
-          } else if((valueType == VALUE_NUMBER_INT)) {
-            if(searchValue instanceof Integer && parser.getIntValue() == (int) searchValue) {
-              return true;
-            } else if(searchValue instanceof Long && parser.getLongValue() == (long) searchValue) {
-              return true;
-            }
-          } else if((valueType == VALUE_NUMBER_FLOAT)
-                  && parser.getDoubleValue() == (double)searchValue) {
+          final Matcher matcher = matchers.get(valueType);
+          if (matcher != null &&  matcher.matches(parser, searchValue)) {
             return true;
           }
         }
       }
-    }
-    catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Invalid JSON format: " + jsonArray, e);
     }
     return false;
@@ -108,17 +112,17 @@ public class ArrayContainsKudf
   /**
    * Returns JsonToken type of the targetValue
    */
-  private JsonToken getType(Object searchValue) {
-    if(searchValue instanceof Long || searchValue instanceof Integer) {
+  private JsonToken getType(final Object searchValue) {
+    if (searchValue instanceof Long || searchValue instanceof Integer) {
       return VALUE_NUMBER_INT;
-    } else if(searchValue instanceof Double) {
+    } else if (searchValue instanceof Double) {
       return VALUE_NUMBER_FLOAT;
-    } else if(searchValue instanceof String) {
+    } else if (searchValue instanceof String) {
       return VALUE_STRING;
-    } else if(searchValue == null) {
+    } else if (searchValue == null) {
       return VALUE_NULL;
-    } else if(searchValue instanceof Boolean) {
-      boolean value = (boolean) searchValue;
+    } else if (searchValue instanceof Boolean) {
+      final boolean value = (boolean) searchValue;
       return value ? VALUE_TRUE : VALUE_FALSE;
     }
     throw new KsqlFunctionException("Invalid Type for search value " + searchValue);

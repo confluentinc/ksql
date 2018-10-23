@@ -6,8 +6,20 @@
 
 echo "Loading Grafana ClickStream Dashboard"
 
-curl -X "POST" "http://localhost:3000/api/dashboards/db" \
+RESP="$(curl -s -X "POST" "http://localhost:3000/api/dashboards/db" \
 	    -H "Content-Type: application/json" \
 	     --user admin:admin \
-	     --data-binary @clickstream-analysis-dashboard.json
+	     --data-binary @/scripts/clickstream-analysis-dashboard.json)"
 
+echo $RESP
+echo ""
+echo ""
+
+if [[ $RESP =~ .*\"url\":\"([^\"]*)\".* ]]
+then
+    url="${BASH_REMATCH[1]}"
+else
+    url="/dashboard/db/click-stream-analysis"
+fi
+
+echo -e "Navigate to:\n\thttp://localhost:3000${url}\n(Default user: admin / password: admin)"

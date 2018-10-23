@@ -16,100 +16,117 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.StatementParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/query")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
+@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
-  private final long disconnectCheckInterval;
+  private final Duration disconnectCheckInterval;
+  private final ObjectMapper objectMapper;
 
   public StreamedQueryResource(
-      KsqlEngine ksqlEngine,
-      StatementParser statementParser,
-      long disconnectCheckInterval
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final StatementParser statementParser,
+      final Duration disconnectCheckInterval
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-    this.disconnectCheckInterval = disconnectCheckInterval;
+    this.disconnectCheckInterval =
+        Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
+    this.objectMapper = JsonMapper.INSTANCE.mapper;
   }
 
   @POST
-  @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    String ksql = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
-    Map<String, Object> clientLocalProperties =
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    final String ksql = request.getKsql();
+    final Statement statement;
+    if (ksql == null) {
+      return Errors.badRequest("\"ksql\" field must be given");
+    }
+    final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
-    Statement statement = statementParser.parseSingleStatement(ksql);
+    try {
+      statement = statementParser.parseSingleStatement(ksql);
+    } catch (IllegalArgumentException | KsqlException e) {
+      return Errors.badRequest(e);
+    }
 
     if (statement instanceof Query) {
-      QueryStreamWriter queryStreamWriter =
-          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+      final QueryStreamWriter queryStreamWriter;
+      try {
+        queryStreamWriter = new QueryStreamWriter(
+            ksqlConfig,
+            ksqlEngine,
+            disconnectCheckInterval.toMillis(),
+            ksql,
+            clientLocalProperties,
+            objectMapper);
+      } catch (final KsqlException e) {
+        return Errors.badRequest(e);
+      }
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
 
     } else if (statement instanceof PrintTopic) {
-      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
-          clientLocalProperties,
+      final TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
           (PrintTopic) statement
       );
       return Response.ok().entity(topicStreamWriter).build();
-    } else {
-      throw new Exception(String.format(
-          "Statement type `%s' not supported for this resource",
-          statement.getClass().getName()
-      ));
     }
+    return Errors.badRequest(String .format(
+        "Statement type `%s' not supported for this resource",
+        statement.getClass().getName()));
   }
 
-  private TopicStreamWriter getTopicStreamWriter(
-      final Map<String, Object> clientLocalProperties,
-      final PrintTopic printTopic
-  ) {
-    String topicName = printTopic.getTopic().toString();
-    Long
-        interval =
-        Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
+  private TopicStreamWriter getTopicStreamWriter(final PrintTopic printTopic) {
+    final String topicName = printTopic.getTopic().toString();
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
-      throw new RuntimeException(String.format(
-          "Could not find topic '%s', KSQL uses uppercase.\n" +
-          "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
-          topicName
-      ));
+      throw new KsqlRestException(
+          Errors.badRequest(String.format(
+              "Could not find topic '%s', KSQL uses uppercase.%n"
+              + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
+              topicName)));
     }
-    Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
-    properties.putAll(clientLocalProperties);
-    TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+    final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         ksqlEngine.getSchemaRegistryClient(),
-        properties,
+        ksqlConfig.getKsqlStreamConfigProps(),
         topicName,
-        interval,
+        printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getFromBeginning()
     );

@@ -16,30 +16,28 @@
 
 package io.confluent.ksql.function.udaf.max;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+public class LongMaxKudaf extends BaseAggregateFunction<Long, Long> {
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
-public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
-
-  LongMaxKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, Long.MIN_VALUE, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA),
-          "MAX", LongMaxKudaf.class);
+  LongMaxKudaf(final String functionName, final int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Long.MIN_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "Computes the maximum long value for a key."
+    );
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    if (currentVal > currentAggVal) {
-      return currentVal;
+  public Long aggregate(final Long currentValue, final Long aggregateValue) {
+    if (currentValue > aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override
@@ -53,9 +51,8 @@ public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
-                                                       List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongMaxKudaf(udafIndex);
+  public KsqlAggregateFunction<Long, Long> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new LongMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

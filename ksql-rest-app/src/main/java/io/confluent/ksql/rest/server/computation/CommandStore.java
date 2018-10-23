@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,19 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.io.Closeable;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -26,48 +39,36 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KsqlException;
-
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
-public class CommandStore implements Closeable {
+
+public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
-  private static final long POLLING_TIMEOUT_FOR_COMMAND_TOPIC = 5000;
+  private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
   private final String commandTopic;
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
-  private final AtomicBoolean closed;
+  private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
   public CommandStore(
-      String commandTopic,
-      Consumer<CommandId, Command> commandConsumer,
-      Producer<CommandId, Command> commandProducer,
-      CommandIdAssigner commandIdAssigner
+      final String commandTopic,
+      final Consumer<CommandId, Command> commandConsumer,
+      final Producer<CommandId, Command> commandProducer,
+      final CommandIdAssigner commandIdAssigner
   ) {
     this.commandTopic = commandTopic;
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
+    this.commandStatusMap = Maps.newConcurrentMap();
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
-
-    closed = new AtomicBoolean(false);
   }
 
   /**
@@ -75,7 +76,6 @@ public class CommandStore implements Closeable {
    */
   @Override
   public void close() {
-    closed.set(true);
     commandConsumer.wakeup();
     commandProducer.close();
   }
@@ -87,22 +87,40 @@ public class CommandStore implements Closeable {
    *
    * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
-   * @param streamsProperties Any command-specific Streams properties to use.
-   * @return The ID assigned to the statement
+   * @param overwriteProperties Any command-specific Streams properties to use.
+   * @return The status of the enqueued command
    */
-  public CommandId distributeStatement(
-      String statementString,
-      Statement statement,
-      Map<String, Object> streamsProperties
-  ) throws KsqlException {
+  @Override
+  public QueuedCommandStatus enqueueCommand(
+      final String statementString,
+      final Statement statement,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overwriteProperties) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement);
     final Command command = new Command(
         statementString,
-        streamsProperties
+        overwriteProperties,
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final QueuedCommandStatus status = new QueuedCommandStatus(commandId);
+    this.commandStatusMap.compute(
+        commandId,
+        (k, v) -> {
+          if (v == null) {
+            return status;
+          }
+          // We should fail registration if a future is already registered, to prevent
+          // a caller from receiving a future for a different statement.
+          throw new IllegalStateException(
+              String.format(
+                  "Another command with the same id (%s) is being executed.",
+                  commandId)
+          );
+        }
     );
     try {
       commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
-    } catch (Exception e) {
+    } catch (final Exception e) {
+      commandStatusMap.remove(commandId);
       throw new KsqlException(
           String.format(
               "Could not write the statement '%s' into the "
@@ -112,7 +130,7 @@ public class CommandStore implements Closeable {
           e
       );
     }
-    return commandId;
+    return status;
   }
 
   /**
@@ -120,25 +138,35 @@ public class CommandStore implements Closeable {
    *
    * @return The commands that have been polled from the command topic
    */
-  public ConsumerRecords<CommandId, Command> getNewCommands() {
-    return commandConsumer.poll(Long.MAX_VALUE);
+  public List<QueuedCommand> getNewCommands() {
+    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
+    commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
+        c -> queuedCommands.add(
+            new QueuedCommand(
+                c.key(),
+                Optional.ofNullable(c.value()),
+                Optional.ofNullable(commandStatusMap.remove(c.key()))
+            )
+        )
+    );
+    return queuedCommands;
   }
 
-  RestoreCommands getRestoreCommands() {
+  public RestoreCommands getRestoreCommands() {
     final RestoreCommands restoreCommands = new RestoreCommands();
 
-    Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
+    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
-    commandConsumer.seekToBeginning(commandTopicPartitions);
+    commandConsumer.seekToBeginning(cmdTopicPartitions);
 
     log.debug("Reading prior command records");
 
-    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = new LinkedHashMap<>();
+    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
     ConsumerRecords<CommandId, Command> records =
         commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
-      for (ConsumerRecord<CommandId, Command> record : records) {
+      for (final ConsumerRecord<CommandId, Command> record : records) {
         restoreCommands.addCommand(record.key(), record.value());
       }
       records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
@@ -147,11 +175,11 @@ public class CommandStore implements Closeable {
     return restoreCommands;
   }
 
-  private Collection<TopicPartition> getTopicPartitionsForTopic(String topic) {
-    List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
+  private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
+    final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
 
-    Collection<TopicPartition> result = new HashSet<>();
-    for (PartitionInfo partitionInfo : partitionInfoList) {
+    final Collection<TopicPartition> result = new HashSet<>();
+    for (final PartitionInfo partitionInfo : partitionInfoList) {
       result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
     }
     return result;

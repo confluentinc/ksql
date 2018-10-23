@@ -25,17 +25,17 @@ public class NullLiteral
     super(Optional.empty());
   }
 
-  public NullLiteral(NodeLocation location) {
+  public NullLiteral(final NodeLocation location) {
     super(Optional.of(location));
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitNullLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

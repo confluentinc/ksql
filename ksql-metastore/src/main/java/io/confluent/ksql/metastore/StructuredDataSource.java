@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,57 +16,49 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KsqlException;
-
 public abstract class StructuredDataSource implements DataSource {
 
-  final String dataSourceName;
-  final DataSourceType dataSourceType;
-  final Schema schema;
-  final Field keyField;
-  final Field timestampField;
+  protected final String dataSourceName;
+  protected final DataSourceType dataSourceType;
+  protected final Schema schema;
+  protected final Field keyField;
+  protected final TimestampExtractionPolicy timestampExtractionPolicy;
 
-  final KsqlTopic ksqlTopic;
-  final String sqlExpression;
-
+  protected final KsqlTopic ksqlTopic;
+  protected final String sqlExpression;
 
   public StructuredDataSource(
-      String sqlExpression,
-      final String datasourceName,
+      final String sqlExpression,
+      final String dataSourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final DataSourceType dataSourceType,
       final KsqlTopic ksqlTopic
   ) {
     this.sqlExpression = sqlExpression;
-    this.dataSourceName = datasourceName;
+    this.dataSourceName = dataSourceName;
     this.schema = schema;
     this.keyField = keyField;
-    this.timestampField = timestampField;
+    this.timestampExtractionPolicy = timestampExtractionPolicy;
     this.dataSourceType = dataSourceType;
     this.ksqlTopic = ksqlTopic;
-  }
-
-  public static DataSourceType getDataSourceType(String dataSourceTypeName) {
-    switch (dataSourceTypeName) {
-      case "STREAM":
-        return DataSourceType.KSTREAM;
-      case "TABLE":
-        return DataSourceType.KTABLE;
-      default:
-        throw new KsqlException("DataSource Type is not supported: " + dataSourceTypeName);
-    }
   }
 
   @Override
   public String getName() {
     return this.dataSourceName;
+  }
+
+  @Override
+  public DataSourceType getDataSourceType() {
+    return this.dataSourceType;
   }
 
   public Schema getSchema() {
@@ -77,25 +69,27 @@ public abstract class StructuredDataSource implements DataSource {
     return this.keyField;
   }
 
-  @Override
-  public DataSourceType getDataSourceType() {
-    return this.dataSourceType;
-  }
-
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
 
-  public Field getTimestampField() {
-    return timestampField;
+  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+    return timestampExtractionPolicy;
   }
+
+  public abstract StructuredDataSource copy();
 
   public abstract StructuredDataSource cloneWithTimeKeyColumns();
 
-  public abstract StructuredDataSource cloneWithTimeField(String timestampfieldName);
+  public abstract StructuredDataSource cloneWithTimeExtractionPolicy(
+      TimestampExtractionPolicy policy);
 
   public String getTopicName() {
     return ksqlTopic.getTopicName();
+  }
+
+  public String getKafkaTopicName() {
+    return ksqlTopic.getKafkaTopicName();
   }
 
   public abstract QueryId getPersistentQueryId();

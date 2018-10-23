@@ -16,68 +16,80 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class LongTopkKudafTest {
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
-  Long[] valueArray;
+@SuppressWarnings("unchecked")
+public class LongTopkKudafTest {
+  private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
+      25L);;
+  private TopKAggregateFunctionFactory topKFactory;
+  private List<Schema> argumentType;
+
   @Before
   public void setup() {
-    valueArray = new Long[]{10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L};
-
+    topKFactory = new TopKAggregateFunctionFactory(3);
+    argumentType = Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
-    Long[] currentVal = new Long[]{null, null, null};
-    for (Long l: valueArray) {
-      currentVal = longTopkKudaf.aggregate(l, currentVal);
+    final KsqlAggregateFunction<Long, List<Long>> longTopkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    List<Long> window = new ArrayList<>();
+    for (final Long value : valuesArray) {
+      window = longTopkKudaf.aggregate(value, window);
     }
-
-    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, 60L, 60L}));
+    assertThat("Invalid results.", window, equalTo(ImmutableList.of(80L, 60L, 60L)));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
-    Long[] currentVal = new Long[]{null, null, null};
-    currentVal = longTopkKudaf.aggregate(80L, currentVal);
-
-    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, null, null}));
+    final KsqlAggregateFunction<Long, List<Long>> longTopkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<Long> window = longTopkKudaf.aggregate(80L, new ArrayList());
+    assertThat("Invalid results.", window, equalTo(ImmutableList.of(80L)));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
-    Long[] array1 = new Long[]{50L, 45L, 25L};
-    Long[] array2 = new Long[]{60L, 55L, 48l};
+    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
+    final List<Long> array2 = ImmutableList.of(60L, 55L, 48L);
 
-    assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60L, 55L, 50L}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of(60L, 55L, 50L)));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
-    Long[] array1 = new Long[]{50L, 45L, null};
-    Long[] array2 = new Long[]{60L, null, null};
+    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<Long> array1 = ImmutableList.of(50L, 45L);
+    final List<Long> array2 = ImmutableList.of(60L);
 
-    assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60L, 50L, 45L}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of(60L, 50L, 45L)));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
-    Long[] array1 = new Long[]{50L, null, null};
-    Long[] array2 = new Long[]{60L, null, null};
+    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<Long> array1 = ImmutableList.of(50L);
+    final List<Long> array2 = ImmutableList.of(60L);
 
-    assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60L, 50L, null}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of(60L, 50L)));
   }
 }

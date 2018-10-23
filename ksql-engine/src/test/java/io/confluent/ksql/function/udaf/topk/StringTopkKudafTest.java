@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,69 +16,83 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class StringTopkKudafTest {
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
-  String[] valueArray;
+@SuppressWarnings("unchecked")
+public class StringTopkKudafTest {
+  private final List<String> valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
+      "Test", "123", "432");;
+  private TopKAggregateFunctionFactory topKFactory;
+  private List<Schema> argumentType;
+
   @Before
   public void setup() {
-    valueArray = new String[]{"10", "ab", "cde", "efg", "aa", "32", "why", "How are you", "Test",
-                              "123", "432"};
-
+    topKFactory = new TopKAggregateFunctionFactory(3);
+    argumentType = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
-    String[] currentVal = new String[]{null, null, null};
-    for (String s: valueArray) {
-      currentVal = stringTopkKudaf.aggregate(s, currentVal);
+    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    List<String> currentVal = new ArrayList<>();
+    for (final String value : valueArray) {
+      currentVal = topkKudaf.aggregate(value , currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"why", "efg", "cde"}));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("why", "efg", "cde")));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
-    String[] currentVal = new String[]{null, null, null};
-    currentVal = stringTopkKudaf.aggregate("why", currentVal);
+    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    List<String> currentVal = new ArrayList<>();
+    currentVal = topkKudaf.aggregate("why", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"why", null, null}));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("why")));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"123", "Hello", "paper"};
-    String[] array2 = new String[]{"Hi", "456", "Zzz"};
+    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<String> array1 = ImmutableList.of("paper", "Hello", "123");
+    final List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
 
-    assertThat("Invalid results.", stringTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"paper", "Zzz", "Hi"}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of("paper", "Zzz", "Hi")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", null, null};
+    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<String> array1 = ImmutableList.of("50", "45");
+    final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", stringTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"50", null, null};
-    String[] array2 = new String[]{"60", null, null};
+    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+    final List<String> array1 = ImmutableList.of("50");
+    final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", stringTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", null}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+        equalTo(ImmutableList.of("60", "50")));
   }
 }

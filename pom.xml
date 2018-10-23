@@ -6,15 +6,26 @@
 
     <parent>
         <groupId>io.confluent</groupId>
-        <artifactId>common</artifactId>
-        <version>4.1.0-SNAPSHOT</version>
+        <artifactId>rest-utils-parent</artifactId>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
-    <version>4.1.0-SNAPSHOT</version>
+    <name>ksql-parent</name>
+    <version>5.2.0-SNAPSHOT</version>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <modules>
+        <module>ksql-udf</module>
         <module>ksql-common</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
@@ -24,10 +35,11 @@
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
-        <module>ksql-clickstream-demo</module>
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
+        <module>ksql-etc</module>
         <module>ksql-package</module>
+        <module>ksql-test-util</module>
     </modules>
 
     <repositories>
@@ -56,22 +68,27 @@
     </pluginRepositories>
 
     <properties>
-        <!-- remove the version control when confluent-common updates to 11.0.1 -->
-        <!--<kafka.version>0.11.0.1</kafka.version>-->
+        <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
+        <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
+        <confluent.maven.repo>http://packages.confluent.io/maven/</confluent.maven.repo>
+        <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
+        <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
-        <airline.version>2.2.0</airline.version>
+        <airline.version>2.6.0</airline.version>
         <antlr.version>4.7</antlr.version>
         <csv.version>1.4</csv.version>
-        <guava.version>21.0</guava.version>
+        <gson.version>2.8.5</gson.version>
+        <guava.version>24.0-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
-        <java.version>1.8</java.version>
-        <jline.version>3.3.1</jline.version>
+        <jline.version>3.9.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
-        <jackson.version>2.9.1</jackson.version>
+        <hamcrest.version>1.3</hamcrest.version>
+        <avro.random.generator.version>0.2.1</avro.random.generator.version>
+        <apache.curator.version>2.9.0</apache.curator.version>
     </properties>
 
     <dependencyManagement>
@@ -81,6 +98,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -233,6 +256,12 @@
             </dependency>
 
             <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
                 <version>${janino.version}</version>
@@ -278,9 +307,9 @@
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>net.alchim31.maven</groupId>
-                    <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.2.1</version>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -290,8 +319,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-path</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -299,24 +330,51 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
+                    <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.maven.plugin.version}</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                    <effort>Max</effort>
+                    <threshold>Max</threshold>
+                    <failOnError>true</failOnError>
+                </configuration>
+                <executions>
+                    <!--
+                    Ensures that FindBugs inspects source code when project is compiled.
+                -->
+                    <execution>
+                        <id>analyze-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
     <reporting>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>${findbugs-maven-plugin.version}</version>
-                <configuration>
-                    <findbugsXmlOutput>true</findbugsXmlOutput>
-                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-                    <xmlOutput>true</xmlOutput>
-                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
-                </configuration>
-            </plugin>
+
         </plugins>
     </reporting>
 </project>

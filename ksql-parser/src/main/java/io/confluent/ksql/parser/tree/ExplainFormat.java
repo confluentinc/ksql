@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class ExplainFormat
     extends ExplainOption {
@@ -32,15 +32,15 @@ public class ExplainFormat
 
   private final Type type;
 
-  public ExplainFormat(Type type) {
+  public ExplainFormat(final Type type) {
     this(Optional.empty(), type);
   }
 
-  public ExplainFormat(NodeLocation location, Type type) {
+  public ExplainFormat(final NodeLocation location, final Type type) {
     this(Optional.of(location), type);
   }
 
-  private ExplainFormat(Optional<NodeLocation> location, Type type) {
+  private ExplainFormat(final Optional<NodeLocation> location, final Type type) {
     super(location);
     this.type = requireNonNull(type, "type is null");
   }
@@ -55,14 +55,14 @@ public class ExplainFormat
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    ExplainFormat o = (ExplainFormat) obj;
+    final ExplainFormat o = (ExplainFormat) obj;
     return Objects.equals(type, o.type);
   }
 

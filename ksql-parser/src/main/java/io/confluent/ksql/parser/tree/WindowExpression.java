@@ -25,34 +25,37 @@ public class WindowExpression extends Node {
   private final String windowName;
   private  final KsqlWindowExpression ksqlWindowExpression;
 
-  public WindowExpression(String windowName, KsqlWindowExpression ksqlWindowExpression) {
+  public WindowExpression(
+      final String windowName, final KsqlWindowExpression ksqlWindowExpression) {
     this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
-  protected WindowExpression(Optional<NodeLocation> location, String windowName,
-                             KsqlWindowExpression ksqlWindowExpression) {
+  public WindowExpression(
+      final Optional<NodeLocation> location,
+      final String windowName,
+      final KsqlWindowExpression ksqlWindowExpression) {
     super(location);
     this.windowName = windowName;
     this.ksqlWindowExpression = ksqlWindowExpression;
-  }
-
-  public String getWindowName() {
-    return windowName;
   }
 
   public KsqlWindowExpression getKsqlWindowExpression() {
     return ksqlWindowExpression;
   }
 
+  public String getWindowName() {
+    return windowName;
+  }
+
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    WindowExpression o = (WindowExpression) obj;
+    final WindowExpression o = (WindowExpression) obj;
     return Objects.equals(ksqlWindowExpression, o.ksqlWindowExpression);
   }
 
@@ -66,26 +69,19 @@ public class WindowExpression extends Node {
     return " WINDOW " + windowName + " " + ksqlWindowExpression.toString();
   }
 
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitWindowExpression(this, context);
+  }
 
-  public static TimeUnit getWindowUnit(String windowUnitString) {
-    switch (windowUnitString) {
-      case "DAY":
-      case "DAYS":
-        return TimeUnit.DAYS;
-      case "HOUR":
-      case "HOURS":
-        return TimeUnit.HOURS;
-      case "MINUTE":
-      case "MINUTES":
-        return TimeUnit.MINUTES;
-      case "SECOND":
-      case "SECONDS":
-        return TimeUnit.SECONDS;
-      case "MILLISECOND":
-      case "MILLISECONDS":
-        return TimeUnit.MILLISECONDS;
-      default:
-        return null;
+  public static TimeUnit getWindowUnit(final String windowUnitString) {
+    try {
+      if (!windowUnitString.endsWith("S")) {
+        return TimeUnit.valueOf(windowUnitString + "S");
+      }
+      return TimeUnit.valueOf(windowUnitString);
+    } catch (IllegalArgumentException | NullPointerException e) {
+      return null;
     }
   }
 

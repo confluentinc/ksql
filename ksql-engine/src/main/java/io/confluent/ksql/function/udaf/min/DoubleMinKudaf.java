@@ -16,30 +16,28 @@
 
 package io.confluent.ksql.function.udaf.min;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
-public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
-
-  DoubleMinKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
-          Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "MIN", DoubleMinKudaf.class);
+  DoubleMinKudaf(final String functionName, final int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "Computes the minimum double value by key."
+    );
   }
 
   @Override
-  public Double aggregate(Double currentVal, Double currentAggVal) {
-    if (currentVal < currentAggVal) {
-      return currentVal;
+  public Double aggregate(final Double currentValue, final Double aggregateValue) {
+    if (currentValue < aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override
@@ -53,9 +51,8 @@ public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new DoubleMinKudaf(udafIndex);
+  public KsqlAggregateFunction<Double, Double> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new DoubleMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

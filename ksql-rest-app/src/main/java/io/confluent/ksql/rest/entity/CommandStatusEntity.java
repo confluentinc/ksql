@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,24 +17,21 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.rest.server.computation.CommandId;
-
 import java.util.Map;
 import java.util.Objects;
 
-@JsonTypeName("currentStatus")
-@JsonSubTypes({})
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
 
   public CommandStatusEntity(
-      String statementText,
-      CommandId commandId,
-      CommandStatus commandStatus
+      final String statementText,
+      final CommandId commandId,
+      final CommandStatus commandStatus
   ) {
     super(statementText);
     this.commandId = commandId;
@@ -42,10 +39,10 @@ public class CommandStatusEntity extends KsqlEntity {
   }
 
   public CommandStatusEntity(
-      String statementText,
-      String commandId,
-      String status,
-      String message
+      final String statementText,
+      final String commandId,
+      final String status,
+      final String message
   ) {
     this(
         statementText,
@@ -54,8 +51,9 @@ public class CommandStatusEntity extends KsqlEntity {
     );
   }
 
+  @SuppressWarnings("unchecked") // needs investigating
   @JsonCreator
-  public CommandStatusEntity(Map<String, Object> properties) {
+  public CommandStatusEntity(final Map<String, Object> properties) {
     this(
         (String) properties.get("statementText"),
         (String) properties.get("commandId"),
@@ -74,14 +72,14 @@ public class CommandStatusEntity extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof CommandStatusEntity)) {
       return false;
     }
-    CommandStatusEntity that = (CommandStatusEntity) o;
+    final CommandStatusEntity that = (CommandStatusEntity) o;
     return Objects.equals(getCommandId(), that.getCommandId())
         && Objects.equals(getCommandStatus(), that.getCommandStatus());
   }
@@ -89,5 +87,13 @@ public class CommandStatusEntity extends KsqlEntity {
   @Override
   public int hashCode() {
     return Objects.hash(getCommandId(), getCommandStatus());
+  }
+
+  @Override
+  public String toString() {
+    return "CommandStatusEntity{"
+        + "commandId=" + commandId
+        + ", commandStatus=" + commandStatus
+        + '}';
   }
 }

@@ -33,10 +33,9 @@ for dir in "$base_dir/ksql-tools/target/ksql-tools"-*-development; do
   fi
 done
 
-DIR="$base_dir/share/java/ksql-tools"
+DIR="$base_dir/share/java/ksql"
 if [ -d "$DIR" ]; then
   KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
 fi
 
-echo $KSQL_CLASSPATH
 exec "$JAVA" -cp "$KSQL_CLASSPATH" io.confluent.ksql.tools.printmetrics.PrintMetrics "$@"

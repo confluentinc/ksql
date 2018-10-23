@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,35 +16,81 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
+import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ExecutionException;
 
-public class TimestampToString implements Kudf {
+@UdfDescription(name = "timestamptostring", author = "Confluent",
+    description = "Converts a BIGINT millisecond timestamp value into"
+        + " the string representation of the timestamp in the given format.")
+public class TimestampToString {
 
-  private DateFormat dateFormat = null;
-  @Override
-  public void init() {
+  private final LoadingCache<String, DateTimeFormatter> formatters =
+      CacheBuilder.newBuilder()
+          .maximumSize(1000)
+          .build(CacheLoader.from(DateTimeFormatter::ofPattern));
 
-  }
-
-  @Override
-  public Object evaluate(Object... args) {
-    if (args.length != 2) {
-      throw new KsqlFunctionException("TimestampToString udf should have two input argument:"
-                                      + " date value and format.");
-    }
+  @Udf(description = "Converts a BIGINT millisecond timestamp value into the"
+      + " string representation of the timestamp in the given format. Single quotes in the"
+      + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'"
+      + " The system default time zone is used when no time zone is explicitly provided."
+      + " The format pattern should be in the format expected"
+      + " by java.time.format.DateTimeFormatter")
+  public String timestampToString(
+      @UdfParameter(value = "epochMilli",
+          description = "Milliseconds since"
+              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
+      @UdfParameter(value = "formatPattern",
+          description = "The format pattern should be in the format expected by"
+              + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
-      if(dateFormat == null) {
-        dateFormat = new SimpleDateFormat(args[1].toString());
-      }
-      return dateFormat.format(new Date((long)args[0]));
-    } catch (Exception e) {
-      throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] +" , " +
-                                      args[1] + ") : " + e.getMessage(), e);
+      final Timestamp timestamp = new Timestamp(epochMilli);
+      final DateTimeFormatter formatter = formatters.get(formatPattern);
+      return timestamp.toInstant()
+          .atZone(ZoneId.systemDefault())
+          .format(formatter);
+    } catch (final ExecutionException | RuntimeException e) {
+      throw new KsqlFunctionException("Failed to format timestamp " + epochMilli
+          + " with formatter '" + formatPattern
+          + "': " + e.getMessage(), e);
     }
+
   }
+
+  @Udf(description = "Converts a BIGINT millisecond timestamp value into the"
+      + " string representation of the timestamp in the given format. Single quotes in the"
+      + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'")
+  public String timestampToString(
+      @UdfParameter(value = "epochMilli",
+          description = "Milliseconds since"
+              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
+      @UdfParameter(value = "formatPattern",
+          description = "The format pattern should be in the format expected by"
+              + " java.time.format.DateTimeFormatter.") final String formatPattern,
+      @UdfParameter(value = "timeZone",
+          description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
+              + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
+    try {
+      final Timestamp timestamp = new Timestamp(epochMilli);
+      final DateTimeFormatter formatter = formatters.get(formatPattern);
+      final ZoneId zoneId = ZoneId.of(timeZone);
+      return timestamp.toInstant()
+          .atZone(zoneId)
+          .format(formatter);
+    } catch (final ExecutionException | RuntimeException e) {
+      throw new KsqlFunctionException("Failed to format timestamp " + epochMilli
+          + " at timeZone '" + timeZone + "' with formatter '" + formatPattern
+          + "': " + e.getMessage(), e);
+    }
+
+  }
+
 }

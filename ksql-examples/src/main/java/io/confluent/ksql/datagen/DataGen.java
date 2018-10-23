@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,87 +16,74 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.avro.random.generator.Generator;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
+import java.util.function.BiConsumer;
 
-import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.util.KsqlConfig;
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+public final class DataGen {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-public class DataGen {
+  private DataGen() {
+  }
 
-  public static void main(String[] args) {
-    Arguments arguments;
-
+  public static void main(final String[] args) {
     try {
-      arguments = new Arguments.Builder().parseArgs(args).build();
-    } catch (Arguments.ArgumentParseException exception) {
+      run(args);
+    } catch (final Arguments.ArgumentParseException exception) {
       System.err.println(exception.getMessage());
-      usage(1);
-      return;
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      return;
+      usage();
+      System.exit(1);
+    } catch (final Exception e) {
+      System.err.println(e.getMessage());
+      System.exit(1);
     }
+  }
+
+  static void run(final String... args) throws IOException {
+    final Arguments arguments = new Arguments.Builder()
+        .parseArgs(args)
+        .build();
 
     if (arguments.help) {
-      usage(0);
-    }
-
-    Generator generator;
-    try {
-      generator = new Generator(arguments.schemaFile, new Random());
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      usage();
       return;
     }
-    DataGenProducer dataProducer;
 
-    switch (arguments.format) {
-      case AVRO:
-        dataProducer = new AvroProducer(
-            new KsqlConfig(Collections.singletonMap(
-                KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                arguments.schemaRegistryUrl
-            )));
-        break;
-      case JSON:
-        dataProducer = new JsonProducer();
-        break;
-      case DELIMITED:
-        dataProducer = new DelimitedProducer();
-        break;
-      default:
-        System.err.printf(
-            "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n",
-            arguments.format
-        );
-        usage(1);
-        return;
-    }
+    final Generator generator = new Generator(arguments.schemaFile, new Random());
+    final DataGenProducer dataProducer = new ProducerFactory()
+        .getProducer(arguments.format, arguments.schemaRegistryUrl);
+    final Properties props = getProperties(arguments);
 
-    Properties props = new Properties();
+    dataProducer.populateTopic(
+        props,
+        generator,
+        arguments.topicName,
+        arguments.keyName,
+        arguments.iterations,
+        arguments.maxInterval
+    );
+  }
+
+  private static Properties getProperties(final Arguments arguments) throws IOException {
+    final Properties props = new Properties();
     props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KSQLDataGenProducer");
 
-    try {
-      if (arguments.propertiesFile != null) {
-        props.load(arguments.propertiesFile);
-      }
-    } catch (IOException exception) {
-      System.err.printf("IOException encountered: %s%n", exception.getMessage());
-      return;
+    if (arguments.propertiesFile != null) {
+      props.load(arguments.propertiesFile);
     }
 
-    dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
-                               arguments.iterations, arguments.maxInterval
-    );
+    return props;
   }
 
   private static void usage() {
@@ -107,6 +94,7 @@ public class DataGen {
         + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
         + "'pageviews')] "
         + "schema=<avro schema file> "
+        + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
         + "topic=<kafka topic name> "
         + "key=<name of key column> "
@@ -116,37 +104,32 @@ public class DataGen {
     );
   }
 
-  private static void usage(int exitValue) {
-    usage();
-    System.exit(exitValue);
-  }
+  static class Arguments {
 
-  private static class Arguments {
+    public enum Format { AVRO, JSON, DELIMITED }
 
-    public enum Format {AVRO, JSON, DELIMITED}
+    private final boolean help;
+    private final String bootstrapServer;
+    private final InputStream schemaFile;
+    private final Format format;
+    private final String topicName;
+    private final String keyName;
+    private final int iterations;
+    private final long maxInterval;
+    private final String schemaRegistryUrl;
+    private final InputStream propertiesFile;
 
-    public final boolean help;
-    public final String bootstrapServer;
-    public final InputStream schemaFile;
-    public final Format format;
-    public final String topicName;
-    public final String keyName;
-    public final int iterations;
-    public final long maxInterval;
-    public final String schemaRegistryUrl;
-    public final InputStream propertiesFile;
-
-    public Arguments(
-        boolean help,
-        String bootstrapServer,
-        InputStream schemaFile,
-        Format format,
-        String topicName,
-        String keyName,
-        int iterations,
-        long maxInterval,
-        String schemaRegistryUrl,
-        InputStream propertiesFile
+    Arguments(
+        final boolean help,
+        final String bootstrapServer,
+        final InputStream schemaFile,
+        final Format format,
+        final String topicName,
+        final String keyName,
+        final int iterations,
+        final long maxInterval,
+        final String schemaRegistryUrl,
+        final InputStream propertiesFile
     ) {
       this.help = help;
       this.bootstrapServer = bootstrapServer;
@@ -160,14 +143,30 @@ public class DataGen {
       this.propertiesFile = propertiesFile;
     }
 
-    public static class ArgumentParseException extends RuntimeException {
+    static class ArgumentParseException extends RuntimeException {
 
-      public ArgumentParseException(String message) {
+      ArgumentParseException(final String message) {
         super(message);
       }
     }
 
-    public static class Builder {
+    private static final class Builder {
+
+      private static final Map<String, BiConsumer<Builder, String>> ARG_HANDLERS =
+          ImmutableMap.<String, BiConsumer<Builder, String>>builder()
+              .put("quickstart", (builder, argVal) -> builder.quickstart = parseQuickStart(argVal))
+              .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
+              .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
+              .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
+              .put("topic", (builder, argVal) -> builder.topicName = argVal)
+              .put("key", (builder, argVal) -> builder.keyName = argVal)
+              .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
+              .put("maxInterval",
+                  (builder, argVal) -> builder.maxInterval = parseIterations(argVal))
+              .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
+              .put("propertiesFile",
+                  (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal))
+              .build();
 
       private Quickstart quickstart;
 
@@ -182,7 +181,7 @@ public class DataGen {
       private String schemaRegistryUrl;
       private InputStream propertiesFile;
 
-      public Builder() {
+      private Builder() {
         quickstart = null;
         help = false;
         bootstrapServer = "localhost:9092";
@@ -210,7 +209,7 @@ public class DataGen {
         private final String rootTopicName;
         private final String keyName;
 
-        Quickstart(String schemaFileName, String rootTopicName, String keyName) {
+        Quickstart(final String schemaFileName, final String rootTopicName, final String keyName) {
           this.schemaFileName = schemaFileName;
           this.rootTopicName = rootTopicName;
           this.keyName = keyName;
@@ -220,7 +219,7 @@ public class DataGen {
           return getClass().getClassLoader().getResourceAsStream(schemaFileName);
         }
 
-        public String getTopicName(Format format) {
+        public String getTopicName(final Format format) {
           return String.format("%s_kafka_topic_%s", rootTopicName, format.name().toLowerCase());
         }
 
@@ -234,7 +233,7 @@ public class DataGen {
 
       }
 
-      public Arguments build() {
+      Arguments build() {
         if (help) {
           return new Arguments(true, null, null, null, null, null, 0, -1, null, null);
         }
@@ -251,7 +250,7 @@ public class DataGen {
           Objects.requireNonNull(format, "Message format not provided");
           Objects.requireNonNull(topicName, "Kafka topic name not provided");
           Objects.requireNonNull(keyName, "Name of key column not provided");
-        } catch (NullPointerException exception) {
+        } catch (final NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
         return new Arguments(
@@ -268,21 +267,22 @@ public class DataGen {
         );
       }
 
-      public Builder parseArgs(String[] args) throws IOException {
-        for (String arg : args) {
+      Builder parseArgs(final String[] args) throws IOException {
+        for (final String arg : args) {
           parseArg(arg);
         }
         return this;
       }
 
-      public Builder parseArg(String arg) throws IOException {
-
-        if ("help".equals(arg)) {
+      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+      private Builder parseArg(final String arg) throws IOException {
+        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+        if ("help".equals(arg) || "--help".equals(arg)) {
           help = true;
           return this;
         }
 
-        String[] splitOnEquals = arg.split("=");
+        final String[] splitOnEquals = arg.split("=");
         if (splitOnEquals.length != 2) {
           throw new ArgumentParseException(String.format(
               "Invalid argument format in '%s'; expected <name>=<value>",
@@ -290,8 +290,8 @@ public class DataGen {
           ));
         }
 
-        String argName = splitOnEquals[0].trim();
-        String argValue = splitOnEquals[1].trim();
+        final String argName = splitOnEquals[0].trim();
+        final String argValue = splitOnEquals[1].trim();
 
         if (argName.isEmpty()) {
           throw new ArgumentParseException(String.format(
@@ -307,59 +307,47 @@ public class DataGen {
           ));
         }
 
-        switch (argName) {
-          case "quickstart":
-            try {
-              quickstart = Quickstart.valueOf(argValue.toUpperCase());
-            } catch (IllegalArgumentException iae) {
-              throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of "
-                  + Arrays.toString(Quickstart.values())
-                  + " (case-insensitive)",
-                  argValue
-              ));
-            }
-            break;
-          case "bootstrap-server":
-            bootstrapServer = argValue;
-            break;
-          case "schema":
-            schemaFile = new FileInputStream(argValue);
-            break;
-          case "format":
-            format = parseFormat(argValue);
-            break;
-          case "topic":
-            topicName = argValue;
-            break;
-          case "key":
-            keyName = argValue;
-            break;
-          case "iterations":
-            iterations = parseIterations(argValue);
-            break;
-          case "maxInterval":
-            maxInterval = parseIterations(argValue);
-            break;
-          case "schemaRegistryUrl":
-            schemaRegistryUrl = argValue;
-            break;
-          case "propertiesFile":
-            propertiesFile = new FileInputStream(argValue);
-            break;
-          default:
-            throw new ArgumentParseException(String.format(
-                "Unknown argument name in '%s'",
-                argName
-            ));
-        }
+        setArg(argName, argValue);
         return this;
       }
 
-      private Format parseFormat(String formatString) {
+      private void setArg(final String argName, final String argVal) {
+        final BiConsumer<Builder, String> handler = ARG_HANDLERS.get(argName);
+        if (handler == null) {
+          throw new ArgumentParseException(String.format(
+              "Unknown argument name in '%s'",
+              argName
+          ));
+        }
+
+        handler.accept(this, argVal);
+      }
+
+      private static FileInputStream toFileInputStream(final String argVal) {
+        try {
+          return new FileInputStream(argVal);
+        } catch (final Exception e) {
+          throw new IllegalArgumentException("File not found: " + argVal, e);
+        }
+      }
+
+      private static Quickstart parseQuickStart(final String argValue) {
+        try {
+          return Quickstart.valueOf(argValue.toUpperCase());
+        } catch (final IllegalArgumentException iae) {
+          throw new ArgumentParseException(String.format(
+              "Invalid quickstart in '%s'; was expecting one of "
+              + Arrays.toString(Quickstart.values())
+              + " (case-insensitive)",
+              argValue
+          ));
+        }
+      }
+
+      private static Format parseFormat(final String formatString) {
         try {
           return Format.valueOf(formatString.toUpperCase());
-        } catch (IllegalArgumentException exception) {
+        } catch (final IllegalArgumentException exception) {
           throw new ArgumentParseException(String.format(
               "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED "
               + "(case-insensitive)",
@@ -368,9 +356,9 @@ public class DataGen {
         }
       }
 
-      private int parseIterations(String iterationsString) {
+      private static int parseIterations(final String iterationsString) {
         try {
-          int result = Integer.valueOf(iterationsString, 10);
+          final int result = Integer.valueOf(iterationsString, 10);
           if (result <= 0) {
             throw new ArgumentParseException(String.format(
                 "Invalid number of iterations in '%d'; must be a positive number",
@@ -378,28 +366,10 @@ public class DataGen {
             ));
           }
           return Integer.valueOf(iterationsString, 10);
-        } catch (NumberFormatException exception) {
+        } catch (final NumberFormatException exception) {
           throw new ArgumentParseException(String.format(
               "Invalid number of iterations in '%s'; must be a valid base 10 integer",
               iterationsString
-          ));
-        }
-      }
-
-      private long parseMaxInterval(String maxIntervalString) {
-        try {
-          long result = Long.valueOf(maxIntervalString, 10);
-          if (result <= 0) {
-            throw new ArgumentParseException(String.format(
-                "Invalid number of maxInterval in '%d'; must be a positive number",
-                result
-            ));
-          }
-          return Long.valueOf(maxIntervalString, 10);
-        } catch (NumberFormatException exception) {
-          throw new ArgumentParseException(String.format(
-              "Invalid number of maxInterval in '%s'; must be a valid base 10 long",
-              maxIntervalString
           ));
         }
       }

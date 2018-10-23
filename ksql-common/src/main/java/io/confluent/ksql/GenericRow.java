@@ -29,17 +29,21 @@ public class GenericRow {
     columns = new ArrayList<>();
   }
 
-  public GenericRow(List<Object> columns) {
+  public GenericRow(final List<Object> columns) {
     Objects.requireNonNull(columns);
     this.columns = columns;
   }
 
+  public GenericRow(final Object ...columns) {
+    this(Arrays.asList(columns));
+  }
+
   @Override
   public String toString() {
-    StringBuilder stringBuilder = new StringBuilder("[ ");
+    final StringBuilder stringBuilder = new StringBuilder("[ ");
     int currentIndex = 0;
     for (int i = 0; i < columns.size(); i++) {
-      Object obj = columns.get(i);
+      final Object obj = columns.get(i);
       if (obj == null) {
         stringBuilder.append("null");
       } else if (obj.getClass().isArray()) {
@@ -62,12 +66,17 @@ public class GenericRow {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GenericRow that = (GenericRow) o;
-
-    if (columns.size() != that.columns.size()) return false;
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final GenericRow that = (GenericRow) o;
+    if (columns.size() != that.columns.size()) {
+      return false;
+    }
 
     // For now string matching is used to compare the rows as double comparison will cause issues
     return this.toString().equals(that.toString());
@@ -82,4 +91,8 @@ public class GenericRow {
     return columns;
   }
 
+  @SuppressWarnings("unchecked")
+  public <T> T getColumnValue(final int columnIndex) {
+    return (T) columns.get(columnIndex);
+  }
 }

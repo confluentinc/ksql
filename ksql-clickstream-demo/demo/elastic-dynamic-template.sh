@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-echo "Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp"
+echo -e "\n-> Removing kafkaconnect template if it exists already."
+
+curl -XDELETE "http://localhost:9200/_template/kafkaconnect/" > /tmp/log.txt 2>&1
+
+echo -e "\n\n-> Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp\n\n"
 
 curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: application/json' -d'
 {
@@ -12,9 +16,9 @@ curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: app
   "mappings": {
     "_default_": {
       "dynamic_templates": [
-{
+        {
           "dates": {
-            "match": "*_TS",
+            "match": "EVENT_TS",
             "mapping": {
               "type": "date"
             }
@@ -25,11 +29,9 @@ curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: app
             "match": "*",
             "match_mapping_type": "string",
             "mapping": {
-              "type": "string",
-              "index": "not_analyzed"
+              "type": "keyword"
             }
-          }
-        }
+          }}
       ]
     }
   }

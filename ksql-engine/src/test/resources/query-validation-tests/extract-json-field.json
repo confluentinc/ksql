@@ -1,0 +1,39 @@
+{
+  "comments": [
+    "Tests covering the use of the EXTRACTJSONFIELD function"
+  ],
+  "tests": [
+    {
+      "name": "concat two extracted fields",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXTRACTJSONFIELD(source, '$.name') AS SOURCE, EXTRACTJSONFIELD(source, '$.version') AS VERSION, CONCAT(EXTRACTJSONFIELD(source, '$.name'), EXTRACTJSONFIELD(source, '$.version')) AS BOTH FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"source": "{\"name\": \"cdc\", \"version\": \"1\"}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"source": "{\"name\": \"cdd\", \"version\": \"2\"}"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"SOURCE":"cdc","VERSION":"1","BOTH":"cdc1"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 0, "value": {"SOURCE":"cdd","VERSION":"2","BOTH":"cdd2"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "extract JSON array field",
+      "statements": [
+        "CREATE STREAM TEST (array_field ARRAY<VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXTRACTJSONFIELD(array_field[0], '$.nested') AS Col1, EXTRACTJSONFIELD(array_field[1], '$.nested') AS Col2 FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"array_field": ["{\"nested\": \"nest0\"}","{\"nested\": \"nest1\"}"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"array_field": ["{\"nested\": \"nest0\"}"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"no": "match"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"COL1":"nest0","COL2":"nest1"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"COL1":"nest0","COL2":null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"COL1":null,"COL2":null}, "timestamp": 0}
+      ]
+    }
+  ]
+}

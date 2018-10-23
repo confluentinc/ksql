@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,27 +16,19 @@
 
 package io.confluent.ksql.datagen;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.Pair;
+import java.util.Objects;
+import java.util.Properties;
+import org.apache.avro.Schema;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 
 public abstract class DataGenProducer {
 
@@ -44,20 +36,23 @@ public abstract class DataGenProducer {
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
   public void populateTopic(
-      Properties props,
-      Generator generator,
-      String kafkaTopicName,
-      String key,
-      int messageCount,
-      long maxInterval
+      final Properties props,
+      final Generator generator,
+      final String kafkaTopicName,
+      final String key,
+      final int messageCount,
+      final long maxInterval
   ) {
-    if (maxInterval < 0) {
-      maxInterval = INTER_MESSAGE_MAX_INTERVAL;
+    final Schema avroSchema = generator.schema();
+    if (avroSchema.getField(key) == null) {
+      throw new IllegalArgumentException("Key field does not exist:" + key);
     }
-    Schema avroSchema = generator.schema();
-    org.apache.kafka.connect.data.Schema kafkaSchema = new AvroData(1).toConnectSchema(avroSchema);
 
-    Serializer<GenericRow> serializer = getSerializer(avroSchema, kafkaSchema, kafkaTopicName);
+    final AvroData avroData = new AvroData(1);
+    final org.apache.kafka.connect.data.Schema ksqlSchema =
+        SchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
+
+    final Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
 
     final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
         props,
@@ -65,80 +60,30 @@ public abstract class DataGenProducer {
         serializer
     );
 
-    SessionManager sessionManager = new SessionManager();
+    final SessionManager sessionManager = new SessionManager();
+    final RowGenerator rowGenerator =
+        new RowGenerator(generator, avroData, avroSchema, ksqlSchema, sessionManager, key);
 
     for (int i = 0; i < messageCount; i++) {
-      Object generatedObject = generator.generate();
 
-      if (!(generatedObject instanceof GenericRecord)) {
-        throw new RuntimeException(String.format(
-            "Expected Avro Random Generator to return instance of GenericRecord, found %s instead",
-            generatedObject.getClass().getName()
-        ));
-      }
-      GenericRecord randomAvroMessage = (GenericRecord) generatedObject;
+      final Pair<String, GenericRow> genericRowPair = rowGenerator.generateRow();
 
-      List<Object> genericRowValues = new ArrayList<>();
-
-      SimpleDateFormat timeformatter = null;
-
-      /**
-       * Populate the record entries
-       */
-      String sessionisationValue = null;
-      for (Schema.Field field : avroSchema.getFields()) {
-
-        boolean isSession = field.schema().getProp("session") != null;
-        boolean isSessionSiblingIntHash =
-            field.schema().getProp("session-sibling-int-hash") != null;
-        String timeFormatFromLong = field.schema().getProp("format_as_time");
-
-        if (isSession) {
-          String currentValue = (String) randomAvroMessage.get(field.name());
-          String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
-          sessionisationValue = newCurrentValue;
-
-          genericRowValues.add(newCurrentValue);
-        } else if (isSessionSiblingIntHash && sessionisationValue != null) {
-
-          // super cheeky hack to link int-ids to session-values - if anything fails then we use
-          // the 'avro-gen' randomised version
-          handleSessionSiblingField(
-              randomAvroMessage,
-              genericRowValues,
-              sessionisationValue,
-              field
-          );
-
-        } else if (timeFormatFromLong != null) {
-          Date date = new Date(System.currentTimeMillis());
-          if (timeFormatFromLong.equals("unix_long")) {
-            genericRowValues.add(date.getTime());
-          } else {
-            if (timeformatter == null) {
-              timeformatter = new SimpleDateFormat(timeFormatFromLong);
-            }
-            genericRowValues.add(timeformatter.format(date));
-          }
-        } else {
-          genericRowValues.add(randomAvroMessage.get(field.name()));
-        }
-      }
-
-      GenericRow genericRow = new GenericRow(genericRowValues);
-
-      String keyString = randomAvroMessage.get(key).toString();
-
-      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(
+      final ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(
           kafkaTopicName,
-          keyString,
-          genericRow
+          genericRowPair.getLeft(),
+          genericRowPair.getRight()
       );
-      producer.send(producerRecord);
-      System.err.println(keyString + " --> (" + genericRow + ")");
+
+      producer.send(producerRecord,
+          new ErrorLoggingCallback(kafkaTopicName,
+              genericRowPair.getLeft(),
+              genericRowPair.getRight()));
+
       try {
-        Thread.sleep((long) (maxInterval * Math.random()));
-      } catch (InterruptedException e) {
+        final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
+
+        Thread.sleep((long) (interval * Math.random()));
+      } catch (final InterruptedException e) {
         // Ignore the exception.
       }
     }
@@ -146,141 +91,31 @@ public abstract class DataGenProducer {
     producer.close();
   }
 
-  private void handleSessionSiblingField(
-      GenericRecord randomAvroMessage,
-      List<Object> genericRowValues,
-      String sessionisationValue,
-      Schema.Field field
-  ) {
-    try {
-      Schema.Type type = field.schema().getType();
-      if (type == Schema.Type.INT) {
-        genericRowValues.add(mapSessionValueToSibling(sessionisationValue, field));
+  private static class ErrorLoggingCallback implements Callback {
+
+    private final String topic;
+    private final String key;
+    private final GenericRow value;
+
+    ErrorLoggingCallback(final String topic, final String key, final GenericRow value) {
+      this.topic = topic;
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public void onCompletion(final RecordMetadata metadata, final Exception e) {
+      final String keyString = Objects.toString(key);
+      final String valueString = Objects.toString(value);
+
+      if (e != null) {
+        System.err.println("Error when sending message to topic: '" + topic + "', with key: '"
+            + keyString + "', and value: '" + valueString + "'");
+        e.printStackTrace(System.err);
       } else {
-        genericRowValues.add(randomAvroMessage.get(field.name()));
-      }
-    } catch (Exception err) {
-      genericRowValues.add(randomAvroMessage.get(field.name()));
-    }
-  }
-
-  Map<String, Integer> sessionMap = new HashMap<>();
-  Set<Integer> allocatedIds = new HashSet<>();
-
-  private int mapSessionValueToSibling(String sessionisationValue, Schema.Field field) {
-
-    if (!sessionMap.containsKey(sessionisationValue)) {
-
-      LinkedHashMap properties =
-          (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
-      Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
-
-      int vvalue = Math.abs(sessionisationValue.hashCode() % max);
-
-      int foundValue = -1;
-      // used - search for another
-      if (allocatedIds.contains(vvalue)) {
-        for (int i = 0; i < max; i++) {
-          if (!allocatedIds.contains(i)) {
-            foundValue = i;
-          }
-        }
-        if (foundValue == -1) {
-          System.out.println(
-              "Failed to allocate Id :"
-              + sessionisationValue
-              + ", reusing "
-              + vvalue
-          );
-          foundValue = vvalue;
-        }
-        vvalue = foundValue;
-      }
-      allocatedIds.add(vvalue);
-      sessionMap.put(sessionisationValue, vvalue);
-    }
-    return sessionMap.get(sessionisationValue);
-
-  }
-
-  /**
-   * If the sessionId is new Create a Session
-   * If the sessionId is active - return the value
-   * If the sessionId has expired - use a known token that is not expired
-   *
-   * @param sessionManager
-   * @param currentValue
-   * @return
-   */
-  Set<String> allTokens = new HashSet<String>();
-
-  private String handleSessionisationOfValue(SessionManager sessionManager, String currentValue) {
-
-    // superset of all values
-    allTokens.add(currentValue);
-
-    /**
-     * handle known sessions
-     */
-    if (sessionManager.isActive(currentValue)) {
-      if (sessionManager.isExpired(currentValue)) {
-        sessionManager.isActiveAndExpire(currentValue);
-        return currentValue;
-      } else {
-        return currentValue;
+        System.out.println(keyString + " --> (" + valueString + ") ts:" + metadata.timestamp());
       }
     }
-    /**
-     * If session count maxed out - reuse session tokens
-     */
-    if (sessionManager.getActiveSessionCount() > sessionManager.getMaxSessions()) {
-      return sessionManager.getRandomActiveToken();
-    }
-
-    /**
-     * Force expiring tokens to expire
-     */
-    String expired = sessionManager.getActiveSessionThatHasExpired();
-    if (expired != null) {
-      return expired;
-    }
-
-    /**
-     * Use accummulated SessionTokens-tokens, or recycle old tokens or blow-up
-     */
-    String value = null;
-    for (String token : allTokens) {
-      if (value == null) {
-        if (!sessionManager.isActive(token) && !sessionManager.isExpired(token)) {
-          value = token;
-        }
-      }
-    }
-
-    if (value != null) {
-      sessionManager.newSession(value);
-    } else {
-      value = sessionManager.recycleOldestExpired();
-      if (value == null) {
-        throw new RuntimeException(
-            "Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of "
-            + "sessions(5), number of tokens in the avro template");
-      }
-      sessionManager.newSession(value);
-      return value;
-    }
-    return currentValue;
-  }
-
-  private String getRandomToken(Set<String> collected) {
-    if (collected.size() == 0) {
-      return null;
-    }
-    List<String> values = new ArrayList<>(collected);
-    int index = (int) (Math.random() * values.size());
-    String value = values.remove(index);
-    collected.remove(value);
-    return value;
   }
 
   protected abstract Serializer<GenericRow> getSerializer(

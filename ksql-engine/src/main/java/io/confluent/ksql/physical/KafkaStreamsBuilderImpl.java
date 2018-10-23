@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -14,13 +14,34 @@
 
 package io.confluent.ksql.physical;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
+
+  private final KafkaClientSupplier clientSupplier;
+
+  public KafkaStreamsBuilderImpl() {
+    this(new DefaultKafkaClientSupplier());
+  }
+
+  public KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
+    Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
+    this.clientSupplier = clientSupplier;
+  }
+
   @Override
-  public KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf) {
-    return new KafkaStreams(builder.build(), conf);
+  public KafkaStreams buildKafkaStreams(
+      final StreamsBuilder builder,
+      final Map<String, Object> conf) {
+
+    final Properties props = new Properties();
+    props.putAll(conf);
+    return new KafkaStreams(builder.build(), props, clientSupplier);
   }
 }

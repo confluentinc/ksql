@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,44 +16,41 @@
 
 package io.confluent.ksql.structured;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Grouped;
+import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.Windowed;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.serde.WindowedSerde;
-import io.confluent.ksql.util.Pair;
-
-public class SchemaKTable extends SchemaKStream {
-
-
-  private final KTable ktable;
-  private final boolean isWindowed;
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+public class SchemaKTable<K> extends SchemaKStream<K> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+  private final KTable<K, GenericRow> ktable;
 
   public SchemaKTable(
       final Schema schema,
-      final KTable ktable,
+      final KTable<K, GenericRow> ktable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      boolean isWindowed,
-      Type type,
+      final Serde<K> keySerde,
+      final Type type,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -62,105 +59,87 @@ public class SchemaKTable extends SchemaKStream {
         null,
         keyField,
         sourceSchemaKStreams,
+        keySerde,
         type,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
     this.ktable = ktable;
-    this.isWindowed = isWindowed;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable into(
+  public SchemaKTable<K> into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+      final Set<Integer> rowkeyIndexes
   ) {
-    if (isWindowed) {
-      ktable.toStream()
-          .map(
-              (KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>,
-                  GenericRow>>) (key, row) -> {
-                if (row == null) {
-                  return new KeyValue<>(key, null);
-                }
-                List columns = new ArrayList();
-                for (int i = 0; i < row.getColumns().size(); i++) {
-                  if (!rowkeyIndexes.contains(i)) {
-                    columns.add(row.getColumns().get(i));
-                  }
-                }
-                return new KeyValue<>(key, new GenericRow(columns));
+
+    ktable.toStream()
+        .mapValues(row -> {
+              if (row == null) {
+                return null;
               }
-          ).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
-    } else {
-      ktable.toStream()
-          .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
-            if (row == null) {
-              return new KeyValue<>(key, null);
-            }
-            List columns = new ArrayList();
-            for (int i = 0; i < row.getColumns().size(); i++) {
-              if (!rowkeyIndexes.contains(i)) {
-                columns.add(row.getColumns().get(i));
+              final List<Object> columns = new ArrayList<>();
+              for (int i = 0; i < row.getColumns().size(); i++) {
+                if (!rowkeyIndexes.contains(i)) {
+                  columns.add(row.getColumns().get(i));
+                }
               }
+              return new GenericRow(columns);
             }
-            return new KeyValue<>(key, new GenericRow(columns));
-          }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
-    }
+        ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
 
     return this;
   }
 
   @Override
-  public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
-    return new QueuedSchemaKStream(this, limit);
+  public QueuedSchemaKStream toQueue() {
+    return new QueuedSchemaKStream<>(this);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable filter(final Expression filterExpression) {
-    SqlPredicate predicate = new SqlPredicate(
+  public SchemaKTable<K> filter(final Expression filterExpression) {
+    final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
-        isWindowed,
+        isWindowed(),
+        ksqlConfig,
         functionRegistry
     );
-    KTable filteredKTable = ktable.filter(predicate.getPredicate());
-    return new SchemaKTable(
+    final KTable filteredKTable = ktable.filter(predicate.getPredicate());
+    return new SchemaKTable<>(
         schema,
         filteredKTable,
         keyField,
-        Arrays.asList(this),
-        isWindowed,
-        Type.FILTER,
-        functionRegistry,
-        schemaRegistryClient
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-
-    final Pair<Schema, SelectValueMapper> schemaAndMapper
-        = createSelectValueMapperAndSchema(expressionPairList);
-
-    KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
-
-    return new SchemaKTable(
-        schemaAndMapper.left,
-        projectedKTable,
-        keyField,
         Collections.singletonList(this),
-        isWindowed,
-        Type.PROJECT,
+        keySerde,
+        Type.FILTER,
+        ksqlConfig,
         functionRegistry,
         schemaRegistryClient
     );
   }
 
+  @Override
+  public SchemaKTable<K> select(final List<Pair<String, Expression>> expressionPairList) {
+    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
+    return new SchemaKTable<>(
+        selection.getSchema(),
+        ktable.mapValues(selection.getSelectValueMapper()),
+        selection.getKey(),
+        Collections.singletonList(this),
+        keySerde,
+        Type.PROJECT,
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked") // needs investigating
   @Override
   public KStream getKstream() {
     return ktable.toStream();
@@ -170,8 +149,100 @@ public class SchemaKTable extends SchemaKStream {
     return ktable;
   }
 
-  public boolean isWindowed() {
-    return isWindowed;
+  @Override
+  public SchemaKGroupedStream groupBy(
+      final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions) {
+    final String aggregateKeyName = keyNameForGroupBy(groupByExpressions);
+    final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
+
+    final KGroupedTable kgroupedTable = ktable
+        .filter((key, value) -> value != null)
+        .groupBy((key, value) -> new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
+            Grouped.with(Serdes.String(), valSerde));
+
+    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
+    return new SchemaKGroupedTable(
+        schema,
+        kgroupedTable,
+        newKeyField,
+        Collections.singletonList(this),
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient);
   }
 
+  @SuppressWarnings("unchecked")
+  public SchemaKTable<K> join(
+      final SchemaKTable<K> schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+    final KTable<K, GenericRow> joinedKTable = ktable.join(
+        schemaKTable.getKtable(),
+        new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+    );
+
+    return new SchemaKTable<>(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        keySerde,
+        Type.JOIN,
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable<K> leftJoin(
+      final SchemaKTable<K> schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+    final KTable<K, GenericRow> joinedKTable =
+        ktable.leftJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable<>(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        keySerde,
+        Type.JOIN,
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  public SchemaKTable<K> outerJoin(
+      final SchemaKTable<K> schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey
+  ) {
+    final KTable<K, GenericRow> joinedKTable =
+        ktable.outerJoin(
+            schemaKTable.getKtable(),
+            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
+        );
+
+    return new SchemaKTable<>(
+        joinSchema,
+        joinedKTable,
+        joinKey,
+        ImmutableList.of(this, schemaKTable),
+        keySerde,
+        Type.JOIN,
+        ksqlConfig,
+        functionRegistry,
+        schemaRegistryClient
+    );
+  }
 }

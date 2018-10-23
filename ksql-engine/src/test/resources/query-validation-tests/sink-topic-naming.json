@@ -1,0 +1,52 @@
+{
+  "comments": [
+    "Tests covering sink topic naming for a stream / table"
+  ],
+  "tests": [
+    {
+      "name": "sink-topic-naming: default topic name is stream name, in upper-case",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OutPut AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"source": "s1"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"SOURCE":"s1"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sink-topic-naming: use supplied topic name, when supplied",
+      "properties": {
+        "ksql.output.topic.name.prefix": "some-prefix-"
+      },
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(KAFKA_TOPIC = 'Fred') AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"source": "s1"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "Fred", "key": 1, "value": {"SOURCE":"s1"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "sink-topic-naming: use prefixed default topic name when property set",
+      "properties": {
+        "ksql.output.topic.name.prefix": "some-prefix-"
+      },
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"source": "s1"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "some-prefix-OUTPUT", "key": 1, "value": {"SOURCE":"s1"}, "timestamp": 0}
+      ]
+    }
+  ]
+}

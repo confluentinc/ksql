@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,63 +16,45 @@
 
 package io.confluent.ksql.rest.server;
 
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThat;
+
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.rest.RestConfig;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotSame;
-
 public class KsqlRestConfigTest {
 
-  private Map<String, Object> getBaseProperties() {
-    Map<String, Object> result = new HashMap<>();
-    result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    result.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
-    return result;
-  }
-
-  private void assertKeyEquals(String key, Map<String, ?> expected, Map<String, ?> test) {
-    assertEquals(expected.get(key), test.get(key));
-  }
+  private static final Map<String, ?> MIN_VALID_CONFIGS = ImmutableMap.<String, Object>builder()
+      .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+      .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
+      .put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .build();
 
   @Test
-  public void testGetKsqlStreamsProperties() {
-    final long BASE_COMMIT_INTERVAL_MS = 1000;
-    final long OVERRIDE_COMMIT_INTERVAL_MS = 100;
+  public void testGetKsqlConfigProperties() {
+    final Map<String, Object> inputProperties = new HashMap<>(MIN_VALID_CONFIGS);
+    inputProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    inputProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
 
-    final String OVERRIDE_BOOTSTRAP_SERVERS = "ksql.io.confluent:9098";
+    final KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
-    assertNotEquals(BASE_COMMIT_INTERVAL_MS, OVERRIDE_COMMIT_INTERVAL_MS);
-
-    Map<String, Object> inputProperties = getBaseProperties();
-    inputProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        BASE_COMMIT_INTERVAL_MS
-    );
-    inputProperties.put(
-        KsqlRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        OVERRIDE_COMMIT_INTERVAL_MS
-    );
-    inputProperties.put(
-        KsqlRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-        OVERRIDE_BOOTSTRAP_SERVERS
-    );
-
-    Map<String, Object> testProperties = new KsqlRestConfig(inputProperties).getKsqlStreamsProperties();
-
-    assertEquals(
-        OVERRIDE_COMMIT_INTERVAL_MS,
-        testProperties.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
-    );
-    assertEquals(
-        OVERRIDE_BOOTSTRAP_SERVERS,
-        testProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
-    );
+    final Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
+    final Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
+    expectedKsqlConfigProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+    expectedKsqlConfigProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
+    expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
+    expectedKsqlConfigProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    expectedKsqlConfigProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
+    assertThat(ksqlConfigProperties, equalTo(expectedKsqlConfigProperties));
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls
@@ -81,9 +63,9 @@ public class KsqlRestConfigTest {
   public void testOriginalsReplicability() {
     final String COMMIT_INTERVAL_MS = "10";
 
-    Map<String, Object> inputProperties = getBaseProperties();
+    final Map<String, Object> inputProperties = new HashMap<>(MIN_VALID_CONFIGS);
     inputProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, COMMIT_INTERVAL_MS);
-    KsqlRestConfig config = new KsqlRestConfig(inputProperties);
+    final KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
     final Map<String, Object> originals1 = config.getOriginals();
     final Map<String, Object> originals2 = config.getOriginals();
@@ -92,5 +74,12 @@ public class KsqlRestConfigTest {
     assertNotSame(originals1, originals2);
     assertEquals(COMMIT_INTERVAL_MS, originals1.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     assertEquals(COMMIT_INTERVAL_MS, originals2.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
+  }
+
+  @Test
+  public void ensureCorrectCommandTopicName() {
+    final String commandTopicName = KsqlRestConfig.getCommandTopic("TestKSql");
+    assertThat(commandTopicName,
+               equalTo("_confluent-ksql-TestKSql_" + KsqlRestConfig.COMMAND_TOPIC_SUFFIX));
   }
 }

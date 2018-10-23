@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,21 +16,18 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfUtil;
 import io.confluent.ksql.function.udf.Kudf;
 
 public class AbsKudf implements Kudf {
+  public static final String NAME = "ABS";
 
   @Override
-  public void init() {
-  }
-
-  @Override
-  public Object evaluate(Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Abs udf should have one input argument.");
+  public Object evaluate(final Object... args) {
+    UdfUtil.ensureCorrectArgs(NAME, args, Number.class);
+    if (args[0] == null) {
+      return null;
     }
-
     return Math.abs(((Number) args[0]).doubleValue());
   }
 }

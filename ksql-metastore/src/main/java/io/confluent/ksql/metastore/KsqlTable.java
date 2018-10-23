@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,83 +16,93 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Objects;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
-import java.util.Optional;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-
-public class KsqlTable extends StructuredDataSource {
+public class KsqlTable<K> extends StructuredDataSource {
 
   private final String stateStoreName;
-  private final boolean isWindowed;
+  private final Serde<K> keySerde;
 
   public KsqlTable(
-      String sqlExpression,
+      final String sqlExpression,
       final String datasourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
       final String stateStoreName,
-      boolean isWindowed
+      final Serde<K> keySerde
   ) {
     super(
         sqlExpression,
         datasourceName,
         schema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         DataSourceType.KTABLE,
         ksqlTopic
     );
     this.stateStoreName = stateStoreName;
-    this.isWindowed = isWindowed;
-  }
-
-  public String getStateStoreName() {
-    return stateStoreName;
+    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
   public boolean isWindowed() {
-    return isWindowed;
+    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
+        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
+  }
+
+  public Serde<K> getKeySerde() {
+    return keySerde;
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeKeyColumns() {
-    Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlTable(
-        sqlExpression,
-        dataSourceName,
-        newSchema,
-        keyField,
-        timestampField,
-        ksqlTopic,
-        stateStoreName,
-        isWindowed
-    );
-  }
-
-  @Override
-  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
-    Optional<Field> newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
-    if (newTimestampField.get().schema().type() != Schema.Type.INT64) {
-      throw new KsqlException(
-          "Timestamp column, " + timestampfieldName + ", should be LONG" + "(INT64)."
-      );
-    }
-    return new KsqlTable(
+  public StructuredDataSource copy() {
+    return new KsqlTable<>(
         sqlExpression,
         dataSourceName,
         schema,
         keyField,
-        newTimestampField.get(),
+        timestampExtractionPolicy,
         ksqlTopic,
         stateStoreName,
-        isWindowed
+        keySerde
+    );
+  }
+
+  @Override
+  public StructuredDataSource cloneWithTimeKeyColumns() {
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    return new KsqlTable<>(
+        sqlExpression,
+        dataSourceName,
+        newSchema,
+        keyField,
+        timestampExtractionPolicy,
+        ksqlTopic,
+        stateStoreName,
+        keySerde
+    );
+  }
+
+  @Override
+  public StructuredDataSource cloneWithTimeExtractionPolicy(
+      final TimestampExtractionPolicy policy) {
+    return new KsqlTable<>(
+        sqlExpression,
+        dataSourceName,
+        schema,
+        keyField,
+        policy,
+        ksqlTopic,
+        stateStoreName,
+        keySerde
     );
   }
 

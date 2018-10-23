@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class IntervalLiteral
     extends Literal {
@@ -50,22 +50,30 @@ public class IntervalLiteral
   private final IntervalField startField;
   private final Optional<IntervalField> endField;
 
-  public IntervalLiteral(String value, Sign sign, IntervalField startField) {
+  public IntervalLiteral(final String value, final Sign sign, final IntervalField startField) {
     this(Optional.empty(), value, sign, startField, Optional.empty());
   }
 
-  public IntervalLiteral(String value, Sign sign, IntervalField startField,
-                         Optional<IntervalField> endField) {
+  public IntervalLiteral(final String value, final Sign sign, final IntervalField startField,
+                         final Optional<IntervalField> endField) {
     this(Optional.empty(), value, sign, startField, endField);
   }
 
-  public IntervalLiteral(NodeLocation location, String value, Sign sign, IntervalField startField,
-                         Optional<IntervalField> endField) {
+  public IntervalLiteral(
+      final NodeLocation location,
+      final String value,
+      final Sign sign,
+      final IntervalField startField,
+      final Optional<IntervalField> endField) {
     this(Optional.of(location), value, sign, startField, endField);
   }
 
-  private IntervalLiteral(Optional<NodeLocation> location, String value, Sign sign,
-                          IntervalField startField, Optional<IntervalField> endField) {
+  private IntervalLiteral(
+      final Optional<NodeLocation> location,
+      final String value,
+      final Sign sign,
+      final IntervalField startField,
+      final Optional<IntervalField> endField) {
     super(location);
     requireNonNull(value, "value is null");
     requireNonNull(sign, "sign is null");
@@ -99,7 +107,7 @@ public class IntervalLiteral
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitIntervalLiteral(this, context);
   }
 
@@ -109,14 +117,14 @@ public class IntervalLiteral
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    IntervalLiteral other = (IntervalLiteral) obj;
+    final IntervalLiteral other = (IntervalLiteral) obj;
     return Objects.equals(this.value, other.value)
            && Objects.equals(this.sign, other.sign)
            && Objects.equals(this.startField, other.startField)

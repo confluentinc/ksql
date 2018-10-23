@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,36 +16,46 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.clients.admin.TopicDescription;
-
-import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.admin.TopicDescription;
 
-public interface KafkaTopicClient extends Closeable {
+public interface KafkaTopicClient  {
+
+  enum TopicCleanupPolicy {
+    COMPACT,
+    DELETE,
+    COMPACT_DELETE
+  }
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor);
+  default void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor) {
+    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+  }
 
   /**
-   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
-   *
-   * @param topic name of the topic to create
+   * @param topic   name of the topic to create
    * @param configs any additional topic configs to use
    */
   void createTopic(
       String topic,
       int numPartitions,
-      short replicatonFactor,
-      Map<String, String> configs
+      short replicationFactor,
+      Map<String, ?> configs
   );
 
   /**
@@ -64,11 +74,49 @@ public interface KafkaTopicClient extends Closeable {
   Set<String> listTopicNames();
 
   /**
-   * [warn] synchronous call to get the response
+   * Synchronous call to retrieve list of internal topics
+   *
+   * @return set of all non-internal topics
+   */
+  Set<String> listNonInternalTopicNames();
+
+  /**
+   * Synchronous call to get a one or more topic's description.
    *
    * @param topicNames topicNames to describe
+   * @return map of topic name to description.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
+
+  /**
+   * Synchronous call to get the config of a topic.
+   *
+   * @param topicName the name of the topic.
+   * @return map of topic config if the topic is known, {@link Optional#empty()} otherwise.
+   */
+  Map<String, String> getTopicConfig(String topicName);
+
+  /**
+   * Synchronous call to write topic config overrides to ZK.
+   *
+   * <p>This will add additional overrides, and not replace any existing, unless they have the same
+   * name.
+   *
+   * <p>Note: each broker will pick up this change asynchronously.
+   *
+   * @param topicName the name of the topic.
+   * @param overrides new config overrides to add.
+   * @return {@code true} if any of the {@code overrides} did not already exist
+   */
+  boolean addTopicConfig(String topicName, Map<String, ?> overrides);
+
+  /**
+   * Synchronous call to get a topic's cleanup policy
+   *
+   * @param topicName topicNames to retrieve cleanup policy for.
+   * @return the clean up policy of the topic.
+   */
+  TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
 
   /**
    * Delete the list of the topics in the given list.
@@ -79,10 +127,4 @@ public interface KafkaTopicClient extends Closeable {
    * Delete the internal topics of a given application.
    */
   void deleteInternalTopics(String applicationId);
-
-  /**
-   * Close the underlying Kafka admin client.
-   */
-  void close();
-
 }

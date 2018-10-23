@@ -16,33 +16,48 @@
 
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
-
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
   private final TimeUnit sizeUnit;
 
-  public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
+  public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
     this(Optional.empty(), size, sizeUnit);
   }
 
-  private TumblingWindowExpression(Optional<NodeLocation> location, long size,
-                                   TimeUnit sizeUnit) {
+  private TumblingWindowExpression(final Optional<NodeLocation> location, final long size,
+                                   final TimeUnit sizeUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
+  }
+
+  public long getSize() {
+    return size;
+  }
+
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitTumblingWindowExpression(this, context);
   }
 
   @Override
@@ -56,14 +71,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
+    final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
   }
 
@@ -73,8 +88,17 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
                                final Initializer initializer,
                                final UdafAggregator aggregator,
                                final Materialized<String, GenericRow, ?> materialized) {
-    return groupedStream.windowedBy(TimeWindows.of(sizeUnit.toMillis(size)))
+
+    final TimeWindows windows = TimeWindows.of(Duration.ofMillis(sizeUnit.toMillis(size)));
+
+    return groupedStream
+        .windowedBy(windows)
         .aggregate(initializer, aggregator, materialized);
 
+  }
+
+  @Override
+  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
+    return WindowedSerdes.timeWindowedSerdeFrom(innerType);
   }
 }

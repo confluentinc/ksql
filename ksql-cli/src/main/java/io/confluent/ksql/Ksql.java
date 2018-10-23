@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,42 +16,79 @@
 
 package io.confluent.ksql;
 
-import com.github.rvesse.airline.help.Help;
-import com.github.rvesse.airline.parser.errors.ParseException;
-import io.confluent.ksql.cli.commands.Local;
-import io.confluent.ksql.cli.commands.Remote;
-import io.confluent.ksql.cli.commands.Standalone;
-import io.confluent.ksql.util.CommonUtils;
+import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.Options;
+import io.confluent.ksql.cli.console.JLineTerminal;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Properties;
+import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Ksql {
+public final class Ksql {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
 
-  public static void main(String[] args) {
-    Runnable runnable = null;
-    com.github.rvesse.airline.Cli<Runnable> cli =
-        com.github.rvesse.airline.Cli.<Runnable>builder("Cli")
-            .withDescription("Kafka Query Language")
-            .withDefaultCommand(Help.class)
-            .withCommand(Local.class)
-            .withCommand(Remote.class)
-            .withCommand(Standalone.class)
-            .build();
+  private Ksql() {
+  }
+
+  public static void main(final String[] args) throws IOException {
+    final Options options = args.length == 0 ? Options.parse("http://localhost:8088")
+                                             : Options.parse(args);
+    if (options == null) {
+      System.exit(-1);
+    }
 
     try {
-      runnable = cli.parse(args);
-      runnable.run();
-    } catch (ParseException exception) {
-      if (exception.getMessage() != null) {
-        System.err.println(exception.getMessage());
-      } else {
-        System.err.println("Options parsing failed for an unknown reason");
-      }
-      System.err.println("See the help command for usage information");
-    } catch (Exception e) {
-      System.err.println(CommonUtils.getErrorMessageWithCause(e));
-    }
-    if ((runnable != null) && !(runnable instanceof Standalone)) {
-      System.exit(0);
-    }
 
+      final Properties properties = loadProperties(options.getConfigFile());
+      final KsqlRestClient restClient = new KsqlRestClient(options.getServer(), properties);
+
+      options.getUserNameAndPassword().ifPresent(
+          creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
+      );
+
+      final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
+      versionChecker.start(KsqlModuleType.CLI, properties);
+
+      try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+                                   options.getStreamedQueryTimeoutMs(),
+                                   restClient,
+                                   new JLineTerminal(options.getOutputFormat(), restClient))
+      ) {
+        cli.runInteractively();
+      }
+    } catch (final Exception e) {
+      final String msg = ErrorMessageUtil.buildErrorMessage(e);
+      LOGGER.error(msg);
+      System.err.println(msg);
+      System.exit(-1);
+    }
+  }
+
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private static Properties loadProperties(final Optional<String> propertiesFile) {
+    final Properties properties = new Properties();
+    propertiesFile.ifPresent(file -> {
+      try (FileInputStream input = new FileInputStream(file)) {
+        properties.load(input);
+        if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
+          properties.put(
+              StreamsConfig.APPLICATION_ID_CONFIG,
+              properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+          );
+        }
+      } catch (final IOException e) {
+        throw new KsqlException("failed to load properties file: " + file, e);
+      }
+    });
+    return properties;
   }
 }

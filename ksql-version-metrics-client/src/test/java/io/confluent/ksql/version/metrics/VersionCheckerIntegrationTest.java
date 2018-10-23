@@ -16,19 +16,16 @@
 
 package io.confluent.ksql.version.metrics;
 
+import static org.mockserver.model.HttpRequest.request;
+
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import io.confluent.support.metrics.BaseSupportConfig;
+import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockserver.integration.ClientAndProxy;
 import org.mockserver.socket.PortFactory;
-
-import java.io.IOException;
-import java.util.Properties;
-
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import io.confluent.support.metrics.BaseSupportConfig;
-
-import static org.mockserver.model.HttpRequest.request;
 
 public class VersionCheckerIntegrationTest {
 
@@ -36,28 +33,28 @@ public class VersionCheckerIntegrationTest {
   private static ClientAndProxy clientAndProxy;
 
   @BeforeClass
-  public static void startProxy() throws Exception {
+  public static void startProxy() {
     proxyPort = PortFactory.findFreePort();
     clientAndProxy = ClientAndProxy.startClientAndProxy(proxyPort);
   }
 
   @Test
-  public void testMetricsAgent() throws InterruptedException, IOException {
-    KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
-    Properties versionCheckProps = new Properties();
+  public void testMetricsAgent() throws InterruptedException {
+    final KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
+    final Properties versionCheckProps = new Properties();
     versionCheckProps.setProperty(BaseSupportConfig
         .CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG, "false");
     versionCheckProps.setProperty(
         BaseSupportConfig.CONFLUENT_SUPPORT_PROXY_CONFIG,
         "http://localhost:" + proxyPort
     );
-    versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, versionCheckProps);
+    versionCheckerAgent.start(KsqlModuleType.SERVER, versionCheckProps);
 
     TestUtils.waitForCondition(() -> {
           try {
             clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
             return true;
-          } catch (AssertionError e) {
+          } catch (final AssertionError e) {
             return false;
           }
         },

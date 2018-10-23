@@ -17,22 +17,21 @@
 
 package io.confluent.ksql.datagen;
 
-import org.apache.avro.Schema;
-import org.apache.kafka.common.serialization.Serializer;
-
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.avro.Schema;
+import org.apache.kafka.common.serialization.Serializer;
 
 public class AvroProducer extends DataGenProducer {
 
   private final KsqlConfig ksqlConfig;
   private final SchemaRegistryClient schemaRegistryClient;
 
-  public AvroProducer(KsqlConfig ksqlConfig) {
+  public AvroProducer(final KsqlConfig ksqlConfig) {
     if (ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) == null) {
       throw new KsqlException("Schema registry url is not set.");
     }
@@ -45,10 +44,12 @@ public class AvroProducer extends DataGenProducer {
 
   @Override
   protected Serializer<GenericRow> getSerializer(
-      Schema avroSchema,
-      org.apache.kafka.connect.data.Schema kafkaSchema,
-      String topicName
+      final Schema avroSchema,
+      final org.apache.kafka.connect.data.Schema kafkaSchema,
+      final String topicName
   ) {
-    return new KsqlGenericRowAvroSerializer(kafkaSchema, schemaRegistryClient, ksqlConfig);
+    return new KsqlAvroTopicSerDe()
+        .getGenericRowSerde(kafkaSchema, ksqlConfig, false,
+            () -> schemaRegistryClient).serializer();
   }
 }

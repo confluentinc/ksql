@@ -16,12 +16,9 @@
 
 package io.confluent.ksql.planner;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -41,16 +38,23 @@ import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class LogicalPlanner {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private Analysis analysis;
   private AggregateAnalysis aggregateAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
-      Analysis analysis,
-      AggregateAnalysis aggregateAnalysis,
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.analysis = analysis;
@@ -68,73 +72,77 @@ public class LogicalPlanner {
     if (analysis.getWhereExpression() != null) {
       currentNode = buildFilterNode(currentNode);
     }
-    if ((analysis.getGroupByExpressions() != null) && (
-        !analysis.getGroupByExpressions().isEmpty()
-      )) {
+    if (!analysis.getGroupByExpressions().isEmpty()) {
       currentNode = buildAggregateNode(currentNode.getSchema(), currentNode);
     } else {
       currentNode = buildProjectNode(currentNode.getSchema(), currentNode);
     }
 
-    return buildOutputNode(currentNode.getSchema(), currentNode);
+    return buildOutputNode(
+        currentNode.getSchema(),
+        currentNode);
   }
 
-  private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
-    StructuredDataSource intoDataSource = analysis.getInto();
+  private OutputNode buildOutputNode(final Schema inputSchema,
+                                     final PlanNode sourcePlanNode) {
+    final StructuredDataSource intoDataSource = analysis.getInto();
 
+    final Map<String, Object> intoProperties = analysis.getIntoProperties();
+    final TimestampExtractionPolicy extractionPolicy = getTimestampExtractionPolicy(
+        inputSchema,
+        intoProperties);
     if (intoDataSource instanceof KsqlStdOut) {
       return new KsqlBareOutputNode(
           new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME),
           sourcePlanNode,
           inputSchema,
-          analysis.getLimitClause()
+          analysis.getLimitClause(),
+          extractionPolicy
       );
     } else if (intoDataSource != null) {
-      Field timestampField = null;
-      if (analysis.getIntoProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-        timestampField =
-            SchemaUtil.getFieldByName(
-                inputSchema,
-                analysis.getIntoProperties()
-                    .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME)
-                    .toString()
-            ).get();
-      }
-
       return new KsqlStructuredDataOutputNode(
           new PlanNodeId(intoDataSource.getName()),
           sourcePlanNode,
           inputSchema,
-          timestampField,
+          extractionPolicy,
           sourcePlanNode.getKeyField(),
           intoDataSource.getKsqlTopic(),
           intoDataSource.getKsqlTopic().getTopicName(),
-          analysis.getIntoProperties(),
-          analysis.getLimitClause()
+          intoProperties,
+          analysis.getLimitClause(),
+          analysis.isDoCreateInto()
       );
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");
   }
 
+  private TimestampExtractionPolicy getTimestampExtractionPolicy(
+      final Schema inputSchema,
+      final Map<String, Object> intoProperties) {
+
+    return TimestampExtractionPolicyFactory.create(
+        inputSchema,
+        (String) intoProperties.get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME),
+        (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
+  }
+
   private AggregateNode buildAggregateNode(
       final Schema inputSchema,
       final PlanNode sourcePlanNode
   ) {
-
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema,
         functionRegistry
     );
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      Expression expression = analysis.getSelectExpressions().get(i);
-      String alias = analysis.getSelectExpressionAlias().get(i);
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionType(expression);
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       aggregateSchema = aggregateSchema.field(alias, expressionType);
-
     }
 
     return new AggregateNode(
@@ -153,15 +161,15 @@ public class LogicalPlanner {
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     SchemaBuilder projectionSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema,
         functionRegistry
     );
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      Expression expression = analysis.getSelectExpressions().get(i);
-      String alias = analysis.getSelectExpressionAlias().get(i);
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema expressionType = expressionTypeManager.getExpressionType(expression);
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
       projectionSchema = projectionSchema.field(alias, expressionType);
 
@@ -177,14 +185,14 @@ public class LogicalPlanner {
 
   private FilterNode buildFilterNode(final PlanNode sourcePlanNode) {
 
-    Expression filterExpression = analysis.getWhereExpression();
+    final Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
   private StructuredDataSourceNode buildSourceNode() {
 
-    Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
-    Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
+    final Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
+    final Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
         dataSource.left.getSchema(),
         dataSource.right
     );

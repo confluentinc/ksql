@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,56 +16,62 @@
 
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.TopologyDescription;
-import org.junit.Before;
-import org.junit.Test;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-
-import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StructuredDataSourceNodeTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.STRING_SCHEMA)
-      .field("field2", Schema.STRING_SCHEMA)
-      .field("field3", Schema.STRING_SCHEMA)
-      .field("timestamp", Schema.INT64_SCHEMA)
-      .field("key", Schema.STRING_SCHEMA)
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("sqlExpression", "datasource",
+      new KsqlStream<>("sqlExpression", "datasource",
           schema,
           schema.field("key"),
-          schema.field("timestamp"),
+          new LongColumnTimestampExtractionPolicy("timestamp"),
           new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe())),
+              new KsqlJsonTopicSerDe(), false), Serdes.String()),
       schema);
 
   @Before
@@ -78,24 +84,23 @@ public class StructuredDataSourceNodeTest {
     return node.buildStream(builder,
         ksqlConfig,
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
-        new FunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new InternalFunctionRegistry(),
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.MAP_NODE)));
-    assertThat(node.topics(), equalTo("[topic]"));
+    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.MAPVALUES_NODE)));
+    assertThat(node.topicSet(), equalTo(ImmutableSet.of("topic")));
   }
 
   @Test
-  public void shouldBuildMapNode() throws Exception {
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.MAP_NODE),
+  public void shouldBuildMapNode() {
+    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.MAPVALUES_NODE),
         Collections.singletonList(PlanTestUtil.SOURCE_NODE),
         Collections.singletonList(PlanTestUtil.TRANSFORM_NODE));
   }
@@ -103,7 +108,7 @@ public class StructuredDataSourceNodeTest {
   @Test
   public void shouldBuildTransformNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAP_NODE), Collections.emptyList());
+    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAPVALUES_NODE), Collections.emptyList());
   }
 
   @Test
@@ -117,30 +122,67 @@ public class StructuredDataSourceNodeTest {
   }
 
   @Test
-  public void shouldAddTimestampIndexToConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX), equalTo(1));
-  }
-
-  @Test
   public void shouldExtracKeyField() {
-    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.STRING_SCHEMA)));
+    assertThat(stream.getKeyField(), equalTo(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA)));
   }
 
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
-    StructuredDataSourceNode node = new StructuredDataSourceNode(
+    final StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable("sqlExpression", "datasource",
+        new KsqlTable<>("sqlExpression", "datasource",
             schema,
             schema.field("field"),
-            schema.field("timestamp"),
+            new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+                new KsqlJsonTopicSerDe(), false),
             "statestore",
-            false),
+            Serdes.String()),
         schema);
     final SchemaKStream result = build(node);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
   }
 
+  @Test
+  public void shouldTransformKStreamToKTableCorrectly() {
+    final StructuredDataSourceNode node = new StructuredDataSourceNode(
+        new PlanNodeId("0"),
+        new KsqlTable<>("sqlExpression", "datasource",
+            schema,
+            schema.field("field"),
+            new LongColumnTimestampExtractionPolicy("timestamp"),
+            new KsqlTopic("topic2", "topic2",
+                new KsqlJsonTopicSerDe(), false),
+            "statestore",
+            Serdes.String()),
+        schema);
+    builder = new StreamsBuilder();
+    build(node);
+    final Topology topology = builder.build();
+    final TopologyDescription description = topology.describe();
+
+    final List<String> expectedPlan = Arrays.asList(
+        "SOURCE", "MAPVALUES", "TRANSFORMVALUES", "MAPVALUES", "AGGREGATE");
+
+    assertThat(description.subtopologies().size(), equalTo(1));
+    final Set<TopologyDescription.Node> nodes = description.subtopologies().iterator().next().nodes();
+    // Get the source node
+    TopologyDescription.Node streamsNode = nodes.iterator().next();
+    while (!streamsNode.predecessors().isEmpty()) {
+      streamsNode = streamsNode.predecessors().iterator().next();
+    }
+    // Walk the plan and make sure it matches
+    final ListIterator<String> expectedPlanIt = expectedPlan.listIterator();
+    assertThat(nodes.size(), equalTo(expectedPlan.size()));
+    while (true) {
+      assertThat(streamsNode.name(), startsWith("KSTREAM-" + expectedPlanIt.next()));
+      if (streamsNode.successors().isEmpty()) {
+        assertThat(expectedPlanIt.hasNext(), is(false));
+        break;
+      }
+      assertThat(expectedPlanIt.hasNext(), is(true));
+      assertThat(streamsNode.successors().size(), equalTo(1));
+      streamsNode = streamsNode.successors().iterator().next();
+    }
+  }
 }

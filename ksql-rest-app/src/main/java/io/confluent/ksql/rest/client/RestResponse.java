@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,7 @@
 
 package io.confluent.ksql.rest.client;
 
-import io.confluent.ksql.rest.entity.ErrorMessage;
-
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import java.util.Objects;
 
 // Don't tell anybody, but this is basically Haskell's Either datatype...
@@ -29,23 +28,28 @@ public abstract class RestResponse<R> {
 
   public abstract boolean isErroneous();
 
-  public abstract ErrorMessage getErrorMessage();
+  public abstract KsqlErrorMessage getErrorMessage();
 
   public abstract R getResponse();
 
-  public static <R> RestResponse<R> erroneous(ErrorMessage errorMessage) {
+  public static <R> RestResponse<R> erroneous(final KsqlErrorMessage errorMessage) {
     return new Erroneous<>(errorMessage);
   }
 
-  public static <R> RestResponse<R> successful(R response) {
+  public static <R> RestResponse<R> erroneous(final int errorCode, final String message) {
+    return new Erroneous<>(
+        new KsqlErrorMessage(errorCode, message));
+  }
+
+  public static <R> RestResponse<R> successful(final R response) {
     return new Successful<>(response);
   }
 
-  public static <R> RestResponse<R> of(ErrorMessage errorMessage) {
+  public static <R> RestResponse<R> of(final KsqlErrorMessage errorMessage) {
     return erroneous(errorMessage);
   }
 
-  public static <R> RestResponse<R> of(R response) {
+  public static <R> RestResponse<R> of(final R response) {
     return successful(response);
   }
 
@@ -57,10 +61,10 @@ public abstract class RestResponse<R> {
     }
   }
 
-  private static class Erroneous<R> extends RestResponse<R> {
-    private final ErrorMessage errorMessage;
+  private static final class Erroneous<R> extends RestResponse<R> {
+    private final KsqlErrorMessage errorMessage;
 
-    public Erroneous(ErrorMessage errorMessage) {
+    private Erroneous(final KsqlErrorMessage errorMessage) {
       this.errorMessage = errorMessage;
     }
 
@@ -75,7 +79,7 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public ErrorMessage getErrorMessage() {
+    public KsqlErrorMessage getErrorMessage() {
       return errorMessage;
     }
 
@@ -85,10 +89,10 @@ public abstract class RestResponse<R> {
     }
   }
 
-  private static class Successful<R> extends RestResponse<R> {
+  private static final class Successful<R> extends RestResponse<R> {
     private final R response;
 
-    public Successful(R response) {
+    private Successful(final R response) {
       this.response = response;
     }
 
@@ -103,7 +107,7 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public ErrorMessage getErrorMessage() {
+    public KsqlErrorMessage getErrorMessage() {
       throw new UnsupportedOperationException();
     }
 
@@ -113,14 +117,14 @@ public abstract class RestResponse<R> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
       if (!(o instanceof Successful)) {
         return false;
       }
-      Successful<?> that = (Successful<?>) o;
+      final Successful<?> that = (Successful<?>) o;
       return Objects.equals(getResponse(), that.getResponse());
     }
 

@@ -19,22 +19,19 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
-
-import javax.annotation.concurrent.Immutable;
-import java.util.List;
-import java.util.Map;
 
 @Immutable
 public class FilterNode
@@ -49,7 +46,7 @@ public class FilterNode
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
                     @JsonProperty("source") final PlanNode source,
                     @JsonProperty("predicate") final Expression predicate) {
-    super(id);
+    super(id, source.getNodeOutputType());
 
     this.source = source;
     this.schema = source.getSchema();
@@ -83,20 +80,25 @@ public class FilterNode
   }
 
   @Override
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitFilter(this, context);
   }
 
   @Override
-  public SchemaKStream buildStream(final StreamsBuilder builder,
-                                   final KsqlConfig ksqlConfig,
-                                   final KafkaTopicClient kafkaTopicClient,
-                                   final MetastoreUtil metastoreUtil,
-                                   final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props,
-                                   final SchemaRegistryClient schemaRegistryClient) {
-    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil,
-                                   functionRegistry, props, schemaRegistryClient)
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
+    return source.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
+  public SchemaKStream<?> buildStream(
+      final StreamsBuilder builder,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final FunctionRegistry functionRegistry,
+      final Map<String, Object> props,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient,
+        functionRegistry, props, schemaRegistryClientFactory)
         .filter(getPredicate());
   }
 }

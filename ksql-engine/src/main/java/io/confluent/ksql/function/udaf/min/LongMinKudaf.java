@@ -16,30 +16,28 @@
 
 package io.confluent.ksql.function.udaf.min;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
-public class LongMinKudaf extends KsqlAggregateFunction<Long, Long> {
-
-  LongMinKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, Long.MAX_VALUE, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA),
-          "MIN", LongMinKudaf.class);
+  LongMinKudaf(final String functionName, final int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+        "Computes the minimum long value for a key."
+    );
   }
 
   @Override
-  public Long aggregate(Long currentVal, Long currentAggVal) {
-    if (currentVal < currentAggVal) {
-      return currentVal;
+  public Long aggregate(final Long currentValue, final Long aggregateValue) {
+    if (currentValue < aggregateValue) {
+      return currentValue;
     }
-    return currentAggVal;
+    return aggregateValue;
   }
 
   @Override
@@ -53,9 +51,8 @@ public class LongMinKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(Map<String, Integer> expressionNames,
-                                                       List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new LongMinKudaf(udafIndex);
+  public KsqlAggregateFunction<Long, Long> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new LongMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

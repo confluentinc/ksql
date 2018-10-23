@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,75 +16,87 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.TypeUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 
 /**
  * Base class of create table/stream command
  */
-abstract class AbstractCreateStreamCommand implements DDLCommand {
+abstract class AbstractCreateStreamCommand implements DdlCommand {
 
-  String sqlExpression;
-  String sourceName;
-  String topicName;
-  Schema schema;
-  String keyColumnName;
-  String timestampColumnName;
-  boolean isWindowed;
-  RegisterTopicCommand registerTopicCommand;
-  private KafkaTopicClient kafkaTopicClient;
+  private static final Map<String, Serde<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
+      "SESSION", WindowedSerdes.sessionWindowedSerdeFrom(String.class),
+      "TUMBLING", WindowedSerdes.timeWindowedSerdeFrom(String.class),
+      "HOPPING", WindowedSerdes.timeWindowedSerdeFrom(String.class)
+  );
+
+  final String sqlExpression;
+  final String sourceName;
+  final String topicName;
+  final Schema schema;
+  final String keyColumnName;
+  final RegisterTopicCommand registerTopicCommand;
+  private final KafkaTopicClient kafkaTopicClient;
+  final Serde<?> keySerde;
+  final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
-      String sqlExpression,
+      final String sqlExpression,
       final AbstractStreamCreateStatement statement,
-      Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean enforceTopicExistence
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
-    this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;
 
     // TODO: get rid of toUpperCase in following code
-    Map<String, Expression> properties = statement.getProperties();
+    final Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
-    if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
-        !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+    if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)
+        && !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       this.topicName = StringUtil.cleanQuotes(
           properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 
       checkTopicNameNotNull(properties);
+      this.registerTopicCommand = null;
     } else {
-      this.registerTopicCommand = registerTopicFirst(properties, overriddenProperties);
+      this.topicName = this.sourceName;
+      this.registerTopicCommand = registerTopicFirst(properties,
+          enforceTopicExistence);
     }
 
     this.schema = getStreamTableSchema(statement.getElements());
 
-    this.keyColumnName = "";
-
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
-      keyColumnName = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      keyColumnName = StringUtil.cleanQuotes(keyColumnName);
+      this.keyColumnName = StringUtil.cleanQuotes(name);
       if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
         throw new KsqlException(String.format(
             "No column with the provided key column name in the WITH "
@@ -92,51 +104,33 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
             keyColumnName
         ));
       }
+    } else {
+      this.keyColumnName = "";
     }
 
-    this.timestampColumnName = "";
-    if (properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)) {
-      timestampColumnName =
-          properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-      timestampColumnName = StringUtil.cleanQuotes(timestampColumnName);
-      if (!SchemaUtil.getFieldByName(this.schema, timestampColumnName).isPresent()) {
-        throw new KsqlException(String.format(
-            "No column with the provided timestamp column name in the "
-            + "WITH clause, %s, exists in the defined schema.",
-            timestampColumnName
-        ));
-      }
-      if (SchemaUtil.getFieldByName(schema, timestampColumnName).get().schema().type()
-          != Schema.Type.INT64) {
-        throw new KsqlException(
-            "Timestamp column, " + timestampColumnName + ", should be LONG(INT64)."
-        );
-      }
-    }
+    final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString()
+        : null;
+    final String timestampFormat = properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString()
+        : null;
+    this.timestampExtractionPolicy = TimestampExtractionPolicyFactory.create(schema,
+        timestampName,
+        timestampFormat);
 
-    this.isWindowed = false;
-    if (properties.containsKey(DdlConfig.IS_WINDOWED_PROPERTY)) {
-      String isWindowedProp =
-          properties.get(DdlConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
-      try {
-        isWindowed = Boolean.parseBoolean(isWindowedProp);
-      } catch (Exception e) {
-        throw new KsqlException("isWindowed property is not set correctly: " + isWindowedProp);
-      }
-    }
+    this.keySerde = extractKeySerde(properties);
   }
 
-  private void checkTopicNameNotNull(Map<String, Expression> properties) {
+  private void checkTopicNameNotNull(final Map<String, Expression> properties) {
     // TODO: move the check to grammar
-    KsqlPreconditions.checkNotNull(
-        properties.get(DdlConfig.TOPIC_NAME_PROPERTY),
-        "Topic name should be set in WITH clause."
-    );
+    if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Topic name should be set in WITH clause.");
+    }
   }
 
-  private SchemaBuilder getStreamTableSchema(List<TableElement> tableElementList) {
+  private SchemaBuilder getStreamTableSchema(final List<TableElement> tableElementList) {
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    for (TableElement tableElement : tableElementList) {
+    for (final TableElement tableElement : tableElementList) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
           .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KsqlException(
@@ -147,29 +141,28 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          SchemaUtil.getTypeSchema(tableElement.getType())
+          TypeUtil.getTypeSchema(tableElement.getType())
       );
     }
 
     return tableSchema;
   }
 
-  protected void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {
+  void checkMetaData(final MetaStore metaStore, final String sourceName, final String topicName) {
     // TODO: move the check to the runtime since it accesses metaStore
-    KsqlPreconditions.checkArgument(
-        metaStore.getSource(sourceName) == null,
-        String.format("Source %s already exists.", sourceName)
-    );
+    if (metaStore.getSource(sourceName) != null) {
+      throw new KsqlException(String.format("Source %s already exists.", sourceName));
+    }
 
-    KsqlPreconditions.checkNotNull(
-        metaStore.getTopic(topicName),
-        String.format("The corresponding topic, %s, does not exist.", topicName)
-    );
+    if (metaStore.getTopic(topicName) == null) {
+      throw new KsqlException(
+          String.format("The corresponding topic, %s, does not exist.", topicName));
+    }
   }
 
-  protected RegisterTopicCommand registerTopicFirst(
-      Map<String, Expression> properties,
-      Map<String, Object> overriddenProperties
+  private RegisterTopicCommand registerTopicFirst(
+      final Map<String, Expression> properties,
+      final boolean enforceTopicExistence
   ) {
     if (properties.size() == 0) {
       throw new KsqlException("Create Stream/Table statement needs WITH clause.");
@@ -183,32 +176,55 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
           "Corresponding kafka topic(" + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
           + ") should be set in WITH clause.");
     }
-    String kafkaTopicName = StringUtil.cleanQuotes(
+    final String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
+    if (enforceTopicExistence && !kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
     return new RegisterTopicCommand(this.topicName, false, properties);
   }
 
 
-  private void validateWithClause(Set<String> withClauseVariables) {
+  private void validateWithClause(final Set<String> withClauseVariables) {
 
-    Set<String> validSet = new HashSet<>();
+    final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.IS_WINDOWED_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
+    validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
 
-    for (String withVariable : withClauseVariables) {
+    for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {
         throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
       }
     }
   }
 
+  private static Serde<?> extractKeySerde(
+      final Map<String, Expression> properties
+  ) {
+    final String windowType = StringUtil.cleanQuotes(properties
+        .getOrDefault(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral(""))
+        .toString()
+        .toUpperCase());
+
+    if (windowType.isEmpty()) {
+      return Serdes.String();
+    }
+
+    final Serde<Windowed<String>> type = WINDOW_TYPES.get(windowType);
+    if (type != null) {
+      return type;
+    }
+
+    throw new KsqlException(
+        DdlConfig.WINDOW_TYPE_PROPERTY + " property is not set correctly"
+            + ". value: " + windowType
+            + ", validValues: " + WINDOW_TYPES.keySet());
+  }
 }

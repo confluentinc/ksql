@@ -16,13 +16,19 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.util.CliUtils.PropertyDef;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.sql.SQLDataException;
 
 /**
  * Unit tests for class {@link CliUtils}.
@@ -31,26 +37,81 @@ import java.sql.SQLDataException;
  */
 public class CliUtilsTest {
   @Test
-  public void testReadQueryFileWithNonEmptyStringThrowsKsqlException() throws IOException {
-    CliUtils cliUtils = new CliUtils();
-
+  public void testGetAvroSchemaThrowsKsqlException() {
     try {
-      cliUtils.readQueryFile("y4[3&%S");
+      final CliUtils cliUtils = new CliUtils();
+      cliUtils.getAvroSchema("TZGUM?ploV");
       fail("Expecting exception: KsqlException");
-    } catch (KsqlException e) {
-      assertEquals(CliUtils.class.getName(), e.getStackTrace()[0].getClassName());
+    } catch (final KsqlException e) {
+      assertThat(CliUtils.class.getName(), equalTo(e.getStackTrace()[0].getClassName()));
     }
   }
 
   @Test
-  public void testGetAvroSchemaThrowsKsqlException() {
-    CliUtils cliUtils = new CliUtils();
+  public void shouldHandleClientOverwrittenProperties() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        ImmutableMap.of(key, "earliest"),
+        ImmutableList.of(key),
+        Collections.emptyList()
+    );
 
-    try {
-      cliUtils.getAvroSchema("TZGUM?ploV");
-      fail("Expecting exception: KsqlException");
-    } catch (KsqlException e) {
-      assertEquals(CliUtils.class.getName(), e.getStackTrace()[0].getClassName());
-    }
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "SESSION", "earliest")));
+  }
+
+  @Test
+  public void shouldHandleServerOverwrittenProperties() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
+        Collections.emptyList()
+    );
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "SERVER", "earliest")));
+  }
+
+  @Test
+  public void shouldHandleDefaultProperties() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        ImmutableMap.of(key, "earliest"),
+        Collections.emptyList(),
+        ImmutableList.of(key)
+    );
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "", "earliest")));
+  }
+
+  @Test
+  public void shouldHandlePropertiesWithNullValue() {
+    // Given:
+    final String key = KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+    final PropertiesList serverPropertiesList = new PropertiesList("list properties;",
+        Collections.singletonMap(key, null),
+        Collections.emptyList(),
+        ImmutableList.of(key)
+    );
+
+    // When:
+    final List<PropertyDef> properties = CliUtils.propertiesListWithOverrides(serverPropertiesList);
+
+    // Then:
+    assertThat(properties, contains(new PropertyDef(key, "", "NULL")));
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,42 +17,60 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
-@JsonTypeName("KSQL Server Info")
+@JsonTypeName("KsqlServerInfo")
 @JsonSubTypes({})
 public class ServerInfo {
   private final String version;
+  private final String kafkaClusterId;
+  private final String ksqlServiceId;
 
   @JsonCreator
-  public ServerInfo(@JsonProperty("version") String version) {
+  public ServerInfo(
+      @JsonProperty("version") final String version,
+      @JsonProperty("kafkaClusterId") final String kafkaClusterId,
+      @JsonProperty("ksqlServiceId") final String ksqlServiceId) {
     this.version = version;
+    this.kafkaClusterId = kafkaClusterId;
+    this.ksqlServiceId = ksqlServiceId;
   }
 
   public String getVersion() {
     return version;
   }
 
+  public String getKafkaClusterId() {
+    return kafkaClusterId;
+  }
+
+  public String getKsqlServiceId() {
+    return ksqlServiceId;
+  }
+
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ServerInfo)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ServerInfo serverInfo1 = (ServerInfo) o;
-    return Objects.equals(getVersion(), serverInfo1.getVersion());
+    final ServerInfo that = (ServerInfo) o;
+    return Objects.equals(version, that.version)
+           && Objects.equals(kafkaClusterId, that.kafkaClusterId)
+           && Objects.equals(ksqlServiceId, that.ksqlServiceId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getVersion());
+    return Objects.hash(version, kafkaClusterId, ksqlServiceId);
   }
 }

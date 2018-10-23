@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,36 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.metrics;
 
 import com.google.common.base.MoreObjects;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.common.utils.Time;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
-
-import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.common.utils.Time;
 
 class TopicSensors<R> {
 
   private final String topic;
   private final List<SensorMetric<R>> sensors;
 
-  TopicSensors(String topic, final List<SensorMetric<R>> sensors) {
+  TopicSensors(final String topic, final List<SensorMetric<R>> sensors) {
     this.topic = topic.toLowerCase();
     this.sensors = sensors;
   }
 
-  void increment(R record, boolean isError) {
+  void increment(final R record, final boolean isError) {
     sensors.forEach((SensorMetric<R> v) -> {
       if (v.isError() == isError) {
         v.record(record);
@@ -50,19 +48,19 @@ class TopicSensors<R> {
     });
   }
 
-  public void close(Metrics metrics) {
+  public void close(final Metrics metrics) {
     sensors.forEach(v -> v.close(metrics));
   }
 
-  boolean isTopic(String topic) {
+  boolean isTopic(final String topic) {
     return this.topic.equals(topic);
   }
 
-  Collection<Stat> stats(boolean isError) {
+  Collection<Stat> stats(final boolean isError) {
     return sensors
         .stream()
         .filter(sensor -> sensor.errorMetric == isError)
-        .map(sensor -> sensor.asStat())
+        .map(SensorMetric::asStat)
         .collect(Collectors.toList());
   }
 
@@ -79,15 +77,14 @@ class TopicSensors<R> {
     private double value;
     private final long timestamp;
 
-
-    public Stat(String name, double value, long timestamp) {
+    Stat(final String name, final double value, final long timestamp) {
       this.name = name;
       this.value = value;
       this.timestamp = timestamp;
     }
 
     @SuppressFBWarnings("FE_FLOATING_POINT_EQUALITY")
-    public String formatted() {
+    String formatted() {
       if (value == Math.round(value)) {
         return String.format("%16s:%10.0f", name, value);
       } else {
@@ -99,16 +96,14 @@ class TopicSensors<R> {
       if (timestamp == 0) {
         return "n/a";
       }
-      return SimpleDateFormat.getDateTimeInstance(
-          3,
-          1,
-          Locale.getDefault()
-      ).format(new Date(timestamp)
-      );
+
+      return Instant.ofEpochMilli(timestamp)
+          .atOffset(ZoneOffset.UTC)
+          .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
@@ -116,7 +111,7 @@ class TopicSensors<R> {
         return false;
       }
 
-      Stat stat = (Stat) o;
+      final Stat stat = (Stat) o;
 
       if (Double.compare(stat.value, value) != 0) {
         return false;
@@ -162,7 +157,7 @@ class TopicSensors<R> {
       return timestamp;
     }
 
-    public Stat aggregate(double value) {
+    public Stat aggregate(final double value) {
       this.value += value;
       return this;
     }
@@ -176,7 +171,8 @@ class TopicSensors<R> {
     private boolean errorMetric;
     private long lastEvent = 0;
 
-    SensorMetric(Sensor sensor, KafkaMetric metric, Time time, boolean errorMetric) {
+    SensorMetric(final Sensor sensor, final KafkaMetric metric,
+                 final Time time, final boolean errorMetric) {
       this.sensor = sensor;
       this.metric = metric;
       this.time = time;
@@ -190,7 +186,7 @@ class TopicSensors<R> {
     /**
      * Anon class must call down to this for timestamp recording
      */
-    void record(P object) {
+    void record(final P object) {
       this.lastEvent = time.milliseconds();
     }
 
@@ -198,7 +194,7 @@ class TopicSensors<R> {
       return metric.measurable().measure(metric.config(), time.milliseconds());
     }
 
-    public void close(Metrics metrics) {
+    public void close(final Metrics metrics) {
       metrics.removeSensor(sensor.name());
       metrics.removeMetric(metric.metricName());
     }
@@ -212,7 +208,7 @@ class TopicSensors<R> {
       return super.toString() + " " + asStat().toString();
     }
 
-    public Stat asStat() {
+    Stat asStat() {
       return new Stat(metric.metricName().name(), value(), lastEvent);
     }
   }

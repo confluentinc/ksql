@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,16 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -24,67 +34,28 @@ import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-
-public class QueuedSchemaKStream extends SchemaKStream {
+public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
-  private QueuedSchemaKStream(
-      final Schema schema,
-      final KStream kstream,
-      final Field keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final Type type,
-      final FunctionRegistry functionRegistry,
-      final Optional<Integer> limit,
-      final OutputNode outputNode,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
+  @SuppressWarnings("unchecked") // needs investigating
+  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
     super(
-        schema,
-        kstream,
-        keyField,
-        sourceSchemaKStreams,
-        type,
-        functionRegistry,
-        schemaRegistryClient
-    );
-    setOutputNode(outputNode);
-    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
-  }
-
-  QueuedSchemaKStream(
-      SchemaKStream schemaKStream,
-      Optional<Integer> limit
-  ) {
-    this(
         schemaKStream.schema,
         schemaKStream.getKstream(),
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
+        schemaKStream.keySerde,
         Type.SINK,
+        schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
-        limit,
-        schemaKStream.outputNode(),
         schemaKStream.schemaRegistryClient
     );
+
+    final OutputNode output = schemaKStream.outputNode();
+    setOutputNode(output);
+    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, output.getCallback()));
   }
 
   public BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
@@ -92,47 +63,43 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream into(
-      String kafkaTopicName,
-      Serde<GenericRow> topicValueSerDe,
-      Set<Integer> rowkeyIndexes
+  public SchemaKStream<K> into(
+      final String kafkaTopicName,
+      final Serde<GenericRow> topicValueSerDe,
+      final Set<Integer> rowkeyIndexes
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream filter(Expression filterExpression) {
+  public SchemaKStream<K> filter(final Expression filterExpression) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream select(Schema selectSchema) {
+  public SchemaKStream<K> select(final List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream select(List<Pair<String, Expression>> expressions) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public SchemaKStream leftJoin(
-      SchemaKTable schemaKTable,
-      Schema joinSchema,
-      Field joinKey,
-      KsqlTopicSerDe joinSerDe,
-      KsqlConfig ksqlConfig
+  public SchemaKStream<K> leftJoin(
+      final SchemaKTable<K> schemaKTable,
+      final Schema joinSchema,
+      final Field joinKey,
+      final Serde<GenericRow> joinSerde
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream selectKey(Field newKeyField) {
+  public SchemaKStream<K> selectKey(final Field newKeyField, final boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKGroupedStream groupByKey(Serde keySerde, Serde valSerde) {
+  public SchemaKGroupedStream groupBy(
+      final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions) {
     throw new UnsupportedOperationException();
   }
 
@@ -147,7 +114,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public KStream getKstream() {
+  public KStream<K, GenericRow> getKstream() {
     return super.getKstream();
   }
 
@@ -156,43 +123,46 @@ public class QueuedSchemaKStream extends SchemaKStream {
     return super.getSourceSchemaKStreams();
   }
 
-  protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
     private final BlockingQueue<KeyValue<String, GenericRow>> queue;
-    private final Optional<Integer> limit;
-    private int counter = 0;
+    private final OutputNode.Callback callback;
 
     QueuePopulator(
-        BlockingQueue<KeyValue<String, GenericRow>> queue,
-        Optional<Integer> limit
+        final BlockingQueue<KeyValue<String, GenericRow>> queue,
+        final OutputNode.Callback callback
     ) {
       this.queue = queue;
-      this.limit = limit;
+      this.callback = Objects.requireNonNull(callback, "callback");
     }
 
     @Override
-    public void apply(K key, GenericRow row) {
+    public void apply(final K key, final GenericRow row) {
       try {
         if (row == null) {
           return;
         }
-        if (limit.isPresent()) {
-          counter++;
-          if (counter > limit.get()) {
-            throw new KsqlException("LIMIT reached for the partition.");
-          }
+
+        if (!callback.shouldQueue()) {
+          return;
         }
-        String keyString;
-        if (key instanceof Windowed) {
-          Windowed windowedKey = (Windowed) key;
-          keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
-        } else {
-          keyString = Objects.toString(key);
-        }
+
+        final String keyString = getStringKey(key);
         queue.put(new KeyValue<>(keyString, row));
-      } catch (InterruptedException exception) {
+
+        callback.onQueued();
+      } catch (final InterruptedException exception) {
         throw new KsqlException("InterruptedException while enqueueing:" + key);
       }
+    }
+
+    private String getStringKey(final K key) {
+      if (key instanceof Windowed) {
+        final Windowed windowedKey = (Windowed) key;
+        return String.format("%s : %s", windowedKey.key(), windowedKey.window());
+      }
+
+      return Objects.toString(key);
     }
   }
 }

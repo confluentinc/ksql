@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.AstBuilder;
@@ -26,18 +29,14 @@ import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Table;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
@@ -45,10 +44,14 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
   private Schema joinLeftSchema;
   private Schema joinRightSchema;
+  private Schema fromSchema;
 
   private String fromAlias;
+  private String fromName;
   private String leftAlias;
+  private String leftName;
   private String rightAlias;
+  private String rightName;
 
   private Set<String> commonFieldNames = new HashSet<>();
   private Set<String> leftFieldNames = new HashSet<>();
@@ -74,7 +77,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
-    Table table = (Table) visit(context.relationPrimary());
+    final Table table = (Table) visit(context.relationPrimary());
 
     String alias = null;
     if (context.children.size() == 1) {
@@ -86,12 +89,14 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
     if (!isJoin) {
       this.fromAlias = alias;
-      StructuredDataSource
+      this.fromName = table.getName().getSuffix().toUpperCase();
+      final StructuredDataSource
           fromDataSource =
           metaStore.getSource(table.getName().getSuffix());
       if (fromDataSource == null) {
         throw new KsqlException(table.getName().getSuffix() + " does not exist.");
       }
+      fromSchema = fromDataSource.getSchema();
       return null;
     }
 
@@ -104,20 +109,10 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
     this.isJoin = true;
-    AliasedRelation left = (AliasedRelation) visit(context.left);
-    AliasedRelation right;
-    if (context.CROSS() != null) {
-      right = (AliasedRelation) visit(context.right);
-    } else {
-      if (context.NATURAL() != null) {
-        right = (AliasedRelation) visit(context.right);
-      } else {
-        right = (AliasedRelation) visit(context.rightRelation);
-      }
-    }
-
+    final AliasedRelation left = (AliasedRelation) visit(context.left);
     this.leftAlias = left.getAlias();
-    StructuredDataSource
+    this.leftName = ((Table) left.getRelation()).getName().getSuffix();
+    final StructuredDataSource
         leftDataSource =
         metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
     if (leftDataSource == null) {
@@ -126,8 +121,10 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     }
     this.joinLeftSchema = leftDataSource.getSchema();
 
+    final AliasedRelation right = (AliasedRelation) visit(context.right);
     this.rightAlias = right.getAlias();
-    StructuredDataSource
+    this.rightName = ((Table) right.getRelation()).getName().getSuffix();
+    final StructuredDataSource
         rightDataSource =
         metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
     if (rightDataSource == null) {
@@ -143,10 +140,10 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
   public void extractDataSources(final ParseTree node) {
     visit(node);
     if (joinLeftSchema != null) {
-      for (Field field : joinLeftSchema.fields()) {
+      for (final Field field : joinLeftSchema.fields()) {
         leftFieldNames.add(field.name());
       }
-      for (Field field : joinRightSchema.fields()) {
+      for (final Field field : joinRightSchema.fields()) {
         rightFieldNames.add(field.name());
         if (leftFieldNames.contains(field.name())) {
           commonFieldNames.add(field.name());
@@ -187,8 +184,32 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     return rightFieldNames;
   }
 
-  private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {
-    List<String> parts = context
+  public Schema getJoinRightSchema() {
+    return joinRightSchema;
+  }
+
+  public String getFromName() {
+    return fromName;
+  }
+
+  public String getLeftName() {
+    return leftName;
+  }
+
+  public String getRightName() {
+    return rightName;
+  }
+
+  public boolean isJoin() {
+    return isJoin;
+  }
+
+  public Schema getFromSchema() {
+    return fromSchema;
+  }
+
+  private static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
+    final List<String> parts = context
         .identifier().stream()
         .map(AstBuilder::getIdentifierText)
         .collect(toList());
@@ -197,7 +218,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
   }
 
   private static List<String> getColumnAliases(
-      SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
+      final SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
     if (columnAliasesContext == null) {
       return null;
     }
@@ -208,12 +229,12 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
         .collect(toList());
   }
 
-  private static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
+  private static NodeLocation getLocation(final ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  private static NodeLocation getLocation(Token token) {
+  private static NodeLocation getLocation(final Token token) {
     requireNonNull(token, "token is null");
     return new NodeLocation(token.getLine(), token.getCharPositionInLine());
   }

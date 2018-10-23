@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Map;
 import java.util.Optional;
 
-public interface CreateAsSelect {
+public interface CreateAsSelect extends QueryContainer {
 
   Query getQuery();
 

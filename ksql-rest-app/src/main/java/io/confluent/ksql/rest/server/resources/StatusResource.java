@@ -16,8 +16,12 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import java.util.Optional;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -25,18 +29,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
-
 @Path("/status")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
   private final StatementExecutor statementExecutor;
 
-  public StatusResource(StatementExecutor statementExecutor) {
+  public StatusResource(final StatementExecutor statementExecutor) {
     this.statementExecutor = statementExecutor;
   }
 
@@ -48,16 +47,15 @@ public class StatusResource {
   @GET
   @Path("/{type}/{entity}/{action}")
   public Response getStatus(
-      @PathParam("type") String type,
-      @PathParam("entity") String entity,
-      @PathParam("action") String action
-  ) throws Exception {
-    CommandId commandId = new CommandId(type, entity, action);
+      @PathParam("type") final String type,
+      @PathParam("entity") final String entity,
+      @PathParam("action") final String action) {
+    final CommandId commandId = new CommandId(type, entity, action);
 
-    Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 
     if (!commandStatus.isPresent()) {
-      throw new Exception("Command not found");
+      return Errors.notFound("Command not found");
     }
 
     return Response.ok(commandStatus.get()).build();

@@ -14,14 +14,10 @@
 
 package io.confluent.ksql.query;
 
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import java.util.Objects;
 
-@JsonSubTypes({})
 public class QueryId {
   private final String id;
 
@@ -40,15 +36,15 @@ public class QueryId {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-    if (getClass() != o.getClass()) {
+    if (!(o instanceof QueryId)) {
       return false;
     }
-    QueryId queryId1 = (QueryId) o;
-    return Objects.equals(id, queryId1.id);
+    final QueryId queryId = (QueryId) o;
+    return Objects.equals(id, queryId.id);
   }
 
   @Override

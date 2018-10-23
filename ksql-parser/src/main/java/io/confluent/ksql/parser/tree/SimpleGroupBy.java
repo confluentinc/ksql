@@ -16,31 +16,36 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import io.confluent.ksql.parser.ExpressionFormatter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.collect.Iterables.getOnlyElement;
-import static java.util.Objects.requireNonNull;
 
 public class SimpleGroupBy
     extends GroupingElement {
 
   private final List<Expression> columns;
 
-  public SimpleGroupBy(NodeLocation location, List<Expression> simpleGroupByExpressions) {
+  public SimpleGroupBy(final List<Expression> simpleGroupByExpressions) {
+    this(Optional.empty(), simpleGroupByExpressions);
+  }
+
+  public SimpleGroupBy(
+      final NodeLocation location,
+      final List<Expression> simpleGroupByExpressions) {
     this(Optional.of(location), simpleGroupByExpressions);
   }
 
-  private SimpleGroupBy(Optional<NodeLocation> location,
-                        List<Expression> simpleGroupByExpressions) {
+  private SimpleGroupBy(
+      final Optional<NodeLocation> location,
+      final List<Expression> simpleGroupByExpressions) {
     super(location);
     this.columns = requireNonNull(simpleGroupByExpressions);
   }
@@ -55,7 +60,7 @@ public class SimpleGroupBy
   }
 
   @Override
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSimpleGroupBy(this, context);
   }
 
@@ -71,14 +76,14 @@ public class SimpleGroupBy
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SimpleGroupBy that = (SimpleGroupBy) o;
+    final SimpleGroupBy that = (SimpleGroupBy) o;
     return Objects.equals(columns, that.columns);
   }
 

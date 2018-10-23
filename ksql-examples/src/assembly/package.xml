@@ -20,6 +20,13 @@
             </includes>
         </fileSet>
         <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>share/resources/ksql-examples</outputDirectory>
+            <includes>
+                <include>*.avro</include>
+            </includes>
+        </fileSet>
+        <fileSet>
             <directory>${project.parent.basedir}</directory>
             <outputDirectory></outputDirectory>
             <includes>

@@ -16,66 +16,66 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class QuerySpecification
     extends QueryBody {
 
   private final Select select;
   private final Relation into;
+  private final boolean shouldCreateInto;
   private final Relation from;
   private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
-  private final List<SortItem> orderBy;
   private final Optional<String> limit;
 
   public QuerySpecification(
-      Select select,
-      Relation into,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
+    this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
+         having, limit);
   }
 
   public QuerySpecification(
-      NodeLocation location,
-      Select select,
-      Relation into,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
+      final NodeLocation location,
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
+    this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
+         groupBy,
+         having, limit);
   }
 
-  private QuerySpecification(
-      Optional<NodeLocation> location,
-      Select select,
-      Relation into,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
+  public QuerySpecification(
+      final Optional<NodeLocation> location,
+      final Select select,
+      final Relation into,
+      final boolean shouldCreateInto,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final Optional<String> limit) {
     super(location);
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
@@ -84,17 +84,16 @@ public class QuerySpecification
     requireNonNull(where, "where is null");
     requireNonNull(groupBy, "groupBy is null");
     requireNonNull(having, "having is null");
-    requireNonNull(orderBy, "orderBy is null");
     requireNonNull(limit, "limit is null");
 
     this.select = select;
     this.into = into;
+    this.shouldCreateInto = shouldCreateInto;
     this.from = from;
     this.windowExpression = windowExpression;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.orderBy = orderBy;
     this.limit = limit;
   }
 
@@ -104,6 +103,10 @@ public class QuerySpecification
 
   public Relation getInto() {
     return into;
+  }
+
+  public boolean isShouldCreateInto() {
+    return shouldCreateInto;
   }
 
   public Relation getFrom() {
@@ -126,16 +129,12 @@ public class QuerySpecification
     return having;
   }
 
-  public List<SortItem> getOrderBy() {
-    return orderBy;
-  }
-
   public Optional<String> getLimit() {
     return limit;
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitQuerySpecification(this, context);
   }
 
@@ -148,31 +147,29 @@ public class QuerySpecification
         .add("where", where.orElse(null))
         .add("groupBy", groupBy)
         .add("having", having.orElse(null))
-        .add("orderBy", orderBy)
         .add("limit", limit.orElse(null))
         .toString();
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    QuerySpecification o = (QuerySpecification) obj;
+    final QuerySpecification o = (QuerySpecification) obj;
     return Objects.equals(select, o.select)
            && Objects.equals(from, o.from)
            && Objects.equals(where, o.where)
            && Objects.equals(groupBy, o.groupBy)
            && Objects.equals(having, o.having)
-           && Objects.equals(orderBy, o.orderBy)
            && Objects.equals(limit, o.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(select, from, where, groupBy, having, orderBy, limit);
+    return Objects.hash(select, from, where, groupBy, having, limit);
   }
 }

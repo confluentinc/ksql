@@ -16,20 +16,20 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class SetProperty extends Statement implements DDLStatement {
+import java.util.Objects;
+import java.util.Optional;
+
+public class SetProperty extends Statement implements DdlStatement {
 
   private final String propertyName;
   private final String propertyValue;
 
 
-  public SetProperty(Optional<NodeLocation> location, String propertyName,
-                      String propertyValue) {
+  public SetProperty(final Optional<NodeLocation> location, final String propertyName,
+                      final String propertyValue) {
     super(location);
     requireNonNull(propertyName, "propertyName is null");
     requireNonNull(propertyValue, "propertyValue is null");
@@ -51,7 +51,7 @@ public class SetProperty extends Statement implements DDLStatement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -59,7 +59,7 @@ public class SetProperty extends Statement implements DDLStatement {
       return false;
     }
 
-    SetProperty setProperty = (SetProperty) o;
+    final SetProperty setProperty = (SetProperty) o;
 
     if (!propertyName.equals(setProperty.propertyName)) {
       return false;

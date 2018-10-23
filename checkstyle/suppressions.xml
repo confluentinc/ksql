@@ -1,37 +1,35 @@
 <?xml version="1.0"?>
 
 <!DOCTYPE suppressions PUBLIC
-        "-//Puppy Crawl//DTD Suppressions 1.1//EN"
-        "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+  "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+  "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
 
-    <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
-    <suppress files="(KsqlEntity|Cli|Ksql|AbstractCliCommands|CommandStore).java" checks="IndentationCheck"/>
+  <!--
+      DO NOT USE THIS SUPPRESSION FILE
+      If you really MUST suppress a rule, rather than just fixing / refactoring the code, then
+      use inline code comments.
 
-    <!-- can't work out how to resolve the issue with the do {..} while -->
-    <suppress files="CommandStore.java" checks="RightCurly"/>
+      There are two formats for the code comments:
 
-    <!-- Suppress some checks on all files -->
-    <suppress files="." checks="ExplicitInitializationCheck"/>
-    <suppress files="." checks="FinalClassCheck"/>
-    <suppress files="." checks="AbbreviationAsWordInName"/>
-    <suppress files="." checks="WhitespaceAround"/>
-    <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
-    <suppress files="." checks="OperatorWrap"/>
+      Turning off all rules CHECKSTYLE:OFF and CHECKSTYLE:ON, e.g.
 
-    <!-- Semantics may not be well checked by rules -->
-    <suppress files="." checks="ParameterNumber"/>
-    <suppress files="." checks="BooleanExpressionComplexityCheck"/>
-    <suppress files="." checks="NPathComplexity"/>
-    <suppress files="." checks="JavaNCSSCheck"/>
-    <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>
-    <suppress files="." checks="CyclomaticComplexityCheck"/>
+      // CHECKSTYLE:OFF
+      private void someBadFunction {
+         // CHECKSTYLE:ON
+          ... you code here.
+      }
 
-    <!-- These checks may be included in the future -->
-    <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
-    <suppress files="." checks="NonEmptyAtclauseDescription"/>
-    <suppress files="." checks="EmptyLineSeparator"/>
-    <suppress files="." checks="NeedBraces"/>
+      Or turning off specific rules. Run names are separated by the pipe character '|'. e.g.
 
+      // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|JavaNCSS
+      private void someBadFunction {
+         // CHECKSTYLE_RULES.ON: CyclomaticComplexity|JavaNCSS
+          ... you code here.
+      }
+
+      The reason code comments are preferred is that they work better with IDE plugins such as
+      IDEA CheckStyle.
+  -->
 </suppressions>

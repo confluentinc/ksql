@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,61 +17,89 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import io.confluent.ksql.GenericRow;
-
+import io.confluent.ksql.rest.server.resources.Errors;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class StreamedRow {
+
   private final GenericRow row;
-  private final ErrorMessage errorMessage;
+  private final KsqlErrorMessage errorMessage;
+  private final String finalMessage;
+
+  public static StreamedRow row(final GenericRow row) {
+    return new StreamedRow(row, null, null);
+  }
+
+  public static StreamedRow error(final Throwable exception) {
+    return new StreamedRow(
+        null,
+        new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception),
+        null);
+  }
+
+  public static StreamedRow finalMessage(final String finalMessage) {
+    return new StreamedRow(null, null, finalMessage);
+  }
 
   @JsonCreator
   public StreamedRow(
-      @JsonProperty("row") GenericRow row,
-      @JsonProperty("errorMessage") ErrorMessage errorMessage
+      @JsonProperty("row") final GenericRow row,
+      @JsonProperty("errorMessage") final KsqlErrorMessage errorMessage,
+      @JsonProperty("finalMessage") final String finalMessage
   ) {
-    if ((row == null) == (errorMessage == null)) {
-      throw new IllegalArgumentException("Exactly one of row and error message must be null");
-    }
+    checkUnion(row, errorMessage, finalMessage);
     this.row = row;
     this.errorMessage = errorMessage;
-  }
-
-  public StreamedRow(GenericRow row) {
-    this(row, null);
-  }
-
-  public StreamedRow(Throwable exception) {
-    this(null, new ErrorMessage(exception));
+    this.finalMessage = finalMessage;
   }
 
   public GenericRow getRow() {
     return row;
   }
 
-  public ErrorMessage getErrorMessage() {
+  public KsqlErrorMessage getErrorMessage() {
     return errorMessage;
   }
 
+  public String getFinalMessage() {
+    return finalMessage;
+  }
+
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StreamedRow)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamedRow that = (StreamedRow) o;
-    return Objects.equals(getRow(), that.getRow())
-        && Objects.equals(getErrorMessage(), that.getErrorMessage());
+    final StreamedRow that = (StreamedRow) o;
+    return Objects.equals(row, that.row)
+           && Objects.equals(errorMessage, that.errorMessage)
+           && Objects.equals(finalMessage, that.finalMessage);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRow(), getErrorMessage());
+    return Objects.hash(row, errorMessage, finalMessage);
+  }
+
+  private static void checkUnion(final Object... fields) {
+    final List<Object> fs = Arrays.asList(fields);
+    final long count = fs.stream()
+        .filter(Objects::nonNull)
+        .count();
+
+    if (count != 1) {
+      throw new IllegalArgumentException("Exactly one parameter should be non-null. got: " + fs);
+    }
   }
 }

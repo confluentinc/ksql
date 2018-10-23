@@ -16,146 +16,109 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.util.StringUtil;
-
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-public abstract class TestResult {
+public class TestResult implements Iterable<List<String>>{
 
-  private static final String LINE_SEPARATOR = ", ";
+  final List<List<String>> data;
 
-  Collection<List<String>> data;
-  private boolean sealed = false;
-
-  protected TestResult() {}
-
-  protected TestResult(TestResult model) {
-    sealed = model.sealed;
+  public TestResult() {
+    this.data = Collections.emptyList();
   }
 
-  static class OrderedResult extends TestResult {
-    private OrderedResult() {
-      data = new ArrayList<>();
-    }
-
-    private OrderedResult(OrderedResult model) {
-      super(model);
-      data = new ArrayList<>();
-      data.addAll(model.data);
-    }
-
-    private OrderedResult(String singleRow) {
-      this();
-      if (singleRow.length() > 0) {
-        data.add(Arrays.asList(singleRow.split(LINE_SEPARATOR)));
-      }
-      seal();
-    }
-
-    @Override
-    public String toString() {
-      return data.toString();
-    }
-
-    @Override
-    public OrderedResult copy() {
-      return new OrderedResult(this);
-    }
+  public TestResult(final Object... fields) {
+    this.data = ImmutableList.of(
+        ImmutableList.copyOf(
+            Arrays.stream(fields)
+                .map(String::valueOf)
+                .collect(Collectors.toList())
+        )
+    );
   }
 
-  static class UnorderedResult extends TestResult {
-    private UnorderedResult() {
-      data = new HashSet<>();
+  private TestResult(List<List<String>> data) {
+    this.data = ImmutableList.copyOf(data);
+  }
+
+  public static class Builder {
+    private final List<List<String>> data = new ArrayList<>();
+
+    public Builder() {
     }
 
-    private UnorderedResult(UnorderedResult model) {
-      super(model);
-      data = new HashSet<>();
-      data.addAll(model.data);
+    TestResult.Builder addRow(final GenericRow row) {
+      data.add(
+          ImmutableList.copyOf(
+              row.getColumns().stream()
+                  .map(String::valueOf)
+                  .collect(Collectors.toList())
+          )
+      );
+      return this;
     }
 
-    private UnorderedResult(Map<String, Object> map) {
-      this();
-      for (Map.Entry<String, Object> kv : map.entrySet()) {
-        data.add(Arrays.asList(kv.getKey(), String.valueOf(kv.getValue())));
-      }
-      seal();
+    TestResult.Builder addRow(final Object... fields) {
+      data.add(
+          ImmutableList.copyOf(
+              Arrays.stream(fields)
+                  .map(String::valueOf)
+                  .collect(Collectors.toList())
+          )
+      );
+      return this;
     }
 
-    @Override
-    public String toString() {
-      // for convenience, we show content ordered by first column (key) alphabetically
-      TreeMap<String, Object> map = new TreeMap<>();
-      for (List<String> entry: data) {
-        map.put(entry.get(0), entry);
-      }
-      return map.values().toString();
+    TestResult.Builder addRows(final List<List<String>> rows) {
+      rows.forEach(
+          r -> data.add(ImmutableList.copyOf(r))
+      );
+      return this;
     }
 
-    @Override
-    public UnorderedResult copy() {
-      return new UnorderedResult(this);
+    public TestResult build() {
+      return new TestResult(data);
     }
   }
 
-  static UnorderedResult build(Map<String, Object> map) {
-    return new UnorderedResult(map);
-  }
-
-  static OrderedResult build(String singleRow) {
-    return new OrderedResult(singleRow);
-  }
-
-  static OrderedResult build(Object... cols) {
-    return new OrderedResult(StringUtil.join(", ", Arrays.asList(cols)));
-  }
-
-  static OrderedResult build() { return new OrderedResult(); }
-
-  static TestResult init(boolean requireOrder) {
-    return requireOrder ? new OrderedResult() : new UnorderedResult();
-  }
-
-  public abstract TestResult copy();
-
-  void addRow(GenericRow row) {
-    if (sealed) {
-      throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
-    }
-
-    List<String> newRow = new ArrayList<>();
-    for (Object column : row.getColumns()) {
-      newRow.add(String.valueOf(column));
-    }
-
-    data.add(newRow);
-  }
-
-  void addRows(List<List<String>> rows) {
-    if (sealed) {
-      throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
-    }
-
-    data.addAll(rows);
-  }
-
-  void seal() {
-    this.sealed = true;
+  public List<List<String>> rows() {
+    return data;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public Iterator<List<String>> iterator() {
+    return data.iterator();
+  }
+
+  @Override
+  public Spliterator<List<String>> spliterator() {
+    return data.spliterator();
+  }
+
+  @Override
+  public void forEach(final Consumer<? super List<String>> action) {
+    data.forEach(action);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    TestResult that = (TestResult) o;
+    final TestResult that = (TestResult) o;
     return Objects.equals(data, that.data);
+  }
+
+  @Override
+  public String toString() {
+    return data.toString();
   }
 
   @Override

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.ddl;
 
-public class DdlConfig {
+public final class DdlConfig {
 
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
@@ -25,8 +25,11 @@ public class DdlConfig {
   public static final String TOPIC_NAME_PROPERTY = "REGISTERED_TOPIC";
   public static final String STATE_STORE_NAME_PROPERTY = "STATESTORE";
   public static final String KEY_NAME_PROPERTY = "KEY";
-  public static final String IS_WINDOWED_PROPERTY = "WINDOWED";
+  public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
   public static final String PARTITION_BY_PROPERTY = "PARTITION_BY";
-  public static final String SCHEMA_FILE_CONTENT_PROPERTY = "ksql.schema.file.content";
+  public static final String TIMESTAMP_FORMAT_PROPERTY = "TIMESTAMP_FORMAT";
+
+  private DdlConfig() {
+  }
 }

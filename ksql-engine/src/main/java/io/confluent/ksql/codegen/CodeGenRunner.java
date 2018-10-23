@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,10 @@
 
 package io.confluent.ksql.codegen;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -44,183 +37,292 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
 
+  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
+      "org.apache.kafka.connect.data.Struct",
+      "java.util.HashMap",
+      "java.util.Map",
+      "java.util.List",
+      "java.util.ArrayList");
+
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
+  private final ExpressionTypeManager expressionTypeManager;
+  private final KsqlConfig ksqlConfig;
 
-  public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
+  public CodeGenRunner(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;
     this.schema = schema;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
-  public Map<String, Class> getParameterInfo(final Expression expression) {
-    Visitor visitor = new Visitor(schema, functionRegistry);
+  public Set<ParameterType> getParameterInfo(final Expression expression) {
+    final Visitor visitor =
+        new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
+
     visitor.process(expression, null);
-    return visitor.parameterMap;
+    return visitor.parameters;
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
       final Expression expression
   ) throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression);
 
-    String[] parameterNames = new String[parameterMap.size()];
-    Class[] parameterTypes = new Class[parameterMap.size()];
-    int[] columnIndexes = new int[parameterMap.size()];
-    Kudf[] kudfObjects = new Kudf[parameterMap.size()];
+    final Set<ParameterType> parameters = getParameterInfo(expression);
+
+    final String[] parameterNames = new String[parameters.size()];
+    final Class[] parameterTypes = new Class[parameters.size()];
+    final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
+    final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
 
     int index = 0;
-    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
-      parameterNames[index] = entry.getKey();
-      parameterTypes[index] = entry.getValue();
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
-      if (columnIndexes[index] < 0) {
-        kudfObjects[index] = (Kudf) entry.getValue().newInstance();
-      } else {
-        kudfObjects[index] = null;
-      }
+    for (final ParameterType param : parameters) {
+      parameterNames[index] = param.name;
+      parameterTypes[index] = param.type;
+      columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
+      kudfObjects.add(param.getKudf());
       index++;
     }
 
-    String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
+    final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
 
-    IExpressionEvaluator ee =
+    final IExpressionEvaluator ee =
         CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-
-    // The expression will have two "int" parameters: "a" and "b".
+    ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
     ee.setParameters(parameterNames, parameterTypes);
 
-    // And the expression (i.e. "result") type is also "int".
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        schema,
-        functionRegistry
-    );
-    Schema expressionType = expressionTypeManager.getExpressionType(expression);
+    final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
-    // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(javaCode);
 
     return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
-  private static class Visitor extends AstVisitor<Object, Object> {
+  private static final class Visitor extends AstVisitor<Object, Object> {
 
-    final Schema schema;
-    final Map<String, Class> parameterMap;
-    final FunctionRegistry functionRegistry;
+    private final Schema schema;
+    private final Set<ParameterType> parameters;
+    private final FunctionRegistry functionRegistry;
+    private final ExpressionTypeManager expressionTypeManager;
+    private final KsqlConfig ksqlConfig;
 
-    Visitor(Schema schema, FunctionRegistry functionRegistry) {
+    private int functionCounter = 0;
+
+    private Visitor(
+        final Schema schema,
+        final FunctionRegistry functionRegistry,
+        final ExpressionTypeManager expressionTypeManager,
+        final KsqlConfig ksqlConfig) {
       this.schema = schema;
-      this.parameterMap = new HashMap<>();
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
+      this.expressionTypeManager = expressionTypeManager;
     }
 
-    protected Object visitLikePredicate(LikePredicate node, Object context) {
+    private void addParameter(final Field schemaField) {
+      parameters.add(new ParameterType(
+          SchemaUtil.getJavaType(schemaField.schema()),
+          schemaField.name().replace(".", "_"), ksqlConfig));
+    }
+
+    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(FunctionCall node, Object context) {
-      String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
-      parameterMap.put(
-          node.getName().getSuffix(),
-          ksqlFunction.getKudfClass()
-      );
-      for (Expression argExpr : node.getArguments()) {
+    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
+      final int functionNumber = functionCounter++;
+      final List<Schema> argumentTypes = new ArrayList<>();
+      final String functionName = node.getName().getSuffix();
+      for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
+        argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
+
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
+      final KsqlFunction function = holder.getFunction(argumentTypes);
+      parameters.add(new ParameterType(function,
+          node.getName().getSuffix() + "_" + functionNumber, ksqlConfig));
       return null;
     }
 
-    protected Object visitArithmeticBinary(ArithmeticBinaryExpression node, Object context) {
+    protected Object visitArithmeticBinary(
+        final ArithmeticBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(IsNotNullPredicate node, Object context) {
+    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(IsNullPredicate node, Object context) {
+    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context) {
+    protected Object visitLogicalBinaryExpression(
+        final LogicalBinaryExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitComparisonExpression(ComparisonExpression node, Object context) {
+    protected Object visitComparisonExpression(
+        final ComparisonExpression node,
+        final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
       return null;
     }
 
     @Override
-    protected Object visitNotExpression(NotExpression node, Object context) {
+    protected Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitDereferenceExpression(DereferenceExpression node, Object context) {
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+    protected Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context) {
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
+      addParameter(schemaField.get());
       return null;
     }
 
     @Override
-    protected Object visitCast(Cast node, Object context) {
-
+    protected Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
-      String arrayBaseName = node.getBase().toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields: " + arrayBaseName);
+    protected Object visitSubscriptExpression(
+        final SubscriptExpression node,
+        final Object context
+    ) {
+      if (node.getBase() instanceof DereferenceExpression
+          || node.getBase() instanceof QualifiedNameReference) {
+        final String arrayBaseName = node.getBase().toString();
+        final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
+            .orElseThrow(
+                () -> {
+                  return new RuntimeException("Cannot find the select "
+                      + "field in the available fields: " + arrayBaseName);
+                });
+        addParameter(schemaField);
+      } else {
+        process(node.getBase(), context);
       }
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
       process(node.getIndex(), context);
       return null;
     }
 
     @Override
-    protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+    protected Object visitQualifiedNameReference(
+        final QualifiedNameReference node,
+        final Object context) {
+      final Optional<Field> schemaField =
+          SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(
-          schemaField.get().name().replace(".", "_"),
-          SchemaUtil.getJavaType(schemaField.get().schema())
-      );
+      addParameter(schemaField.get());
       return null;
     }
+
   }
 
+  public static final class ParameterType {
+    private final Class type;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private final Optional<KsqlFunction> function;
+    private final String name;
+    private final KsqlConfig ksqlConfig;
+
+    private ParameterType(final Class type, final String name, final KsqlConfig ksqlConfig) {
+      this(null, Objects.requireNonNull(type, "type can't be null"), name, ksqlConfig);
+    }
+
+    private ParameterType(
+        final KsqlFunction function,
+        final String name,
+        final KsqlConfig ksqlConfig) {
+      this(Objects.requireNonNull(function, "function can't be null"),
+          function.getKudfClass(),
+          name, ksqlConfig);
+    }
+
+    private ParameterType(
+        final KsqlFunction function,
+        final Class type,
+        final String name,
+        final KsqlConfig ksqlConfig) {
+      this.function = Optional.ofNullable(function);
+      this.type = Objects.requireNonNull(type, "type");
+      this.name = Objects.requireNonNull(name, "name");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    }
+
+    public Class getType() {
+      return type;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Kudf getKudf() {
+      return function.map(f -> f.newInstance(ksqlConfig)).orElse(null);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final ParameterType that = (ParameterType) o;
+      return Objects.equals(type, that.type)
+          && Objects.equals(function, that.function)
+          && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(type, function, name);
+    }
+  }
 }

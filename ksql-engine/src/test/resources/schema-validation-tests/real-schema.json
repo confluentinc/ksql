@@ -1,0 +1,1414 @@
+{
+  "tests": [
+    {
+      "name": "connect example schema (twitter)",
+      "schema": {
+        "type": "record",
+        "name": "Status",
+        "namespace": "com.github.jcustenborder.kafka.connect.twitter",
+        "fields": [
+          {
+            "name": "CreatedAt",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "connect.doc": "Return the created_at",
+                "connect.version": 1,
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "logicalType": "timestamp-millis"
+              }
+            ],
+            "doc": "Return the created_at",
+            "default": null
+          },
+          {
+            "name": "Id",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "connect.doc": "Returns the id of the status"
+              }
+            ],
+            "doc": "Returns the id of the status",
+            "default": null
+          },
+          {
+            "name": "Text",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "connect.doc": "Returns the text of the status"
+              }
+            ],
+            "doc": "Returns the text of the status",
+            "default": null
+          },
+          {
+            "name": "Source",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "connect.doc": "Returns the source"
+              }
+            ],
+            "doc": "Returns the source",
+            "default": null
+          },
+          {
+            "name": "Truncated",
+            "type": [
+              "null",
+              {
+                "type": "boolean",
+                "connect.doc": "Test if the status is truncated"
+              }
+            ],
+            "doc": "Test if the status is truncated",
+            "default": null
+          },
+          {
+            "name": "InReplyToStatusId",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "connect.doc": "Returns the in_reply_tostatus_id"
+              }
+            ],
+            "doc": "Returns the in_reply_tostatus_id",
+            "default": null
+          },
+          {
+            "name": "InReplyToUserId",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "connect.doc": "Returns the in_reply_user_id"
+              }
+            ],
+            "doc": "Returns the in_reply_user_id",
+            "default": null
+          },
+          {
+            "name": "InReplyToScreenName",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "connect.doc": "Returns the in_reply_to_screen_name"
+              }
+            ],
+            "doc": "Returns the in_reply_to_screen_name",
+            "default": null
+          },
+          {
+            "name": "GeoLocation",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "GeoLocation",
+                "fields": [
+                  {
+                    "name": "Latitude",
+                    "type": {
+                      "type": "double",
+                      "connect.doc": "returns the latitude of the geo location"
+                    },
+                    "doc": "returns the latitude of the geo location"
+                  },
+                  {
+                    "name": "Longitude",
+                    "type": {
+                      "type": "double",
+                      "connect.doc": "returns the longitude of the geo location"
+                    },
+                    "doc": "returns the longitude of the geo location"
+                  }
+                ],
+                "connect.doc": "Returns The location that this tweet refers to if available.",
+                "connect.name": "com.github.jcustenborder.kafka.connect.twitter.GeoLocation"
+              }
+            ],
+            "doc": "Returns The location that this tweet refers to if available.",
+            "default": null
+          },
+          {
+            "name": "Place",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "Place",
+                "fields": [
+                  {
+                    "name": "Name",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "StreetAddress",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "CountryCode",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "Id",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "Country",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "PlaceType",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "URL",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "FullName",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  }
+                ],
+                "connect.doc": "Returns the place attached to this status",
+                "connect.name": "com.github.jcustenborder.kafka.connect.twitter.Place"
+              }
+            ],
+            "doc": "Returns the place attached to this status",
+            "default": null
+          },
+          {
+            "name": "Favorited",
+            "type": [
+              "null",
+              {
+                "type": "boolean",
+                "connect.doc": "Test if the status is favorited"
+              }
+            ],
+            "doc": "Test if the status is favorited",
+            "default": null
+          },
+          {
+            "name": "Retweeted",
+            "type": [
+              "null",
+              {
+                "type": "boolean",
+                "connect.doc": "Test if the status is retweeted"
+              }
+            ],
+            "doc": "Test if the status is retweeted",
+            "default": null
+          },
+          {
+            "name": "FavoriteCount",
+            "type": [
+              "null",
+              {
+                "type": "int",
+                "connect.doc": "Indicates approximately how many times this Tweet has been 'favorited' by Twitter users."
+              }
+            ],
+            "doc": "Indicates approximately how many times this Tweet has been 'favorited' by Twitter users.",
+            "default": null
+          },
+          {
+            "name": "User",
+            "type": {
+              "type": "record",
+              "name": "User",
+              "fields": [
+                {
+                  "name": "Id",
+                  "type": [
+                    "null",
+                    {
+                      "type": "long",
+                      "connect.doc": "Returns the id of the user"
+                    }
+                  ],
+                  "doc": "Returns the id of the user",
+                  "default": null
+                },
+                {
+                  "name": "Name",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the name of the user"
+                    }
+                  ],
+                  "doc": "Returns the name of the user",
+                  "default": null
+                },
+                {
+                  "name": "ScreenName",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the screen name of the user"
+                    }
+                  ],
+                  "doc": "Returns the screen name of the user",
+                  "default": null
+                },
+                {
+                  "name": "Location",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the location of the user"
+                    }
+                  ],
+                  "doc": "Returns the location of the user",
+                  "default": null
+                },
+                {
+                  "name": "Description",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the description of the user"
+                    }
+                  ],
+                  "doc": "Returns the description of the user",
+                  "default": null
+                },
+                {
+                  "name": "ContributorsEnabled",
+                  "type": [
+                    "null",
+                    {
+                      "type": "boolean",
+                      "connect.doc": "Tests if the user is enabling contributors"
+                    }
+                  ],
+                  "doc": "Tests if the user is enabling contributors",
+                  "default": null
+                },
+                {
+                  "name": "ProfileImageURL",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the profile image url of the user"
+                    }
+                  ],
+                  "doc": "Returns the profile image url of the user",
+                  "default": null
+                },
+                {
+                  "name": "BiggerProfileImageURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "MiniProfileImageURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "OriginalProfileImageURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileImageURLHttps",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "BiggerProfileImageURLHttps",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "MiniProfileImageURLHttps",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "OriginalProfileImageURLHttps",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "DefaultProfileImage",
+                  "type": [
+                    "null",
+                    {
+                      "type": "boolean",
+                      "connect.doc": "Tests if the user has not uploaded their own avatar"
+                    }
+                  ],
+                  "doc": "Tests if the user has not uploaded their own avatar",
+                  "default": null
+                },
+                {
+                  "name": "URL",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the url of the user"
+                    }
+                  ],
+                  "doc": "Returns the url of the user",
+                  "default": null
+                },
+                {
+                  "name": "Protected",
+                  "type": [
+                    "null",
+                    {
+                      "type": "boolean",
+                      "connect.doc": "Test if the user status is protected"
+                    }
+                  ],
+                  "doc": "Test if the user status is protected",
+                  "default": null
+                },
+                {
+                  "name": "FollowersCount",
+                  "type": [
+                    "null",
+                    {
+                      "type": "int",
+                      "connect.doc": "Returns the number of followers"
+                    }
+                  ],
+                  "doc": "Returns the number of followers",
+                  "default": null
+                },
+                {
+                  "name": "ProfileBackgroundColor",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileTextColor",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileLinkColor",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileSidebarFillColor",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileSidebarBorderColor",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileUseBackgroundImage",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "DefaultProfile",
+                  "type": [
+                    "null",
+                    {
+                      "type": "boolean",
+                      "connect.doc": "Tests if the user has not altered the theme or background"
+                    }
+                  ],
+                  "doc": "Tests if the user has not altered the theme or background",
+                  "default": null
+                },
+                {
+                  "name": "ShowAllInlineMedia",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "FriendsCount",
+                  "type": [
+                    "null",
+                    {
+                      "type": "int",
+                      "connect.doc": "Returns the number of users the user follows (AKA 'followings')"
+                    }
+                  ],
+                  "doc": "Returns the number of users the user follows (AKA 'followings')",
+                  "default": null
+                },
+                {
+                  "name": "CreatedAt",
+                  "type": [
+                    "null",
+                    {
+                      "type": "long",
+                      "connect.version": 1,
+                      "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                      "logicalType": "timestamp-millis"
+                    }
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "FavouritesCount",
+                  "type": [
+                    "null",
+                    "int"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "UtcOffset",
+                  "type": [
+                    "null",
+                    "int"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "TimeZone",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBackgroundImageURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBackgroundImageUrlHttps",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerRetinaURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerIPadURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerIPadRetinaURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerMobileURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBannerMobileRetinaURL",
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ProfileBackgroundTiled",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "Lang",
+                  "type": [
+                    "null",
+                    {
+                      "type": "string",
+                      "connect.doc": "Returns the preferred language of the user"
+                    }
+                  ],
+                  "doc": "Returns the preferred language of the user",
+                  "default": null
+                },
+                {
+                  "name": "StatusesCount",
+                  "type": [
+                    "null",
+                    "int"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "GeoEnabled",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "Verified",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "Translator",
+                  "type": [
+                    "null",
+                    "boolean"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "ListedCount",
+                  "type": [
+                    "null",
+                    {
+                      "type": "int",
+                      "connect.doc": "Returns the number of public lists the user is listed on, or -1 if the count is unavailable."
+                    }
+                  ],
+                  "doc": "Returns the number of public lists the user is listed on, or -1 if the count is unavailable.",
+                  "default": null
+                },
+                {
+                  "name": "FollowRequestSent",
+                  "type": [
+                    "null",
+                    {
+                      "type": "boolean",
+                      "connect.doc": "Returns true if the authenticating user has requested to follow this user, otherwise false."
+                    }
+                  ],
+                  "doc": "Returns true if the authenticating user has requested to follow this user, otherwise false.",
+                  "default": null
+                },
+                {
+                  "name": "WithheldInCountries",
+                  "type": {
+                    "type": "array",
+                    "items": "string",
+                    "connect.doc": "Returns the list of country codes where the user is withheld"
+                  },
+                  "doc": "Returns the list of country codes where the user is withheld"
+                }
+              ],
+              "connect.doc": "Return the user associated with the status. This can be null if the instance is from User.getStatus().",
+              "connect.name": "com.github.jcustenborder.kafka.connect.twitter.User"
+            },
+            "doc": "Return the user associated with the status. This can be null if the instance is from User.getStatus()."
+          },
+          {
+            "name": "Retweet",
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "default": null
+          },
+          {
+            "name": "Contributors",
+            "type": {
+              "type": "array",
+              "items": "long",
+              "connect.doc": "Returns an array of contributors, or null if no contributor is associated with this status."
+            },
+            "doc": "Returns an array of contributors, or null if no contributor is associated with this status."
+          },
+          {
+            "name": "RetweetCount",
+            "type": [
+              "null",
+              {
+                "type": "int",
+                "connect.doc": "Returns the number of times this tweet has been retweeted, or -1 when the tweet was created before this feature was enabled."
+              }
+            ],
+            "doc": "Returns the number of times this tweet has been retweeted, or -1 when the tweet was created before this feature was enabled.",
+            "default": null
+          },
+          {
+            "name": "RetweetedByMe",
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "default": null
+          },
+          {
+            "name": "CurrentUserRetweetId",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "connect.doc": "Returns the authenticating user's retweet's id of this tweet, or -1L when the tweet was created before this feature was enabled."
+              }
+            ],
+            "doc": "Returns the authenticating user's retweet's id of this tweet, or -1L when the tweet was created before this feature was enabled.",
+            "default": null
+          },
+          {
+            "name": "PossiblySensitive",
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "default": null
+          },
+          {
+            "name": "Lang",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "connect.doc": "Returns the lang of the status text if available."
+              }
+            ],
+            "doc": "Returns the lang of the status text if available.",
+            "default": null
+          },
+          {
+            "name": "WithheldInCountries",
+            "type": {
+              "type": "array",
+              "items": "string",
+              "connect.doc": "Returns the list of country codes where the tweet is withheld"
+            },
+            "doc": "Returns the list of country codes where the tweet is withheld"
+          },
+          {
+            "name": "HashtagEntities",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "HashtagEntity",
+                  "fields": [
+                    {
+                      "name": "Text",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the text of the hashtag without #."
+                        }
+                      ],
+                      "doc": "Returns the text of the hashtag without #.",
+                      "default": null
+                    },
+                    {
+                      "name": "Start",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the start character of the hashtag."
+                        }
+                      ],
+                      "doc": "Returns the index of the start character of the hashtag.",
+                      "default": null
+                    },
+                    {
+                      "name": "End",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the end character of the hashtag."
+                        }
+                      ],
+                      "doc": "Returns the index of the end character of the hashtag.",
+                      "default": null
+                    }
+                  ],
+                  "connect.doc": "",
+                  "connect.name": "com.github.jcustenborder.kafka.connect.twitter.HashtagEntity"
+                },
+                "connect.doc": "Returns an array if hashtag mentioned in the tweet."
+              }
+            ],
+            "doc": "Returns an array if hashtag mentioned in the tweet.",
+            "default": null
+          },
+          {
+            "name": "UserMentionEntities",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "UserMentionEntity",
+                  "fields": [
+                    {
+                      "name": "Name",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the name mentioned in the status."
+                        }
+                      ],
+                      "doc": "Returns the name mentioned in the status.",
+                      "default": null
+                    },
+                    {
+                      "name": "Id",
+                      "type": [
+                        "null",
+                        {
+                          "type": "long",
+                          "connect.doc": "Returns the user id mentioned in the status."
+                        }
+                      ],
+                      "doc": "Returns the user id mentioned in the status.",
+                      "default": null
+                    },
+                    {
+                      "name": "Text",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the screen name mentioned in the status."
+                        }
+                      ],
+                      "doc": "Returns the screen name mentioned in the status.",
+                      "default": null
+                    },
+                    {
+                      "name": "ScreenName",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the screen name mentioned in the status."
+                        }
+                      ],
+                      "doc": "Returns the screen name mentioned in the status.",
+                      "default": null
+                    },
+                    {
+                      "name": "Start",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the start character of the user mention."
+                        }
+                      ],
+                      "doc": "Returns the index of the start character of the user mention.",
+                      "default": null
+                    },
+                    {
+                      "name": "End",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the end character of the user mention."
+                        }
+                      ],
+                      "doc": "Returns the index of the end character of the user mention.",
+                      "default": null
+                    }
+                  ],
+                  "connect.doc": "",
+                  "connect.name": "com.github.jcustenborder.kafka.connect.twitter.UserMentionEntity"
+                },
+                "connect.doc": "Returns an array of user mentions in the tweet."
+              }
+            ],
+            "doc": "Returns an array of user mentions in the tweet.",
+            "default": null
+          },
+          {
+            "name": "MediaEntities",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "MediaEntity",
+                  "fields": [
+                    {
+                      "name": "Id",
+                      "type": [
+                        "null",
+                        {
+                          "type": "long",
+                          "connect.doc": "Returns the id of the media."
+                        }
+                      ],
+                      "doc": "Returns the id of the media.",
+                      "default": null
+                    },
+                    {
+                      "name": "Type",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the media type photo, video, animated_gif."
+                        }
+                      ],
+                      "doc": "Returns the media type photo, video, animated_gif.",
+                      "default": null
+                    },
+                    {
+                      "name": "MediaURL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the media URL."
+                        }
+                      ],
+                      "doc": "Returns the media URL.",
+                      "default": null
+                    },
+                    {
+                      "name": "Sizes",
+                      "type": {
+                        "type": "array",
+                        "items": {
+                          "type": "record",
+                          "name": "MapEntry",
+                          "namespace": "io.confluent.connect.avro",
+                          "fields": [
+                            {
+                              "name": "key",
+                              "type": "int"
+                            },
+                            {
+                              "name": "value",
+                              "type": {
+                                "type": "record",
+                                "name": "Size",
+                                "namespace": "com.github.jcustenborder.kafka.connect.twitter.MediaEntity",
+                                "fields": [
+                                  {
+                                    "name": "Resize",
+                                    "type": [
+                                      "null",
+                                      {
+                                        "type": "int",
+                                        "connect.doc": ""
+                                      }
+                                    ],
+                                    "doc": "",
+                                    "default": null
+                                  },
+                                  {
+                                    "name": "Width",
+                                    "type": [
+                                      "null",
+                                      {
+                                        "type": "int",
+                                        "connect.doc": ""
+                                      }
+                                    ],
+                                    "doc": "",
+                                    "default": null
+                                  },
+                                  {
+                                    "name": "Height",
+                                    "type": [
+                                      "null",
+                                      {
+                                        "type": "int",
+                                        "connect.doc": ""
+                                      }
+                                    ],
+                                    "doc": "",
+                                    "default": null
+                                  }
+                                ],
+                                "connect.doc": "",
+                                "connect.name": "com.github.jcustenborder.kafka.connect.twitter.MediaEntity.Size"
+                              },
+                              "doc": ""
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "MediaURLHttps",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the media secure URL."
+                        }
+                      ],
+                      "doc": "Returns the media secure URL.",
+                      "default": null
+                    },
+                    {
+                      "name": "VideoAspectRatioWidth",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": ""
+                        }
+                      ],
+                      "doc": "",
+                      "default": null
+                    },
+                    {
+                      "name": "VideoAspectRatioHeight",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": ""
+                        }
+                      ],
+                      "doc": "",
+                      "default": null
+                    },
+                    {
+                      "name": "VideoDurationMillis",
+                      "type": [
+                        "null",
+                        {
+                          "type": "long",
+                          "connect.doc": ""
+                        }
+                      ],
+                      "doc": "",
+                      "default": null
+                    },
+                    {
+                      "name": "VideoVariants",
+                      "type": [
+                        "null",
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "record",
+                            "name": "Variant",
+                            "namespace": "com.github.jcustenborder.kafka.connect.twitter.ExtendedMediaEntity",
+                            "fields": [
+                              {
+                                "name": "Url",
+                                "type": [
+                                  "null",
+                                  {
+                                    "type": "string",
+                                    "connect.doc": ""
+                                  }
+                                ],
+                                "doc": "",
+                                "default": null
+                              },
+                              {
+                                "name": "Bitrate",
+                                "type": [
+                                  "null",
+                                  {
+                                    "type": "int",
+                                    "connect.doc": ""
+                                  }
+                                ],
+                                "doc": "",
+                                "default": null
+                              },
+                              {
+                                "name": "ContentType",
+                                "type": [
+                                  "null",
+                                  {
+                                    "type": "string",
+                                    "connect.doc": ""
+                                  }
+                                ],
+                                "doc": "",
+                                "default": null
+                              }
+                            ],
+                            "connect.doc": "",
+                            "connect.name": "com.github.jcustenborder.kafka.connect.twitter.ExtendedMediaEntity.Variant"
+                          },
+                          "connect.doc": "Returns size variations of the media."
+                        }
+                      ],
+                      "doc": "Returns size variations of the media.",
+                      "default": null
+                    },
+                    {
+                      "name": "ExtAltText",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": ""
+                        }
+                      ],
+                      "doc": "",
+                      "default": null
+                    },
+                    {
+                      "name": "URL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "Text",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "ExpandedURL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the expanded URL if mentioned URL is shorten."
+                        }
+                      ],
+                      "doc": "Returns the expanded URL if mentioned URL is shorten.",
+                      "default": null
+                    },
+                    {
+                      "name": "Start",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the start character of the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the index of the start character of the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "End",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the end character of the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the index of the end character of the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "DisplayURL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the display URL if mentioned URL is shorten."
+                        }
+                      ],
+                      "doc": "Returns the display URL if mentioned URL is shorten.",
+                      "default": null
+                    }
+                  ],
+                  "connect.doc": "",
+                  "connect.name": "com.github.jcustenborder.kafka.connect.twitter.MediaEntity"
+                },
+                "connect.doc": "Returns an array of MediaEntities if medias are available in the tweet."
+              }
+            ],
+            "doc": "Returns an array of MediaEntities if medias are available in the tweet.",
+            "default": null
+          },
+          {
+            "name": "SymbolEntities",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "SymbolEntity",
+                  "fields": [
+                    {
+                      "name": "Start",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the start character of the symbol."
+                        }
+                      ],
+                      "doc": "Returns the index of the start character of the symbol.",
+                      "default": null
+                    },
+                    {
+                      "name": "End",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the end character of the symbol."
+                        }
+                      ],
+                      "doc": "Returns the index of the end character of the symbol.",
+                      "default": null
+                    },
+                    {
+                      "name": "Text",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the text of the entity"
+                        }
+                      ],
+                      "doc": "Returns the text of the entity",
+                      "default": null
+                    }
+                  ],
+                  "connect.doc": "",
+                  "connect.name": "com.github.jcustenborder.kafka.connect.twitter.SymbolEntity"
+                },
+                "connect.doc": "Returns an array of SymbolEntities if medias are available in the tweet."
+              }
+            ],
+            "doc": "Returns an array of SymbolEntities if medias are available in the tweet.",
+            "default": null
+          },
+          {
+            "name": "URLEntities",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "URLEntity",
+                  "fields": [
+                    {
+                      "name": "URL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "Text",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "ExpandedURL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the expanded URL if mentioned URL is shorten."
+                        }
+                      ],
+                      "doc": "Returns the expanded URL if mentioned URL is shorten.",
+                      "default": null
+                    },
+                    {
+                      "name": "Start",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the start character of the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the index of the start character of the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "End",
+                      "type": [
+                        "null",
+                        {
+                          "type": "int",
+                          "connect.doc": "Returns the index of the end character of the URL mentioned in the tweet."
+                        }
+                      ],
+                      "doc": "Returns the index of the end character of the URL mentioned in the tweet.",
+                      "default": null
+                    },
+                    {
+                      "name": "DisplayURL",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.doc": "Returns the display URL if mentioned URL is shorten."
+                        }
+                      ],
+                      "doc": "Returns the display URL if mentioned URL is shorten.",
+                      "default": null
+                    }
+                  ],
+                  "connect.doc": "",
+                  "connect.name": "com.github.jcustenborder.kafka.connect.twitter.URLEntity"
+                },
+                "connect.doc": "Returns an array if URLEntity mentioned in the tweet."
+              }
+            ],
+            "doc": "Returns an array if URLEntity mentioned in the tweet.",
+            "default": null
+          }
+        ],
+        "connect.doc": "Twitter status message.",
+        "connect.name": "com.github.jcustenborder.kafka.connect.twitter.Status"
+      }
+    }
+  ]
+}

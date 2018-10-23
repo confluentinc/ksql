@@ -1,17 +1,8 @@
 #!/usr/bin/env bash
 
-LOG_FILE=/tmp/ksql-connect.log
-echo "PROCESSING UPLOAD "  > $LOG_FILE
-
 echo "Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource"
-echo "Logging to:" $LOG_FILE
 
-./elastic-dynamic-template.sh >> $LOG_FILE 2>&1
-
-
-
-
-declare -a tables=('click_user_sessions_ts' 'user_ip_activity_ts' 'clickstream_status_codes_ts' 'enriched_error_codes_ts' 'errors_per_min_alert_ts' 'errors_per_min_ts' 'events_per_min_max_avg_ts' 'events_per_min_ts' 'pages_per_min_ts');
+declare -a tables=('click_user_sessions' 'user_ip_activity' 'enriched_error_codes_count' 'errors_per_min_alert' 'errors_per_min' 'events_per_min' 'pages_per_min');
 for i in "${tables[@]}"
 do
 
@@ -20,29 +11,26 @@ do
     table_name=$i
     TABLE_NAME=`echo $table_name | tr '[a-z]' '[A-Z]'`
 
-    echo "==================================================================" >> $LOG_FILE
-    echo "Charting " $TABLE_NAME  >> $LOG_FILE
-    echo "Charting " $TABLE_NAME
-
+    echo -e "\n\n==================================================================" 
+    echo -e "Charting " $TABLE_NAME  
 
     ## Cleanup existing data
 
-    # Elastic
-    curl -X "DELETE" "http://localhost:9200/""$table_name" >> $LOG_FILE 2>&1
+    echo -e "\t-> Remove any existing Elastic search config"  
+    curl -s -X "DELETE" "http://elasticsearch:9200/""$table_name"  >>/tmp/log.txt 2>&1
 
-    # Connect
-    curl -X "DELETE" "http://localhost:8083/connectors/es_sink_""$TABLE_NAME" >> $LOG_FILE 2>&1
+    echo -e "\t-> Remove any existing Connect config"  
+    curl -s -X "DELETE" "http://localhost:8083/connectors/es_sink_""$TABLE_NAME"  >>/tmp/log.txt 2>&1
 
-#    # Grafana
-    curl -X "DELETE" "http://localhost:3000/api/datasources/name/""$table_name"   --user admin:admin >> $LOG_FILE 2>&1
+    echo -e "\t-> Remove any existing Grafana config"  
+    curl -s -X "DELETE" "http://grafana:3000/api/datasources/name/""$table_name"   --user admin:admin  >>/tmp/log.txt 2>&1
 
     # Wire in the new connection path
-    echo "\n\nConnecting KSQL->Elastic->Grafana " "$table_name" >> $LOG_FILE 2>&1
-    ./ksql-connect-es-grafana.sh "$table_name" >> $LOG_FILE 2>&1
+    echo -e "\t-> Connecting KSQL->Elastic->Grafana " "$table_name"  2>&1
+    /scripts/ksql-connect-es-grafana.sh "$table_name"  2>&1
 done
 
-echo "Navigate to http://localhost:3000/dashboard/db/click-stream-analysis"
-
+echo -e "\n\nDone!"
 
 # ========================
 #   REST API Notes

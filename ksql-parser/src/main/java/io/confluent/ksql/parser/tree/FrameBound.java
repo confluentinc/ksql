@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class FrameBound
     extends Node {
@@ -36,27 +36,30 @@ public class FrameBound
   private final Type type;
   private final Optional<Expression> value;
 
-  public FrameBound(Type type) {
+  public FrameBound(final Type type) {
     this(Optional.empty(), type);
   }
 
-  public FrameBound(NodeLocation location, Type type) {
+  public FrameBound(final NodeLocation location, final Type type) {
     this(Optional.of(location), type);
   }
 
-  public FrameBound(Type type, Expression value) {
+  public FrameBound(final Type type, final Expression value) {
     this(Optional.empty(), type, value);
   }
 
-  private FrameBound(Optional<NodeLocation> location, Type type) {
+  private FrameBound(final Optional<NodeLocation> location, final Type type) {
     this(location, type, null);
   }
 
-  public FrameBound(NodeLocation location, Type type, Expression value) {
+  public FrameBound(final NodeLocation location, final Type type, final Expression value) {
     this(Optional.of(location), type, value);
   }
 
-  private FrameBound(Optional<NodeLocation> location, Type type, Expression value) {
+  private FrameBound(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Expression value) {
     super(location);
     this.type = requireNonNull(type, "type is null");
     this.value = Optional.ofNullable(value);
@@ -71,19 +74,19 @@ public class FrameBound
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitFrameBound(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    FrameBound o = (FrameBound) obj;
+    final FrameBound o = (FrameBound) obj;
     return Objects.equals(type, o.type)
            && Objects.equals(value, o.value);
   }

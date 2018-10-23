@@ -19,9 +19,11 @@ package io.confluent.ksql.parser.tree;
 import java.util.Optional;
 
 public abstract class AbstractStreamDropStatement extends Statement {
-  public AbstractStreamDropStatement(Optional<NodeLocation> location) {
+  public AbstractStreamDropStatement(final Optional<NodeLocation> location) {
     super(location);
   }
+
+  public abstract boolean getIfExists();
 
   public abstract QualifiedName getName();
 }

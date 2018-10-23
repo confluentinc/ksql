@@ -20,21 +20,21 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DropTopic;
 
 
-public class DropTopicCommand implements DDLCommand {
+public class DropTopicCommand implements DdlCommand {
 
   private final String topicName;
 
-  public DropTopicCommand(DropTopic dropTopic) {
+  public DropTopicCommand(final DropTopic dropTopic) {
     this.topicName = dropTopic.getTopicName().getSuffix();
   }
 
-  DropTopicCommand(String topicName) {
+  DropTopicCommand(final String topicName) {
     this.topicName = topicName;
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     metaStore.deleteTopic(topicName);
-    return new DDLCommandResult(true, "Topic " + topicName + " was dropped");
+    return new DdlCommandResult(true, "Topic " + topicName + " was dropped");
   }
 }

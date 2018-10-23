@@ -17,47 +17,48 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.planner.plan.OutputNode;
-
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.KafkaStreams;
-
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.Topology;
 
 public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
-  private final Schema resultSchema;
   private final KsqlTopic resultTopic;
 
+  private final Set<String> sinkNames;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(final String statementString,
                                  final KafkaStreams kafkaStreams,
                                  final OutputNode outputNode,
+                                 final StructuredDataSource sinkDataSource,
                                  final String executionPlan,
                                  final QueryId id,
                                  final DataSource.DataSourceType dataSourceType,
                                  final String queryApplicationId,
                                  final KafkaTopicClient kafkaTopicClient,
-                                 final Schema resultSchema,
                                  final KsqlTopic resultTopic,
-                                 final String topology) {
+                                 final Topology topology,
+                                 final Map<String, Object> overriddenProperties) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology);
+          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
     this.id = id;
-    this.resultSchema = resultSchema;
     this.resultTopic = resultTopic;
-
+    this.sinkNames = new HashSet<>();
+    this.sinkNames.add(sinkDataSource.getName());
   }
 
-  public QueryId getId() {
+  public QueryId getQueryId() {
     return id;
-  }
-
-  public Schema getResultSchema() {
-    return resultSchema;
   }
 
   public KsqlTopic getResultTopic() {
@@ -66,6 +67,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public String getEntity() {
     return getOutputNode().getId().toString();
+  }
+
+  public Set<String> getSinkNames() {
+    return sinkNames;
   }
 
   public DataSource.DataSourceSerDe getResultTopicSerde() {
@@ -77,12 +82,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (!(o instanceof PersistentQueryMetadata)) {
       return false;
     }
 
-    PersistentQueryMetadata that = (PersistentQueryMetadata) o;
+    final PersistentQueryMetadata that = (PersistentQueryMetadata) o;
 
     return Objects.equals(this.id, that.id) && super.equals(o);
   }

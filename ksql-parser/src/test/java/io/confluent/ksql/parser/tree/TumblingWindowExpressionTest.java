@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.easymock.EasyMock.same;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -26,13 +32,7 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
-
-import static org.easymock.EasyMock.same;
-
+@SuppressWarnings("unchecked")
 public class TumblingWindowExpressionTest {
 
   @Test
@@ -44,7 +44,7 @@ public class TumblingWindowExpressionTest {
     final Initializer initializer = () -> 0;
     final Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store = Materialized.as("store");
 
-    EasyMock.expect(stream.windowedBy(TimeWindows.of(10000L))).andReturn(windowedKStream);
+    EasyMock.expect(stream.windowedBy(TimeWindows.of(Duration.ofMillis(10000L)))).andReturn(windowedKStream);
     EasyMock.expect(windowedKStream.aggregate(same(initializer), same(aggregator), same(store))).andReturn(null);
     EasyMock.replay(stream, windowedKStream);
 

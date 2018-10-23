@@ -1,0 +1,34 @@
+#!/bin/bash
+# (Copyright) [2017 - 2017] Confluent, Inc.
+
+#
+# Use shellcheck to lint this file
+#
+
+base_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+
+: "${KSQL_CONFIG_DIR:="$base_dir/config"}"
+
+# logj4 settings
+if [ -z "$KSQL_LOG4J_OPTS" ]; then
+  # Test for files from dev -> packages so this will work as expected in dev if you have packages
+  # installed
+  if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
+    KSQL_CONFIG_DIR="$base_dir/config"
+  elif [ -e "$base_dir/etc/ksql/log4j.properties" ]; then # Simple zip file layout
+    KSQL_CONFIG_DIR="$base_dir/etc/ksql"
+  elif [ -e "/etc/ksql/log4j.properties" ]; then # Normal install layout
+    KSQL_CONFIG_DIR="/etc/ksql"
+  fi
+fi
+
+
+
+: "${KSQL_LOG4J_OPTS:=""}"
+
+# Use file logging by default
+if [ -z "$KSQL_LOG4J_OPTS" ]; then
+  export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-file.properties"
+fi
+
+exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.Ksql "$@"

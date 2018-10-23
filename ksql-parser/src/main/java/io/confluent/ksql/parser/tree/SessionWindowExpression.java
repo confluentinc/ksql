@@ -16,34 +16,50 @@
 
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.SessionWindows;
-
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class SessionWindowExpression extends KsqlWindowExpression {
 
   private final long gap;
   private final TimeUnit sizeUnit;
 
-  public SessionWindowExpression(long gap, TimeUnit sizeUnit) {
+  public SessionWindowExpression(final long gap, final TimeUnit sizeUnit) {
     this(Optional.empty(), gap, sizeUnit);
   }
 
-  private SessionWindowExpression(Optional<NodeLocation> location, long gap,
-                                  TimeUnit sizeUnit) {
+  private SessionWindowExpression(final Optional<NodeLocation> location, final long gap,
+                                  final TimeUnit sizeUnit) {
     super(location);
     this.gap = gap;
     this.sizeUnit = sizeUnit;
   }
+
+  public long getGap() {
+    return gap;
+  }
+
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitSessionWindowExpression(this, context);
+  }
+
 
   @Override
   public String toString() {
@@ -56,14 +72,14 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
+    final SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
     return sessionWindowExpression.gap == gap && sessionWindowExpression.sizeUnit == sizeUnit;
   }
 
@@ -73,8 +89,16 @@ public class SessionWindowExpression extends KsqlWindowExpression {
                                final Initializer initializer,
                                final UdafAggregator aggregator,
                                final Materialized<String, GenericRow, ?> materialized) {
-    return groupedStream.windowedBy(SessionWindows.with(sizeUnit.toMillis(gap)))
-        .aggregate(initializer, aggregator, aggregator.getMerger(),
-            materialized);
+
+    final SessionWindows windows = SessionWindows.with(Duration.ofMillis(sizeUnit.toMillis(gap)));
+
+    return groupedStream
+        .windowedBy(windows)
+        .aggregate(initializer, aggregator, aggregator.getMerger(), materialized);
+  }
+
+  @Override
+  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
+    return WindowedSerdes.sessionWindowedSerdeFrom(innerType);
   }
 }

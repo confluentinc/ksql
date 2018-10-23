@@ -16,79 +16,73 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.junit.Test;
+
 public class StringTopkDistinctKudafTest {
 
-  String[] valueArray;
-  @Before
-  public void setup() {
-    valueArray = new String[]{"10", "30", "45", "10", "50", "60", "20", "60", "80", "35", "25",
-                              "60", "80"};
-
-  }
+  private final List<String> valuesArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
+      "25", "60", "80");;
+  private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
+      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_STRING_SCHEMA);
 
   @Test
   public void shouldAggregateTopK() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] currentVal = new String[]{null, null, null};
-    for (String d: valueArray) {
+    List<String> currentVal = new ArrayList<>();
+    for (final String d: valuesArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"80", "60", "50"}));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("80", "60", "50")));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] currentVal = new String[]{null, null, null};
+    List<String> currentVal = new ArrayList<>();
     currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
 
-    assertThat("Invalid results.", currentVal, equalTo(new String[]{"80", null, null}));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of("80")));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"50", "45", "25"};
-    String[] array2 = new String[]{"60", "50", "48"};
+    final List<String> array1 = ImmutableList.of("50", "45", "25");
+    final List<String> array2 = ImmutableList.of("60", "50", "48");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "48"}));
+        ImmutableList.of("60", "50", "48")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", null, null};
+    final List<String> array1 = ImmutableList.of("50", "45");
+    final List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+        ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"50", "45", null};
-    String[] array2 = new String[]{"60", "50", null};
+    final List<String> array1 = ImmutableList.of("50", "45");
+    final List<String> array2 = ImmutableList.of("60", "50");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+        ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
-    String[] array1 = new String[]{"60", null, null};
-    String[] array2 = new String[]{"60", null, null};
+    final List<String> array1 = ImmutableList.of("60");
+    final List<String> array2 = ImmutableList.of("60");
 
     assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", null, null}));
+        ImmutableList.of("60")));
   }
 }

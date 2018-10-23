@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,18 +16,13 @@
 
 package io.confluent.ksql.codegen;
 
+import static java.lang.String.format;
+
 import com.google.common.base.Joiner;
-
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -44,6 +39,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
@@ -57,46 +53,53 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
+import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
-
-import static java.lang.String.format;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
 
   private Schema schema;
   private FunctionRegistry functionRegistry;
 
-  public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
+  private final ExpressionTypeManager expressionTypeManager;
+
+  public SqlToJavaVisitor(final Schema schema, final FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.functionRegistry = functionRegistry;
+    this.expressionTypeManager =
+        new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public String process(final Expression expression) {
-
     return formatExpression(expression);
   }
 
   private String formatExpression(final Expression expression) {
-    Pair<String, Schema>
-        expressionFormatterResult =
+    final Pair<String, Schema> expressionFormatterResult =
         new SqlToJavaVisitor.Formatter(functionRegistry).process(expression, true);
     return expressionFormatterResult.getLeft();
   }
 
 
-  public class Formatter
-      extends AstVisitor<Pair<String, Schema>, Boolean> {
+  private class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
 
-    FunctionRegistry functionRegistry;
+    private final FunctionRegistry functionRegistry;
+    private int functionCounter = 0;
 
-    Formatter(FunctionRegistry functionRegistry) {
+    Formatter(final FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
     }
 
     @Override
-    protected Pair<String, Schema> visitNode(final Node node, Boolean unmangleNames) {
+    protected Pair<String, Schema> visitNode(final Node node, final Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
@@ -106,8 +109,10 @@ public class SqlToJavaVisitor {
         final Boolean unmangleNames
     ) {
       throw new UnsupportedOperationException(
-          format("not yet implemented: %s.visit%s", getClass().getName(),
-                 node.getClass().getSimpleName()
+          format(
+              "not yet implemented: %s.visit%s",
+              getClass().getName(),
+              node.getClass().getSimpleName()
           )
       );
     }
@@ -117,7 +122,7 @@ public class SqlToJavaVisitor {
         final BooleanLiteral node,
         final Boolean unmangleNames
     ) {
-      return new Pair<>(String.valueOf(node.getValue()), Schema.BOOLEAN_SCHEMA);
+      return new Pair<>(String.valueOf(node.getValue()), Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
@@ -125,89 +130,87 @@ public class SqlToJavaVisitor {
         final StringLiteral node,
         final Boolean unmangleNames
     ) {
-      return new Pair<>("\"" + node.getValue() + "\"", Schema.STRING_SCHEMA);
+      return new Pair<>("\"" + node.getValue() + "\"", Schema.OPTIONAL_STRING_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitBinaryLiteral(
-        BinaryLiteral node,
-        Boolean unmangleNames
-    ) {
+        final BinaryLiteral node, final Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
 
     @Override
     protected Pair<String, Schema> visitDoubleLiteral(
-        DoubleLiteral node,
-        Boolean unmangleNames
-    ) {
-      return new Pair<>(Double.toString(node.getValue()), Schema.FLOAT64_SCHEMA);
+        final DoubleLiteral node, final Boolean unmangleNames) {
+      return new Pair<>(Double.toString(node.getValue()), Schema.OPTIONAL_FLOAT64_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitDecimalLiteral(
-        DecimalLiteral node,
-        Boolean unmangleNames
-    ) {
+        final DecimalLiteral node, final Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     protected Pair<String, Schema> visitGenericLiteral(
-        GenericLiteral node,
-        Boolean unmangleNames
+        final GenericLiteral node,
+        final Boolean unmangleNames
     ) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    protected Pair<String, Schema> visitNullLiteral(NullLiteral node, Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
+    protected Pair<String, Schema> visitNullLiteral(
+        final NullLiteral node, final Boolean unmangleNames) {
+      return new Pair<>("null", null);
     }
 
     @Override
     protected Pair<String, Schema> visitQualifiedNameReference(
-        QualifiedNameReference node,
-        Boolean unmangleNames
+        final QualifiedNameReference node,
+        final Boolean unmangleNames
     ) {
-      String fieldName = formatQualifiedName(node.getName());
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      final String fieldName = formatQualifiedName(node.getName());
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
     @Override
     protected Pair<String, Schema> visitSymbolReference(
-        SymbolReference node,
-        Boolean context
+        final SymbolReference node,
+        final Boolean context
     ) {
-      String fieldName = formatIdentifier(node.getName());
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      final String fieldName = formatIdentifier(node.getName());
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName, schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName, schema);
     }
 
     @Override
     protected Pair<String, Schema> visitDereferenceExpression(
-        DereferenceExpression node,
-        Boolean unmangleNames
+        final DereferenceExpression node,
+        final Boolean unmangleNames
     ) {
-      String fieldName = node.toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      final String fieldName = node.toString();
+      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       if (!schemaField.isPresent()) {
         throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
+      final Schema schema = schemaField.get().schema();
+      return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
-    private String formatQualifiedName(QualifiedName name) {
-      List<String> parts = new ArrayList<>();
-      for (String part : name.getParts()) {
+    private String formatQualifiedName(final QualifiedName name) {
+      final List<String> parts = new ArrayList<>();
+      for (final String part : name.getParts()) {
         parts.add(formatIdentifier(part));
       }
       return Joiner.on('.').join(parts);
@@ -215,114 +218,175 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, Schema> visitFieldReference(
-        FieldReference node,
-        Boolean unmangleNames
+        final FieldReference node,
+        final Boolean unmangleNames
     ) {
       throw new UnsupportedOperationException();
     }
 
-    protected Pair<String, Schema> visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
-      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")", Schema.INT64_SCHEMA);
+    protected Pair<String, Schema> visitLongLiteral(
+        final LongLiteral node, final Boolean unmangleNames) {
+      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")",
+          Schema.OPTIONAL_INT64_SCHEMA);
     }
 
+    @Override
+    protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
+        final Boolean context) {
+      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")",
+          Schema.OPTIONAL_INT32_SCHEMA);
+    }
 
     @Override
     protected Pair<String, Schema> visitFunctionCall(
-        FunctionCall node,
-        Boolean unmangleNames
-    ) {
-      StringBuilder builder = new StringBuilder("(");
-      String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = functionRegistry.getFunction(name);
-      String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
-      builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
-      boolean addComma = false;
-      for (Expression argExpr : node.getArguments()) {
-        Pair<String, Schema> processedArg = process(argExpr, unmangleNames);
-        if (addComma) {
-          builder.append(" , ");
-        } else {
-          addComma = true;
-        }
-        builder.append(processedArg.getLeft());
+        final FunctionCall node,
+        final Boolean unmangleNames) {
+      final String functionName = node.getName().getSuffix();
+
+      final String instanceName = functionName + "_" + functionCounter++;
+      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
+      final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
+      final String arguments = node.getArguments().stream()
+          .map(arg -> process(arg, unmangleNames).getLeft())
+          .collect(Collectors.joining(", "));
+      final String builder = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + arguments + "))";
+      return new Pair<>(builder.toString(), functionReturnSchema);
+    }
+
+    private Schema getFunctionReturnSchema(
+        final FunctionCall node,
+        final String functionName) {
+      if (functionName.equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+        return expressionTypeManager.getExpressionSchema(node);
       }
-      builder.append(")");
-      builder.append(")");
-      return new Pair<>(builder.toString(), ksqlFunction.getReturnType());
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final List<Schema> argumentSchemas = node.getArguments().stream()
+          .map(expressionTypeManager::getExpressionSchema)
+          .collect(Collectors.toList());
+
+      return udfFactory.getFunction(argumentSchemas).getReturnType();
     }
 
     @Override
     protected Pair<String, Schema> visitLogicalBinaryExpression(
-        LogicalBinaryExpression node,
-        Boolean unmangleNames
+        final LogicalBinaryExpression node,
+        final Boolean unmangleNames
     ) {
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
             formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames),
-            Schema.BOOLEAN_SCHEMA
+            Schema.OPTIONAL_BOOLEAN_SCHEMA
         );
       } else if (node.getType() == LogicalBinaryExpression.Type.AND) {
         return new Pair<>(
             formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames),
-            Schema.BOOLEAN_SCHEMA
+            Schema.OPTIONAL_BOOLEAN_SCHEMA
         );
       }
       throw new UnsupportedOperationException(
           format("not yet implemented: %s.visit%s", getClass().getName(),
-                 node.getClass().getSimpleName()
+              node.getClass().getSimpleName()
           )
       );
     }
 
     @Override
     protected Pair<String, Schema> visitNotExpression(
-        NotExpression node,
-        Boolean unmangleNames
-    ) {
-      String exprString = process(node.getValue(), unmangleNames).getLeft();
-      return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
+        final NotExpression node, final Boolean unmangleNames) {
+      final String exprString = process(node.getValue(), unmangleNames).getLeft();
+      return new Pair<>("(!" + exprString + ")", Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    }
+
+    private String nullCheckPrefix(final ComparisonExpression.Type type) {
+      switch (type) {
+        case IS_DISTINCT_FROM:
+          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
+              + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
+        default:
+          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
+      }
+    }
+
+    private String visitStringComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(!%1$s.equals(%2$s))";
+        case GREATER_THAN_OR_EQUAL:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case LESS_THAN:
+          return "(%1$s.compareTo(%2$s) " + type.getValue() + " 0)";
+        default:
+          throw new KsqlException("Unexpected string comparison: " + type.getValue());
+      }
+    }
+
+    private String visitScalarComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "((%1$s <= %2$s) && (%1$s >= %2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "((%1$s < %2$s) || (%1$s > %2$s))";
+        case GREATER_THAN_OR_EQUAL:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case LESS_THAN:
+          return "(%1$s " + type.getValue() + " %2$s)";
+        default:
+          throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+    }
+
+    private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(Boolean.compare(%1$s, %2$s) == 0)";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(Boolean.compare(%1$s, %2$s) != 0)";
+        default:
+          throw new KsqlException("Unexpected boolean comparison: " + type.getValue());
+      }
     }
 
     @Override
     protected Pair<String, Schema> visitComparisonExpression(
-        ComparisonExpression node,
-        Boolean unmangleNames
+        final ComparisonExpression node,
+        final Boolean unmangleNames
     ) {
-      Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
-      Pair<String, Schema> right = process(node.getRight(), unmangleNames);
-      if ((left.getRight().type() == Schema.Type.STRING) || (
-          right.getRight().type() == Schema.Type.STRING
-        )) {
-        if ("=".equals(node.getType().getValue())) {
-          return new Pair<>(
-              "(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
-              Schema.BOOLEAN_SCHEMA
-          );
-        } else if ("<>".equals(node.getType().getValue())) {
-          return new Pair<>(
-              " (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
-              Schema.BOOLEAN_SCHEMA
-          );
-        }
+      final Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
+      final Pair<String, Schema> right = process(node.getRight(), unmangleNames);
+
+      String exprFormat = nullCheckPrefix(node.getType());
+      switch (left.getRight().type()) {
+        case STRING:
+          exprFormat += visitStringComparisonExpression(node.getType());
+          break;
+        case MAP:
+          throw new KsqlException("Cannot compare MAP values");
+        case ARRAY:
+          throw new KsqlException("Cannot compare ARRAY values");
+        case BOOLEAN:
+          exprFormat += visitBooleanComparisonExpression(node.getType());
+          break;
+        default:
+          exprFormat += visitScalarComparisonExpression(node.getType());
+          break;
       }
-      String typeStr = node.getType().getValue();
-      if ("=".equals(typeStr)) {
-        typeStr = "==";
-      } else if ("<>".equals(typeStr)) {
-        typeStr = "!=";
-      }
-      return new Pair<>(
-          "(" + left.getLeft() + " " + typeStr + " " + right.getLeft() + ")",
-          Schema.BOOLEAN_SCHEMA
-      );
+      final String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
+      return new Pair<>(expr, Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
-    protected Pair<String, Schema> visitCast(Cast node, Boolean context) {
-      Pair<String, Schema> expr = process(node.getExpression(), context);
-      String returnTypeStr = node.getType();
-      Schema returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-
+    protected Pair<String, Schema> visitCast(final Cast node, final Boolean context) {
+      final Pair<String, Schema> expr = process(node.getExpression(), context);
+      final String returnTypeStr = node.getType();
+      final Schema returnType = SchemaUtil.getTypeSchema(returnTypeStr);
       switch (returnTypeStr) {
 
         case "VARCHAR":
@@ -330,13 +394,13 @@ public class SqlToJavaVisitor {
           return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
 
         case "BOOLEAN": {
-          Schema rightSchema = expr.getRight();
+          final Schema rightSchema = expr.getRight();
           return new Pair<>(getCastToBooleanString(rightSchema, expr.getLeft()), returnType);
         }
 
         case "INTEGER": {
-          Schema rightSchema = expr.getRight();
-          String exprStr = getCastString(
+          final Schema rightSchema = expr.getRight();
+          final String exprStr = getCastString(
               rightSchema,
               expr.getLeft(),
               "intValue",
@@ -346,8 +410,8 @@ public class SqlToJavaVisitor {
         }
 
         case "BIGINT": {
-          Schema rightSchema = expr.getRight();
-          String exprStr = getCastString(
+          final Schema rightSchema = expr.getRight();
+          final String exprStr = getCastString(
               rightSchema, expr.getLeft(),
               "longValue",
               "Long.parseLong"
@@ -356,8 +420,8 @@ public class SqlToJavaVisitor {
         }
 
         case "DOUBLE": {
-          Schema rightSchema = expr.getRight();
-          String exprStr = getCastString(
+          final Schema rightSchema = expr.getRight();
+          final String exprStr = getCastString(
               rightSchema,
               expr.getLeft(),
               "doubleValue",
@@ -372,33 +436,32 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitIsNullPredicate(
-        IsNullPredicate node,
-        Boolean unmangleNames
+        final IsNullPredicate node,
+        final Boolean unmangleNames
     ) {
-      Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      return new Pair<>("((" + value.getLeft() + ") == null )", Schema.BOOLEAN_SCHEMA);
+      final Pair<String, Schema> value = process(node.getValue(), unmangleNames);
+      return new Pair<>("((" + value.getLeft() + ") == null )", Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitIsNotNullPredicate(
-        IsNotNullPredicate node,
-        Boolean unmangleNames
+        final IsNotNullPredicate node,
+        final Boolean unmangleNames
     ) {
-      Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-      return new Pair<>("((" + value.getLeft() + ") != null )", Schema.BOOLEAN_SCHEMA);
+      final Pair<String, Schema> value = process(node.getValue(), unmangleNames);
+      return new Pair<>("((" + value.getLeft() + ") != null )", Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     @Override
     protected Pair<String, Schema> visitArithmeticUnary(
-        ArithmeticUnaryExpression node,
-        Boolean unmangleNames
+        final ArithmeticUnaryExpression node,
+        final Boolean unmangleNames
     ) {
-      Pair<String, Schema> value = process(node.getValue(), unmangleNames);
-
+      final Pair<String, Schema> value = process(node.getValue(), unmangleNames);
       switch (node.getSign()) {
         case MINUS:
           // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-          String separator = value.getLeft().startsWith("-") ? " " : "";
+          final String separator = value.getLeft().startsWith("-") ? " " : "";
           return new Pair<>("-" + separator + value.getLeft(), value.getRight());
         case PLUS:
           return new Pair<>("+" + value.getLeft(), value.getRight());
@@ -409,116 +472,131 @@ public class SqlToJavaVisitor {
 
     @Override
     protected Pair<String, Schema> visitArithmeticBinary(
-        ArithmeticBinaryExpression node,
-        Boolean unmangleNames
+        final ArithmeticBinaryExpression node,
+        final Boolean unmangleNames
     ) {
-      Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
-      Pair<String, Schema> right = process(node.getRight(), unmangleNames);
+      final Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
+      final Pair<String, Schema> right = process(node.getRight(), unmangleNames);
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          Schema.FLOAT64_SCHEMA
+          Schema.OPTIONAL_FLOAT64_SCHEMA
       );
     }
 
     @Override
     protected Pair<String, Schema> visitLikePredicate(
-        LikePredicate node,
-        Boolean unmangleNames
+        final LikePredicate node,
+        final Boolean unmangleNames
     ) {
 
       // For now we just support simple prefix/suffix cases only.
-      String paternString = process(node.getPattern(), true).getLeft().substring(1);
-      paternString = paternString.substring(0, paternString.length() - 1);
-      String valueString = process(node.getValue(), true).getLeft();
-
-      if (paternString.startsWith("%")) {
-        if (paternString.endsWith("%")) {
+      final String patternString = trimQuotes(process(node.getPattern(), true).getLeft());
+      final String valueString = process(node.getValue(), true).getLeft();
+      if (patternString.startsWith("%")) {
+        if (patternString.endsWith("%")) {
           return new Pair<>(
               "(" + valueString + ").contains(\""
-              + paternString.substring(1, paternString.length() - 1)
-              + "\")",
-              Schema.STRING_SCHEMA
+                  + patternString.substring(1, patternString.length() - 1)
+                  + "\")",
+              Schema.OPTIONAL_STRING_SCHEMA
           );
         } else {
           return new Pair<>(
-              "(" + valueString + ").endsWith(\"" + paternString.substring(1) + "\")",
-              Schema.STRING_SCHEMA
+              "(" + valueString + ").endsWith(\"" + patternString.substring(1) + "\")",
+              Schema.OPTIONAL_STRING_SCHEMA
           );
         }
       }
 
-      if (paternString.endsWith("%")) {
+      if (patternString.endsWith("%")) {
         return new Pair<>(
             "(" + valueString + ")"
-            + ".startsWith(\""
-            + paternString.substring(0, paternString.length() - 1) + "\")",
-            Schema.STRING_SCHEMA
+                + ".startsWith(\""
+                + patternString.substring(0, patternString.length() - 1) + "\")",
+            Schema.OPTIONAL_STRING_SCHEMA
         );
       }
 
-      throw new UnsupportedOperationException();
+      if (!patternString.contains("%")) {
+        return new Pair<>(
+            "(" + valueString + ")"
+                + ".equals(\""
+                + patternString + "\")",
+            Schema.OPTIONAL_STRING_SCHEMA
+        );
+      }
+
+      throw new UnsupportedOperationException(
+          "KSQL only supports leading and trailing wildcards in LIKE expressions."
+      );
     }
 
     @Override
-    protected Pair<String, Schema> visitAllColumns(AllColumns node, Boolean unmangleNames) {
+    protected Pair<String, Schema> visitAllColumns(
+        final AllColumns node, final Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     protected Pair<String, Schema> visitSubscriptExpression(
-        SubscriptExpression node,
-        Boolean unmangleNames
+        final SubscriptExpression node,
+        final Boolean unmangleNames
     ) {
-      String arrayBaseName = node.getBase().toString();
-      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + arrayBaseName);
+      final Schema internalSchema = expressionTypeManager.getExpressionSchema(node.getBase());
+
+      final String internalSchemaJavaType =
+          SchemaUtil.getJavaType(internalSchema).getCanonicalName();
+      switch (internalSchema.type()) {
+        case ARRAY:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get((int)(%s)))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()
+              ),
+              internalSchema.valueSchema()
+          );
+        case MAP:
+          return new Pair<>(
+              String.format("((%s) ((%s)%s).get(%s))",
+                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                  internalSchemaJavaType,
+                  process(node.getBase(), unmangleNames).getLeft(),
+                  process(node.getIndex(), unmangleNames).getLeft()),
+              internalSchema.valueSchema()
+          );
+        default:
+          throw new UnsupportedOperationException();
       }
-      if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>(
-            process(node.getBase(), unmangleNames).getLeft() + "[(int)("
-            + process(node.getIndex(), unmangleNames).getLeft() + ")]",
-            schema
-        );
-      } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
-        return new Pair<>(
-            "("
-            + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
-            + process(node.getBase(), unmangleNames).getLeft() + ".get"
-            + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))",
-            schema
-        );
-      }
-      throw new UnsupportedOperationException();
     }
 
     @Override
     protected Pair<String, Schema> visitBetweenPredicate(
-        BetweenPredicate node,
-        Boolean unmangleNames
+        final BetweenPredicate node,
+        final Boolean unmangleNames
     ) {
       throw new UnsupportedOperationException();
     }
 
     private String formatBinaryExpression(
-        String operator, Expression left, Expression right,
-        boolean unmangleNames
+        final String operator, final Expression left, final Expression right,
+        final boolean unmangleNames
     ) {
       return "(" + process(left, unmangleNames).getLeft() + " " + operator + " "
-             + process(right, unmangleNames).getLeft() + ")";
+          + process(right, unmangleNames).getLeft() + ")";
     }
 
-    private String formatIdentifier(String s) {
+    private String formatIdentifier(final String s) {
       // TODO: handle escaping properly
       return s;
     }
 
-    private String joinExpressions(List<Expression> expressions, boolean unmangleNames) {
-      return Joiner.on(", ").join(expressions.stream()
-                                      .map((e) -> process(e, unmangleNames)).iterator());
+    private String trimQuotes(final String s) {
+      return s.substring(1, s.length() - 1);
     }
 
-    private String getCastToBooleanString(Schema schema, String exprStr) {
+    private String getCastToBooleanString(final Schema schema, final String exprStr) {
       if (schema.type() == Schema.Type.BOOLEAN) {
         return exprStr;
       } else if (schema.type() == Schema.Type.STRING) {
@@ -530,10 +608,10 @@ public class SqlToJavaVisitor {
     }
 
     private String getCastString(
-        Schema schema,
-        String exprStr,
-        String javaTypeMethod,
-        String javaStringParserMethod
+        final Schema schema,
+        final String exprStr,
+        final String javaTypeMethod,
+        final String javaStringParserMethod
     ) {
       switch (schema.type()) {
         case INT32:

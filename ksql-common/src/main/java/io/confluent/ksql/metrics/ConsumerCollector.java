@@ -17,8 +17,17 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
-
+import io.confluent.common.utils.Time;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.MetricName;
@@ -29,25 +38,18 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
+  public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
+  public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
+  public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
 
-import io.confluent.common.utils.Time;
-
-public class ConsumerCollector implements MetricCollector {
-
-  private final Map<String, TopicSensors> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<ConsumerRecord>> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private String groupId;
   private Time time;
 
-  public void configure(Map<String, ?> map) {
+  public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
     if (id != null) {
       this.groupId = id;
@@ -72,89 +74,101 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   @Override
+  public void onCommit(final Map map) {
+  }
+
+  @Override
   public String getGroupId() {
     return this.groupId;
   }
 
   @Override
-  public String getId() {
-    return id;
-  }
-
-  @Override
-  public ConsumerRecords onConsume(ConsumerRecords records) {
+  public ConsumerRecords onConsume(final ConsumerRecords records) {
     collect(records);
     return records;
   }
 
   @SuppressWarnings("unchecked")
-  private void collect(ConsumerRecords consumerRecords) {
-    Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach(record -> record(record.topic().toLowerCase(), false));
+  private void collect(final ConsumerRecords consumerRecords) {
+    final Stream<ConsumerRecord> stream =
+        StreamSupport.stream(consumerRecords.spliterator(), false);
+    stream.forEach(record -> record(record.topic().toLowerCase(), false, record));
   }
 
-  public void recordError(String topic) {
-    record(topic, true);
-  }
-
-  private void record(String topic, boolean isError) {
+  private void record(final String topic, final boolean isError, final ConsumerRecord record) {
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
         new TopicSensors<>(topic, buildSensors(k))
-    ).increment(null, isError);
+    ).increment(record, isError);
   }
 
-  private String getCounterKey(String topic) {
+  private String getCounterKey(final String topic) {
     return topic;
   }
 
-  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(String key) {
+  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(final String key) {
 
-    List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
+    final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
     synchronized (this.metrics) {
-      addSensor(key, "messages-per-sec", new Rate(), sensors, false);
-      addSensor(key, "c-total-messages", new Total(), sensors, false);
-      addSensor(key, "c-failed-messages", new Total(), sensors, true);
-      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
+      addSensor(key, CONSUMER_MESSAGES_PER_SEC, new Rate(), sensors, false);
+      addSensor(key, CONSUMER_TOTAL_MESSAGES, new Total(), sensors, false);
+      addSensor(key, CONSUMER_TOTAL_BYTES, new Total(), sensors, false,
+          (r) -> {
+            if (r == null) {
+              return 0.0;
+            } else {
+              return ((double) r.serializedValueSize() + r.serializedKeySize());
+            }
+          });
     }
     return sensors;
   }
 
   private void addSensor(
-      String key,
-      String metricNameString,
-      MeasurableStat stat,
-      List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
-      boolean isError
+      final String key,
+      final String metricNameString,
+      final MeasurableStat stat,
+      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final boolean isError
   ) {
-    String name = "cons-" + key + "-" + metricNameString + "-" + id;
+    addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double)1);
+  }
 
-    MetricName metricName = new MetricName(
+  private void addSensor(
+      final String key,
+      final String metricNameString,
+      final MeasurableStat stat,
+      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final boolean isError,
+      final Function<ConsumerRecord, Double> recordValue
+  ) {
+    final String name = "cons-" + key + "-" + metricNameString + "-" + id;
+
+    final MetricName metricName = new MetricName(
         metricNameString,
         "consumer-metrics",
         "consumer-" + name,
         ImmutableMap.of("key", key, "id", id)
     );
-    Sensor existingSensor = metrics.getSensor(name);
-    Sensor sensor = metrics.sensor(name);
+    final Sensor existingSensor = metrics.getSensor(name);
+    final Sensor sensor = metrics.sensor(name);
 
     // re-use the existing measurable stats to share between consumers
     if (existingSensor == null || metrics.metrics().get(metricName) == null) {
       sensor.add(metricName, stat);
     }
 
-    KafkaMetric metric = metrics.metrics().get(metricName);
+    final KafkaMetric metric = metrics.metrics().get(metricName);
 
     sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time, isError) {
-      void record(ConsumerRecord record) {
-        sensor.record(1);
+      void record(final ConsumerRecord record) {
+        sensor.record(recordValue.apply(record));
         super.record(record);
       }
     });
   }
-
 
   public void close() {
     MetricCollectors.remove(this.id);
@@ -162,38 +176,13 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   @Override
-  public Collection<TopicSensors.Stat> stats(String topic, boolean isError) {
-    final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors
-        .values()
-        .stream()
-        .filter(counter -> counter.isTopic(topic))
-        .forEach(record -> list.addAll(record.stats(isError)));
-    return list;
-  }
-
-
-  @Override
-  public double currentMessageConsumptionRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
-
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().contains("messages-per-sec"))
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
+  public Collection<TopicSensors.Stat> stats(final String topic, final boolean isError) {
+    return MetricUtils.stats(topic, isError, topicSensors.values());
   }
 
   @Override
-  public double errorRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.errorRateStats()));
-
-    return allStats
-        .stream()
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
+  public double aggregateStat(final String name, final boolean isError) {
+    return MetricUtils.aggregateStat(name, isError, topicSensors.values());
   }
 
   @Override

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,7 @@
 
 package io.confluent.ksql.metrics;
 
-import org.apache.kafka.common.metrics.JmxReporter;
-import org.apache.kafka.common.metrics.MetricConfig;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.utils.SystemTime;
-
+import io.confluent.common.utils.Time;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,38 +25,48 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.confluent.common.utils.Time;
+import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.utils.SystemTime;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
-public class MetricCollectors {
-
-
-  private static final Map<String, MetricCollector> collectorMap = new ConcurrentHashMap<>();
+public final class MetricCollectors {
+  private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
 
   static {
     initialize();
   }
 
-  private static Time time = new io.confluent.common.utils.SystemTime();
+  private static final Time time = new io.confluent.common.utils.SystemTime();
+
+  private MetricCollectors() {
+  }
 
   // visible for testing.
   // We need to call this from the MetricCollectorsTest because otherwise tests clobber each
   // others metric data. We also need it from the KsqlEngineMetricsTest
   public static void initialize() {
-    MetricConfig metricConfig = new MetricConfig()
+    final MetricConfig metricConfig = new MetricConfig()
         .samples(100)
         .timeWindow(
             1000,
             TimeUnit.MILLISECONDS
         );
-    List<MetricsReporter> reporters = new ArrayList<>();
+    final List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
+    // Replace all static contents other than Time to ensure they are cleaned for tests that are
+    // not aware of the need to initialize/cleanup this test, in case test processes are reused.
+    // Tests aware of the class clean everything up properly to get the state into a clean state,
+    // a full, fresh instantiation here ensures something like KsqlEngineMetricsTest running after
+    // another test that used MetricsCollector without running cleanUp will behave correctly.
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
+    collectorMap = new ConcurrentHashMap<>();
   }
 
   // visible for testing.
@@ -75,37 +80,40 @@ public class MetricCollectors {
     collectorMap.clear();
   }
 
-  static String addCollector(String id, MetricCollector collector) {
-    while (collectorMap.containsKey(id)) {
-      id += "-" + collectorMap.size();
+  static String addCollector(final String id, final MetricCollector collector) {
+    final StringBuilder builtId = new StringBuilder(id);
+    while (collectorMap.containsKey(builtId.toString())) {
+      builtId.append("-").append(collectorMap.size());
     }
-    collectorMap.put(id, collector);
-    return id;
+
+    final String finalId = builtId.toString();
+    collectorMap.put(finalId, collector);
+    return finalId;
   }
 
-  static void remove(String id) {
+  static void remove(final String id) {
     collectorMap.remove(id);
   }
 
-  public static String getStatsFor(final String topic, boolean isError) {
-
-    ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
-    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase(), isError)));
-
-    Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
-
-    return format(aggregateStats.values(), isError ? "last-failed" : "last-message");
+  static Map<String, TopicSensors.Stat> getStatsFor(
+      final String topic, final boolean isError) {
+    return getAggregateMetrics(
+        collectorMap.values().stream()
+            .flatMap(c -> c.stats(topic.toLowerCase(), isError).stream())
+            .collect(Collectors.toList())
+    );
   }
 
-  public static void recordError(String topic) {
-    collectorMap.values().iterator().next().recordError(topic);
+  public static String getAndFormatStatsFor(final String topic, final boolean isError) {
+    return format(
+        getStatsFor(topic, isError).values(),
+        isError ? "last-failed" : "last-message");
   }
-
 
   static Map<String, TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
   ) {
-    Map<String, TopicSensors.Stat> results = new TreeMap<>();
+    final Map<String, TopicSensors.Stat> results = new TreeMap<>();
     allStats.forEach(stat -> {
       results.computeIfAbsent(
           stat.name(),
@@ -116,8 +124,10 @@ public class MetricCollectors {
     return results;
   }
 
-  private static String format(Collection<TopicSensors.Stat> stats, String lastEventTimestampMsg) {
-    StringBuilder results = new StringBuilder();
+  private static String format(
+      final Collection<TopicSensors.Stat> stats,
+      final String lastEventTimestampMsg) {
+    final StringBuilder results = new StringBuilder();
     stats.forEach(stat -> results.append(stat.formatted()).append(" "));
     if (stats.size() > 0) {
       results
@@ -135,23 +145,33 @@ public class MetricCollectors {
             Collectors.groupingBy(
               MetricCollector::getGroupId,
               Collectors.summingDouble(
-                  MetricCollector::currentMessageConsumptionRate
+                  m -> m.aggregateStat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, false)
               )
           )
         )
         .values();
   }
 
-  public static double currentProductionRate() {
+  public static double aggregateStat(final String name, final boolean isError) {
     return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::currentMessageProductionRate)
+        .mapToDouble(m -> m.aggregateStat(name, isError))
         .sum();
   }
 
+  public static double currentProductionRate() {
+    return aggregateStat(ProducerCollector.PRODUCER_MESSAGES_PER_SEC, false);
+  }
+
   public static double currentConsumptionRate() {
-    return collectorMap.values().stream()
-        .mapToDouble(MetricCollector::currentMessageConsumptionRate)
-        .sum();
+    return aggregateStat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, false);
+  }
+
+  public static double totalMessageConsumption() {
+    return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, false);
+  }
+
+  public static double totalBytesConsumption() {
+    return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_BYTES, false);
   }
 
   public static double currentErrorRate() {

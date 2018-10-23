@@ -16,41 +16,38 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class PrintTopic extends Statement {
 
   private final QualifiedName topic;
   private final boolean fromBeginning;
-  private final LongLiteral intervalValue;
+  private final int intervalValue;
 
-  public PrintTopic(QualifiedName topic, boolean fromBeginning, LongLiteral intervalValue) {
-    this(Optional.empty(), topic, fromBeginning, intervalValue);
-  }
 
   public PrintTopic(
-      NodeLocation location,
-      QualifiedName topic,
-      boolean fromBeginning,
-      LongLiteral intervalValue
+      final NodeLocation location,
+      final QualifiedName topic,
+      final boolean fromBeginning,
+      final Optional<Integer> intervalValue
   ) {
     this(Optional.of(location), topic, fromBeginning, intervalValue);
   }
 
   private PrintTopic(
-      Optional<NodeLocation> location,
-      QualifiedName topic,
-      boolean fromBeginning,
-      LongLiteral intervalValue
+      final Optional<NodeLocation> location,
+      final QualifiedName topic,
+      final boolean fromBeginning,
+      final Optional<Integer> intervalValue
   ) {
     super(location);
     this.topic = requireNonNull(topic, "table is null");
     this.fromBeginning = fromBeginning;
-    this.intervalValue = intervalValue;
+    this.intervalValue = intervalValue.orElse(1);
   }
 
   public QualifiedName getTopic() {
@@ -61,22 +58,22 @@ public class PrintTopic extends Statement {
     return fromBeginning;
   }
 
-  public LongLiteral getIntervalValue() {
+  public int getIntervalValue() {
     return intervalValue;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof PrintTopic)) {
       return false;
     }
-    PrintTopic that = (PrintTopic) o;
+    final PrintTopic that = (PrintTopic) o;
     return getFromBeginning() == that.getFromBeginning()
         && Objects.equals(getTopic(), that.getTopic())
-        && Objects.equals(getIntervalValue(), that.getIntervalValue());
+        && getIntervalValue() == that.getIntervalValue();
   }
 
   @Override

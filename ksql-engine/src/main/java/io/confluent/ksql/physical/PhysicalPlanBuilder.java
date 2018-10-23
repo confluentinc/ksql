@@ -351,6 +351,7 @@ public class PhysicalPlanBuilder {
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    newStreamsProperties.put(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION);
 
     updateListProperty(
         newStreamsProperties,

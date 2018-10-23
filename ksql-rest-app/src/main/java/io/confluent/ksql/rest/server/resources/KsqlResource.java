@@ -230,7 +230,7 @@ public class KsqlResource {
         || statement instanceof TerminateQuery) {
       final StatementWithSchema statementWithSchema
           = StatementWithSchema.forStatement(
-              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
+              statement, statementText, ksqlEngine.getSchemaRegistryClient());
       getStatementExecutionPlan(
           statementWithSchema.getStatement(),
           statementWithSchema.getStatementText(),
@@ -287,7 +287,7 @@ public class KsqlResource {
     ) {
       final StatementWithSchema statementWithSchema
           = StatementWithSchema.forStatement(
-              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
+              statement, statementText, ksqlEngine.getSchemaRegistryClient());
       return distributeStatement(
           statementWithSchema.getStatementText(),
           statementWithSchema.getStatement(),

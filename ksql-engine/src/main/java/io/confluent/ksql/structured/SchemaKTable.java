@@ -32,11 +32,11 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.Serialized;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -159,7 +159,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final KGroupedTable kgroupedTable = ktable
         .filter((key, value) -> value != null)
         .groupBy((key, value) -> new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
-        Serialized.with(Serdes.String(), valSerde));
+            Grouped.with(Serdes.String(), valSerde));
 
     final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedTable(

@@ -105,6 +105,78 @@ After KSQL is started, your terminal should resemble this.
 
 .. basics_tutorial_02_end
 
+.. inspect_topics_start
+
+-------------------------------------------------------
+Inspect Kafka Topics By Using SHOW and PRINT Statements
+------------------------------------------------------- 
+
+KSQL enables inspecting Kafka topics and messages in real time.
+
+* Use the SHOW TOPICS statement to list the available topics in the Kafka cluster.
+* Use the PRINT statement to see a topic's messages as they arrive.
+
+In the KSQL CLI, run the following statement:
+
+::
+
+    ksql> SHOW TOPICS;
+
+Your output should resemble:
+
+::
+
+     Kafka Topic        | Registered | Partitions | Partition Replicas | Consumers | ConsumerGroups
+    ------------------------------------------------------------------------------------------------
+     _confluent-metrics | false      | 12         | 1                  | 0         | 0
+     _schemas           | false      | 1          | 1                  | 0         | 0
+     pageviews          | false      | 1          | 1                  | 0         | 0
+     users              | false      | 1          | 1                  | 0         | 0
+    ------------------------------------------------------------------------------------------------
+
+Inspect the ``users`` topic by using the PRINT statement:
+
+::
+
+    ksql> PRINT 'users';
+
+Your output should resemble:
+
+::
+
+    Format:JSON
+    {"ROWTIME":1540254230041,"ROWKEY":"User_1","registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
+    {"ROWTIME":1540254230081,"ROWKEY":"User_3","registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
+    {"ROWTIME":1540254230091,"ROWKEY":"User_7","registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
+    ^C{"ROWTIME":1540254232442,"ROWKEY":"User_4","registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
+    Topic printing ceased
+
+Press CTRL+C to stop printing messages.
+
+Inspect the ``pageviews`` topic by using the PRINT statement:
+
+::
+
+    ksql> PRINT 'pageviews';
+
+Your output should resemble:
+
+::
+
+    Format:STRING
+    10/23/18 12:24:03 AM UTC , 9461 , 1540254243183,User_9,Page_20
+    10/23/18 12:24:03 AM UTC , 9471 , 1540254243617,User_7,Page_47
+    10/23/18 12:24:03 AM UTC , 9481 , 1540254243888,User_4,Page_27
+    ^C10/23/18 12:24:05 AM UTC , 9521 , 1540254245161,User_9,Page_62
+    Topic printing ceased
+    ksql>
+
+Press CTRL+C to stop printing messages.
+
+For more information, see :ref:`ksql_syntax_reference`.
+
+.. inspect_topics_end
+
 .. basics_tutorial_03_start
 
 -------------------------

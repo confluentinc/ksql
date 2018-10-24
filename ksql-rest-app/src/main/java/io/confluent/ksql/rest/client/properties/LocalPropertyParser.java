@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.client.properties;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
@@ -25,15 +24,14 @@ import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
+import org.apache.kafka.common.config.ConfigDef.Type;
 
-@SuppressWarnings("OptionalAssignedToNull")
-@SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "Tri-state use")
-class LocalPropertyParser implements PropertyParser {
+public class LocalPropertyParser implements PropertyParser {
 
   private final ConfigResolver resolver;
   private final PropertyValidator validator;
 
-  LocalPropertyParser() {
+  public LocalPropertyParser() {
     this(new KsqlConfigResolver(), new LocalPropertyValidator());
   }
 
@@ -55,9 +53,21 @@ class LocalPropertyParser implements PropertyParser {
         .orElseThrow(() -> new IllegalArgumentException(String.format(
             "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property)));
 
-    final Object parsedValue = configItem.parseValue(value);
+    final Object parsedValue = parse(value, configItem);
 
     validator.validate(configItem.getPropertyName(), parsedValue);
     return parsedValue;
+  }
+
+  private Object parse(final Object value, final ConfigItem configItem) {
+    final boolean isShortProperty = configItem.getPropertyType()
+        .map(type -> type == Type.SHORT)
+        .orElse(false);
+
+    if (isShortProperty) {
+      // Special-case for SHORT properties to handle int values, which ConfigDef can't coerce
+      return configItem.parseValue(String.valueOf(value));
+    }
+    return configItem.parseValue(value);
   }
 }

@@ -24,6 +24,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -62,16 +63,16 @@ public class LocalPropertyParserTest {
     EasyMock.expect(configItem.getPropertyName())
         .andReturn(PARSED_PROP_NAME)
         .anyTimes();
+
+    EasyMock.expect(configItem.getPropertyType())
+        .andReturn(Optional.empty())
+        .anyTimes();
   }
 
   @Test
   public void shouldNotCallResolverForAvroSchemaConstant() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
-        .andThrow(new AssertionError("resolve called"))
-        .anyTimes();
-
-    EasyMock.replay(resolver);
+    givenResolverWillNotBeCalled();
 
     // When:
     parser.parse(DdlConfig.AVRO_SCHEMA, "100");
@@ -97,11 +98,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldNotCallResolverForRunScriptConstant() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
-        .andThrow(new AssertionError("resolve called"))
-        .anyTimes();
-
-    EasyMock.replay(resolver);
+    givenResolverWillNotBeCalled();
 
     // When:
     parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "100");
@@ -127,11 +124,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallResolverForProperties() {
     // Given:
-    EasyMock.expect(resolver.resolve(KsqlConfig.KSQL_SERVICE_ID_CONFIG, true))
-        .andReturn(Optional.of(configItem))
-        .once();
-
-    EasyMock.replay(resolver, configItem);
+    givenConfigResolves(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
 
     // When:
     parser.parse(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "100");
@@ -163,13 +156,11 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallValidatorWithParsedValue() {
     // Given:
-    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
-        .andReturn(Optional.of(configItem))
-        .once();
+    givenAnyConfigResolves();
 
     validator.validate(PARSED_PROP_NAME, PARSED_VALUE);
     EasyMock.expectLastCall();
-    EasyMock.replay(validator, configItem, resolver);
+    EasyMock.replay(validator);
 
     // When:
     parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
@@ -181,15 +172,62 @@ public class LocalPropertyParserTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfValidatorThrows() {
     // Given:
+    givenAnyConfigResolves();
+
+    validator.validate(EasyMock.anyString(), EasyMock.anyObject());
+    EasyMock.expectLastCall().andThrow(new IllegalArgumentException("Boom"));
+    EasyMock.replay(validator);
+
+    // When:
+    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldConvertShortPropertyValuesToStringsBeforeParsing() {
+    // Given:
+    givenAnyConfigResolves();
+
+    EasyMock.reset(configItem);
+
+    EasyMock.expect(configItem.getPropertyType())
+        .andReturn(Optional.of(Type.SHORT))
+        .anyTimes();
+
+    EasyMock.expect(configItem.parseValue("2"))
+        .andReturn(PARSED_VALUE)
+        .once();
+
+    EasyMock.replay(configItem);
+
+    // When:
+    parser.parse(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)2);
+
+    // Then:
+    EasyMock.verify(configItem);
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void givenConfigResolves(final String configName) {
+    EasyMock.expect(resolver.resolve(configName, true))
+        .andReturn(Optional.of(configItem))
+        .once();
+
+    EasyMock.replay(resolver, configItem);
+  }
+
+  private void givenAnyConfigResolves() {
     EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
         .andReturn(Optional.of(configItem))
         .once();
 
-    validator.validate(PARSED_PROP_NAME, PARSED_VALUE);
-    EasyMock.expectLastCall().andThrow(new IllegalArgumentException("Boom"));
-    EasyMock.replay(validator, configItem, resolver);
+    EasyMock.replay(resolver, configItem);
+  }
 
-    // When:
-    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+  private void givenResolverWillNotBeCalled() {
+    EasyMock.expect(resolver.resolve(EasyMock.anyString(), EasyMock.anyBoolean()))
+        .andThrow(new AssertionError("resolve called"))
+        .anyTimes();
+
+    EasyMock.replay(resolver);
   }
 }

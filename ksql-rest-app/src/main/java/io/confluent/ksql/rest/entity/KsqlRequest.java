@@ -20,14 +20,20 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import io.confluent.ksql.config.PropertyParser;
+import io.confluent.ksql.rest.client.properties.LocalPropertyParser;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
+  private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
+
   private final String ksql;
   private final Map<String, Object> streamsProperties;
 
@@ -37,7 +43,7 @@ public class KsqlRequest {
       @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties
   ) {
     this.ksql = ksql;
-    this.streamsProperties = Optional.ofNullable(streamsProperties).orElse(Collections.emptyMap());
+    this.streamsProperties = Collections.unmodifiableMap(coerceTypes(streamsProperties));
   }
 
   public String getKsql() {
@@ -53,9 +59,11 @@ public class KsqlRequest {
     if (this == o) {
       return true;
     }
+
     if (!(o instanceof KsqlRequest)) {
       return false;
     }
+
     final KsqlRequest that = (KsqlRequest) o;
     return Objects.equals(getKsql(), that.getKsql())
         && Objects.equals(getStreamsProperties(), that.getStreamsProperties());
@@ -66,4 +74,20 @@ public class KsqlRequest {
     return Objects.hash(getKsql(), getStreamsProperties());
   }
 
+  private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {
+    if (streamsProperties == null) {
+      return Collections.emptyMap();
+    }
+
+    return streamsProperties.entrySet().stream()
+        .collect(Collectors.toMap(Entry::getKey, e -> coerceType(e.getKey(), e.getValue())));
+  }
+
+  private static Object coerceType(final String key, final Object value) {
+    try {
+      return PROPERTY_PARSER.parse(key, value);
+    } catch (final Exception e) {
+      throw new KsqlException("'" + value + "' is not a valid value for property '" + key + "'", e);
+    }
+  }
 }

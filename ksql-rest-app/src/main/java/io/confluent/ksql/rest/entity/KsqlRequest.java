@@ -87,7 +87,7 @@ public class KsqlRequest {
     try {
       return PROPERTY_PARSER.parse(key, value);
     } catch (final Exception e) {
-      throw new KsqlException("'" + value + "' is not a valid value for property '" + key + "'", e);
+      throw new KsqlException("Failed to set '" + key + "' to '" + value + "'", e);
     }
   }
 }

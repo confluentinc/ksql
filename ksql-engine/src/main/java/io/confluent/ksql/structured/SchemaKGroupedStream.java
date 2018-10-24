@@ -24,6 +24,7 @@ import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.util.WindowApplier;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serde;
@@ -81,7 +82,8 @@ public class SchemaKGroupedStream {
               Serdes.String(), topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
-      aggKtable = ksqlWindowExpression.applyAggregate(
+      aggKtable = WindowApplier.applyWindow(
+          ksqlWindowExpression,
           kgroupedStream,
           initializer,
           aggregator,
@@ -106,5 +108,7 @@ public class SchemaKGroupedStream {
     );
 
   }
+
+
 
 }

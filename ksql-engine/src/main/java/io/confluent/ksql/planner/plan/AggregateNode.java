@@ -427,8 +427,8 @@ public class AggregateNode extends PlanNode {
     ) {
       return finalSelectExpressions.stream()
           .map(finalSelectExpression -> {
-            final Expression internal = resolveToInternal(finalSelectExpression.getRight());
-            return SelectExpression.of(finalSelectExpression.getLeft(), internal);
+            final Expression internal = resolveToInternal(finalSelectExpression.getExpression());
+            return SelectExpression.of(finalSelectExpression.getName(), internal);
           })
           .collect(Collectors.toList());
     }

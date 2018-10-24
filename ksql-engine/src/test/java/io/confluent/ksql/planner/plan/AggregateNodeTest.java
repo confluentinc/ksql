@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -47,9 +48,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.easymock.EasyMock;
-import org.junit.Before;
 import org.junit.Test;
 
 public class AggregateNodeTest {
@@ -63,12 +62,6 @@ public class AggregateNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
-  private MetaStore metaStore;
-
-  @Before
-  public void setUp() {
-    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
-  }
 
   @Test
   public void shouldBuildSourceNode() {

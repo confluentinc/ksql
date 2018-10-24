@@ -462,12 +462,6 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(result, is("value1"));
-        final Analysis analysis = analyzeQuery(query, metaStore);
-        final ExpressionMetadata expressionMetadata
-            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
-
-        assertThat(expressionMetadata.evaluate(new Object[]{inputs}),
-            equalTo("{\"city\":\"adelaide\",\"country\":\"oz\"}"));
     }
 
     @Test

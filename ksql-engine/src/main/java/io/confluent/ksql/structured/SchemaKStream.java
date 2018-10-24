@@ -27,8 +27,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -225,11 +223,10 @@ public class SchemaKStream<K> {
       return schemaBuilder.build();
     }
 
-    List<ExpressionMetadata> buildExpressions(
-        final List<Pair<String, Expression>> selectExpressions
+    List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
     ) {
       final Stream<Expression> expressions = selectExpressions.stream()
-          .map(Pair::getRight);
+          .map(SelectExpression::getExpression);
 
       return CodeGenRunner.compileExpressions(
           expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);

@@ -28,8 +28,8 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -101,7 +101,7 @@ public class SchemaKStream {
           if (row == null) {
             return null;
           }
-          List<Object> columns = new ArrayList<>();
+          final List<Object> columns = new ArrayList<>();
           for (int i = 0; i < row.getColumns().size(); i++) {
             if (!rowkeyIndexes.contains(i)) {
               columns.add(row.getColumns().get(i));
@@ -128,8 +128,8 @@ public class SchemaKStream {
     );
   }
 
-  public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList) {
-    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
+  public SchemaKStream select(final List<SelectExpression> selectExpressions) {
+    final Selection selection = new Selection(selectExpressions, functionRegistry, this);
     return new SchemaKStream(
         selection.getSchema(),
         kstream.mapValues(selection.getSelectValueMapper()),
@@ -142,25 +142,29 @@ public class SchemaKStream {
   }
 
   static class Selection {
-    private Schema schema;
-    private Field key;
-    private SelectValueMapper selectValueMapper;
+    private final Schema schema;
+    private final Field key;
+    private final SelectValueMapper selectValueMapper;
 
     Selection(
-        final List<Pair<String, Expression>> expressionPairList,
+        final List<SelectExpression> selectExpressions,
         final FunctionRegistry functionRegistry,
         final SchemaKStream fromStream) {
-      key = findKeyField(expressionPairList, fromStream);
+      key = findKeyField(selectExpressions, fromStream);
       final List<ExpressionMetadata> expressionEvaluators = buildExpressions(
-          expressionPairList, functionRegistry, fromStream);
-      schema = buildSchema(expressionPairList, expressionEvaluators);
+          selectExpressions, functionRegistry, fromStream);
+      schema = buildSchema(selectExpressions, expressionEvaluators);
+      final GenericRowValueTypeEnforcer typeEnforcer =
+          new GenericRowValueTypeEnforcer(fromStream.getSchema());
+      final List<String> selectFieldNames = selectExpressions.stream()
+          .map(SelectExpression::getName)
+          .collect(Collectors.toList());
       selectValueMapper = new SelectValueMapper(
-          new GenericRowValueTypeEnforcer(
-              fromStream.getSchema()), expressionPairList, expressionEvaluators);
+          typeEnforcer, selectFieldNames, expressionEvaluators);
     }
 
     private Field findKeyField(
-        final List<Pair<String, Expression>> expressionPairList, final SchemaKStream fromStream) {
+        final List<SelectExpression> selectExpressions, final SchemaKStream fromStream) {
       if (fromStream.getKeyField() == null) {
         return null;
       }
@@ -168,9 +172,9 @@ public class SchemaKStream {
         // The key "field" isn't an actual field in the schema
         return fromStream.getKeyField();
       }
-      for (int i = 0; i < expressionPairList.size(); i++) {
-        final String toName = expressionPairList.get(i).left;
-        final Expression toExpression = expressionPairList.get(i).right;
+      for (int i = 0; i < selectExpressions.size(); i++) {
+        final String toName = selectExpressions.get(i).getName();
+        final Expression toExpression = selectExpressions.get(i).getExpression();
 
         /*
          * Sometimes a column reference is a DereferenceExpression, and sometimes its
@@ -200,12 +204,12 @@ public class SchemaKStream {
     }
 
     private Schema buildSchema(
-        final List<Pair<String, Expression>> expressionPairList,
+        final List<SelectExpression> selectExpressions,
         final List<ExpressionMetadata> expressionEvaluators) {
       final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-      IntStream.range(0, expressionPairList.size()).forEach(
+      IntStream.range(0, selectExpressions.size()).forEach(
           i -> schemaBuilder.field(
-              expressionPairList.get(i).getLeft(),
+              selectExpressions.get(i).getName(),
               expressionEvaluators.get(i).getExpressionType()));
       return schemaBuilder.build();
     }
@@ -223,13 +227,13 @@ public class SchemaKStream {
     }
 
     private List<ExpressionMetadata> buildExpressions(
-        final List<Pair<String, Expression>> expressionPairList,
+        final List<SelectExpression> selectExpressions,
         final FunctionRegistry functionRegistry,
         final SchemaKStream fromStream) {
       final CodeGenRunner codeGenRunner = new CodeGenRunner(
           fromStream.getSchema(), functionRegistry);
-      return expressionPairList.stream()
-          .map(Pair::getRight)
+      return selectExpressions.stream()
+          .map(SelectExpression::getExpression)
           .map(e -> buildExpression(codeGenRunner, e))
           .collect(Collectors.toList());
     }
@@ -242,7 +246,7 @@ public class SchemaKStream {
       return key;
     }
 
-    public SelectValueMapper getSelectValueMapper() {
+    SelectValueMapper getSelectValueMapper() {
       return selectValueMapper;
     }
   }

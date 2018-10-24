@@ -21,7 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,7 +40,9 @@ import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable extends SchemaKStream {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<?, GenericRow> ktable;
   private final boolean isWindowed;
 
@@ -83,7 +85,7 @@ public class SchemaKTable extends SchemaKStream {
                 if (row == null) {
                   return null;
                 }
-                List columns = new ArrayList();
+                final List<Object> columns = new ArrayList<>();
                 for (int i = 0; i < row.getColumns().size(); i++) {
                   if (!rowkeyIndexes.contains(i)) {
                     columns.add(row.getColumns().get(i));
@@ -98,7 +100,7 @@ public class SchemaKTable extends SchemaKStream {
             if (row == null) {
               return null;
             }
-            List columns = new ArrayList();
+            final List<Object> columns = new ArrayList<>();
             for (int i = 0; i < row.getColumns().size(); i++) {
               if (!rowkeyIndexes.contains(i)) {
                 columns.add(row.getColumns().get(i));
@@ -140,8 +142,8 @@ public class SchemaKTable extends SchemaKStream {
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
-    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
+  public SchemaKTable select(final List<SelectExpression> selectExpressions) {
+    final Selection selection = new Selection(selectExpressions, functionRegistry, this);
     return new SchemaKTable(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

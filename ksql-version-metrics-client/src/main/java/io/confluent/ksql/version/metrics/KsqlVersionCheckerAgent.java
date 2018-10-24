@@ -19,26 +19,39 @@ package io.confluent.ksql.version.metrics;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.PhoneHomeConfig;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
+  // 24 hours
+  private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
+
   private KsqlVersionChecker ksqlVersionChecker;
 
   private boolean enableSettlingTime;
 
-  private final ActivenessRegistrarImpl activenessRegistrar = new ActivenessRegistrarImpl();
+  private long requestTime;
+  private final Supplier<Boolean> engineActiveQueryStatusSupplier;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
-  public KsqlVersionCheckerAgent() {
-    this(true);
+  public KsqlVersionCheckerAgent(final Supplier<Boolean> engineActiveQueryStatusSupplier) {
+    this(engineActiveQueryStatusSupplier, true);
   }
 
-  KsqlVersionCheckerAgent(final boolean enableSettlingTime) {
+  private KsqlVersionCheckerAgent(
+      final Supplier<Boolean> engineActiveQueryStatusSupplier,
+      final boolean enableSettlingTime) {
+    Objects.requireNonNull(
+        engineActiveQueryStatusSupplier,
+        " engineActiveQueryStatusSupplier cannot be null.");
     this.enableSettlingTime = enableSettlingTime;
+    this.engineActiveQueryStatusSupplier = engineActiveQueryStatusSupplier;
   }
 
   @Override
@@ -62,7 +75,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
                   serverRuntime,
                   moduleType,
                   enableSettlingTime,
-                  activenessRegistrar
+                  engineActiveQueryStatusSupplier
                   );
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
@@ -80,12 +93,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     }
 
   }
-
-  @Override
-  public ActivenessRegistrar getActivenessRegistrar() {
-    return activenessRegistrar;
-  }
-
 
   private static String legalDisclaimerProactiveSupportEnabled(final long reportIntervalHours) {
     return "Please note that the version check feature of KSQL is enabled.  "
@@ -108,5 +115,16 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private static String legalDisclaimerProactiveSupportDisabled() {
     return "The version check feature of KSQL  is disabled.";
+  }
+
+  @Override
+  public void updateLastRequestTime() {
+    this.requestTime = System.currentTimeMillis();
+  }
+
+  @Override
+  public Boolean get() {
+    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL
+        || engineActiveQueryStatusSupplier.get();
   }
 }

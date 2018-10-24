@@ -155,6 +155,7 @@ public class KsqlResource {
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
+    Objects.requireNonNull(activenessRegistrar);
     this.activenessRegistrar = activenessRegistrar;
   }
 
@@ -163,7 +164,7 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
-    activenessRegistrar.fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
+    activenessRegistrar.updateLastRequestTime();
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
     } catch (final ParseFailedException e) {

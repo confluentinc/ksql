@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -89,7 +90,13 @@ public class StandaloneExecutorTest {
     persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     queriesFile = TestUtils.tempFile().getPath();
     standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader, false, new KsqlVersionCheckerAgent());
+        new StandaloneExecutor(
+            ksqlConfig,
+            engine,
+            queriesFile,
+            udfLoader,
+            false,
+            new KsqlVersionCheckerAgent(() -> false));
     final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore).anyTimes();
   }
@@ -121,7 +128,13 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("The SQL file did not contain any queries");
 
     standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader, true, new KsqlVersionCheckerAgent());
+        new StandaloneExecutor(
+            ksqlConfig,
+            engine,
+            queriesFile,
+            udfLoader,
+            true,
+            new KsqlVersionCheckerAgent(() -> false));
 
     EasyMock.expect(engine.parseStatements(anyString()))
         .andReturn(ImmutableList.of(
@@ -146,7 +159,6 @@ public class StandaloneExecutorTest {
 
     EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
         .andReturn(Collections.emptyList());
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     EasyMock.replay(engine);
     standaloneExecutor.start();
@@ -162,7 +174,6 @@ public class StandaloneExecutorTest {
 
     EasyMock.expect(engine.buildMultipleQueries("CT", ksqlConfig, props))
         .andReturn(Collections.emptyList());
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -174,7 +185,6 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
         new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
     ));
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -191,7 +201,6 @@ public class StandaloneExecutorTest {
         new PreparedStatement("UNSET", new UnsetProperty(Optional.empty(), "name"))
     ));
 
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -211,7 +220,6 @@ public class StandaloneExecutorTest {
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
         .andReturn(persistentQueryMetadata).once();
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     EasyMock.replay(query, persistentQueryMetadata, engine);
     standaloneExecutor.start();
@@ -230,7 +238,6 @@ public class StandaloneExecutorTest {
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
         .andReturn(persistentQueryMetadata).once();
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     EasyMock.replay(persistentQueryMetadata, engine);
     standaloneExecutor.start();
     EasyMock.verify(persistentQueryMetadata, engine);
@@ -248,8 +255,6 @@ public class StandaloneExecutorTest {
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
         .andReturn(persistentQueryMetadata).once();
-
-    expect(engine.getLivePersistentQueries()).andReturn(Collections.emptySet());
 
     EasyMock.replay(query, persistentQueryMetadata, engine);
     standaloneExecutor.start();

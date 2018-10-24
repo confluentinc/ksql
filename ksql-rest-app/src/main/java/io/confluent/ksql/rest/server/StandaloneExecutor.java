@@ -31,12 +31,14 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.util.EngineActiveQueryStatusSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
@@ -193,8 +195,6 @@ public class StandaloneExecutor implements Executable {
       final Properties properties = new Properties();
       properties.putAll(configProperties);
       versionCheckerAgent.start(KsqlModuleType.SERVER, properties);
-      versionCheckerAgent.getActivenessRegistrar()
-          .fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
@@ -219,8 +219,7 @@ public class StandaloneExecutor implements Executable {
   public static StandaloneExecutor create(
       final Properties properties,
       final String queriesFile,
-      final String installDir,
-      final VersionCheckerAgent versionCheckerAgent) {
+      final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
@@ -232,7 +231,7 @@ public class StandaloneExecutor implements Executable {
         queriesFile,
         udfLoader,
         true,
-        versionCheckerAgent);
+        new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine)));
   }
 
   private void showWelcomeMessage() {

@@ -18,5 +18,5 @@ package io.confluent.ksql.version.metrics;
 
 @FunctionalInterface
 public interface ActivenessRegistrar {
-  void fire(boolean hasActiveQuery);
+  void updateLastRequestTime();
 }

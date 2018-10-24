@@ -75,6 +75,7 @@ public class WSQueryEndpoint {
     this.statementParser = statementParser;
     this.ksqlEngine = ksqlEngine;
     this.exec = exec;
+    Objects.requireNonNull(activenessRegistrar);
     this.activenessRegistrar = activenessRegistrar;
   }
 
@@ -82,7 +83,7 @@ public class WSQueryEndpoint {
   public void onOpen(final Session session, final EndpointConfig endpointConfig) {
     log.debug("Opening websocket session {}", session.getId());
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
-    activenessRegistrar.fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
+    activenessRegistrar.updateLastRequestTime();
 
     final List<String> versionParam = parameters.getOrDefault(
         Versions.KSQL_V1_WS_PARAM, Arrays.asList(Versions.KSQL_V1_WS));

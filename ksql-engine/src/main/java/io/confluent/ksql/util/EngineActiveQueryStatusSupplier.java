@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.version.metrics;
+package io.confluent.ksql.util;
 
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import java.util.Properties;
+import io.confluent.ksql.KsqlEngine;
 import java.util.function.Supplier;
 
-public interface VersionCheckerAgent extends ActivenessRegistrar, Supplier<Boolean> {
+public class EngineActiveQueryStatusSupplier implements Supplier<Boolean> {
 
-  void start(KsqlModuleType moduleType, Properties ksqlProperties);
+  private final KsqlEngine ksqlEngine;
 
+  public EngineActiveQueryStatusSupplier(final KsqlEngine ksqlEngine) {
+    this.ksqlEngine = ksqlEngine;
+  }
+
+  @Override
+  public Boolean get() {
+    return ksqlEngine != null && !ksqlEngine.getLivePersistentQueries().isEmpty();
+  }
 }

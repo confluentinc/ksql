@@ -23,8 +23,6 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -43,6 +41,7 @@ import java.util.function.Supplier;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.easymock.EasyMock;
 import org.eclipse.jetty.websocket.api.util.WSURI;
 import org.junit.rules.ExternalResource;
 
@@ -141,10 +140,7 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     try {
-      restServer = KsqlRestApplication.buildApplication(
-          buildConfig(),
-          new NoOpVersionCheckerAgent()
-      );
+      restServer = KsqlRestApplication.buildApplication(buildConfig());
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
     }
@@ -234,14 +230,19 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   private static class NoOpVersionCheckerAgent implements VersionCheckerAgent {
+
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
     }
 
     @Override
-    public ActivenessRegistrar getActivenessRegistrar() {
-      return new ActivenessRegistrarImpl();
+    public void updateLastRequestTime() {
+
     }
 
+    @Override
+    public Boolean get() {
+      return false;
+    }
   }
 }

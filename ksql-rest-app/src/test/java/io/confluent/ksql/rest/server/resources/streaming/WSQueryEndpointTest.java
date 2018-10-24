@@ -9,9 +9,7 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -26,8 +24,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +43,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,20 +56,18 @@ public class WSQueryEndpointTest {
   private Session session;
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
-  private ActivenessRegistrarImpl activenessRegistrarImpl;
-
+  private KsqlVersionCheckerAgent ksqlVersionCheckerAgent;
   @Before
   public void setUp() {
     mocks = new LinkedList();
     ksqlConfig = addMock(KsqlConfig.class);
     ksqlEngine = addMock(KsqlEngine.class);
-    expect(ksqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
+    ksqlVersionCheckerAgent = addMock(KsqlVersionCheckerAgent.class);
     objectMapper = new ObjectMapper();
-    activenessRegistrarImpl = new ActivenessRegistrarImpl(0L);
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activenessRegistrarImpl);
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, ksqlVersionCheckerAgent);
     session = addMock(Session.class);
   }
 
@@ -108,7 +102,8 @@ public class WSQueryEndpointTest {
     expect(session.getId()).andReturn("session-id").anyTimes();
     session.close(capture(captured));
     expectLastCall().once();
-
+    ksqlVersionCheckerAgent.updateLastRequestTime();
+    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);
@@ -130,7 +125,8 @@ public class WSQueryEndpointTest {
     expect(session.getId()).andReturn("session-id").anyTimes();
     session.close(capture(captured));
     expectLastCall().once();
-
+    ksqlVersionCheckerAgent.updateLastRequestTime();
+    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);
@@ -149,12 +145,10 @@ public class WSQueryEndpointTest {
     expect(session.getId()).andReturn("session-id").anyTimes();
     session.close(capture(captured));
     expectLastCall().once();
-
+    ksqlVersionCheckerAgent.updateLastRequestTime();
+    expectLastCall();
     replayMocks();
-    assertFalse(activenessRegistrarImpl.get());
     wsQueryEndpoint.onOpen(session, null);
-
-    assertTrue(activenessRegistrarImpl.get());
   }
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
@@ -221,7 +215,8 @@ public class WSQueryEndpointTest {
           anyObject());
       expectLastCall().once();
     }
-
+    ksqlVersionCheckerAgent.updateLastRequestTime();
+    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -75,8 +74,7 @@ public class KsqlServerMain {
       return StandaloneExecutor.create(
           properties,
           queriesFile.get(),
-          installDir,
-          new KsqlVersionCheckerAgent()
+          installDir
           );
     }
 
@@ -85,8 +83,7 @@ public class KsqlServerMain {
     }
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     return KsqlRestApplication.buildApplication(
-        restConfig,
-        new KsqlVersionCheckerAgent()
+        restConfig
     );
   }
 }

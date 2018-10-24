@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.support.metrics.common.time.TimeUtils;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -58,7 +57,6 @@ public class StreamedQueryResource {
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
-  private final TimeUtils timeUtils;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
@@ -73,8 +71,8 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    Objects.requireNonNull(activenessRegistrar);
     this.activenessRegistrar = activenessRegistrar;
-    this.timeUtils = new TimeUtils();
   }
 
   @POST
@@ -84,7 +82,7 @@ public class StreamedQueryResource {
     if (ksql == null) {
       return Errors.badRequest("\"ksql\" field must be given");
     }
-    activenessRegistrar.fire(!ksqlEngine.getLivePersistentQueries().isEmpty());
+    activenessRegistrar.updateLastRequestTime();
     final Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {

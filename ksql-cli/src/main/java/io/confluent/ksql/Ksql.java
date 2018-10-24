@@ -56,7 +56,8 @@ public final class Ksql {
           creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
       );
 
-      final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
+      final KsqlVersionCheckerAgent versionChecker =
+          new KsqlVersionCheckerAgent(() -> false);
       versionChecker.start(KsqlModuleType.CLI, properties);
 
       try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),

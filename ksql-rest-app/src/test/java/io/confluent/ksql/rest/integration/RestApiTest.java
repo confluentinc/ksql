@@ -20,8 +20,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -148,12 +146,16 @@ public class RestApiTest {
       // do nothing;
     }
 
+
     @Override
-    public ActivenessRegistrar getActivenessRegistrar() {
-      return new ActivenessRegistrarImpl();
+    public void updateLastRequestTime() {
+
     }
 
-
+    @Override
+    public Boolean get() {
+      return false;
+    }
   }
 
   private static Client buildClient() {
@@ -184,8 +186,7 @@ public class RestApiTest {
         final int port = randomFreeLocalPort();
         serverAddress = "http://localhost:" + port;
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
-        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
-                                                               new DummyVersionCheckerAgent());
+        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs));
         restApplication.start();
         return;
       } catch (BindException e) {

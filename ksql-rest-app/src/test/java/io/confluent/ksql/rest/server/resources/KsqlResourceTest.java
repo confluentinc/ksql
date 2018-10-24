@@ -24,13 +24,11 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -76,13 +74,14 @@ import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.EngineActiveQueryStatusSupplier;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.version.metrics.ActivenessRegistrarImpl;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.util.Collection;
@@ -91,7 +90,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
@@ -496,7 +494,6 @@ public class KsqlResourceTest {
         {
           EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
               .andThrow(new RuntimeException("internal error"));
-          EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
         });
 
     // When:
@@ -520,7 +517,6 @@ public class KsqlResourceTest {
 
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
-      EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     });
 
     // Then:
@@ -694,19 +690,16 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldUpdateTheLastRequestTime() {
-    final ActivenessRegistrarImpl activenessRegistrarImpl = new ActivenessRegistrarImpl(0L);
-//    activenessRegistrarImpl.fire(false);
     final KsqlEngine mockEngine = EasyMock.mock(KsqlEngine.class);
-
+    final KsqlVersionCheckerAgent ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
     EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString())).andStubReturn(Collections.emptyList());
-    EasyMock.expect(mockEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
     final KsqlResource ksqlResource = new KsqlResource(ksqlConfig, mockEngine, EasyMock.mock(
-        ReplayableCommandQueue.class), Long.MAX_VALUE, activenessRegistrarImpl);
+        ReplayableCommandQueue.class), Long.MAX_VALUE, ksqlVersionCheckerAgent);
     EasyMock.replay(mockEngine);
-    assertFalse(activenessRegistrarImpl.get());
+    assertFalse(ksqlVersionCheckerAgent.get());
     ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
     EasyMock.verify(mockEngine);
-    assertThat(activenessRegistrarImpl.get(), equalTo(true));
+    assertThat(ksqlVersionCheckerAgent.get(), equalTo(true));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -818,8 +811,9 @@ public class KsqlResourceTest {
   }
 
   private void setUpKsqlResource() {
+    final KsqlVersionCheckerAgent ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, new ActivenessRegistrarImpl());
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, ksqlVersionCheckerAgent);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

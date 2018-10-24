@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -129,6 +130,42 @@ public class UdfFactoryTest {
         "",
         "not the same path"
     ));
+  }
+
+  @Test
+  public void shouldNotThrowExceptionForFunctionsWithDifferentTypeParametersForArray() {
+
+    KsqlFunction function1 = new KsqlFunction(
+            Schema.STRING_SCHEMA,
+            Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA)),
+            functionName,
+            TestFunc.class);
+    KsqlFunction function2 = new KsqlFunction(
+            Schema.STRING_SCHEMA,
+            Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA)),
+            functionName,
+            TestFunc.class);
+
+    factory.addFunction(function1);
+    factory.addFunction(function2);
+  }
+
+  @Test
+  public void shouldNotThrowExceptionForFunctionsWithDifferentTypeParametersForMap() {
+
+    KsqlFunction function1 = new KsqlFunction(
+            Schema.STRING_SCHEMA,
+            Arrays.asList(SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT64_SCHEMA)),
+            functionName,
+            TestFunc.class);
+    KsqlFunction function2 = new KsqlFunction(
+            Schema.STRING_SCHEMA,
+            Arrays.asList(SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.INT64_SCHEMA)),
+            functionName,
+            TestFunc.class);
+
+    factory.addFunction(function1);
+    factory.addFunction(function2);
   }
 
   private abstract class TestFunc implements Kudf {

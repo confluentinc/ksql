@@ -154,53 +154,84 @@ public class UdfFactory {
   private List<FunctionParameter> mapToFunctionParameter(final List<Schema> params) {
     return params
         .stream()
-        .map(schema -> schema == null
-            ? new FunctionParameter(null, false)
-            : new FunctionParameter(schema.type(), schema.isOptional()))
+        .map(schema -> new FunctionParameter(schema))
         .collect(Collectors.toList());
   }
 
   private static final class FunctionParameter {
-    private final Schema.Type type;
-    private final boolean isOptional;
+    private final Schema schema;
 
-    private FunctionParameter(final Schema.Type type, final boolean isOptional) {
-      this.type = type;
-      this.isOptional = isOptional;
+    private FunctionParameter(final Schema schema) {
+      this.schema = schema;
     }
+
+    public boolean sameSchema(final Schema thatSchema) {
+      if (schema.type() != thatSchema.type()) {
+        return false;
+      }
+
+      if (schema.type().equals(Schema.Type.ARRAY)) {
+        final Schema.Type valueType = schema.valueSchema().type();
+        final Schema.Type thatValueType = thatSchema.valueSchema().type();
+        return valueType.equals(thatValueType);
+      }
+
+      if (schema.type().equals(Schema.Type.MAP)) {
+        final Schema.Type keyType = schema.keySchema().type();
+        final Schema.Type thatKeyType = thatSchema.keySchema().type();
+        final Schema.Type valueType = schema.valueSchema().type();
+        final Schema.Type thatValueType = thatSchema.valueSchema().type();
+        return keyType.equals(thatKeyType) && valueType.equals(thatValueType);
+      }
+
+      return true;
+    }
+
 
     @Override
     public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       final FunctionParameter that = (FunctionParameter) o;
-      // isOptional is excluded from equals and hashCode so that
-      // primitive types will match their boxed counterparts. i.e,
-      // primitive types are not optional, i.e., they don't accept null.
-      return type == that.type;
+
+      if (schema == null && that.schema == null) {
+        return true;
+      }
+
+      return sameSchema(that.schema);
     }
 
     @Override
     public int hashCode() {
-      // isOptional is excluded from equals and hashCode so that
-      // primitive types will match their boxed counterparts. i.e,
-      // primitive types are not optional, i.e., they don't accept null.
-      return Objects.hash(type);
-    }
-
-    boolean isOptional() {
-      return isOptional;
-    }
-
-    public boolean matches(final Schema schema) {
       if (schema == null) {
-        return isOptional;
+        return Objects.hash(null);
       }
-      return type.equals(schema.type());
+
+      if (schema.type().equals(Schema.Type.ARRAY)) {
+        return Objects.hash(schema.type(), schema.valueSchema().type());
+      }
+
+      if (schema.type().equals(Schema.Type.MAP)) {
+        return Objects.hash(schema.type(), schema.keySchema().type(), schema.valueSchema().type());
+      }
+
+      return Objects.hash(schema.type());
+    }
+
+    public boolean matches(final Schema thatSchema) {
+      if (thatSchema == null) {
+        if (schema == null) {
+          return false;
+        }
+        return schema.isOptional();
+      }
+      return sameSchema(thatSchema);
     }
   }
 }

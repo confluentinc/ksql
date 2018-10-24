@@ -38,6 +38,7 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class SchemaKGroupedStream {
 
@@ -82,7 +83,7 @@ public class SchemaKGroupedStream {
     final KTable table;
     final Serde<?> keySerde;
     if (windowExpression != null) {
-      keySerde = windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
+      keySerde = getKeySerde(windowExpression);
 
       table = aggregateWindowed(
           initializer, aggValToFunctionMap, aggValToValColumnMap, windowExpression,
@@ -137,5 +138,13 @@ public class SchemaKGroupedStream {
 
     return aggKtable.mapValues((readOnlyKey, value) ->
         windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+  }
+
+  private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
+      return WindowedSerdes.timeWindowedSerdeFrom(String.class);
+    }
+
+    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 }

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.JLineTerminal;
@@ -28,6 +27,7 @@ import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.kafka.streams.StreamsConfig;
@@ -74,25 +74,24 @@ public final class Ksql {
     }
   }
 
-  @SuppressFBWarnings(
-      value = "OBL_UNSATISFIED_OBLIGATION",
-      justification = "'input' already in try with resource block - i.e. false positive")
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();
-    propertiesFile.ifPresent(file -> {
-      try (FileInputStream input = new FileInputStream(file)) {
-        properties.load(input);
-        if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
-          properties.put(
-              StreamsConfig.APPLICATION_ID_CONFIG,
-              properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-          );
-        }
-      } catch (final IOException e) {
-        throw new KsqlException("failed to load properties file: " + file, e);
+    if (!propertiesFile.isPresent()) {
+      return properties;
+    }
+
+    try (InputStream input = new FileInputStream(propertiesFile.get())) {
+      properties.load(input);
+      if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
+        properties.put(
+            StreamsConfig.APPLICATION_ID_CONFIG,
+            properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+        );
       }
-    });
-    return properties;
+      return properties;
+    } catch (final IOException e) {
+      throw new KsqlException("failed to load properties file: " + propertiesFile.get(), e);
+    }
   }
 }

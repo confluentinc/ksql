@@ -478,7 +478,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
-    final Map<String, Object> mergedProperties = new HashMap<>(values());
+    final Map<String, Object> mergedProperties = new HashMap<>(originals());
     COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
         .map(CompatibilityBreakingConfigDef::getName)
         .forEach(

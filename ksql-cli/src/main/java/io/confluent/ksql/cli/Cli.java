@@ -45,8 +45,6 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -148,38 +146,6 @@ public class Cli implements Closeable {
     writer.println(helpReminderMessage);
     writer.println();
     terminal.flush();
-  }
-
-  public void runNonInteractively(final String input) throws Exception {
-    // Allow exceptions to halt execution of the Ksql script as soon as the first one is encountered
-    for (final String logicalLine : getLogicalLines(input)) {
-      try {
-        handleLine(logicalLine);
-      } catch (final EndOfFileException exception) {
-        // Swallow these silently; they're thrown by the exit command to terminate the REPL
-        return;
-      }
-    }
-  }
-
-  @SuppressWarnings("RedundantStringOperation") // Incorrect warning. Operation is not redundant
-  private List<String> getLogicalLines(final String input) {
-    final List<String> result = new ArrayList<>();
-    final StringBuilder logicalLine = new StringBuilder();
-
-    Arrays.stream(input.split("\n"))
-        .map(String::trim)
-        .filter(line -> !line.isEmpty())
-        .forEach(physicalLine -> {
-          if (physicalLine.endsWith("\\")) {
-            logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
-          } else {
-            result.add(logicalLine.append(physicalLine).toString().trim());
-            logicalLine.setLength(0);
-          }
-        });
-
-    return result;
   }
 
   @Override
@@ -369,19 +335,16 @@ public class Cli implements Closeable {
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
-        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
-          @Override
-          public void run() {
-            for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-              try {
-                final StreamedRow row = queryStream.next();
-                terminal.printStreamedRow(row);
-                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
-                  break;
-                }
-              } catch (final IOException exception) {
-                throw new RuntimeException(exception);
+        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
+            try {
+              final StreamedRow row = queryStream.next();
+              terminal.printStreamedRow(row);
+              if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
+                break;
               }
+            } catch (final IOException exception) {
+              throw new RuntimeException(exception);
             }
           }
         });

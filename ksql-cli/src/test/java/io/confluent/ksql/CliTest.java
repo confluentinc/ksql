@@ -570,33 +570,6 @@ public class CliTest {
   }
 
   @Test
-  public void testEmptyInput() throws Exception {
-    localCli.runNonInteractively("");
-  }
-
-  @Test
-  public void testExitCommand() throws Exception {
-    localCli.runNonInteractively("exit");
-    localCli.runNonInteractively("\nexit\n\n\n");
-    localCli.runNonInteractively("exit\nexit\nexit");
-    localCli.runNonInteractively("\n\nexit\nexit\n\n\n\nexit\n\n\n");
-  }
-
-  @Test
-  public void testExtraCommands() throws Exception {
-    localCli.runNonInteractively("help");
-    localCli.runNonInteractively("version");
-    localCli.runNonInteractively("output");
-    localCli.runNonInteractively("clear");
-  }
-
-  @Test
-  public void testCommandsOverMultipleLines() throws Exception {
-    localCli.runNonInteractively("he\\\nlp");
-    localCli.runNonInteractively("he\\ \nlp");
-  }
-
-  @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
   }

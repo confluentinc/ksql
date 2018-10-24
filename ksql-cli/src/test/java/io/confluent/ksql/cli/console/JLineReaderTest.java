@@ -29,7 +29,7 @@ public class JLineReaderTest {
   @Test
   public void shouldSaveCommandsWithLeadingSpacesToHistory() throws IOException {
     // Given:
-    final String input = "  show streams\n";
+    final String input = "  show streams;\n";
     final JLineReader reader = createReaderForInput(input);
 
     // When:
@@ -42,85 +42,142 @@ public class JLineReaderTest {
   @Test
   public void shouldExpandInlineMacro() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("csas\t\n");
+    final JLineReader reader = createReaderForInput("csas\t* FROM Blah;\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("CREATE STREAM s AS SELECT"));
+    assertThat(commands, contains("CREATE STREAM s AS SELECT * FROM Blah;"));
   }
 
   @Test
   public void shouldExpandHistoricalLine() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!2\n");
+    final JLineReader reader = createReaderForInput("foo;\n bar;\n  baz; \n!2\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "bar", "baz", "bar"));
+    assertThat(commands, contains("foo;", "bar;", "baz;", "bar;"));
   }
 
   @Test
   public void shouldExpandRelativeLine() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!-3\n");
+    final JLineReader reader = createReaderForInput("foo;\n bar;\n  baz; \n!-3\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "bar", "baz", "foo"));
+    assertThat(commands, contains("foo;", "bar;", "baz;", "foo;"));
   }
 
   @Test
   public void shouldNotExpandHistoryUnlessAtStartOfLine() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n !2\n");
+    final JLineReader reader = createReaderForInput("foo;\n bar;\n  baz; \n !2;\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "bar", "baz", "!2"));
+    assertThat(commands, contains("foo;", "bar;", "baz;", "!2;"));
   }
 
   @Test
   public void shouldExpandHistoricalSearch() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!?ba\n");
+    final JLineReader reader = createReaderForInput("foo;\n bar;\n  baz; \n!?ba\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "bar", "baz", "baz"));
+    assertThat(commands, contains("foo;", "bar;", "baz;", "baz;"));
   }
 
   @Test
   public void shouldExpandLastLine() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!!\n");
+    final JLineReader reader = createReaderForInput("foo;\n bar;\n  baz; \n!!\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "bar", "baz", "baz"));
+    assertThat(commands, contains("foo;", "bar;", "baz;", "baz;"));
   }
 
   @Test
   public void shouldExpandHistoricalLineWithReplacement() throws Exception {
     // Given:
-    final JLineReader reader = createReaderForInput("foo\n select col1, col2 from d \n^col2^xyz^\n");
+    final JLineReader reader = createReaderForInput("foo;\n select col1, col2 from d; \n^col2^xyz^\n");
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("foo", "select col1, col2 from d", "select col1, xyz from d"));
+    assertThat(commands, contains("foo;", "select col1, col2 from d;", "select col1, xyz from d;"));
+  }
+
+  @Test
+  public void shouldHandleSingleLine() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput("select * from foo;\n");
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineUsingContinuationChar() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "select * \\\n"
+            + "from foo;\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineWithoutContinuationChar() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "select * \n\t"
+            + "from foo;\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineWithOpenQuotes() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "select * 'string that ends in termination char;\n"
+            + "' from foo;\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * 'string that ends in termination char;' from foo;"));
   }
 
   @SuppressWarnings("InfiniteLoopStatement")

@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.cli.console;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.CliUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,40 +52,43 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
    */
   private static class KsqlExpander extends DefaultExpander {
 
-    private static final Map<String, String> shortcuts = Maps.newHashMap();
-    
-    {
-      shortcuts.put("cs", "CREATE STREAM s ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
-          + " VALUE_FORMAT='avro');");
-      shortcuts.put("ct", "CREATE TABLE t ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
-          + " VALUE_FORMAT='avro', KEY='field1');");
-      shortcuts.put("csas", "CREATE STREAM s AS SELECT ");
-      shortcuts.put("ctas", "CREATE TABLE t AS SELECT ");
-      shortcuts.put("ii", "INSERT INTO x SELECT ");
-    }
+    private static final String EXPANDED_CS =
+        "CREATE STREAM s (field1 type1, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json');";
+
+    private static final String EXPANDED_CT =
+        "CREATE TABLE t (field1 type1, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json', KEY='field1');";
+
+    private static final Map<String, String> shortcuts = ImmutableMap.of(
+        "cs", EXPANDED_CS,
+        "ct", EXPANDED_CT,
+        "csas", "CREATE STREAM s AS SELECT ",
+        "ctas", "CREATE TABLE t AS SELECT ",
+        "ii", "INSERT INTO x SELECT "
+    );
 
     @Override
     public String expandHistory(final History history, final String line) {
       if (line.startsWith("!") || line.startsWith("^")) {
         return super.expandHistory(history, line);
-      } else {
-        return line;
       }
+
+      return line;
     }
 
     @Override
     public String expandVar(final String word) {
-      final String snippet = shortcuts.getOrDefault(word.toLowerCase(), word);
-      return snippet;
+      return shortcuts.getOrDefault(word.toLowerCase(), word);
     }
-
   }
 
   JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
-    parser.setQuoteChars(new char[0]);
+    parser.setEofOnUnclosedQuote(true);
+    parser.setQuoteChars(new char[]{'\''});
     parser.setEscapeChars(new char[]{'\\'});
 
     final Expander expander = new KsqlExpander();
@@ -97,7 +100,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
         .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
         .option(LineReader.Option.DISABLE_EVENT_EXPANSION, false)
         .expander(expander)
-        .parser(new TrimmingParser(parser))
+        .parser(new TrimmingParser(new TerminationParser(parser)))
         .terminal(terminal)
         .build();
 
@@ -124,7 +127,10 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   @Override
   public String readLine() throws IOException {
-    final String line = lineReader.readLine(prompt);
+    final String line = lineReader
+        .readLine(prompt)
+        .replace("\n", "");
+
     history.add(line);
     history.save();
     return line;

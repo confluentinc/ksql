@@ -1279,6 +1279,12 @@ Aggregate functions
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| WindowStart            | ``WindowStart()``         | Stream     | Extract the start time of the current window, in milliseconds.      |
+|                        |                           | Table      | If the query is not windowed the function will return null.         |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| WindowEnd              | ``WindowEnd()``           | Stream     | Extract the end time of the current window, in milliseconds.        |
+|                        |                           | Table      | If the query is not windowed the function will return null.         |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
 .. _ksql_key_requirements:
 

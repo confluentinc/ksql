@@ -39,7 +39,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
 
@@ -101,14 +100,6 @@ public class SchemaKGroupedStream {
         SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
   }
 
-  private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
-      return WindowedSerdes.timeWindowedSerdeFrom(String.class);
-    }
-
-    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
-  }
-
   @SuppressWarnings("unchecked")
   private KTable aggregateNonWindowed(
       final Initializer initializer,
@@ -147,5 +138,13 @@ public class SchemaKGroupedStream {
 
     return aggKtable.mapValues((readOnlyKey, value) ->
         windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+  }
+
+  private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
+      return WindowedSerdes.timeWindowedSerdeFrom(String.class);
+    }
+
+    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 }

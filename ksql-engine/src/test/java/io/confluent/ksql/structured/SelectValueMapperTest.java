@@ -24,14 +24,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,16 +91,16 @@ public class SelectValueMapperTest {
     final PlanNode planNode = planBuilder.buildLogicalPlan(query);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final Schema schema = planNode.getTheSourceNode().getSchema();
-    final List<Pair<String, Expression>> selectExpressions = projectNode.getProjectNameExpressionPairList();
+    final List<SelectExpression> selectExpressions = projectNode.getProjectNameExpressionPairList();
     final List<ExpressionMetadata> metadata = createExpressionMetadata(selectExpressions, schema);
     final List<String> selectFieldNames = selectExpressions.stream()
-        .map(Pair::getLeft)
+        .map(SelectExpression::getName)
         .collect(Collectors.toList());
     return new SelectValueMapper(selectFieldNames, metadata);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(
-      final List<Pair<String, Expression>> selectExpressions,
+      final List<SelectExpression> selectExpressions,
       final Schema schema
   ) {
     try {
@@ -109,7 +108,7 @@ public class SelectValueMapperTest {
           schema, ksqlConfig, new InternalFunctionRegistry());
 
       final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-      for (final Pair<String, Expression> expressionPair : selectExpressions) {
+      for (final SelectExpression expressionPair : selectExpressions) {
         expressionEvaluators
             .add(codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), "Select"));
       }

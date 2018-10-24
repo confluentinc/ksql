@@ -444,9 +444,7 @@ public class CodeGenRunnerTest {
         final Map<Integer, Object> inputValues = ImmutableMap.of(1, "{\"name\":\"fred\",\"value\":1}");
 
         // When:
-        final List<Object> columns = executeExpression(query, inputValues);
-
-        // Then:
+        executeExpression(query, inputValues);
     }
 
     @Test
@@ -464,6 +462,12 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(result, is("value1"));
+        final Analysis analysis = analyzeQuery(query, metaStore);
+        final ExpressionMetadata expressionMetadata
+            = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
+
+        assertThat(expressionMetadata.evaluate(new Object[]{inputs}),
+            equalTo("{\"city\":\"adelaide\",\"country\":\"oz\"}"));
     }
 
     @Test

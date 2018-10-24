@@ -22,7 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -124,8 +124,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKTable<K> select(final List<Pair<String, Expression>> expressionPairList) {
-    final Selection selection = new Selection(expressionPairList);
+  public SchemaKTable<K> select(final List<SelectExpression> selectExpressions) {
+    final Selection selection = new Selection(selectExpressions);
     return new SchemaKTable<>(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

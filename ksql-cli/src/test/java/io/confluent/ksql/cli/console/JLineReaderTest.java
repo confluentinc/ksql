@@ -28,116 +28,103 @@ public class JLineReaderTest {
 
   @Test
   public void shouldSaveCommandsWithLeadingSpacesToHistory() throws IOException {
+    // Given:
     final String input = "  show streams\n";
     final JLineReader reader = createReaderForInput(input);
 
+    // When:
     reader.readLine();
 
-    final List<String> commands = new ArrayList<>();
-    reader.getHistory().forEach(entry -> commands.add(entry.line()));
-
-    assertThat(commands, contains(input.trim()));
+    // Then:
+    assertThat(getHistory(reader), contains(input.trim()));
   }
 
   @Test
   public void shouldExpandInlineMacro() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("csas\t\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(1));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("CREATE STREAM s AS SELECT"));
   }
 
   @Test
   public void shouldExpandHistoricalLine() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!2\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(4));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("foo", "bar", "baz", "bar"));
   }
 
   @Test
   public void shouldExpandRelativeLine() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!-3\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(4));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("foo", "bar", "baz", "foo"));
   }
 
   @Test
   public void shouldNotExpandHistoryUnlessAtStartOfLine() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n !2\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(4));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("foo", "bar", "baz", "!2"));
   }
 
   @Test
   public void shouldExpandHistoricalSearch() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!?ba\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(4));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("foo", "bar", "baz", "baz"));
   }
 
   @Test
   public void shouldExpandLastLine() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n bar\n  baz \n!!\n");
-    final List<String> commands = new ArrayList<>();
-    try {
-      while (true) {
-         String line = reader.readLine();
-         commands.add(line.trim());
-      }
-    } catch (EndOfFileException e) {
-      // this indicates end of input in JLine
-    }
-    assertThat(commands, hasSize(4));
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
     assertThat(commands, contains("foo", "bar", "baz", "baz"));
   }
 
   @Test
   public void shouldExpandHistoricalLineWithReplacement() throws Exception {
+    // Given:
     final JLineReader reader = createReaderForInput("foo\n select col1, col2 from d \n^col2^xyz^\n");
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("foo", "select col1, col2 from d", "select col1, xyz from d"));
+  }
+
+  @SuppressWarnings("InfiniteLoopStatement")
+  private List<String> readAllLines(final JLineReader reader) throws IOException {
     final List<String> commands = new ArrayList<>();
     try {
       while (true) {
@@ -147,11 +134,14 @@ public class JLineReaderTest {
     } catch (EndOfFileException e) {
       // this indicates end of input in JLine
     }
-    assertThat(commands, hasSize(3));
-    assertThat(commands, contains("foo", "select col1, col2 from d", "select col1, xyz from d"));
+    return commands;
   }
 
-
+  private List<String> getHistory(final JLineReader reader) {
+    final List<String> commands = new ArrayList<>();
+    reader.getHistory().forEach(entry -> commands.add(entry.line()));
+    return commands;
+  }
 
   private JLineReader createReaderForInput(final String input) throws IOException {
     final InputStream inputStream =

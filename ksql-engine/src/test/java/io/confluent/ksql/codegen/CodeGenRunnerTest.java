@@ -43,7 +43,6 @@ import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -167,11 +166,11 @@ public class CodeGenRunnerTest {
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
-        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
+        Object result0 = expressionEvaluatorMetadata0.evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
         assertThat(result0, is(true));
 
-        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
+        result0 = expressionEvaluatorMetadata0.evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
         assertThat(result0, is(false));
     }
@@ -185,7 +184,7 @@ public class CodeGenRunnerTest {
         final List<String> innerArray1 = Arrays.asList("item_11", "item_12");
         final List<String> innerArray2 = Arrays.asList("item_21", "item_22");
         final Object[] args = new Object[]{Arrays.asList(innerArray1, innerArray2)};
-        final Object result = expressionEvaluatorMetadata.getExpressionEvaluator().evaluate(args);
+        final Object result = expressionEvaluatorMetadata.evaluate(args);
         assertThat(result, instanceOf(String.class));
         assertThat(result, equalTo("item_11"));
     }
@@ -200,11 +199,11 @@ public class CodeGenRunnerTest {
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
-        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
+        Object result0 = expressionEvaluatorMetadata0.evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
         assertThat(result0, is(false));
 
-        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
+        result0 = expressionEvaluatorMetadata0.evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
         assertThat(result0, is(true));
     }
@@ -435,9 +434,7 @@ public class CodeGenRunnerTest {
         final Map<Integer, Object> inputValues = ImmutableMap.of(1, "{\"name\":\"fred\",\"value\":1}");
 
         // When:
-        final List<Object> columns = executeExpression(query, inputValues);
-
-        // Then:
+        executeExpression(query, inputValues);
     }
 
     @Test
@@ -452,7 +449,7 @@ public class CodeGenRunnerTest {
         final ExpressionMetadata expressionMetadata
             = codeGenRunner.buildCodeGenFromParseTree(analysis.getSelectExpressions().get(0));
 
-        assertThat(expressionMetadata.getExpressionEvaluator().evaluate(new Object[]{inputs}),
+        assertThat(expressionMetadata.evaluate(new Object[]{inputs}),
             equalTo("{\"city\":\"adelaide\",\"country\":\"oz\"}"));
     }
 
@@ -476,9 +473,7 @@ public class CodeGenRunnerTest {
                 params[i] = inputs;
             }
         }
-        assertThat(metadata.getExpressionEvaluator()
-                .evaluate(params),
-            equalTo("adelaide"));
+        assertThat(metadata.evaluate(params), equalTo("adelaide"));
     }
 
     @Test
@@ -518,7 +513,7 @@ public class CodeGenRunnerTest {
 
         return analysis.getSelectExpressions().stream()
             .map(buildCodeGenFromParseTree)
-            .map(md -> evaluate(md, inputValues))
+            .map(md -> md.evaluate(buildParams(md, inputValues)))
             .collect(Collectors.toList());
     }
 
@@ -566,18 +561,9 @@ public class CodeGenRunnerTest {
             values[1] = tmp;
         }
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(2));
-        final Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(values);
+        final Object result0 = expressionEvaluatorMetadata0.evaluate(values);
         assertThat(result0, instanceOf(Boolean.class));
         return (Boolean)result0;
-    }
-
-    private Object evaluate(final ExpressionMetadata md,
-                            final Map<Integer, Object> inputValues) {
-        try {
-            return md.getExpressionEvaluator().evaluate(buildParams(md, inputValues));
-        } catch (final InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private Object[] buildParams(final ExpressionMetadata metadata,

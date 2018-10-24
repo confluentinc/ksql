@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.function.udaf.KudafAggregator;
+import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlConfig;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -80,44 +80,25 @@ public class SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe) {
-    final KTable aggKtable;
-    final UdafAggregator aggregator = new KudafAggregator(
-        aggValToFunctionMap, aggValToValColumnMap);
 
+    final KTable table;
     final Serde<?> keySerde;
     if (windowExpression != null) {
       keySerde = getKeySerde(windowExpression);
 
-      final Materialized<String, GenericRow, ?> materialized
-          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
-              Serdes.String(), topicValueSerDe);
-
-      final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
-      aggKtable = ksqlWindowExpression.applyAggregate(
-          kgroupedStream,
-          initializer,
-          aggregator,
-          materialized
-      );
+      table = aggregateWindowed(
+          initializer, aggValToFunctionMap, aggValToValColumnMap, windowExpression,
+          topicValueSerDe);
     } else {
       keySerde = Serdes.String();
-      aggKtable = kgroupedStream.aggregate(
-          initializer,
-          aggregator,
-          Materialized.with(Serdes.String(), topicValueSerDe)
-      );
+
+      table = aggregateNonWindowed(
+          initializer, aggValToFunctionMap, aggValToValColumnMap, topicValueSerDe);
     }
-    return new SchemaKTable<>(
-        schema,
-        aggKtable,
-        keyField,
-        sourceSchemaKStreams,
-        keySerde,
-        SchemaKStream.Type.AGGREGATE,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
-    );
+
+    return new SchemaKTable(
+        schema, table, keyField, sourceSchemaKStreams, keySerde,
+        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
   }
 
   private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
@@ -128,4 +109,43 @@ public class SchemaKGroupedStream {
     return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 
+  @SuppressWarnings("unchecked")
+  private KTable aggregateNonWindowed(
+      final Initializer initializer,
+      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
+      final Map<Integer, Integer> indexToValueMap,
+      final Serde<GenericRow> topicValueSerDe) {
+
+    final UdafAggregator aggregator = new KudafAggregator(
+        indexToFunctionMap, indexToValueMap);
+
+    return kgroupedStream.aggregate(
+        initializer, aggregator, Materialized.with(Serdes.String(), topicValueSerDe));
+  }
+
+  @SuppressWarnings("unchecked")
+  private KTable aggregateWindowed(
+      final Initializer initializer,
+      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
+      final Map<Integer, Integer> indexToValueMap,
+      final WindowExpression windowExpression,
+      final Serde<GenericRow> topicValueSerDe) {
+
+    final UdafAggregator aggregator = new KudafAggregator(
+        indexToFunctionMap, indexToValueMap);
+
+    final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
+
+    final KTable aggKtable = ksqlWindowExpression.applyAggregate(
+        kgroupedStream, initializer, aggregator,
+        Materialized.with(Serdes.String(), topicValueSerDe));
+
+    final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(indexToFunctionMap);
+    if (!windowSelectMapper.hasSelects()) {
+      return aggKtable;
+    }
+
+    return aggKtable.mapValues((readOnlyKey, value) ->
+        windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+  }
 }

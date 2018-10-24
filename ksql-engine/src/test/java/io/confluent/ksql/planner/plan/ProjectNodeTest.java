@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;

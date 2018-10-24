@@ -302,6 +302,25 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldReturnUdfConfigAfterMerge() {
+    final String functionName = "BOB";
+
+    final String correctConfigName =
+        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        correctConfigName, "should-be-visible"
+    ));
+    final KsqlConfig merged = config.overrideBreakingConfigsWithOriginalValues(Collections.emptyMap());
+
+    // When:
+    final Map<String, ?> udfProps = merged.getKsqlFunctionsConfigProps(functionName);
+
+    // Then:
+    assertThat(udfProps.keySet(), hasItem(correctConfigName));
+  }
+
+  @Test
   public void shouldReturnGlobalUdfConfig() {
     // Given:
     final String globalConfigName =

@@ -442,6 +442,26 @@ public class PhysicalPlanBuilderTest {
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
+  @Test
+  public void shouldTurnOptimizationsOff() throws Exception {
+    // Given:
+    final Map<String, Object> properties =
+        Collections.singletonMap(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE);
+    physicalPlanBuilder = buildPhysicalPlanBuilder(properties);
+
+    // When:
+    buildPhysicalPlan(simpleSelectFilter);
+
+    // Then:
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    assertThat(calls.size(), equalTo(1));
+    final Properties props = calls.get(0).props;
+    assertThat(
+        props.get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
 
     public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {

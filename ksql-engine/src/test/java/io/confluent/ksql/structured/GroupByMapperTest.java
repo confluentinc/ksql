@@ -49,7 +49,6 @@ public class GroupByMapperTest {
 
   private GroupByMapper<Object> mapper;
 
-
   @Before
   public void setUp() {
     mapper = new GroupByMapper<>(ImmutableList.of(groupBy0, groupBy1));
@@ -57,7 +56,7 @@ public class GroupByMapperTest {
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullParam() {
-    new GroupByMapper(null);
+    new GroupByMapper<>(null);
   }
 
   @Test(expected = IllegalArgumentException.class)

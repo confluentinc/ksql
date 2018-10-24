@@ -47,7 +47,7 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -156,8 +156,8 @@ public class SchemaKStreamTest {
                                              ksqlStream.getKeyField(), new ArrayList<>(),
                                              SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    final List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
@@ -183,8 +183,8 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    final List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -205,8 +205,8 @@ public class SchemaKStreamTest {
         functionRegistry,
         new MockSchemaRegistryClient());
 
-    final List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(initialSchemaKStream.getKeyField()));
@@ -221,8 +221,8 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    final List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -237,8 +237,8 @@ public class SchemaKStreamTest {
         ksqlStream.getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
 
-    final List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
+    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     assertThat(projectedSchemaKStream.getKeyField(), nullValue());
   }
 
@@ -249,8 +249,9 @@ public class SchemaKStreamTest {
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
+                                             SchemaKStream.Type.SOURCE,
+                                             functionRegistry, new MockSchemaRegistryClient());
+    final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectSelectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));

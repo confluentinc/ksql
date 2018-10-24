@@ -23,11 +23,13 @@ import org.apache.kafka.test.TestUtils;
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
 
-  public static void load(final MetaStore metaStore) {
+  public static MetaStore load(final MetaStore metaStore) {
     new UdfLoader(metaStore,
         TestUtils.tempDirectory(),
         UdfLoaderUtil.class.getClassLoader(),
         value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true)
         .load();
+
+    return metaStore;
   }
 }

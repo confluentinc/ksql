@@ -1206,7 +1206,12 @@ Aggregate functions
 +------------------------+---------------------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
 +------------------------+---------------------------+---------------------------------------------------------------------+
-
+| WindowStart            | ``WindowStart()``         | Extract the start time of the current window, in milliseconds.      |
+|                        |                           | If the query is not windowed the function will return null.         |
++------------------------+---------------------------+---------------------------------------------------------------------+
+| WindowEnd              | ``WindowEnd()``           | Extract the end time of the current window, in milliseconds.        |
+|                        |                           | If the query is not windowed the function will return null.         |
++------------------------+---------------------------+---------------------------------------------------------------------+
 
 .. _ksql_key_requirements:
 

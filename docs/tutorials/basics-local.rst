@@ -31,6 +31,10 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
       :end-before: basics_tutorial_02_end
 
 .. include:: ../includes/ksql-includes.rst
+    :start-after: inspect_topics_start
+    :end-before: inspect_topics_end
+
+.. include:: ../includes/ksql-includes.rst
       :start-after: basics_tutorial_03_start
       :end-before: basics_tutorial_03_end
 

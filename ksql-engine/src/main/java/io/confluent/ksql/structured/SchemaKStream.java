@@ -99,7 +99,7 @@ public class SchemaKStream<K> {
     return keySerde;
   }
 
-  public boolean isWindowed() {
+  public boolean hasWindowedKey() {
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
@@ -127,7 +127,7 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(final Expression filterExpression) {
-    final SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed(),
+    final SqlPredicate predicate = new SqlPredicate(filterExpression, schema, hasWindowedKey(),
         ksqlConfig, functionRegistry);
 
     final KStream<K, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());

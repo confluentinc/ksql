@@ -105,7 +105,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
-        isWindowed(),
+        hasWindowedKey(),
         ksqlConfig,
         functionRegistry
     );

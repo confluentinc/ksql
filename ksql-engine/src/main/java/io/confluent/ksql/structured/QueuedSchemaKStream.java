@@ -20,7 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -77,7 +77,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKStream<K> select(final List<Pair<String, Expression>> expressions) {
+  public SchemaKStream<K> select(final List<SelectExpression> expressions) {
     throw new UnsupportedOperationException();
   }
 

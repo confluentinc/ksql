@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -36,11 +36,11 @@ public class JLineReaderTest {
   public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Mock(MockType.NICE)
-  private Function<String, Boolean> cliLinePredicate;
+  private Predicate<String> cliLinePredicate;
 
   @Before
   public void setUp() {
-    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(false).anyTimes();
+    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(false).anyTimes();
     EasyMock.replay(cliLinePredicate);
   }
 

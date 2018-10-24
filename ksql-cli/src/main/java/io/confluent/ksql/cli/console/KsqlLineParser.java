@@ -17,7 +17,7 @@
 package io.confluent.ksql.cli.console;
 
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
@@ -30,11 +30,11 @@ final class KsqlLineParser implements Parser {
   private static final String TERMINATION_CHAR = ";";
 
   private final Parser delegate;
-  private final Function<String, Boolean> cliCmdPredicate;
+  private final Predicate<String> cliCmdPredicate;
 
   KsqlLineParser(
       final Parser delegate,
-      final Function<String, Boolean> cliCmdPredicate
+      final Predicate<String> cliCmdPredicate
   ) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
     this.cliCmdPredicate = Objects.requireNonNull(cliCmdPredicate, "cliCmdPredicate");
@@ -44,7 +44,7 @@ final class KsqlLineParser implements Parser {
   public ParsedLine parse(final String line, final int cursor, final ParseContext context) {
     final ParsedLine parsed = delegate.parse(line, cursor, context);
 
-    if (cliCmdPredicate.apply(line)) {
+    if (cliCmdPredicate.test(line)) {
       return parsed;
     }
 

@@ -21,7 +21,7 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
@@ -32,7 +32,7 @@ class JLineTerminal implements KsqlTerminal {
   private final JLineReader lineReader;
 
   JLineTerminal(
-      final Function<String, Boolean> cliLinePredicate,
+      final Predicate<String> cliLinePredicate,
       final Path historyFilePath
   ) {
     this.terminal = buildTerminal();

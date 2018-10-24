@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
@@ -51,7 +51,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   JLineReader(
       final Terminal terminal,
       final Path historyFilePath,
-      final Function<String, Boolean> cliLinePredicate
+      final Predicate<String> cliLinePredicate
   ) {
     this.terminal = Objects.requireNonNull(terminal, "terminal");
     this.lineReader = build(terminal, historyFilePath, cliLinePredicate);
@@ -90,7 +90,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   private static LineReader build(
       final Terminal terminal,
       final Path historyFilePath,
-      final Function<String, Boolean> cliLinePredicate
+      final Predicate<String> cliLinePredicate
   ) {
     final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
@@ -123,11 +123,6 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     return lineReader;
   }
 
-  /**
-   * Override the default JLine 'expander' behavior so that history-referencing expressions such
-   * as '!42' or '!!' will only be processed and replaced if they occur at the beginning of an
-   * input line, even if the input line spans multiple terminal lines using the '\' separator.
-   */
   private static class KsqlExpander extends DefaultExpander {
 
     private static final String EXPANDED_CS =
@@ -146,6 +141,11 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
         "ii", "INSERT INTO x SELECT "
     );
 
+    /**
+     * Override the default JLine 'expandHistory' behavior so that history-referencing expressions
+     * such as '!42' or '!!' will only be processed and replaced if they occur at the beginning of
+     * an input line, even if the input line spans multiple terminal lines.
+     */
     @Override
     public String expandHistory(final History history, final String line) {
       if (line.startsWith("!") || line.startsWith("^")) {

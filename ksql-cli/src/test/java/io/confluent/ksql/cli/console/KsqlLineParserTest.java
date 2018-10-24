@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -50,12 +50,12 @@ public class KsqlLineParserTest {
   @Mock
   private ParsedLine parsedLine;
   @Mock
-  private Function<String, Boolean> cliLinePredicate;
+  private Predicate<String> cliLinePredicate;
   private KsqlLineParser parser;
 
   @Before
   public void setUp() {
-    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(false);
+    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(false);
     EasyMock.replay(cliLinePredicate);
 
     parser = new KsqlLineParser(delegate, cliLinePredicate);
@@ -151,7 +151,7 @@ public class KsqlLineParserTest {
 
   private void givenPredicateWillReturnTrue() {
     EasyMock.reset(cliLinePredicate);
-    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(true);
+    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(true);
     EasyMock.replay(cliLinePredicate);
   }
 }

@@ -77,7 +77,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.jline.terminal.Terminal.Signal;
@@ -152,9 +152,9 @@ public final class Console implements Closeable {
   }
 
   public static Console build(final OutputFormat outputFormat, final KsqlRestClient restClient) {
-    final AtomicReference<Console> console = new AtomicReference<>();
-    final Function<String, Boolean> isCliCommand = line -> {
-      final Console theConsole = console.get();
+    final AtomicReference<Console> consoleRef = new AtomicReference<>();
+    final Predicate<String> isCliCommand = line -> {
+      final Console theConsole = consoleRef.get();
       return theConsole != null && theConsole.isCliCommand(line);
     };
 
@@ -169,7 +169,11 @@ public final class Console implements Closeable {
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();
 
-    return new Console(outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+    final Console console = new Console(
+        outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+
+    consoleRef.set(console);
+    return console;
   }
 
   public Console(
@@ -226,27 +230,9 @@ public final class Console implements Closeable {
     do {
       line = terminal.readLine();
 
-    } while (!maybeHandleCliSpecificCommands(line));
+    } while (maybeHandleCliSpecificCommands(line));
 
     return line;
-  }
-
-  private boolean maybeHandleCliSpecificCommands(final String line) {
-    if (line == null) {
-      return false;
-    }
-
-    final String[] split = line.split("\\s+", 2);
-    final String command = split[0].toLowerCase();
-
-    final CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(command);
-    if (cliSpecificCommand == null) {
-      return false;
-    }
-
-    final String commandArg = split.length > 1 ? split[1] : "";
-    cliSpecificCommand.execute(commandArg);
-    return true;
   }
 
   public void printHistory() {
@@ -672,7 +658,7 @@ public final class Console implements Closeable {
     flush();
   }
 
-  public static class NoOpRowCaptor implements RowCaptor {
+  static class NoOpRowCaptor implements RowCaptor {
     @Override
     public void addRow(final GenericRow row) {
     }
@@ -680,5 +666,23 @@ public final class Console implements Closeable {
     @Override
     public void addRows(final List<List<String>> fields) {
     }
+  }
+
+  private boolean maybeHandleCliSpecificCommands(final String line) {
+    if (line == null) {
+      return false;
+    }
+
+    final String[] split = line.split("\\s+", 2);
+    final String command = split[0].toLowerCase();
+
+    final CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(command);
+    if (cliSpecificCommand == null) {
+      return false;
+    }
+
+    final String commandArg = split.length > 1 ? split[1] : "";
+    cliSpecificCommand.execute(commandArg);
+    return true;
   }
 }

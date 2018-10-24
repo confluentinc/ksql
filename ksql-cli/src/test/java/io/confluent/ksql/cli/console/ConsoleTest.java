@@ -249,6 +249,22 @@ public class ConsoleTest {
     console.readLine();
   }
 
+  @Test
+  public void shouldSwallowCliCommandLines() {
+    // Given:
+    EasyMock.expect(lineSupplier.get())
+        .andReturn("history")
+        .andReturn("not a CLI command;");
+
+    EasyMock.replay(lineSupplier);
+
+    // When:
+    final String result = console.readLine();
+
+    // Then:
+    assertThat(result, is("not a CLI command;"));
+  }
+
   private List<FieldInfo> buildTestSchema(final int size) {
     final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {

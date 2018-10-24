@@ -18,8 +18,10 @@ package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyMap;
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
@@ -34,6 +36,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -42,6 +45,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -100,7 +104,8 @@ public class SchemaKGroupedStreamTest {
     EasyMock.expect(otherFunc.getFunctionName()).andReturn("NotWindowStartFunc").anyTimes();
     EasyMock.expect(windowExp.getKsqlWindowExpression()).andReturn(ksqlWindowExp).anyTimes();
     EasyMock.expect(ksqlWindowExp.getKeySerde(String.class)).andReturn(windowedKeySerde).anyTimes();
-    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp);
+    EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).andReturn(false);
+    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp, config);
   }
 
   @Test
@@ -140,6 +145,47 @@ public class SchemaKGroupedStreamTest {
 
     // Then:
     assertDoesInstallWindowSelectMapper(funcMapWithWindowEnd);
+  }
+
+  @Test
+  public void shouldUseStringKeySerdeForNoneWindowed() {
+    // When:
+    final SchemaKTable result = schemaGroupedStream
+        .aggregate(initializer, emptyMap(), emptyMap(), null, topicValueSerDe);
+
+    // Then:
+    assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
+  }
+
+  @Test
+  public void shouldUseWindowExpressionKeySerde() {
+    // Given:
+    replay(ksqlWindowExp);
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+
+    // Then:
+    assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
+  }
+
+  @Test
+  public void shouldUseTimeWindowKeySerdeForWindowedIfLegacyConfig() {
+    // Given:
+    EasyMock.reset(config);
+    EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG))
+        .andReturn(true);
+
+    EasyMock.replay(config);
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+
+    // Then:
+    assertThat(result.getKeySerde(),
+        is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
   private void assertDoesNotInstallWindowSelectMapper(

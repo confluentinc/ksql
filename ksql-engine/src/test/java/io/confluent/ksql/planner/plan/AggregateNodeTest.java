@@ -157,7 +157,7 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream, is(instanceOf(SchemaKTable.class)));
-    assertThat(((SchemaKTable) stream).isWindowed(), is(true));
+    assertThat(stream.hasWindowedKey(), is(true));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

@@ -73,6 +73,10 @@ Download the Tutorial and Start KSQL
         :end-before: CLI_welcome_end
 
 .. include:: ../includes/ksql-includes.rst
+    :start-after: inspect_topics_start
+    :end-before: inspect_topics_end
+
+.. include:: ../includes/ksql-includes.rst
     :start-after: basics_tutorial_03_start
     :end-before: basics_tutorial_03_end
 

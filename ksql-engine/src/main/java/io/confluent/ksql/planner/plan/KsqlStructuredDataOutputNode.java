@@ -156,7 +156,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
-           && !((SchemaKTable<?>) result).isWindowed();
+           && !((SchemaKTable<?>) result).hasWindowedKey();
   }
 
   @SuppressWarnings("unchecked")

@@ -263,7 +263,7 @@ public class StructuredDataSourceNode
       final Serde<GenericRow> genericRowSerde) {
     final KsqlStream ksqlStream = (KsqlStream) getStructuredDataSource();
 
-    if (ksqlStream.isWindowed()) {
+    if (ksqlStream.hasWindowedKey()) {
       return stream(builder, timestampExtractor, genericRowSerde,
           (Serde<Windowed<String>>)ksqlStream.getKeySerde(), windowedMapper);
     }

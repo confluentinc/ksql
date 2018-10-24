@@ -50,7 +50,7 @@ public class KsqlStream<K> extends StructuredDataSource {
     this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
-  public boolean isWindowed() {
+  public boolean hasWindowedKey() {
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }

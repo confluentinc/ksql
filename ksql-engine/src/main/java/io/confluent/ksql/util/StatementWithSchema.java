@@ -20,7 +20,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
-import java.util.Map;
 
 public final class StatementWithSchema {
   private final Statement statement;
@@ -42,12 +41,11 @@ public final class StatementWithSchema {
   public static StatementWithSchema forStatement(
       final Statement statement,
       final String statementText,
-      final Map<String, Object> properties,
       final SchemaRegistryClient schemaRegistryClient) {
     if (statement instanceof AbstractStreamCreateStatement) {
       final Statement statementWithSchema
           = AvroUtil.checkAndSetAvroSchema(
-              (AbstractStreamCreateStatement) statement, properties, schemaRegistryClient);
+              (AbstractStreamCreateStatement) statement, schemaRegistryClient);
       if (statementWithSchema != statement) {
         return new StatementWithSchema(
             statementWithSchema,

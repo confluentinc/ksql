@@ -39,10 +39,10 @@ public class TestTerminal extends Console {
     this.writer = new StringWriter();
     this.printWriter = new PrintWriter(writer);
 
-    resetTestResult(true);
+    resetTestResult();
   }
 
-  public void resetTestResult(final boolean requireOrder) {
+  public void resetTestResult() {
     output = new TestResult.Builder();
   }
 

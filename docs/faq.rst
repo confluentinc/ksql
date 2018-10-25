@@ -101,7 +101,7 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       ksql> exit
+       ksql> exit;
 
 -  Stop Confluent Platform by shutting down all services including
    Kafka.

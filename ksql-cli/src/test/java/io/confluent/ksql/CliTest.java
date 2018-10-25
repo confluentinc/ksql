@@ -56,10 +56,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -70,6 +68,7 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.jline.reader.EndOfFileException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -116,7 +115,7 @@ public class CliTest {
   private static int result_stream_no = 0;
 
   @BeforeClass
-  public static void setUp() throws Exception {
+  public static void classSetUp() throws Exception {
     restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
@@ -142,15 +141,14 @@ public class CliTest {
   @SuppressWarnings("unchecked")
   private static Matcher<Iterable<List<String>>> hasItems(final TestResult expected) {
     return CoreMatchers.hasItems(expected.rows().stream()
-            .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0]));
+        .map(CoreMatchers::equalTo)
+        .toArray(Matcher[]::new));
   }
 
   private static class BoundedMatcher extends BaseMatcher<Iterable<List<String>>> {
     private final Matcher<Iterable<? extends List<String>>> internal;
 
-    public BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
+    private BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
       this.internal = internal;
     }
 
@@ -170,8 +168,7 @@ public class CliTest {
     return new BoundedMatcher(
         Matchers.contains(expected.rows().stream()
             .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0])));
+            .toArray(Matcher[]::new)));
   }
 
   @SuppressWarnings("unchecked")
@@ -179,11 +176,10 @@ public class CliTest {
     return new BoundedMatcher(
         Matchers.containsInAnyOrder(expected.rows().stream()
             .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0])));
+            .toArray(Matcher[]::new)));
   }
 
-  static void assertRunListCommand(
+  private static void assertRunListCommand(
       final String commandSuffix,
       final Matcher<Iterable<List<String>>> matcher) {
     assertRunCommand("list " + commandSuffix, matcher);
@@ -193,17 +189,17 @@ public class CliTest {
   private static void assertRunCommand(
       final String command,
       final Matcher<Iterable<List<String>>> matcher) {
-    run(command, true);
+    run(command);
     assertThat(terminal.getTestResult(), matcher);
   }
 
-  private static TestResult run(String command, final boolean strict) {
+  private static TestResult run(String command) {
     try {
       if (!command.endsWith(";")) {
         command += ";";
       }
       System.out.println("[Run Command] " + command);
-      terminal.resetTestResult(strict);
+      terminal.resetTestResult();
       localCli.handleLine(command);
       return terminal.getTestResult();
     } catch (final Exception e) {
@@ -362,7 +358,7 @@ public class CliTest {
   @Test
   public void testPrint() {
     final Thread thread =
-        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;"));
     thread.start();
 
     try {
@@ -542,22 +538,30 @@ public class CliTest {
 
   @Test
   public void testSelectUDFs() {
-    final String selectColumns =
-        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
-    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
-
     final String queryString = String.format(
-        "SELECT %s FROM %s WHERE %s;",
-        selectColumns,
-        orderDataProvider.kstreamName(),
-        whereClause
+        "SELECT ITEMID, "
+            + "ORDERUNITS*10 AS Col1, "
+            + "PRICEARRAY[0]+10 AS Col2, "
+            + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10 AS Col3, "
+            + "PRICEARRAY[1]>1000 AS Col4 "
+            + "FROM %s "
+            + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
+        orderDataProvider.kstreamName()
     );
+
+    final Schema sourceSchema = orderDataProvider.schema();
+    final Schema resultSchema = SchemaBuilder.struct()
+        .field("ITEMID", sourceSchema.field("ITEMID").schema())
+        .field("COL1", sourceSchema.field("ORDERUNITS").schema())
+        .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
+        .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+        .build();
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
-    // TODO: tests failed!
-    // testCreateStreamAsSelect(queryString, orderDataProvider.schema(), expectedResults);
+    testCreateStreamAsSelect(queryString, resultSchema, expectedResults);
   }
 
   // ===================================================================
@@ -725,5 +729,10 @@ public class CliTest {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test(expected = EndOfFileException.class)
+  public void shouldHandleExitCommand() throws Exception {
+    localCli.handleLine("eXiT;");
   }
 }

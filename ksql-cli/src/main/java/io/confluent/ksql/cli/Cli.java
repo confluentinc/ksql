@@ -123,7 +123,7 @@ public class Cli implements Closeable {
 
     final String helpReminderMessage =
         "Having trouble? "
-        + "Type 'help' (case-insensitive) for a rundown of how things work!";
+        + "Type 'help;' (case-insensitive) for a rundown of how things work!";
 
     final PrintWriter writer = terminal.writer();
 
@@ -157,19 +157,32 @@ public class Cli implements Closeable {
 
   public void handleLine(final String line) throws Exception {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
-
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    final String[] commandArgs = trimmedLine.split("\\s+", 2);
-    final CliSpecificCommand cliSpecificCommand =
-        terminal.getCliSpecificCommands().get(commandArgs[0].toLowerCase());
-    if (cliSpecificCommand != null) {
-      cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
-    } else {
-      handleStatements(line);
+    if (maybeHandleCliSpecificCommands(trimmedLine)) {
+      return;
     }
+
+    handleStatements(line);
+  }
+
+  private boolean maybeHandleCliSpecificCommands(final String line) {
+    final String[] split = line.split("\\s+", 2);
+    final String command = split[0]
+        .replace(';', ' ')
+        .trim()
+        .toLowerCase();
+
+    final CliSpecificCommand cliSpecificCommand = terminal.getCliSpecificCommands().get(command);
+    if (cliSpecificCommand == null) {
+      return false;
+    }
+
+    final String commandArg = split.length > 1 ? split[1] : "";
+    cliSpecificCommand.execute(commandArg);
+    return true;
   }
 
   /**

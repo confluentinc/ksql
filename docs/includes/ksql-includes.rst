@@ -52,7 +52,7 @@ Learn More
 
         CLI v|release|, Server v|release| located at http://localhost:8088
 
-        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+        Having trouble? Type 'help;' (case-insensitive) for a rundown of how things work!
 
         ksql>
 
@@ -479,7 +479,7 @@ queries.
 
    ::
 
-       ksql> exit
+       ksql> exit;
 
 .. terminate_and_exit__end
 

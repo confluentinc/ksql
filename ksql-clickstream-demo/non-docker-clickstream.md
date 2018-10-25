@@ -126,7 +126,7 @@ These steps will guide you through how to setup your environment and run the cli
 
     CLI v0.1, Server v0.1 located at http://localhost:9098
 
-    Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+    Having trouble? Type 'help;' (case-insensitive) for a rundown of how things work!
 
     ksql>
     ``` 

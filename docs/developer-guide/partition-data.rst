@@ -69,17 +69,16 @@ Keys Have the Same Partitioning Strategy
 ########################################
 
 Both sides of the join must have the same partitioning strategy, or keying
-scheme.
+scheme. If you use the default partitioner-related settings across all
+applications, you don't need to worry about the partitioning strategy.
 
 All applications that write to the input streams must have the same partitioning
 strategy, so records with the same key are delivered to same partition number.
 This means that the keyspace of the input data must be distributed across
 partitions in the same way on both sides of the join.
 
-KSQL can't verify whether the partitioning strategy matches between
-the input data of a join, so you must ensure this. If you use the default
-partitioner-related settings across all applications, you don't need to worry
-about the partitioning strategy.
+KSQL can't verify whether the partitioning strategies are the same for
+the left and right inputs of a join, so you must ensure this.
 
 Ensure Data Co-partitioning
 ***************************

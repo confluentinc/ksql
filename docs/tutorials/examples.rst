@@ -330,7 +330,7 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ echo -e "SHOW TOPICS;\nexit;" | ksql
+        $ echo -e "SHOW TOPICS;\nexit" | ksql
 
 -   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
@@ -339,7 +339,7 @@ The following examples show common usage:
         $ ksql <<EOF
         > SHOW TOPICS;
         > SHOW STREAMS;
-        > exit;
+        > exit
         > EOF
 
 -   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
@@ -349,7 +349,7 @@ The following examples show common usage:
 
         $ ksql http://localhost:8088 <<< "SHOW TOPICS;
         SHOW STREAMS;
-        exit;"
+        exit"
 
 -   This example creates a stream from a predefined script (``application.sql``) using the ``RUN SCRIPT`` command and
     then runs a query by using the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) feature.
@@ -363,7 +363,7 @@ The following examples show common usage:
 
         $ ksql http://localhost:8088 <<EOF
         > RUN SCRIPT '/path/to/local/application.sql';
-        > exit;
+        > exit
         > EOF
 
     .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements

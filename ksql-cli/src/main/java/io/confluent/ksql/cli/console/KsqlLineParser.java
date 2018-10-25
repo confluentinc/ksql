@@ -17,26 +17,37 @@
 package io.confluent.ksql.cli.console;
 
 import java.util.Objects;
+import java.util.function.Function;
 import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 
 /**
- * Ensures complete lines are terminated with a semi-colon.
+ * Ensures complete lines are either terminated with a semi-colon or are cli commands.
  */
-final class TerminationParser implements Parser {
+final class KsqlLineParser implements Parser {
 
   private static final String TERMINATION_CHAR = ";";
 
   private final Parser delegate;
+  private final Function<String, Boolean> cliCmdPredicate;
 
-  TerminationParser(final Parser delegate) {
-    this.delegate = Objects.requireNonNull(delegate);
+  KsqlLineParser(
+      final Parser delegate,
+      final Function<String, Boolean> cliCmdPredicate
+  ) {
+    this.delegate = Objects.requireNonNull(delegate, "delegate");
+    this.cliCmdPredicate = Objects.requireNonNull(cliCmdPredicate, "cliCmdPredicate");
   }
 
   @Override
   public ParsedLine parse(final String line, final int cursor, final ParseContext context) {
     final ParsedLine parsed = delegate.parse(line, cursor, context);
+
+    if (cliCmdPredicate.apply(line)) {
+      return parsed;
+    }
+
     if (context == ParseContext.ACCEPT_LINE
         && !parsed.line().isEmpty()
         && !parsed.line().endsWith(TERMINATION_CHAR)) {

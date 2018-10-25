@@ -18,9 +18,11 @@ package io.confluent.ksql.cli.console;
 
 import static org.easymock.EasyMock.anyInt;
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.function.Function;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -35,7 +37,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
-public class TerminationParserTest {
+public class KsqlLineParserTest {
 
   private static final String UNTERMINATED_LINE = "an unterminated line";
   private static final String TERMINATED_LINE = "a terminated line;";
@@ -47,16 +49,21 @@ public class TerminationParserTest {
   private Parser delegate;
   @Mock
   private ParsedLine parsedLine;
-  private TerminationParser parser;
+  @Mock
+  private Function<String, Boolean> cliLinePredicate;
+  private KsqlLineParser parser;
 
   @Before
   public void setUp() {
-    parser = new TerminationParser(delegate);
+    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(false);
+    EasyMock.replay(cliLinePredicate);
+
+    parser = new KsqlLineParser(delegate, cliLinePredicate);
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullParam() {
-    new TerminationParser(null);
+    new KsqlLineParser(null, cliLinePredicate);
   }
 
   @Test
@@ -112,6 +119,19 @@ public class TerminationParserTest {
   }
 
   @Test
+  public void shouldReturnResultIfPredicateReturnsTrue() {
+    // Given:
+    givenPredicateWillReturnTrue();
+    givenDelegateWillReturn(UNTERMINATED_LINE);
+
+    // When:
+    final ParsedLine result = parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+
+    // Then:
+    assertThat(result, is(parsedLine));
+  }
+
+  @Test
   public void shouldThrowIfUnterminatedAcceptLine() {
     // Given:
     expectedException.expect(EOFError.class);
@@ -127,5 +147,11 @@ public class TerminationParserTest {
     EasyMock.expect(parsedLine.line()).andReturn(line).anyTimes();
     EasyMock.expect(delegate.parse(anyObject(), anyInt(), anyObject())).andReturn(parsedLine);
     EasyMock.replay(delegate, parsedLine);
+  }
+
+  private void givenPredicateWillReturnTrue() {
+    EasyMock.reset(cliLinePredicate);
+    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(true);
+    EasyMock.replay(cliLinePredicate);
   }
 }

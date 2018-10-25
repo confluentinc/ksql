@@ -17,7 +17,7 @@
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -74,7 +74,17 @@ public class Cli implements Closeable {
   private final KsqlRestClient restClient;
   private final Console terminal;
 
-  public Cli(
+  public static Cli build(
+      final Long streamedQueryRowLimit,
+      final Long streamedQueryTimeoutMs,
+      final OutputFormat outputFormat,
+      final KsqlRestClient restClient
+  ) {
+    final Console console = Console.build(outputFormat, restClient);
+    return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
+  }
+
+  Cli(
       final Long streamedQueryRowLimit,
       final Long streamedQueryTimeoutMs,
       final KsqlRestClient restClient,
@@ -123,7 +133,7 @@ public class Cli implements Closeable {
 
     final String helpReminderMessage =
         "Having trouble? "
-        + "Type 'help;' (case-insensitive) for a rundown of how things work!";
+        + "Type 'help' (case-insensitive) for a rundown of how things work!";
 
     final PrintWriter writer = terminal.writer();
 
@@ -149,40 +159,18 @@ public class Cli implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     queryStreamExecutorService.shutdownNow();
-    restClient.close();
     terminal.close();
   }
 
-  public void handleLine(final String line) throws Exception {
+  void handleLine(final String line) throws Exception {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    if (maybeHandleCliSpecificCommands(trimmedLine)) {
-      return;
-    }
-
     handleStatements(line);
-  }
-
-  private boolean maybeHandleCliSpecificCommands(final String line) {
-    final String[] split = line.split("\\s+", 2);
-    final String command = split[0]
-        .replace(';', ' ')
-        .trim()
-        .toLowerCase();
-
-    final CliSpecificCommand cliSpecificCommand = terminal.getCliSpecificCommands().get(command);
-    if (cliSpecificCommand == null) {
-      return false;
-    }
-
-    final String commandArg = split.length > 1 ? split[1] : "";
-    cliSpecificCommand.execute(commandArg);
-    return true;
   }
 
   /**
@@ -196,7 +184,7 @@ public class Cli implements Closeable {
   private String readLine() throws IOException {
     while (true) {
       try {
-        final String result = terminal.getLineReader().readLine();
+        final String result = terminal.readLine();
         // A 'dumb' terminal (the kind used at runtime if a 'system' terminal isn't available) will
         // return null on EOF and user interrupt, instead of throwing the more fine-grained
         // exceptions. This null-check helps ensure that, upon encountering EOF, even a 'dumb'

@@ -18,11 +18,13 @@ package io.confluent.ksql.cli.console;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import org.jline.reader.Expander;
+import java.util.Objects;
+import java.util.function.Function;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
@@ -44,6 +46,82 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   private final LineReader lineReader;
   private final String prompt;
+  private final Terminal terminal;
+
+  JLineReader(
+      final Terminal terminal,
+      final Path historyFilePath,
+      final Function<String, Boolean> cliLinePredicate
+  ) {
+    this.terminal = Objects.requireNonNull(terminal, "terminal");
+    this.lineReader = build(terminal, historyFilePath, cliLinePredicate);
+
+    this.history = new DefaultHistory(this.lineReader);
+
+    this.prompt = DEFAULT_PROMPT;
+  }
+
+  @Override
+  public Iterable<? extends History.Entry> getHistory() {
+    return lineReader.getHistory();
+  }
+
+  @Override
+  public String readLine() {
+    final String line = lineReader
+        .readLine(prompt)
+        .replace("\n", "");
+
+    addToHistory(line);
+    return line;
+  }
+
+  private void addToHistory(final String line) {
+    try {
+      history.add(line);
+      history.save();
+    } catch (final IOException e) {
+      LOGGER.error("Error saving history file", e);
+      terminal.writer()
+          .println("Error saving history file:" + ErrorMessageUtil.buildErrorMessage(e));
+    }
+  }
+
+  private static LineReader build(
+      final Terminal terminal,
+      final Path historyFilePath,
+      final Function<String, Boolean> cliLinePredicate
+  ) {
+    final DefaultParser parser = new DefaultParser();
+    parser.setEofOnEscapedNewLine(true);
+    parser.setEofOnUnclosedQuote(true);
+    parser.setQuoteChars(new char[]{'\''});
+    parser.setEscapeChars(new char[]{'\\'});
+
+    final LineReader lineReader = LineReaderBuilder.builder()
+        .appName("KSQL")
+        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
+        .option(Option.HISTORY_IGNORE_DUPS, true)
+        .option(Option.HISTORY_IGNORE_SPACE, false)
+        .option(Option.HISTORY_INCREMENTAL, false)
+        .option(Option.DISABLE_EVENT_EXPANSION, false)
+        .expander(new KsqlExpander())
+        .parser(new TrimmingParser(new KsqlLineParser(parser, cliLinePredicate)))
+        .terminal(terminal)
+        .build();
+
+    if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
+      lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
+      LOGGER.info("Command history saved at: " + historyFilePath);
+    } else {
+      terminal.writer().println(String.format(
+          "WARNING: Unable to create command history file '%s', command history will not be saved.",
+          historyFilePath
+      ));
+    }
+
+    return lineReader;
+  }
 
   /**
    * Override the default JLine 'expander' behavior so that history-referencing expressions such
@@ -81,58 +159,5 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     public String expandVar(final String word) {
       return shortcuts.getOrDefault(word.toLowerCase(), word);
     }
-  }
-
-  JLineReader(final Terminal terminal, final Path historyFilePath) {
-    // The combination of parser/expander here allow for multiple-line commands connected by '\\'
-    final DefaultParser parser = new DefaultParser();
-    parser.setEofOnEscapedNewLine(true);
-    parser.setEofOnUnclosedQuote(true);
-    parser.setQuoteChars(new char[]{'\''});
-    parser.setEscapeChars(new char[]{'\\'});
-
-    final Expander expander = new KsqlExpander();
-    // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
-    this.lineReader = LineReaderBuilder.builder()
-        .appName("KSQL")
-        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
-        .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
-        .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
-        .option(LineReader.Option.DISABLE_EVENT_EXPANSION, false)
-        .expander(expander)
-        .parser(new TrimmingParser(new TerminationParser(parser)))
-        .terminal(terminal)
-        .build();
-
-    if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
-      this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
-      LOGGER.info("Command history saved at: " + historyFilePath);
-    } else {
-      terminal.writer().println(String.format(
-          "WARNING: Unable to create command history file '%s', command history will not be saved.",
-          historyFilePath
-      ));
-    }
-
-    this.lineReader.unsetOpt(Option.HISTORY_INCREMENTAL);
-    this.history = new DefaultHistory(this.lineReader);
-
-    this.prompt = DEFAULT_PROMPT;
-  }
-
-  @Override
-  public Iterable<? extends History.Entry> getHistory() {
-    return lineReader.getHistory();
-  }
-
-  @Override
-  public String readLine() throws IOException {
-    final String line = lineReader
-        .readLine(prompt)
-        .replace("\n", "");
-
-    history.add(line);
-    history.save();
-    return line;
   }
 }

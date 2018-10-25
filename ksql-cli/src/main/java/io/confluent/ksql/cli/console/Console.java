@@ -67,6 +67,8 @@ import io.confluent.ksql.util.HandlerMap.Handler;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -74,6 +76,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.jline.terminal.Terminal.Signal;
@@ -81,7 +85,7 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class Console implements Closeable {
+public final class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
@@ -135,69 +139,120 @@ public abstract class Console implements Closeable {
     }
   }
 
-  private LineReader lineReader;
   private final ObjectMapper objectMapper;
   private final Map<String, CliSpecificCommand> cliSpecificCommands;
-
+  private final KsqlTerminal terminal;
+  private final RowCaptor rowCaptor;
   private OutputFormat outputFormat;
 
-  public Console(final OutputFormat outputFormat, final KsqlRestClient restClient) {
-    Objects.requireNonNull(
-        outputFormat,
-        "Must provide the terminal with a beginning output format"
-    );
-    Objects.requireNonNull(restClient, "Must provide the terminal with a REST client");
+  public interface RowCaptor {
+    void addRow(GenericRow row);
 
-    this.outputFormat = outputFormat;
+    void addRows(List<List<String>> fields);
+  }
 
-    this.cliSpecificCommands = Maps.newLinkedHashMap();
+  public static Console build(final OutputFormat outputFormat, final KsqlRestClient restClient) {
+    final AtomicReference<Console> console = new AtomicReference<>();
+    final Function<String, Boolean> isCliCommand = line -> {
+      final Console theConsole = console.get();
+      return theConsole != null && theConsole.isCliCommand(line);
+    };
 
-    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    final Path historyFilePath = Paths.get(System.getProperty(
+        "history-file",
+        System.getProperty("user.home")
+            + "/.ksql-history"
+    )).toAbsolutePath();
+
+    final KsqlTerminal terminal = new JLineTerminal(isCliCommand, historyFilePath);
 
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();
+
+    return new Console(outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+  }
+
+  public Console(
+      final OutputFormat outputFormat,
+      final Supplier<String> versionSuppler,
+      final KsqlTerminal terminal,
+      final RowCaptor rowCaptor
+  ) {
+    this.outputFormat = Objects.requireNonNull(outputFormat, "outputFormat");
+    this.terminal = Objects.requireNonNull(terminal, "terminal");
+    this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
+    this.cliSpecificCommands = Maps.newLinkedHashMap();
+    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+
     CliCommandRegisterUtil.registerDefaultCommands(this, versionSuppler);
   }
 
-  public abstract PrintWriter writer();
-
-  public abstract void flush();
-
-  public abstract int getWidth();
-
-  /* jline specific */
-
-  protected abstract LineReader buildLineReader();
-
-  public abstract void clearScreen();
-
-  public abstract void handle(Signal signal, SignalHandler signalHandler);
-
-  /* public */
-
-  public void addResult(final GenericRow row) {
-    // do nothing by default, test classes can use this method to obtain typed results
+  public PrintWriter writer() {
+    return terminal.writer();
   }
 
-  public void addResult(final List<String> columnHeaders, final List<List<String>> rowValues) {
-    // do nothing by default, test classes can use this method to obtain typed results
+  public void flush() {
+    terminal.flush();
+  }
+
+  public int getWidth() {
+    return terminal.getWidth();
+  }
+
+  public void clearScreen() {
+    terminal.clearScreen();
+  }
+
+  public void handle(final Signal signal, final SignalHandler signalHandler) {
+    terminal.handle(signal, signalHandler);
+  }
+
+  @Override
+  public void close() {
+    terminal.close();
+  }
+
+  public void addResult(final List<List<String>> rowValues) {
+    rowCaptor.addRows(rowValues);
   }
 
   public Map<String, CliSpecificCommand> getCliSpecificCommands() {
     return cliSpecificCommands;
   }
 
-  public LineReader getLineReader() {
-    if (lineReader == null) {
-      lineReader = buildLineReader();
+  public String readLine() {
+    String line;
+
+    do {
+      line = terminal.readLine();
+
+    } while (!maybeHandleCliSpecificCommands(line));
+
+    return line;
+  }
+
+  private boolean maybeHandleCliSpecificCommands(final String line) {
+    if (line == null) {
+      return false;
     }
-    return lineReader;
+
+    final String[] split = line.split("\\s+", 2);
+    final String command = split[0].toLowerCase();
+
+    final CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(command);
+    if (cliSpecificCommand == null) {
+      return false;
+    }
+
+    final String commandArg = split.length > 1 ? split[1] : "";
+    cliSpecificCommand.execute(commandArg);
+    return true;
   }
 
   public void printHistory() {
-    for (final org.jline.reader.History.Entry historyEntry : getLineReader().getHistory()) {
-      writer().printf("%4d: %s%n", historyEntry.index() + 1, historyEntry.line());
-    }
+    terminal.getHistory().forEach(historyEntry ->
+        writer().printf("%4d: %s%n", historyEntry.index, historyEntry.line)
+    );
   }
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) throws IOException {
@@ -278,10 +333,17 @@ public abstract class Console implements Closeable {
     return outputFormat;
   }
 
-  /* private */
+  private boolean isCliCommand(final String line) {
+    final String[] split = line.split("\\s+", 2);
+    final String command = split[0]
+        .trim()
+        .toLowerCase();
+
+    return cliSpecificCommands.containsKey(command);
+  }
 
   private void printAsTable(final GenericRow row) {
-    addResult(row);
+    rowCaptor.addRow(row);
     writer().println(
         String.join(
             " | ",
@@ -608,5 +670,15 @@ public abstract class Console implements Closeable {
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
     writer().println();
     flush();
+  }
+
+  public static class NoOpRowCaptor implements RowCaptor {
+    @Override
+    public void addRow(final GenericRow row) {
+    }
+
+    @Override
+    public void addRows(final List<List<String>> fields) {
+    }
   }
 }

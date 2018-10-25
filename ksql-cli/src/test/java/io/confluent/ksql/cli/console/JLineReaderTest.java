@@ -1,5 +1,6 @@
 package io.confluent.ksql.cli.console;
 
+import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -14,17 +15,34 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import org.easymock.EasyMock;
+import org.easymock.EasyMockRunner;
+import org.easymock.Mock;
+import org.easymock.MockType;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
 
+@RunWith(EasyMockRunner.class)
 public class JLineReaderTest {
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Mock(MockType.NICE)
+  private Function<String, Boolean> cliLinePredicate;
+
+  @Before
+  public void setUp() {
+    EasyMock.expect(cliLinePredicate.apply(anyString())).andReturn(false).anyTimes();
+    EasyMock.replay(cliLinePredicate);
+  }
 
   @Test
   public void shouldSaveCommandsWithLeadingSpacesToHistory() throws IOException {
@@ -207,6 +225,6 @@ public class JLineReaderTest {
     final Terminal terminal = new DumbTerminal(inputStream, outputStream);
     File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
     final Path historyFilePath = Paths.get(tempHistoryFile.getAbsolutePath());
-    return new JLineReader(terminal, historyFilePath);
+    return new JLineReader(terminal, historyFilePath, cliLinePredicate);
   }
 }

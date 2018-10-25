@@ -377,7 +377,7 @@ Things to try
     * Understand how the ``clickstream-schema.sql`` file is structured. We use a **DataGen.KafkaTopic.clickstream -> Stream -> Table** (for window &
       analytics with group-by) -> ElasticSearch/Connect topic
     * Run the KSQL CLI ``LIST TOPICS;`` command to see where data is persisted
-    * Run the KSQL CLI ``history;`` command
+    * Run the KSQL CLI ``history`` command
 
 Troubleshooting
 ---------------

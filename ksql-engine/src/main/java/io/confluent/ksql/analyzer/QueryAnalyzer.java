@@ -98,7 +98,7 @@ public class QueryAnalyzer {
   ) {
     final Expression exp = analysis.getHavingExpression();
 
-    processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+    aggregateAnalyzer.process(exp, false);
 
     aggregateAnalysis.setHavingExpression(
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
@@ -109,7 +109,7 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer
   ) {
     for (final Expression exp : analysis.getGroupByExpressions()) {
-      aggregateAnalyzer.process(exp, new AnalysisContext());
+      aggregateAnalyzer.process(exp, true);
     }
   }
 
@@ -120,22 +120,11 @@ public class QueryAnalyzer {
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
     for (final Expression exp : analysis.getSelectExpressions()) {
-      processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+      aggregateAnalyzer.process(exp, false);
 
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
     }
-  }
-
-  private static void processExpression(
-      final Expression expression,
-      final AggregateAnalysis aggregateAnalysis,
-      final AggregateAnalyzer aggregateAnalyzer) {
-    aggregateAnalyzer.process(expression, new AnalysisContext());
-    if (!aggregateAnalyzer.isHasAggregateFunction()) {
-      aggregateAnalysis.addNonAggResultColumns(expression);
-    }
-    aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
   private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {

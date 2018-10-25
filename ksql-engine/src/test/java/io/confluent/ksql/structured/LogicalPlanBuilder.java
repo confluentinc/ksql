@@ -51,13 +51,10 @@ public class LogicalPlanBuilder {
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
     for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(expression);
-      }
+      aggregateAnalyzer.process(expression, false);
+
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-      aggregateAnalyzer.setHasAggregateFunction(false);
     }
     // Build a logical plan
     return new LogicalPlanner(analysis, aggregateAnalysis, metaStore).buildPlan();

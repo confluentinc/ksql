@@ -48,23 +48,16 @@ public class AggregateAnalyzerTest {
     final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(
         functionRegistry);
     for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(expression);
-      }
+      aggregateAnalyzer.process(expression, false);
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-      aggregateAnalyzer.setHasAggregateFunction(false);
     }
 
     if (analysis.getHavingExpression() != null) {
-      aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
-      }
-      aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-                                                                               analysis.getHavingExpression()));
-      aggregateAnalyzer.setHasAggregateFunction(false);
+      aggregateAnalyzer.process(analysis.getHavingExpression(), false);
+      aggregateAnalysis.setHavingExpression(
+          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
+              analysis.getHavingExpression()));
     }
 
     return aggregateAnalysis;

@@ -81,7 +81,7 @@ public class SqlPredicateTest {
     final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
                                                                 analysis, functionRegistry);
     for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
+      aggregateAnalyzer.process(expression, false);
     }
     // Build a logical plan
     return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();

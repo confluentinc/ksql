@@ -459,6 +459,8 @@ public class AggregateNode extends PlanNode {
         return new QualifiedNameReference(QualifiedName.of(name));
       }
 
+      // Todo(ac): Can this be thrown? When? Is the message right?
+      // https://github.com/confluentinc/ksql/pull/2076#discussion_r228455165
       if (exp instanceof DereferenceExpression) {
         throw new KsqlException("GROUP BY expression must be part of SELECT: " + exp.toString());
       }
@@ -468,3 +470,5 @@ public class AggregateNode extends PlanNode {
   }
 
 }
+
+// Todo(aC): Add group by where the 'having' is on a field not in the aggregate.

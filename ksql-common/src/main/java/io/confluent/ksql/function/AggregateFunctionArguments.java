@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class AggregateFunctionArguments {
 
@@ -34,6 +35,15 @@ public class AggregateFunctionArguments {
     Preconditions.checkArgument(args != null && !args.isEmpty(), "args can't be null or empty");
     this.udafIndex = expressionNames.get(args.get(0));
     this.args = ImmutableList.copyOf(args);
+  }
+
+  public AggregateFunctionArguments(final int index,  final List<String> args) {
+    this.udafIndex = index;
+    this.args = ImmutableList.copyOf(Objects.requireNonNull(args, "args"));
+
+    if (index < 0) {
+      throw new IllegalArgumentException("index is negative: " + index);
+    }
   }
 
   public int udafIndex() {

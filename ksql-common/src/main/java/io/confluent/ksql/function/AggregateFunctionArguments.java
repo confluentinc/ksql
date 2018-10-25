@@ -16,26 +16,15 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class AggregateFunctionArguments {
 
   private final int udafIndex;
   private final List<String> args;
-
-  public AggregateFunctionArguments(final Map<String, Integer> expressionNames,
-                                    final List<String> args) {
-    Preconditions.checkArgument(expressionNames != null && !expressionNames.isEmpty(),
-        "expressionNames can't be null or empty");
-    Preconditions.checkArgument(args != null && !args.isEmpty(), "args can't be null or empty");
-    this.udafIndex = expressionNames.get(args.get(0));
-    this.args = ImmutableList.copyOf(args);
-  }
 
   public AggregateFunctionArguments(final int index,  final List<String> args) {
     this.udafIndex = index;

@@ -6,7 +6,8 @@ Partition Data to Enable Joins
 When you use KSQL to join streaming data, you must ensure that your data
 streams and tables are *co-partitioned*. Joins are performed based on record
 keys, and the keys for both sides of a join must have the same number of
-partitions and the same partitioning strategy.
+partitions and the same partitioning strategy. For more information on joins,
+see :ref:`join-streams-and-tables`.
 
 When your input keys are co-partitioned, records with the same key, from both
 sides of the join, are delivered to the same stream task during processing.

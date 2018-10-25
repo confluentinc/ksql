@@ -153,7 +153,7 @@ public class LogicalPlanner {
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
         aggregateAnalysis.getFunctionList(),
-        aggregateAnalysis.getRequiredColumnsList(),
+        aggregateAnalysis.getRequiredColumns(),
         aggregateAnalysis.getFinalSelectExpressions(),
         aggregateAnalysis.getHavingExpression()
     );

@@ -166,6 +166,26 @@ public class AggregateNodeTest {
     assertThat(stream.hasWindowedKey(), is(true));
   }
 
+  @Test
+  public void shouldGroupByFunction() {
+    // Given:
+    final SchemaKStream stream = buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
+        + "GROUP BY UCASE(col1);");
+
+    // Then:
+    assertThat(stream.getKeyField().name(), is("UCASE(KSQL_INTERNAL_COL_1)"));
+  }
+
+  @Test
+  public void shouldGroupByArithmetic() {
+    // Given:
+    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "GROUP BY col0 + 10;");
+
+    // Then:
+    assertThat(stream.getKeyField().name(), is("(KSQL_INTERNAL_COL_0 + 10)"));
+  }
+
   private SchemaKStream buildQuery(final String queryString) {
     return buildAggregateNode(queryString)
         .buildStream(builder,

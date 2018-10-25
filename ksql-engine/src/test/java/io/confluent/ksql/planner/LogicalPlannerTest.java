@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -56,8 +55,8 @@ public class LogicalPlannerTest {
   private PlanNode buildLogicalPlan(final String queryStr) {
     final Analysis analysis = analyzeQuery(queryStr, metaStore);
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
-                                                                functionRegistry);
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
+        analysis.getDefaultArgument(), functionRegistry);
     for (final Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, false);
     }

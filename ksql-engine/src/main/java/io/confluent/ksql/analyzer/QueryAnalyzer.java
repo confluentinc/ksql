@@ -18,19 +18,17 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
@@ -54,8 +52,9 @@ public class QueryAnalyzer {
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
+    final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
+    final AggregateAnalyzer aggregateAnalyzer =
+        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, functionRegistry);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
 
@@ -76,7 +75,6 @@ public class QueryAnalyzer {
         aggregateAnalyzer
     );
 
-    // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       processHavingExpression(
           analysis,
@@ -128,21 +126,18 @@ public class QueryAnalyzer {
   }
 
   private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
-    final Optional<GroupBy> groupBy = ((QuerySpecification) query.getQueryBody()).getGroupBy();
-    if (!groupBy.isPresent()) {
+    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
 
-    final Set<Expression> groups = groupBy.get()
-        .getGroupingElements()
-        .stream()
-        .flatMap(group -> group.enumerateGroupingSets().stream())
-        .flatMap(Set::stream)
-        .collect(Collectors.toSet());
+    final Set<DereferenceExpression> groupByColumns = aggregateAnalysis
+        .getGroupByColumns();
 
-    final List<Expression> selectOnly = aggregateAnalysis.getNonAggResultColumns().stream()
-        .filter(exp -> !groups.contains(exp))
-        .collect(Collectors.toList());
+    final Set<DereferenceExpression> selectColumns = aggregateAnalysis
+        .getNonAggregateSelectColumns();
+
+    final Set<DereferenceExpression> selectOnly = new HashSet<>(selectColumns);
+    selectOnly.removeAll(groupByColumns);
 
     if (!selectOnly.isEmpty()) {
       throw new KsqlException(

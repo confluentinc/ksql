@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,18 +16,20 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 public class AggregateAnalysis {
 
-  private final Map<String, Expression> requiredColumnsMap = new LinkedHashMap<>();
-  private final List<Expression> nonAggResultColumns = new ArrayList<>();
+  private final Set<DereferenceExpression> requiredColumns = new HashSet<>();
+  private final Set<DereferenceExpression> groupByColumns = new HashSet<>();
+  private final Set<DereferenceExpression> nonAggSelectColumns = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> functionList = new ArrayList<>();
@@ -38,20 +40,37 @@ public class AggregateAnalysis {
     return Collections.unmodifiableList(aggregateFunctionArguments);
   }
 
-  public List<Expression> getRequiredColumnsList() {
-    return new ArrayList<>(requiredColumnsMap.values());
+  /**
+   * Get the full set of columns from the source schema that are required. This includes columns
+   * used in SELECT, GROUP BY and HAVING clauses.
+   *
+   * @return the full set of columns from the source schema that are required.
+   */
+  public Set<DereferenceExpression> getRequiredColumns() {
+    return Collections.unmodifiableSet(requiredColumns);
   }
 
-  public Map<String, Expression> getRequiredColumnsMap() {
-    return Collections.unmodifiableMap(requiredColumnsMap);
+  /**
+   * Get the set of columns from the source schema that are used in the GROUP BY clause.
+   *
+   * @return the set of columns in the GROUP BY clause.
+   */
+  Set<DereferenceExpression> getGroupByColumns() {
+    return Collections.unmodifiableSet(groupByColumns);
+  }
+
+  /**
+   * Get the set of columns from the source schema that are using in the SELECT clause outside
+   * of aggregate functions.
+   *
+   * @return the set of non-aggregate columns in the SELECT clause.
+   */
+  Set<DereferenceExpression> getNonAggregateSelectColumns() {
+    return Collections.unmodifiableSet(nonAggSelectColumns);
   }
 
   public List<FunctionCall> getFunctionList() {
     return Collections.unmodifiableList(functionList);
-  }
-
-  public List<Expression> getNonAggResultColumns() {
-    return Collections.unmodifiableList(nonAggResultColumns);
   }
 
   public List<Expression> getFinalSelectExpressions() {
@@ -62,30 +81,28 @@ public class AggregateAnalysis {
     return havingExpression;
   }
 
-  public void setHavingExpression(final Expression havingExpression) {
+  void setHavingExpression(final Expression havingExpression) {
     this.havingExpression = havingExpression;
   }
 
-  public void addAggregateFunctionArgument(final Expression argument) {
+  void addAggregateFunctionArgument(final Expression argument) {
     aggregateFunctionArguments.add(argument);
   }
 
-  public void addFunction(final FunctionCall functionCall) {
+  void addFunction(final FunctionCall functionCall) {
     functionList.add(functionCall);
   }
 
-  public boolean hasRequiredColumn(final String column) {
-    return requiredColumnsMap.containsKey(column);
+  void addGroupByColumn(final String name, final DereferenceExpression node) {
+    groupByColumns.add(node);
   }
 
-  public void addRequiredColumn(final String name, final Expression node) {
-    requiredColumnsMap.put(name, node);
+  void addNonAggregateSelectColumn(final String name, final DereferenceExpression node) {
+    nonAggSelectColumns.add(node);
   }
 
-  public void addNonAggResultColumns(final Expression expression) {
-    if (!nonAggResultColumns.contains(expression)) {
-      nonAggResultColumns.add(expression);
-    }
+  void addRequiredColumn(final String name, final DereferenceExpression node) {
+    requiredColumns.add(node);
   }
 
   public void addFinalSelectExpression(final Expression expression) {

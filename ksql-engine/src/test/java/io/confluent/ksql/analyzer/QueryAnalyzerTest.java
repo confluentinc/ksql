@@ -17,12 +17,14 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpression;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
 
@@ -47,13 +49,12 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("unchecked")
 public class QueryAnalyzerTest {
 
   @Rule
@@ -62,7 +63,7 @@ public class QueryAnalyzerTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlParser ksqlParser = new KsqlParser();
   private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry(),
-                                                                 new KsqlConfig(Collections.emptyMap()));
+      new KsqlConfig(Collections.emptyMap()));
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
@@ -116,20 +117,17 @@ public class QueryAnalyzerTest {
     // Then:
     final DereferenceExpression itemId = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ITEMID");
     final DereferenceExpression orderUnits = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ORDERUNITS");
-    final Map<String, Expression> expectedRequiredColumns = new HashMap<>();
-    expectedRequiredColumns.put("ORDERS.ITEMID", itemId);
-    expectedRequiredColumns.put("ORDERS.ORDERUNITS", orderUnits);
-    assertThat(aggregateAnalysis.getNonAggResultColumns(), equalTo(Collections.singletonList(itemId)));
+    assertThat(aggregateAnalysis.getNonAggregateSelectColumns(), contains(itemId));
     assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(itemId, new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_0")))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(orderUnits)));
-    assertThat(aggregateAnalysis.getRequiredColumnsMap(), equalTo(expectedRequiredColumns));
+    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(itemId, orderUnits));
   }
 
   @Test
-  public void shouldThrowIfAggregateAnalysisDoesntHaveGroupBy() {
+  public void shouldThrowIfAggregateAnalysisDoesNotHaveGroupBy() {
     // Given:
     final Query query = givenQuery(
-        "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
+        "select itemid, sum(orderunits) from orders window TUMBLING (size 30 second) " +
             "where orderunits > 5;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
@@ -160,6 +158,29 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByExpression() {
     // Given:
     final Query query = givenQuery(
+        "select itemid, sum(orderunits) from orders group by itemid;");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    // When:
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then:
+    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(
+        dereferenceExpression("ORDERS.ITEMID"),
+        dereferenceExpression("ORDERS.ORDERUNITS")));
+
+    assertThat(aggregateAnalysis.getNonAggregateSelectColumns(), contains(
+        dereferenceExpression("ORDERS.ITEMID")));
+
+    assertThat(aggregateAnalysis.getGroupByColumns(), contains(
+        dereferenceExpression("ORDERS.ITEMID")));
+  }
+
+  @Test
+  public void shouldProcessGroupByWithNoNonAggSelects() {
+    // Given:
+    final Query query = givenQuery(
         "select sum(orderunits) from orders group by itemid;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
@@ -168,9 +189,70 @@ public class QueryAnalyzerTest {
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
-    assertThat(aggregateAnalysis.getRequiredColumnsList(),
-        hasItem(dereferenceExpression("ORDERS", "ORDERUNITS")));
-    assertThat(aggregateAnalysis.getNonAggResultColumns(), is(empty()));
+    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(
+        dereferenceExpression("ORDERS.ITEMID"),
+        dereferenceExpression("ORDERS.ORDERUNITS")));
+
+    assertThat(aggregateAnalysis.getNonAggregateSelectColumns(), is(empty()));
+
+    assertThat(aggregateAnalysis.getGroupByColumns(), contains(
+        dereferenceExpression("ORDERS.ITEMID")));
+  }
+
+  @Test
+  public void shouldProcessGroupByArithmetic() {
+    // Given:
+    final Query query = givenQuery(
+        "select sum(orderunits) from orders group by itemid + 1;");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    // When:
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then:
+    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(
+        dereferenceExpression("ORDERS.ITEMID"),
+        dereferenceExpression("ORDERS.ORDERUNITS")));
+
+    assertThat(aggregateAnalysis.getNonAggregateSelectColumns(), is(empty()));
+
+    assertThat(aggregateAnalysis.getGroupByColumns(), contains(
+        dereferenceExpression("ORDERS.ITEMID")));
+  }
+
+  @Test
+  public void shouldProcessGroupByFunction() {
+    // Given:
+    final Query query = givenQuery(
+        "select sum(orderunits) from orders group by ucase(itemid);");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    // When:
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then:
+    assertThat(aggregateAnalysis.getGroupByColumns(), contains(
+        dereferenceExpression("ORDERS.ITEMID")));
+  }
+
+  @Test
+  public void shouldProcessGroupByConstant() {
+    // Given:
+    final Query query = givenQuery(
+        "select sum(orderunits) from orders group by 1;");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    // When:
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then:
+    assertThat(aggregateAnalysis.getRequiredColumns(), contains(
+        dereferenceExpression("ORDERS.ORDERUNITS")));
+
+    assertThat(aggregateAnalysis.getGroupByColumns(), is(empty()));
   }
 
   @Test
@@ -226,9 +308,5 @@ public class QueryAnalyzerTest {
   private Query givenQuery(final String sql) {
     final List<PreparedStatement> statements = ksqlParser.buildAst(sql, metaStore);
     return (Query) statements.get(0).getStatement();
-  }
-
-  private static Expression dereferenceExpression(final String table, final String field) {
-    return new DereferenceExpression(new QualifiedNameReference(QualifiedName.of(table)), field);
   }
 }

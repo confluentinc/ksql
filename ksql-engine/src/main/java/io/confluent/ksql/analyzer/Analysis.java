@@ -17,10 +17,14 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,6 +154,15 @@ public class Analysis {
 
   void addDataSource(final Pair<StructuredDataSource, String> fromDataSource) {
     fromDataSources.add(fromDataSource);
+  }
+
+  public DereferenceExpression getDefaultArgument() {
+    final String base = join == null
+        ? fromDataSources.get(0).getRight()
+        : join.getLeftAlias();
+
+    final Expression baseExpression = new QualifiedNameReference(QualifiedName.of(base));
+    return new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
   }
 }
 

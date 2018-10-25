@@ -26,8 +26,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -37,13 +39,13 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -71,6 +73,12 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class SchemaKStreamTest {
 
+  private static final Expression COL0 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
+
+  private static final Expression COL1 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
+
   private final MockSchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private SchemaKStream initialSchemaKStream;
 
@@ -91,7 +99,7 @@ public class SchemaKStreamTest {
   private Serde<GenericRow> leftSerde;
   private Serde<GenericRow> rightSerde;
   private Schema joinSchema;
-
+  private Serde<GenericRow> rowSerde;
 
   @Before
   public void init() {
@@ -153,14 +161,10 @@ public class SchemaKStreamTest {
 
   @Test
   public void testSelectSchemaKStream() {
-    final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -182,13 +186,9 @@ public class SchemaKStreamTest {
 
   @Test
   public void shouldUpdateKeyIfRenamed() {
-    final String selectQuery = "SELECT col0 as NEWKEY, col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0 as NEWKEY, col2, col3 FROM test1;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -199,21 +199,9 @@ public class SchemaKStreamTest {
 
   @Test
   public void shouldPreserveKeyOnSelectStar() {
-    final String selectQuery = "SELECT * FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test1;");
+
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-
-    initialSchemaKStream = new SchemaKStream(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kStream,
-        ksqlStream.getKeyField(),
-        new ArrayList<>(),
-        Serdes.String(),
-        SchemaKStream.Type.SOURCE,
-        ksqlConfig,
-        functionRegistry,
-        new MockSchemaRegistryClient());
-
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
     assertThat(
@@ -223,13 +211,8 @@ public class SchemaKStreamTest {
 
   @Test
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
-    final String selectQuery = "SELECT col2, col0, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col0, col3 FROM test1;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -240,13 +223,8 @@ public class SchemaKStreamTest {
 
   @Test
   public void shouldDropKeyIfNotSelected() {
-    final String selectQuery = "SELECT col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col3 FROM test1;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -255,13 +233,9 @@ public class SchemaKStreamTest {
 
   @Test
   public void testSelectWithExpression() {
-    final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectSelectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -280,14 +254,9 @@ public class SchemaKStreamTest {
 
   @Test
   public void testFilter() {
-    final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
-
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
@@ -310,13 +279,7 @@ public class SchemaKStreamTest {
 
   @Test
   public void testSelectKey() {
-    final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
         .getSchema().fields()
         .get(3), true);
@@ -325,46 +288,46 @@ public class SchemaKStreamTest {
 
   @Test
   public void testGroupByKey() {
-    final String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+    // Given:
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
 
-    final Expression keyExpression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
-    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, () -> null);
-    final List<Expression> groupByExpressions = Arrays.asList(keyExpression);
+    // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        rowSerde, groupByExpressions);
+        rowSerde, Collections.singletonList(COL0));
 
-    Assert.assertEquals(groupedSchemaKStream.getKeyField().name(), "COL0");
+    // Then:
+    assertThat(groupedSchemaKStream.getKeyField().name(), is("COL0"));
+    assertThat(groupedSchemaKStream.getKeyField().index(), is(2));
   }
 
   @Test
   public void testGroupByMultipleColumns() {
-    final String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+    // Given:
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
 
-    final Expression col0Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
-    final Expression col1Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
-    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, () -> null);
-    final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
+    // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        rowSerde, groupByExpressions);
+        rowSerde, Arrays.asList(COL1, COL0));
 
-    Assert.assertEquals(groupedSchemaKStream.getKeyField().name(), "TEST1.COL1|+|TEST1.COL0");
+    // Then:
+    assertThat(groupedSchemaKStream.getKeyField().name(), is("TEST1.COL1|+|TEST1.COL0"));
+    assertThat(groupedSchemaKStream.getKeyField().index(), is(-1));
+  }
+
+  @Test
+  public void testGroupByMoreComplexExpression() {
+    // Given:
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
+
+    final Expression groupBy = new FunctionCall(QualifiedName.of("UCASE"), ImmutableList.of(COL1));
+
+    // When:
+    final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
+        rowSerde, ImmutableList.of(groupBy));
+
+    // Then:
+    assertThat(groupedSchemaKStream.getKeyField().name(), is("UCASE(TEST1.COL1)"));
+    assertThat(groupedSchemaKStream.getKeyField().index(), is(-1));
   }
 
   @SuppressWarnings("unchecked")
@@ -517,4 +480,14 @@ public class SchemaKStreamTest {
     return schemaBuilder.build();
   }
 
+  private PlanNode givenInitialKStreamOf(final String selectQuery) {
+    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry, schemaRegistryClient);
+    rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
+        initialSchemaKStream.getSchema(), null, false, () -> null);
+    return logicalPlan;
+  }
 }

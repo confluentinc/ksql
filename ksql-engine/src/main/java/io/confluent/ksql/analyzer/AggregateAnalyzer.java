@@ -22,80 +22,68 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.util.SchemaUtil;
+import java.util.Objects;
 
 public class AggregateAnalyzer {
 
   private final AggregateAnalysis aggregateAnalysis;
-  private final Analysis analysis;
+  private final DereferenceExpression defaultArgument;
   private final FunctionRegistry functionRegistry;
 
-  public AggregateAnalyzer(final AggregateAnalysis aggregateAnalysis,
-                           final Analysis analysis,
-                           final FunctionRegistry functionRegistry) {
-    this.aggregateAnalysis = aggregateAnalysis;
-    this.analysis = analysis;
-    this.functionRegistry = functionRegistry;
+  public AggregateAnalyzer(
+      final AggregateAnalysis aggregateAnalysis,
+      final DereferenceExpression defaultArgument,
+      final FunctionRegistry functionRegistry
+  ) {
+    this.aggregateAnalysis = Objects.requireNonNull(aggregateAnalysis, "aggregateAnalysis");
+    this.defaultArgument = Objects.requireNonNull(defaultArgument, "defaultArgument");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   public void process(final Expression expression, final boolean isGroupByExpression) {
-    final AggregateVisitor visitor = new AggregateVisitor();
+    final AggregateVisitor visitor = new AggregateVisitor(isGroupByExpression);
 
     visitor.process(expression, new AnalysisContext());
-
-    if (isGroupByExpression) {
-      // Todo(ac): capture group by...? only if DereferenceExpression
-    }
-
-    if (!isGroupByExpression && !visitor.hasAggregateFunction) {
-      aggregateAnalysis.addNonAggResultColumns(expression);
-    }
   }
 
-  private class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
+  private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
+    private final boolean isGroupByExpression;
     private boolean hasAggregateFunction = false;
+
+    private AggregateVisitor(final boolean isGroupByExpression) {
+      this.isGroupByExpression = isGroupByExpression;
+    }
 
     @Override
     protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
       final String functionName = node.getName().getSuffix();
       if (functionRegistry.isAggregate(functionName)) {
         if (node.getArguments().isEmpty()) {
-          final Expression argExpression;
-          if (analysis.getJoin() != null) {
-            final Expression baseExpression = new QualifiedNameReference(
-                QualifiedName.of(analysis.getJoin().getLeftAlias()));
-            argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
-          } else {
-            final Expression baseExpression = new QualifiedNameReference(
-                QualifiedName.of(analysis.getFromDataSources().get(0).getRight()));
-            argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
-          }
-          aggregateAnalysis.addAggregateFunctionArgument(argExpression);
-          node.getArguments().add(argExpression);
-        } else {
-          node.getArguments().forEach(argExpression ->
-              aggregateAnalysis.addAggregateFunctionArgument(argExpression));
+          node.getArguments().add(defaultArgument);
         }
+
+        node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
         aggregateAnalysis.addFunction(node);
         hasAggregateFunction = true;
       }
 
-      for (final Expression argExp: node.getArguments()) {
-        process(argExp, context);
-      }
-      return null;
+      return super.visitFunctionCall(node, context);
     }
 
     @Override
-    protected Node visitDereferenceExpression(final DereferenceExpression node,
-        final AnalysisContext context) {
+    protected Node visitDereferenceExpression(
+        final DereferenceExpression node,
+        final AnalysisContext context
+    ) {
       final String name = node.toString();
-      if (!aggregateAnalysis.hasRequiredColumn(name)) {
-        aggregateAnalysis.addRequiredColumn(name, node);
+      if (isGroupByExpression) {
+        aggregateAnalysis.addGroupByColumn(name, node);
+      } else if (!hasAggregateFunction) {
+        aggregateAnalysis.addNonAggregateSelectColumn(name, node);
       }
+
+      aggregateAnalysis.addRequiredColumn(name, node);
       return null;
     }
   }

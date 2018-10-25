@@ -19,6 +19,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.AggregateFunctionArguments;
@@ -27,6 +28,8 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionRewriter;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -45,10 +48,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
@@ -68,7 +74,7 @@ public class AggregateNode extends PlanNode {
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
-  private final List<Expression> requiredColumnList;
+  private final Set<DereferenceExpression> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
@@ -81,7 +87,7 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("window") final WindowExpression windowExpression,
       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
       @JsonProperty("functionList") final List<FunctionCall> functionList,
-      @JsonProperty("requiredColumnList") final List<Expression> requiredColumnList,
+      @JsonProperty("requiredColumnList") final Set<DereferenceExpression> requiredColumns,
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
@@ -93,7 +99,8 @@ public class AggregateNode extends PlanNode {
     this.windowExpression = windowExpression;
     this.aggregateFunctionArguments = aggregateFunctionArguments;
     this.functionList = functionList;
-    this.requiredColumnList = requiredColumnList;
+    this.requiredColumns =
+        ImmutableSet.copyOf(Objects.requireNonNull(requiredColumns, "requiredColumns"));
     this.finalSelectExpressions = finalSelectExpressions;
     this.havingExpressions = havingExpressions;
   }
@@ -133,8 +140,8 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public List<Expression> getRequiredColumnList() {
-    return requiredColumnList;
+  public Set<DereferenceExpression> getRequiredColumnList() {
+    return requiredColumns;
   }
 
   private List<SelectExpression> getFinalSelectExpressions() {
@@ -251,8 +258,8 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClientFactory.get()
     );
 
-    if (getHavingExpressions() != null) {
-      result = result.filter(getHavingExpressions());
+    if (havingExpressions != null) {
+      result = result.filter(internalSchema.resolveToInternal(havingExpressions));
     }
 
     return result.select(internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()));
@@ -367,15 +374,15 @@ public class AggregateNode extends PlanNode {
     private final Map<String, String> expressionToInternalColumnNameMap = new HashMap<>();
 
     InternalSchema(
-        final List<Expression> requiredColumnList,
+        final Set<DereferenceExpression> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
-      collectAggregateArgExpressions(requiredColumnList);
+      collectAggregateArgExpressions(requiredColumns);
       collectAggregateArgExpressions(aggregateFunctionArguments);
     }
 
 
     private void collectAggregateArgExpressions(
-        final List<Expression> expressions
+        final Collection<? extends Expression> expressions
     ) {
       expressions.stream()
           .filter(e -> !internalNameToIndexMap.containsKey(e.toString()))
@@ -446,29 +453,29 @@ public class AggregateNode extends PlanNode {
     }
 
     private Expression resolveToInternal(final Expression exp) {
-      if (exp instanceof FunctionCall) {
-        final FunctionCall funcCall = (FunctionCall) exp;
-        final List<Expression> internalArgs = getInternalExpressionList(funcCall.getArguments());
-        return new FunctionCall(
-            funcCall.getLocation(), funcCall.getName(), funcCall.getWindow(), funcCall.isDistinct(),
-            internalArgs);
-      }
-
       final String name = expressionToInternalColumnNameMap.get(exp.toString());
       if (name != null) {
         return new QualifiedNameReference(QualifiedName.of(name));
       }
 
-      // Todo(ac): Can this be thrown? When? Is the message right?
-      // https://github.com/confluentinc/ksql/pull/2076#discussion_r228455165
-      if (exp instanceof DereferenceExpression) {
-        throw new KsqlException("GROUP BY expression must be part of SELECT: " + exp.toString());
-      }
+      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
+    }
 
-      return exp;
+    public class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
+
+      @Override
+      public Expression rewriteDereferenceExpression(
+          final DereferenceExpression node,
+          final Void context,
+          final ExpressionTreeRewriter<Void> treeRewriter
+      ) {
+        final String name = expressionToInternalColumnNameMap.get(node.toString());
+        if (name != null) {
+          return new QualifiedNameReference(QualifiedName.of(name));
+        }
+
+        throw new KsqlException("Unknown source column: " + node.toString());
+      }
     }
   }
-
 }
-
-// Todo(aC): Add group by where the 'having' is on a field not in the aggregate.

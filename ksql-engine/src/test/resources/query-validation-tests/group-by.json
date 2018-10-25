@@ -25,6 +25,27 @@
       ]
     },
     {
+      "name": "group by fields",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "3,a", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a|+|3", "value": "3,a,1", "timestamp": 0}
+      ]
+    },
+    {
       "name": "group by field with re-key",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

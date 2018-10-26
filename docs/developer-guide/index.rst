@@ -11,6 +11,7 @@ These topics show how to develop KSQL applications for |cp|.
 
     ../installation/cli-config
     join-streams-and-tables
+    partition-data
     syntax-reference
     api
     udf

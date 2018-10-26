@@ -24,7 +24,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +43,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,7 +57,6 @@ public class WSQueryEndpointTest {
   private Session session;
   private WSQueryEndpoint wsQueryEndpoint;
   private List mocks;
-  private KsqlVersionCheckerAgent ksqlVersionCheckerAgent;
   @Before
   public void setUp() {
     mocks = new LinkedList();
@@ -64,10 +64,9 @@ public class WSQueryEndpointTest {
     ksqlEngine = addMock(KsqlEngine.class);
     statementParser = addMock(StatementParser.class);
     exec = addMock(ListeningScheduledExecutorService.class);
-    ksqlVersionCheckerAgent = addMock(KsqlVersionCheckerAgent.class);
     objectMapper = new ObjectMapper();
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, ksqlVersionCheckerAgent);
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, ()->{});
     session = addMock(Session.class);
   }
 
@@ -102,8 +101,6 @@ public class WSQueryEndpointTest {
     expect(session.getId()).andReturn("session-id").anyTimes();
     session.close(capture(captured));
     expectLastCall().once();
-    ksqlVersionCheckerAgent.updateLastRequestTime();
-    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);
@@ -125,30 +122,11 @@ public class WSQueryEndpointTest {
     expect(session.getId()).andReturn("session-id").anyTimes();
     session.close(capture(captured));
     expectLastCall().once();
-    ksqlVersionCheckerAgent.updateLastRequestTime();
-    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);
 
     verifyVersionCheckFailure(expectedCloseReason, captured);
-  }
-
-  @Test
-  public void shouldUpdateLastRequestTime() throws IOException {
-    final Map<String, List<String>> parameters =
-        Collections.singletonMap(
-            Versions.KSQL_V1_WS_PARAM, Arrays.asList(
-                Versions.KSQL_V1_WS, "2"));
-    final Capture<CloseReason> captured = Capture.newInstance();
-    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
-    expect(session.getId()).andReturn("session-id").anyTimes();
-    session.close(capture(captured));
-    expectLastCall().once();
-    ksqlVersionCheckerAgent.updateLastRequestTime();
-    expectLastCall();
-    replayMocks();
-    wsQueryEndpoint.onOpen(session, null);
   }
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
@@ -215,8 +193,6 @@ public class WSQueryEndpointTest {
           anyObject());
       expectLastCall().once();
     }
-    ksqlVersionCheckerAgent.updateLastRequestTime();
-    expectLastCall();
     replayMocks();
 
     wsQueryEndpoint.onOpen(session, null);
@@ -237,4 +213,38 @@ public class WSQueryEndpointTest {
         Collections.singletonMap(
             Versions.KSQL_V1_WS_PARAM, Collections.singletonList(Versions.KSQL_V1_WS)));
   }
+
+  @Test
+  public void shouldUpdateTheLastRequestTime() throws Exception {
+    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
+    activenessRegistrar.updateLastRequestTime();
+    EasyMock.expectLastCall();
+
+    wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec, activenessRegistrar);
+    setupSessionMock();
+    replayMocks();
+    EasyMock.replay(activenessRegistrar);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    EasyMock.verify(activenessRegistrar);
+  }
+
+  private void setupSessionMock() throws IOException {
+    final Map<String, List<String>> parameters =
+        Collections.singletonMap(
+            Versions.KSQL_V1_WS_PARAM, Collections.singletonList("bad-version"));
+    final CloseReason expectedCloseReason = new CloseReason(
+        CloseReason.CloseCodes.CANNOT_ACCEPT,"Invalid version in request");
+    final Capture<CloseReason> captured = Capture.newInstance();
+
+    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
+    expect(session.getId()).andReturn("session-id").anyTimes();
+    session.close(capture(captured));
+    expectLastCall().once();
+  }
+
 }

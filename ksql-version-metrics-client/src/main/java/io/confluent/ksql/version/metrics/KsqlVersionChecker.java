@@ -20,7 +20,6 @@ import io.confluent.support.metrics.BaseMetricsReporter;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
-import io.confluent.support.metrics.common.time.TimeUtils;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -50,9 +49,7 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     );
     Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
-    this.metricsCollector = new BasicCollector(
-        moduleType, new TimeUtils(),
-        activenessStatusSupplier);
+    this.metricsCollector = new BasicCollector(moduleType, activenessStatusSupplier);
   }
 
   @Override

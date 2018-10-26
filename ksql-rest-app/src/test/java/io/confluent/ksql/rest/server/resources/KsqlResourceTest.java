@@ -17,7 +17,6 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -27,7 +26,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
@@ -69,19 +67,17 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.EngineActiveQueryStatusSupplier;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.util.Collection;
@@ -125,6 +121,8 @@ public class KsqlResourceTest {
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
   private CommandStore commandStore;
+  @Mock(MockType.NICE)
+  private ActivenessRegistrar activenessRegistrar;
   private KsqlResource ksqlResource;
 
   @Before
@@ -688,18 +686,19 @@ public class KsqlResourceTest {
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
+  // Todo: Same style test for the other request handlers.
   @Test
   public void shouldUpdateTheLastRequestTime() {
-    final KsqlEngine mockEngine = EasyMock.mock(KsqlEngine.class);
-    final KsqlVersionCheckerAgent ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
-    EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString())).andStubReturn(Collections.emptyList());
-    final KsqlResource ksqlResource = new KsqlResource(ksqlConfig, mockEngine, EasyMock.mock(
-        ReplayableCommandQueue.class), Long.MAX_VALUE, ksqlVersionCheckerAgent);
-    EasyMock.replay(mockEngine);
-    assertFalse(ksqlVersionCheckerAgent.get());
+    activenessRegistrar.updateLastRequestTime();
+    EasyMock.expectLastCall();
+
+    EasyMock.replay(activenessRegistrar);
+
+    // When:
     ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
-    EasyMock.verify(mockEngine);
-    assertThat(ksqlVersionCheckerAgent.get(), equalTo(true));
+
+    // Then:
+    EasyMock.verify(activenessRegistrar);
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -811,9 +810,8 @@ public class KsqlResourceTest {
   }
 
   private void setUpKsqlResource() {
-    final KsqlVersionCheckerAgent ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, ksqlVersionCheckerAgent);
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, activenessRegistrar);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

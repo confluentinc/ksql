@@ -35,7 +35,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private boolean enableSettlingTime;
 
-  private long requestTime;
+  private volatile long requestTime;
   private final Supplier<Boolean> engineActiveQueryStatusSupplier;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
@@ -75,7 +75,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
                   serverRuntime,
                   moduleType,
                   enableSettlingTime,
-                  engineActiveQueryStatusSupplier
+                  this::isActive
                   );
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
@@ -117,14 +117,15 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     return "The version check feature of KSQL  is disabled.";
   }
 
-  @Override
   public void updateLastRequestTime() {
     this.requestTime = System.currentTimeMillis();
   }
 
-  @Override
-  public Boolean get() {
-    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL
-        || engineActiveQueryStatusSupplier.get();
+  private boolean hasRecentRequests() {
+    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL;
+  }
+
+  private boolean isActive() {
+    return hasRecentRequests() || engineActiveQueryStatusSupplier.get();
   }
 }

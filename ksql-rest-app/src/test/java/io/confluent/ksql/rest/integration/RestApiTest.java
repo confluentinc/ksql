@@ -146,16 +146,6 @@ public class RestApiTest {
       // do nothing;
     }
 
-
-    @Override
-    public void updateLastRequestTime() {
-
-    }
-
-    @Override
-    public Boolean get() {
-      return false;
-    }
   }
 
   private static Client buildClient() {

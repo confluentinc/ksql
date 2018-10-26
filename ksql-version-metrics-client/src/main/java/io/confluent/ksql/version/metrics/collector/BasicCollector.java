@@ -19,33 +19,42 @@ package io.confluent.ksql.version.metrics.collector;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Version;
-import io.confluent.support.metrics.common.time.TimeUtils;
+import java.time.Clock;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.apache.avro.generic.GenericContainer;
 
 public class BasicCollector extends Collector {
 
   private final KsqlModuleType moduleType;
   private final Supplier<Boolean> activenessStatusSupplier;
+  private final Clock clock;
 
   public BasicCollector(
       final KsqlModuleType moduleType,
-      final TimeUtils timeUtils,
-      final Supplier<Boolean> activenessStatusSupplier) {
+      final Supplier<Boolean> activenessStatusSupplier
+  ) {
+    this(moduleType, activenessStatusSupplier, Clock.systemDefaultZone());
+  }
+
+  BasicCollector(
+      final KsqlModuleType moduleType,
+      final Supplier<Boolean> activenessStatusSupplier,
+      final Clock clock
+  ) {
     this.moduleType = moduleType;
     Objects.requireNonNull(activenessStatusSupplier);
     this.activenessStatusSupplier = activenessStatusSupplier;
+    this.clock = Objects.requireNonNull(clock, "clock");
   }
 
   @Override
-  public GenericContainer collectMetrics() {
+  public KsqlVersionMetrics collectMetrics() {
     final KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
-    metricsRecord.setTimestamp(System.currentTimeMillis());
+    metricsRecord.setTimestamp(TimeUnit.MILLISECONDS.toSeconds(clock.millis()));
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
     metricsRecord.setIsActive(activenessStatusSupplier.get());
     return metricsRecord;
   }
-
 }

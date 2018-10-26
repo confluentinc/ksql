@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -67,6 +68,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class StreamedQueryResourceTest {
@@ -77,22 +79,7 @@ public class StreamedQueryResourceTest {
   public void shouldReturn400OnBadStatement() throws Exception {
     final String queryString = "SELECT * FROM test_stream;";
 
-    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
-    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
-
-    final StatementParser mockStatementParser = mock(StatementParser.class);
-    expect(mockStatementParser.parseSingleStatement(queryString))
-        .andThrow(new IllegalArgumentException("some msg only the parser would use"));
-    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
-    activenessRegistrar.updateLastRequestTime();
-    expectLastCall();
-    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser, activenessRegistrar);
-
-    final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
+    final StreamedQueryResource testResource = getTestStreamedQueryResource(()->{}, false, "some msg only the parser would use");
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -107,26 +94,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
     final String queryString = "SELECT * FROM test_stream;";
-
-    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
-    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
-
-    final StatementParser mockStatementParser = mock(StatementParser.class);
-    expect(mockStatementParser.parseSingleStatement(queryString))
-        .andReturn(mock(Query.class));
-
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()))
-        .andThrow(new KsqlException("some msg only the engine would use"));
-    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
-    activenessRegistrar.updateLastRequestTime();
-    expectLastCall();
-    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser, activenessRegistrar);
-
-    final StreamedQueryResource testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
+    final StreamedQueryResource testResource = getTestStreamedQueryResource(()->{}, false, "some msg only the engine would use");
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
@@ -211,14 +179,10 @@ public class StreamedQueryResourceTest {
 
     final StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
-
-    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
-    activenessRegistrar.updateLastRequestTime();
-    expectLastCall();
-    replay(mockKsqlEngine, mockStatementParser, mockOutputNode, activenessRegistrar);
+    replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, ()->{});
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));
@@ -335,5 +299,50 @@ public class StreamedQueryResourceTest {
         throw exception;
       }
     }
+  }
+
+  @Test
+  public void shouldUpdateTheLastRequestTime() throws Exception {
+    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
+    activenessRegistrar.updateLastRequestTime();
+    EasyMock.expectLastCall();
+    final StreamedQueryResource streamedQueryResource = getTestStreamedQueryResource(activenessRegistrar, true, "");
+
+    EasyMock.replay(activenessRegistrar);
+
+    // When:
+    streamedQueryResource.streamQuery(new KsqlRequest("SELECT * FROM test_stream;", Collections.emptyMap()));
+
+    // Then:
+    EasyMock.verify(activenessRegistrar);
+  }
+
+  private StreamedQueryResource getTestStreamedQueryResource(
+      final ActivenessRegistrar activenessRegistrar,
+      final boolean isParseSuccesfull,
+      final String errorMessage
+  ) {
+    final String queryString = "SELECT * FROM test_stream;";
+
+    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+
+    final StatementParser mockStatementParser = mock(StatementParser.class);
+    if (isParseSuccesfull) {
+      expect(mockStatementParser.parseSingleStatement(queryString))
+          .andReturn(mock(Statement.class));
+    } else {
+      expect(mockStatementParser.parseSingleStatement(queryString))
+          .andThrow(new IllegalArgumentException(errorMessage));
+    }
+
+    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
+
+    return new StreamedQueryResource(
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
+
   }
 }

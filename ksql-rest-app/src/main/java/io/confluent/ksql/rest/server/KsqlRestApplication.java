@@ -53,14 +53,12 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.util.EngineActiveQueryStatusSupplier;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
-import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -116,7 +114,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;
-  private final VersionCheckerAgent versionCheckerAgent;
+  private final KsqlVersionCheckerAgent versionCheckerAgent;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -142,7 +140,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.ksqlResource = ksqlResource;
 
     this.versionCheckerAgent
-        = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
+        = new KsqlVersionCheckerAgent(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
     this.serverInfo = new ServerInfo(
         Version.getVersion(),
         getKafkaClusterId(ksqlConfig),
@@ -265,7 +263,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       statementParser,
                       ksqlEngine,
                       exec,
-                      versionCheckerAgent
+                      versionCheckerAgent::updateLastRequestTime
                   );
                 }
 
@@ -363,21 +361,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final KsqlVersionCheckerAgent versionCheckerAgent
-        = new KsqlVersionCheckerAgent(new EngineActiveQueryStatusSupplier(ksqlEngine));
+        = new KsqlVersionCheckerAgent(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
         statementParser,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
-        versionCheckerAgent
+        versionCheckerAgent::updateLastRequestTime
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         commandStore,
         restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
-        versionCheckerAgent
+        versionCheckerAgent::updateLastRequestTime
     );
 
     commandRunner.processPriorCommands();

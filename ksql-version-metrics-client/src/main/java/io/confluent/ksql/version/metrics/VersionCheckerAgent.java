@@ -18,9 +18,8 @@ package io.confluent.ksql.version.metrics;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.util.Properties;
-import java.util.function.Supplier;
 
-public interface VersionCheckerAgent extends ActivenessRegistrar, Supplier<Boolean> {
+public interface VersionCheckerAgent {
 
   void start(KsqlModuleType moduleType, Properties ksqlProperties);
 

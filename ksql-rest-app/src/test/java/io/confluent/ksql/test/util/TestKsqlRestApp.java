@@ -234,15 +234,5 @@ public class TestKsqlRestApp extends ExternalResource {
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
     }
-
-    @Override
-    public void updateLastRequestTime() {
-
-    }
-
-    @Override
-    public Boolean get() {
-      return false;
-    }
   }
 }

@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   // 24 hours
-  private static final long MAX_INTERVAL = TimeUnit.HOURS.toMillis(1);
+  private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
   private KsqlVersionChecker ksqlVersionChecker;
 
@@ -56,11 +56,8 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   @Override
   public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
-    final Properties updatedProperties = new Properties(ksqlProperties);
-    updatedProperties.put(
-        BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_CONFIG, "1");
     final BaseSupportConfig ksqlVersionCheckerConfig =
-        new PhoneHomeConfig(updatedProperties, "ksql");
+        new PhoneHomeConfig(ksqlProperties, "ksql");
 
     if (!ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       log.warn(legalDisclaimerProactiveSupportDisabled());

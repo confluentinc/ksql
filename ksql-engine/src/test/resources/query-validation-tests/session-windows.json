@@ -27,7 +27,7 @@
     {
       "name": "import session table",
       "statements": [
-        "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='SeSSion');",
+        "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', KEY='ID', WINDOW_TYPE='SeSSion');",
         "CREATE TABLE S2 as SELECT *, ROWKEY as KEY FROM test;"
       ],
       "inputs": [
@@ -48,7 +48,7 @@
     {
       "name": "import session stream",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='SESSION');",
         "CREATE STREAM S2 as SELECT *, ROWKEY as Key FROM test;"
       ],
       "inputs": [

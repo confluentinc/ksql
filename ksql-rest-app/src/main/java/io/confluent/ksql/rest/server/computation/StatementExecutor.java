@@ -261,7 +261,7 @@ public class StatementExecutor {
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
           overriddenProperties
       );
-      if (ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
+      if (ksqlEngine.hasExceededMaxNumberOfPersistentQueries(ksqlConfig)) {
         for (final QueryMetadata queryMetadata : queryMetadataList) {
           if (queryMetadata instanceof PersistentQueryMetadata) {
             final PersistentQueryMetadata persistentQueryMd =

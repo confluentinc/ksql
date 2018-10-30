@@ -557,6 +557,11 @@ public class KsqlEngine implements Closeable {
         >= ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
 
+  public boolean hasExceededMaxNumberOfPersistentQueries(final KsqlConfig ksqlConfig) {
+    return numberOfPersistentQueries()
+        > ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
+  }
+
   @Override
   public void close() {
     for (final QueryMetadata queryMetadata : allLiveQueries) {

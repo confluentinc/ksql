@@ -545,7 +545,7 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(
         result.getMessage(),
-        containsString("due to limit on number of active, persistent queries.")
+        containsString("the limit on number of active, persistent queries has been reached")
     );
     EasyMock.verify(ksqlEngine);
   }

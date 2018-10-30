@@ -211,9 +211,15 @@ public class KsqlResource {
         && ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
       throw new KsqlException(
           String.format(
-              "Cannot execute statement '%s' due to limit on number of active,"
-                  + " persistent queries.",
-              statementText
+              "Not executing statement '%s' since the limit on number "
+                  + "of active, persistent queries has been reached "
+                  + "(%d persistent queries currently running. Limit is %d). "
+                  + "Use the TERMINATE command to terminate existing queries "
+                  + "(if running in interactive mode), "
+                  + "or reconfigure the limit via the 'ksql-server.properties' file.",
+              statementText,
+              ksqlEngine.numberOfPersistentQueries(),
+              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
           )
       );
     }

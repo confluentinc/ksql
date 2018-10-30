@@ -292,7 +292,8 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldFailIfExceedActivePersistentQueriesLimit() {
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("limit on number of active, persistent queries.");
+    expectedException.expectMessage(
+        "the limit on number of active, persistent queries has been reached");
 
     EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
         new PreparedStatement("CSAS3", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))

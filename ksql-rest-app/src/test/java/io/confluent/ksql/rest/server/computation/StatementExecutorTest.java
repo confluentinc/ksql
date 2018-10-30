@@ -451,7 +451,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(
         commandStatus.get().getMessage(),
         containsString(
-            "Reached maximum allowed number of active, persistent queries."));
+            "the statement causes the limit on number of active, "
+            + "persistent queries to be exceeded"));
   }
 
   private void createStreamsAndTables() {

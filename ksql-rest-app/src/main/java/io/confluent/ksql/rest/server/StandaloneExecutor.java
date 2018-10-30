@@ -259,8 +259,12 @@ public class StandaloneExecutor implements Executable {
     if (ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
       throw new KsqlException(
           String.format(
-              "Not executing query '%s' due to limit on number of active, persistent queries.",
-              statementString
+              "Not executing query '%s' since the limit on number of active, persistent queries "
+                  + "has been reached (%d persistent queries currently running. Limit is %d). "
+                  + "This limit can be reconfigured via the 'ksql-server.properties' file.",
+              statementString,
+              ksqlEngine.numberOfPersistentQueries(),
+              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
           )
       );
     }

@@ -193,15 +193,29 @@ public class KsqlResource {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  // CHECKSTYLE_RULES_OFF: NPathComplexity
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,
       final Map<String, Object> streamsProperties) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    // CHECKSTYLE_RULES_ON: NPathComplexity
     if (statement == null) {
       throw new KsqlRestException(
           Errors.badStatement(
               String.format("Unable to execute statement '%s'", statementText),
               statementText, entities));
+    }
+
+    if (Stream.of(CreateAsSelect.class, InsertInto.class, RunScript.class)
+        .anyMatch(c -> c.isInstance(statement))
+        && ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
+      throw new KsqlException(
+          String.format(
+              "Cannot execute statement '%s' due to limit on number of active,"
+                  + " persistent queries.",
+              statementText
+          )
+      );
     }
 
     if (Stream.of(
@@ -217,12 +231,7 @@ public class KsqlResource {
     }
 
     if (statement instanceof ShowColumns) {
-      final ShowColumns showColumns = (ShowColumns) statement;
-      if (showColumns.isTopic()) {
-        describeTopic(statementText, showColumns.getTable().getSuffix());
-      } else {
-        describe(showColumns.getTable().getSuffix(), showColumns.isExtended());
-      }
+      showColumns(statementText, (ShowColumns)statement);
     } else if (statement instanceof Explain) {
       explainQuery((Explain) statement, statementText);
     } else if (isExecutableDdlStatement(statement)
@@ -264,13 +273,7 @@ public class KsqlResource {
     } else if (statement instanceof ListQueries) {
       return showQueries(statementText, ((ListQueries)statement).getShowExtended());
     } else if (statement instanceof ShowColumns) {
-      final ShowColumns showColumns = (ShowColumns) statement;
-      if (showColumns.isTopic()) {
-        return describeTopic(statementText, showColumns.getTable().getSuffix());
-      }
-      return new SourceDescriptionEntity(
-          statementText,
-          describe(showColumns.getTable().getSuffix(), showColumns.isExtended()));
+      return showColumns(statementText, (ShowColumns)statement);
     } else if (statement instanceof ListProperties) {
       return listProperties(statementText, streamsProperties);
     } else if (statement instanceof Explain) {
@@ -329,7 +332,7 @@ public class KsqlResource {
     } catch (final Exception e) {
       throw new KsqlException(
           String.format(
-              "Could not write the statement '%s' into the command " + "topic.", statementText
+              "Could not write the statement '%s' into the command topic.", statementText
           ),
           e
       );
@@ -409,6 +412,15 @@ public class KsqlResource {
         schemaString
     );
     return topicDescription;
+  }
+
+  private KsqlEntity showColumns(final String statementText, final ShowColumns showColumns) {
+    if (showColumns.isTopic()) {
+      return describeTopic(statementText, showColumns.getTable().getSuffix());
+    }
+    return new SourceDescriptionEntity(
+        statementText,
+        describe(showColumns.getTable().getSuffix(), showColumns.isExtended()));
   }
 
   private SourceDescription describe(

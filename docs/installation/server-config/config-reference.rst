@@ -156,6 +156,15 @@ These configurations control the general behavior of the KSQL server. These conf
 .. important:: KSQL server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL server and KSQL CLI, the KSQL server value is used.
 
+.. _ksql-active-persistent-query-limit:
+
+-----------------
+ksql.active.persistent.query.limit
+-----------------
+
+The maximum number of persistent queries that may be running at any given time.
+The default is ``Integer.MAX_VALUE`` (i.e., no limit).
+
 .. _ksql-queries-file:
 
 -----------------

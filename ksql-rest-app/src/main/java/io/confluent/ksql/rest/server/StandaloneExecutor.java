@@ -256,7 +256,14 @@ public class StandaloneExecutor implements Executable {
   private void handlePersistentQuery(
       final String statementString,
       final Map<String, Object> configProperties) {
-
+    if (ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
+      throw new KsqlException(
+          String.format(
+              "Not executing query '%s' due to limit on number of active, persistent queries.",
+              statementString
+          )
+      );
+    }
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
     if (queryMetadataList.size() != 1

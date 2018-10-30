@@ -506,19 +506,47 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-          .andReturn(realEngine.parseStatements(ksqlString));
-
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.hasReachedMaxNumberOfPersistentQueries(EasyMock.anyObject(KsqlConfig.class)))
+          .andReturn(false);
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
 
-    // Then:
+    // When:
     final KsqlErrorMessage result = makeFailingRequest(
         ksqlString, Code.INTERNAL_SERVER_ERROR);
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailIfExceedActivePersistentQueriesLimit() {
+    // Given:
+    final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.hasReachedMaxNumberOfPersistentQueries(EasyMock.anyObject(KsqlConfig.class)))
+          .andReturn(true);
+    });
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(
+        result.getMessage(),
+        containsString("due to limit on number of active, persistent queries.")
+    );
     EasyMock.verify(ksqlEngine);
   }
 
@@ -697,8 +725,8 @@ public class KsqlResourceTest {
 
   private void givenMockEngine(final Consumer<KsqlEngine> mockInitializer) {
     ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
-    EasyMock.expect(ksqlEngine.getMetaStore()).andReturn(realEngine.getMetaStore()).anyTimes();
-    EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(realEngine.getTopicClient()).anyTimes();
+    EasyMock.expect(ksqlEngine.getMetaStore()).andDelegateTo(realEngine).anyTimes();
+    EasyMock.expect(ksqlEngine.getTopicClient()).andDelegateTo(realEngine).anyTimes();
     mockInitializer.accept(ksqlEngine);
     EasyMock.replay(ksqlEngine);
     setUpKsqlResource();

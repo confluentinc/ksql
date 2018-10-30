@@ -289,4 +289,21 @@ public class StandaloneExecutorTest {
     EasyMock.verify(query, persistentQueryMetadata, engine);
   }
 
+  @Test
+  public void shouldFailIfExceedActivePersistentQueriesLimit() {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("limit on number of active, persistent queries.");
+
+    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
+        new PreparedStatement("CSAS3", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))
+    ));
+    EasyMock.expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
+    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
+        .andReturn(persistentQueryMetadata).once();
+    EasyMock.expect(engine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)).andReturn(true);
+
+    EasyMock.replay(query, persistentQueryMetadata, engine);
+    standaloneExecutor.start();
+    EasyMock.verify(query, persistentQueryMetadata, engine);
+  }
 }

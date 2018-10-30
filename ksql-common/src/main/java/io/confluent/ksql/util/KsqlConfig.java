@@ -57,6 +57,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
 
+  public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
+      "ksql.active.persistent.query.limit";
+  private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
+  private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
+      "The maximum number of active, persistent queries that may be present at a time.";
+
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
@@ -277,6 +283,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             DEFAULT_EXT_DIR,
             ConfigDef.Importance.LOW,
             "The path to look for and load extensions such as UDFs from."
+        ).define(
+            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
+            ConfigDef.Type.INT,
+            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

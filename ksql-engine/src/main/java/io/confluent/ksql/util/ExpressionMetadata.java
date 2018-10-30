@@ -16,10 +16,12 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -29,16 +31,21 @@ public class ExpressionMetadata {
   private final List<Integer> indexes;
   private final List<Kudf> udfs;
   private final Schema expressionType;
+  private final GenericRowValueTypeEnforcer typeEnforcer;
+  private final Object[] parameters;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
       final List<Integer> indexes,
       final List<Kudf> udfs,
-      final Schema expressionType) {
-    this.expressionEvaluator = expressionEvaluator;
-    this.indexes = Collections.unmodifiableList(indexes);
-    this.udfs = Collections.unmodifiableList(udfs);
-    this.expressionType = expressionType;
+      final Schema expressionType,
+      final Schema schema) {
+    this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
+    this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
+    this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
+    this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
+    this.typeEnforcer = new GenericRowValueTypeEnforcer(schema);
+    this.parameters = new Object[indexes.size()];
   }
 
   public List<Integer> getIndexes() {
@@ -53,11 +60,24 @@ public class ExpressionMetadata {
     return expressionType;
   }
 
-  public Object evaluate(final Object[] parameterObjects) {
+  public Object evaluate(final GenericRow row) {
     try {
-      return expressionEvaluator.evaluate(parameterObjects);
+      return expressionEvaluator.evaluate(getParameters(row));
     } catch (InvocationTargetException e) {
       throw new KsqlException(e.getMessage(), e);
     }
+  }
+
+  private Object[] getParameters(final GenericRow row) {
+    for (int idx = 0; idx < indexes.size(); idx++) {
+      final int paramIndex = indexes.get(idx);
+      if (paramIndex < 0) {
+        parameters[idx] = udfs.get(idx);
+      } else {
+        parameters[idx] = typeEnforcer
+            .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
+      }
+    }
+    return parameters;
   }
 }

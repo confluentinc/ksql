@@ -17,9 +17,7 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.streams.kstream.ValueMapper;
@@ -30,16 +28,13 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   private static final Logger LOG = LoggerFactory.getLogger(SelectValueMapper.class);
 
-  private final GenericRowValueTypeEnforcer typeEnforcer;
   private final List<String> selectFieldNames;
   private final List<ExpressionMetadata> expressionEvaluators;
 
   SelectValueMapper(
-      final GenericRowValueTypeEnforcer typeEnforcer,
       final List<String> selectFieldNames,
       final List<ExpressionMetadata> expressionEvaluators
   ) {
-    this.typeEnforcer = typeEnforcer;
     this.selectFieldNames = selectFieldNames;
     this.expressionEvaluators = expressionEvaluators;
 
@@ -63,23 +58,9 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   private Object processColumn(final int column, final GenericRow row) {
     try {
-      final ExpressionMetadata expression = expressionEvaluators.get(column);
-
-      final List<Integer> parameterIndexes = expressionEvaluators.get(column).getIndexes();
-      final List<Kudf> kudfs = expressionEvaluators.get(column).getUdfs();
-      final Object[] parameterObjects = new Object[parameterIndexes.size()];
-      for (int j = 0; j < parameterIndexes.size(); j++) {
-        final Integer paramIndex = parameterIndexes.get(j);
-        if (paramIndex < 0) {
-          parameterObjects[j] = kudfs.get(j);
-        } else {
-          parameterObjects[j] = typeEnforcer
-              .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
-        }
-      }
-
-      return expression.evaluate(parameterObjects);
-
+      return expressionEvaluators
+          .get(column)
+          .evaluate(row);
     } catch (final Exception e) {
       LOG.error(String.format("Error calculating column with index %d : %s",
           column, selectFieldNames.get(column)), e);

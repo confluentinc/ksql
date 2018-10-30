@@ -74,7 +74,7 @@ Co-partitioned data
     Input data must be co-partitioned when joining. This ensures that input
     records with the same key, from both sides of the join, are delivered to
     the same stream task during processing. It’s your responsibility to ensure
-    data co-partitioning when joining.
+    data co-partitioning when joining. For more information, see :ref:`partition-data-to-enable-joins`.
 
 KEY property
     If you set the KEY property when you create a table, ensure that both of the

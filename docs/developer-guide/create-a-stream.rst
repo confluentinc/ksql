@@ -1,7 +1,7 @@
 .. _create-a-stream-with-ksql:
 
 Create a KSQL Stream
-====================
+####################
 
 In KSQL, you create streams from Kafka topics, and you create streams of
 query results from other streams.
@@ -42,7 +42,7 @@ In the KSQL CLI, view the topic's schema by using the DESCRIBE statement:
     For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 
 Create a Stream with Selected Columns
--------------------------------------
+=====================================
 
 The following example creates a stream that has three columns from the 
 ``pageviews`` topic: ``viewtime``, ``userid``, and ``pageid``.
@@ -83,7 +83,7 @@ Inspect the stream by using the SHOW STREAMS statement:
     ---------------------------------------
 
 Create a Stream with a Specified Key 
--------------------------------------
+====================================
 
 The previous KSQL statement makes no assumptions about the Kafka message key
 in the underlying Kafka topic. If the value of the message key in the topic
@@ -119,7 +119,7 @@ DESCRIBE EXTENDED statement:
     Kafka topic          : pageviews (partitions: 1, replication: 1)
 
 Create a Stream with Timestamps 
--------------------------------
+===============================
 
 In KSQL, message timestamps are used for window-based operations, like windowed
 aggregations, and to support event-time processing.
@@ -259,6 +259,12 @@ When you have the Query ID, you can terminte the query:
     -------------------
      Query terminated.
     -------------------
+
+Delete a Persistent Query
+*************************
+
+Use the DROP STREAM statement to delete a persistent query. You must TERMINATE
+the query before you can drop it. 
 
 
 Next Steps

@@ -2,43 +2,142 @@
 
 This guide contains tips and tricks for troubleshooting KSQL problems.
 
-
-SELECT query hangs and doesn’t stop?
-************************************
+SELECT query hangs and doesn’t stop
+***********************************
 
 Queries in KSQL, including non-persistent queries, like ``SELECT * FROM myTable``,
 are continuous streaming queries. Streaming queries don't stop unless you end them
-explicitly. In the KSQL CLI, press CTRL+C To stop a non-persistent query.
+explicitly. In the KSQL CLI, press CTRL+C to stop a non-persistent query.
 
-No results from ``SELECT * FROM`` table or stream?
-**************************************************
+SELECT query returns no results
+*******************************
 
-This is typically caused by the query being configured to process only newly
-arriving data instead, and no new input records are being received. Do one of
-the following:
+Sometimes, when you run a KSQL query, like ``SELECT * FROM my-stream``, no
+results are returned, and the KSQL CLI seems to hang.
 
-- Run this command: ``SET 'auto.offset.reset' = 'earliest';``. For more information,
-  see :ref:`install_cli-config` and :ref:`ksql-server-config`.
-- Write new records to the input topics.
+First, press CTRL+C to stop printing the query and return to the console.
 
-Can’t create a stream from the output of windowed aggregate?
-************************************************************
+Next, follow this checklist to diagnose why your query returns no results:
+
+* Is the query based on the wrong source topic?
+* Is the source topic populated with data?
+* Are new messages arriving in the source topic?
+* Is KSQL consuming from an offset beyond the available data?
+* Does the data match the query predicate?
+* Are deserialization errors occurring while reading the data?
+
+Check the stream's underlying Kafka topic
+=========================================
+
+Use the DESCRIBE EXTENDED statement to verify the source topic for the stream.
+For example, if you have a ``pageviews`` stream on a Kafka topic named
+``pageviews``, your output should resemble:
+
+.. code:: text
+
+    ksql> DESCRIBE EXTENDED PAGEVIEWS;
+    
+    Name                 : PAGEVIEWS
+    [...]
+    Kafka topic          : pageviews (partitions: 1, replication: 1)
+
+Check the Kafka topic for data
+==============================
+
+Your query results may be empty because the underlying Kafka toppic isn't 
+populated with data. Use the :ref:`kafkacat-usage` to consume messages and
+print a summary.
+
+.. code:: bash
+
+    docker run --network ksql-troubleshooting_default --tty --interactive --rm \
+              confluentinc/cp-kafkacat \
+              kafkacat -b kafka:29092 \
+              -C -t pageviews \
+              -o beginning
+
+If the topic is empty, your output should resemble:
+
+.. code:: text
+
+    % Reached end of topic pageviews [0] at offset 0
+
+
+Read from the beginning of the topic
+====================================
+
+If |kcat| prints messages, the topic is populated, but it may not be receiving
+*new* messages. By default, KSQL reads from the end of a topic, and if no new
+messages are being written to the topic, your queries won't return any results.
+
+To check your query, you can set the KSQL CLI to read from the beginning of
+your topics by assigning the ``auto.offset.reset`` property to ``earliest``:
+
+.. code:: text
+
+    ksql> SET 'auto.offset.reset'='earliest';
+    Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'
+
+Run your query again and verify that you're getting results from the beginning
+of the topic. If your query reaches the latest offset, and no new messages arrive,
+it will appear to hang, but it's just waiting for the next message. Press CTRL+C
+to stop the query.
+
+Check the query predicate
+=========================
+
+If you're confident that you're querying the right Kafka topic, that the topic
+is populated, and that you're reading data from before the latest offset, try
+checking your query.
+
+.. _ksql-deserialization-errors:
+
+Check for deserialization errors
+================================
+
+If KSQL can't deserialize message data, it won't write any SELECT results.
+Use the DESCRIBE EXTENDED statement and check that the VALUE_FORMAT of the
+stream matches the format of the records that |kcat| prints for your topic.
+
+.. code:: text
+     
+    ksql> DESCRIBE EXTENDED pageviews;
+    
+    Name                 : PAGEVIEWS_WITHKEY
+    [...]
+    Value format         : DELIMITED
+
+[TBD: kcat output]
+
+:ref:`ksql-check-server-logs` for serialization errors. For example, if your
+query specifies JSON for the VALUE_FORMAT, and the underlying topic isn't
+formatted as JSON, you'll see ``JsonParseException`` warnings in the KSQLServer
+log:
+
+.. code:: text
+
+    [2018-09-17 12:29:09,929] WARN task [0_10] Skipping record due to deserialization error. topic=[_confluent-metrics] partition=[10] offset=[70] (org.apache.kafka.streams.processor.internals.RecordDeserializer:86)
+     org.apache.kafka.common.errors.SerializationException: KsqlJsonDeserializer failed to deserialize data for topic: _confluent-metrics
+     Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ((CTRL-CHAR, code 127)): expected a valid value (number, String, array, object, 'true', 'false' or 'null')
+
+Can’t create a stream from the output of windowed aggregate
+***********************************************************
 
 The output of a windowed aggregate is a record per grouping key and per window,
 and is not a single record. This is not currently supported in KSQL.
 
-KSQL doesn’t clean up its internal topics?
-******************************************
+KSQL doesn’t clean up its internal topics
+*****************************************
 
 Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``.
 For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
-KSQL CLI doesn’t connect to KSQL server? 
-****************************************
+KSQL CLI doesn’t connect to KSQL server
+***************************************
 
-The following warning may occur when you start the KSQL CLI.   
+The following warning may occur when you start the KSQL CLI.
 
-.. code:: bash
+.. code:: text
 
     **************** WARNING ******************
     Remote server address may not be valid:
@@ -51,7 +150,7 @@ The following warning may occur when you start the KSQL CLI.
 Also, you may see a similar error when you create a KSQL query by using the
 CLI.
 
-.. code:: bash
+.. code:: text
 
     Error issuing POST to KSQL server
     Caused by: java.net.SocketException: Connection reset
@@ -65,27 +164,27 @@ one of the following conditions.
 - KSQL server is running but listening on a different port.
 
 Check the port that KSQL CLI is using
--------------------------------------
+=====================================
 
 Ensure that the KSQL CLI is configured with the correct KSQL server port.
 By default, the server listens on port ``8088``. For more info, see 
 :ref:`Starting the KSQL CLI <install_ksql-cli>`.
 
 Check the KSQL server configuration
------------------------------------
+===================================
 
 In the KSQL server configuration file, check that the list of listeners
 has the host address and port configured correctly. Look for the ``listeners``
 setting:
 
-.. code:: bash
+.. code:: text
 
     listeners=http://localhost:8088
 
 For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
 
 Check for a port conflict
--------------------------
+=========================
 
 There may be another process running on the port that the KSQL server listens
 on. Use the following command to check the process that's running on the port
@@ -98,7 +197,7 @@ assigned to the KSQL server. This example checks the default port, which is
 
 Your output should resemble:
 
-.. code:: bash
+.. code:: text
 
     tcp4  0 0  *.8088       *.*    LISTEN      131072 131072    46314      0
 
@@ -119,19 +218,19 @@ If the ``KsqlServerMain`` process isn't shown, a different process has taken the
 port that ``KsqlServerMain`` would normally use. Check the assigned listeners in 
 the KSQL server configuration, and restart the KSQL CLI with the correct port.
 
-------------------------------------------------
-Replicated topic with Avro schema causes errors? 
-------------------------------------------------
+Replicated topic with Avro schema causes errors 
+***********************************************
 
 Confluent Replicator renames topics during replication, and if there are
 associated Avro schemas, they aren't automatically matched with the renamed
 topics.
 
-In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which shows
-that the Avro schema ID exists in the Schema Registry, and KSQL can deserialize
-the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
+In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which
+shows that the Avro schema ID exists in the Schema Registry, and KSQL can
+deserialize the Avro message. But ``CREATE STREAM`` fails with a deserialization
+error:
 
-.. code:: bash
+.. code:: sql
 
     CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews.replica', value_format='AVRO');
 
@@ -141,7 +240,8 @@ the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
             at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:48)
             at io.confluent.ksql.serde.connect.KsqlConnectDeserializer.deserialize(KsqlConnectDeserializer.java:27)
 
-The solution is to register schemas manually against the replicated subject name for the topic:
+The solution is to register schemas manually against the replicated subject
+name for the topic:
 
 .. code:: bash
 
@@ -149,16 +249,56 @@ The solution is to register schemas manually against the replicated subject name
     # Replicated topic name = pageviews.replica
     curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
 
-----------------------
-Check KSQL server logs 
-----------------------
+
+View the message count for a KSQL query
+***************************************
+
+You can check the health of a KSQL query by viewing the number of messages that
+it has processed and counting how many processing failures have occurred.
+
+Use the DESCRIBE EXTENDED statement to see metrics like ``total-messages`` and
+``failed-messages-per-sec``, for example:
+
+.. code:: text
+
+    ksql> DESCRIBE EXTENDED GOOD_RATINGS;
+    [...]
+    Local runtime statistics
+    ------------------------
+    messages-per-sec:      1.10 total-messages:     2898 last-message: 9/17/18 1:48:47 PM UTC
+     failed-messages:         0 failed-messages-per-sec:         0 last-failed: n/a
+    (Statistics of the local KSQL server interaction with the Kafka topic GOOD_RATINGS)
+
+The displayed metrics are local to the server where the DESCRIBE statement runs.
+
+An increasing number of ``failed-messages`` may indicate problems with your query.
+Typical sources of processing failures are :ref:`deserialization errors <ksql-deserialization-errors>`.
+
+.. _ksql-check-server-logs:
+
+Check the KSQL server logs 
+**************************
+
 If you're still having trouble, check the KSQL server logs for errors. 
 
 .. code:: bash
 
     confluent log ksql-server
 
+KSQL writes most of its log messages to stdout by default.
 
 Look for logs in the default directory at ``/usr/local/logs`` or in the
 ``LOG_DIR`` that you assign when you start the KSQL CLI. For more info, see 
 :ref:`Starting the KSQL CLI <install_ksql-cli>`.
+
+If you installed Confluent Platform by using RPM/DEB packages, the logs are 
+in ``/var/log/confluent/``.
+
+If you’re running KSQL by using Docker, the output is in the container logs,
+for example:
+
+.. code:: bash
+
+    docker logs <container-id>
+    docker-compose logs ksql-server
+

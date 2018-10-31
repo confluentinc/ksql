@@ -162,26 +162,30 @@ Create a Continuous Streaming Query from a Stream
 *************************************************
 
 Use the CREATE STREAM AS SELECT statement to create a query stream from an 
-existing stream.
+existing stream. 
 
 CREATE STREAM AS SELECT creates a stream that contains the results from a
 SELECT query. KSQL persists the SELECT query results into a corresponding new
-topic. A stream created this way represents a persistent, or continuous, query,
+topic. A stream created this way represents a persistent, continuous query,
 which means that it runs until you stop it explicitly.
-
-Use the TERMINATE statement to stop a persistent query. Exiting the KSQL CLI
-*does not stop* persistent queries. The KSQL servers continue to process the
-queries, and they run continuously until they are terminated explicitly.
-
-.. note::
-
-   A SELECT statement by itself is a *non-persistent* query. The result of a
-   SELECT statement isn't persisted in a Kafka topic and is only printed in the
-   KSQL console. Don't confuse continuous streaming queries created by
-   CREATE STREAM AS SELECT with the query result from a SELECT statement.
 
 Use the SHOW QUERIES statement to list the persistent queries that are running
 currently.
+
+Use the PRINT statement to view the results of a persistent query in the KSQL CLI.
+Press CTRL+C to stop printing records. When you stop printing, the query continues
+to run.
+
+Use the TERMINATE statement to stop a persistent query. Exiting the KSQL CLI
+*does not stop* persistent queries. Your KSQL servers continue to process the
+queries, and queries run continuously until you terminate them explicitly.
+
+.. note::
+
+   A SELECT statement by itself is a *non-persistent* continuous query. The result
+   of a SELECT statement isn't persisted in a Kafka topic and is only printed in the
+   KSQL console. Don't confuse persistent queries created by CREATE STREAM AS SELECT
+   with the query result from a SELECT statement.
 
 The following KSQL statement creates a ``pageviews_intro`` stream that contains
 results from a persistent query that matches "introductory" pages that have a
@@ -207,7 +211,7 @@ stream, run the PRINT statement:
 
 .. code:: text
 
-    ksql> PRINT pageviews_intro;
+    ksql> PRINT 'pageviews_intro';
     Format:STRING
     10/30/18 10:15:51 PM UTC , 294851 , 1540937751186,User_8,Page_12
     10/30/18 10:15:55 PM UTC , 295051 , 1540937755255,User_1,Page_15

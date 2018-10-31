@@ -8,32 +8,34 @@ SELECT query hangs and doesn’t stop?
 
 Queries in KSQL, including non-persistent queries, like ``SELECT * FROM myTable``,
 are continuous streaming queries. Streaming queries don't stop unless you end them
-explicitly. in the KSQL CLI, press CTRL+C To stop a non-persistent query.
-
+explicitly. In the KSQL CLI, press CTRL+C To stop a non-persistent query.
 
 No results from ``SELECT * FROM`` table or stream?
 **************************************************
 
-This is typically caused by the query being configured to process only newly arriving data instead, and no new input records are being received. To fix, do one of the following:
+This is typically caused by the query being configured to process only newly
+arriving data instead, and no new input records are being received. Do one of
+the following:
 
-- Run this command: ``SET 'auto.offset.reset' = 'earliest';``. For more information, see :ref:`install_cli-config` and
-  :ref:`ksql-server-config`.
+- Run this command: ``SET 'auto.offset.reset' = 'earliest';``. For more information,
+  see :ref:`install_cli-config` and :ref:`ksql-server-config`.
 - Write new records to the input topics.
 
-------------------------------------------------------------
 Can’t create a stream from the output of windowed aggregate?
-------------------------------------------------------------
-The output of a windowed aggregate is a record per grouping key and per window, and is not a single record. This is not
-currently supported in KSQL.
+************************************************************
 
-------------------------------------------
+The output of a windowed aggregate is a record per grouping key and per window,
+and is not a single record. This is not currently supported in KSQL.
+
 KSQL doesn’t clean up its internal topics?
-------------------------------------------
-Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+******************************************
 
-----------------------------------------
+Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``.
+For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+
 KSQL CLI doesn’t connect to KSQL server? 
-----------------------------------------
+****************************************
+
 The following warning may occur when you start the KSQL CLI.   
 
 .. code:: bash

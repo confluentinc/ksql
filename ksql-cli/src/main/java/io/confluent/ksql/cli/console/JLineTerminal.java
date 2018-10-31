@@ -21,9 +21,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.Status;
 
 public class JLineTerminal extends Console {
 
@@ -88,4 +93,22 @@ public class JLineTerminal extends Console {
   ) {
     terminal.handle(signal, signalHandler);
   }
+
+  @Override
+  public void printHowToInterruptMsg() {
+    final Status statusBar = Status.getStatus(terminal);
+    final AttributedStringBuilder sb = new AttributedStringBuilder();
+    sb.style(AttributedStyle.INVERSE);
+    sb.append("Press CTRL-C to interrupt");
+    statusBar.update(Arrays.asList(sb.toAttributedString()));
+  }
+
+  @Override
+  public void clearStatusMsg() {
+    final Status statusBar = Status.getStatus(terminal);
+    statusBar.update(Arrays.asList(new AttributedString("", AttributedStyle.DEFAULT)));
+    statusBar.reset();
+    statusBar.redraw();
+  }
+
 }

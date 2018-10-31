@@ -21,10 +21,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.jline.terminal.Terminal;
 
 public class TestTerminal extends Console {
@@ -96,6 +93,16 @@ public class TestTerminal extends Console {
 
   @Override
   public void handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
+    // Ignore
+  }
+
+  @Override
+  public void printHowToInterruptMsg() {
+    // Ignore
+  }
+
+  @Override
+  public void clearStatusMsg() {
     // Ignore
   }
 }

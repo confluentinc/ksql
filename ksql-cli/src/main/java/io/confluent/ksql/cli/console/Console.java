@@ -173,6 +173,10 @@ public abstract class Console implements Closeable {
 
   public abstract void handle(Signal signal, SignalHandler signalHandler);
 
+  public abstract void printHowToInterruptMsg();
+
+  public abstract void clearStatusMsg();
+
   /* public */
 
   public void addResult(final GenericRow row) {

@@ -83,7 +83,9 @@ public class AggregateAnalysis {
   }
 
   public void addNonAggResultColumns(final Expression expression) {
-    nonAggResultColumns.add(expression);
+    if (!nonAggResultColumns.contains(expression)) {
+      nonAggResultColumns.add(expression);
+    }
   }
 
   public void addFinalSelectExpression(final Expression expression) {

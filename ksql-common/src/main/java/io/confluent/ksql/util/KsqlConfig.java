@@ -104,6 +104,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
       + " and the last argument is the length of the substring to extract.";
 
+  public static final String KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "windowed.session.key.legacy";
+
+  private static final String KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC = ""
+      + "Version 5.1 of KSQL and earlier incorrectly excluded the end time in the record key in "
+      + "Kafka for session windowed data. Setting this value to true will make KSQL expect and "
+      + "continue to store session keys without the end time. With the default value of false "
+      + "new queries will now correctly store the session end time as part of the key";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -139,7 +148,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               true,
               false,
               ConfigDef.Importance.LOW,
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
+      new CompatibilityBreakingConfigDef(
+          KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
+          ConfigDef.Type.BOOLEAN,
+          true,
+          false,
+          ConfigDef.Importance.LOW,
+          KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC)
   );
 
   private static class CompatibilityBreakingConfigDef {
@@ -462,7 +478,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
-    final Map<String, Object> mergedProperties = new HashMap<>(values());
+    final Map<String, Object> mergedProperties = new HashMap<>(originals());
     COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
         .map(CompatibilityBreakingConfigDef::getName)
         .forEach(

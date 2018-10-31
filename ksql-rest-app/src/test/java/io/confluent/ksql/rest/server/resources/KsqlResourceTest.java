@@ -90,6 +90,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -837,15 +838,15 @@ public class KsqlResourceTest {
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
-          new KsqlStream(
+          new KsqlStream<>(
               "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic));
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
-          new KsqlTable(
+          new KsqlTable<>(
               "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", false));
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", Serdes.String()));
     }
   }
 

@@ -162,7 +162,7 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForBareQuery(
-      final QueuedSchemaKStream schemaKStream,
+      final QueuedSchemaKStream<?> schemaKStream,
       final KsqlBareOutputNode bareOutputNode,
       final String serviceId,
       final String transientQueryPrefix,
@@ -200,7 +200,7 @@ public class PhysicalPlanBuilder {
 
 
   private QueryMetadata buildPlanForStructuredOutputNode(
-      final String sqlExpression, final SchemaKStream schemaKStream,
+      final String sqlExpression, final SchemaKStream<?> schemaKStream,
       final KsqlStructuredDataOutputNode outputNode,
       final String serviceId,
       final String persistanceQueryPrefix,
@@ -212,9 +212,9 @@ public class PhysicalPlanBuilder {
     }
     final StructuredDataSource sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
-      final SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
+      final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
-          new KsqlTable(
+          new KsqlTable<>(
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
@@ -223,17 +223,18 @@ public class PhysicalPlanBuilder {
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.getString(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
-              schemaKTable.isWindowed()
+              schemaKTable.getKeySerde()
           );
     } else {
       sinkDataSource =
-          new KsqlStream(
+          new KsqlStream<>(
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic()
+              outputNode.getKsqlTopic(),
+              schemaKStream.getKeySerde()
           );
 
     }
@@ -350,6 +351,7 @@ public class PhysicalPlanBuilder {
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    newStreamsProperties.put(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION);
 
     updateListProperty(
         newStreamsProperties,

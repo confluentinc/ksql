@@ -76,7 +76,7 @@ public abstract class PlanNode {
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream buildStream(
+  public abstract SchemaKStream<?> buildStream(
       StreamsBuilder builder,
       KsqlConfig ksqlConfig,
       KafkaTopicClient kafkaTopicClient,

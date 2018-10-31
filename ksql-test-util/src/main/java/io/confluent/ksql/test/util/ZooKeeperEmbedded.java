@@ -70,7 +70,7 @@ class ZooKeeperEmbedded {
         the time it binds to the random port.  This occasionally results in a BindException.
         When this happens... retry!
          */
-        log.info("Failed to create test ZK instance due to known race condition. Will retry", e);
+        log.info("Failed to create test ZK instance due to known race condition. Will retry");
       }
     }
   }

@@ -3,10 +3,6 @@
 Frequently Asked Questions
 ==========================
 
-.. contents:: Contents
-    :local:
-    :depth: 1
-
 ==============================
 What are the benefits of KSQL?
 ==============================
@@ -298,3 +294,11 @@ server configuration file.
           to 7 days, the sink topic retention is 7 days. If you set ``windowstore.changelog.additional.retention.ms``
           to 2 days, the retention for the internal changelog topic for
           statestore is the sum of these values: 7 + 2 = 9 days.
+
+===============================================
+What if automatic topic creation is turned off?
+===============================================
+
+If automatic topic creation is disabled, KSQL and Kafka Streams applications
+continue to work. KSQL and Kafka Streams applications use the Admin Client,
+so topics are still created.

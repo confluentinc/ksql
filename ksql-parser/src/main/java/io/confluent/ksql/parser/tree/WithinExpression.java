@@ -95,10 +95,9 @@ public class WithinExpression extends Node {
   }
 
   private JoinWindows createJoinWindows() {
-
-    return JoinWindows
-        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)))
-        .after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
+    final JoinWindows joinWindow = JoinWindows
+        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)));
+    return joinWindow.after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
   }
 
   // Visible for testing

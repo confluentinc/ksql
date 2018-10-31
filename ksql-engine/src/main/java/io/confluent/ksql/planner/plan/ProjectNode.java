@@ -28,7 +28,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -93,16 +93,17 @@ public class ProjectNode
     return keyField;
   }
 
-  public List<Pair<String, Expression>> getProjectNameExpressionPairList() {
+  public List<SelectExpression> getProjectSelectExpressions() {
     if (schema.fields().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
                               + "compatible.");
     }
-    final List<Pair<String, Expression>> expressionPairs = new ArrayList<>();
+
+    final List<SelectExpression> selects = new ArrayList<>();
     for (int i = 0; i < projectExpressions.size(); i++) {
-      expressionPairs.add(new Pair<>(schema.fields().get(i).name(), projectExpressions.get(i)));
+      selects.add(SelectExpression.of(schema.fields().get(i).name(), projectExpressions.get(i)));
     }
-    return expressionPairs;
+    return selects;
   }
 
   @Override
@@ -111,7 +112,7 @@ public class ProjectNode
   }
 
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -120,6 +121,6 @@ public class ProjectNode
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
     return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient,
         functionRegistry, props, schemaRegistryClientFactory)
-        .select(getProjectNameExpressionPairList());
+        .select(getProjectSelectExpressions());
   }
 }

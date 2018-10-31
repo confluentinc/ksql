@@ -5,10 +5,6 @@ KSQL Examples
 
 These examples use a ``pageviews`` stream and a ``users`` table.
 
-.. contents:: Contents
-    :local:
-    :depth: 2
-
 .. tip:: The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
          contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 
@@ -274,6 +270,21 @@ counting/aggregation step per region.
              count(*) \
       FROM pageviews_enriched \
       WINDOW SESSION (60 SECONDS) \
+      GROUP BY regionid;
+
+Sometimes you may want to include the bounds of the current window in the result so that it is
+more easily accessible to consumers of the data. The statement below extracts the start and
+end time of the current session window into fields within output rows.
+
+.. code:: sql
+
+    CREATE TABLE pageviews_per_region_per_session AS
+      SELECT regionid,
+             windowStart(),
+             windowEnd(),
+             count(*)
+      FROM pageviews_enriched
+      WINDOW SESSION (60 SECONDS)
       GROUP BY regionid;
 
 Working with arrays and maps

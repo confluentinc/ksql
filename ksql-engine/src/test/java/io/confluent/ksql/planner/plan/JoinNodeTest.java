@@ -33,7 +33,6 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -992,6 +991,7 @@ public class JoinNodeTest {
   }
 
 
+  @SuppressWarnings("unchecked")
   private void setupTable(final StructuredDataSourceNode node, final SchemaKTable table,
                           final Schema schema, final int partitions) {
     expect(node.getSchema()).andReturn(schema);
@@ -1071,6 +1071,7 @@ public class JoinNodeTest {
     replay(structuredDataSource, ksqlTopic, ksqlTopicSerde);
   }
 
+  @SuppressWarnings("unchecked")
   private void expectBuildStream(final StructuredDataSourceNode node, final SchemaKStream result,
                                  final Schema schema, final Map<String, Object> properties) {
     expect(node.buildStream(mockStreamsBuilder,

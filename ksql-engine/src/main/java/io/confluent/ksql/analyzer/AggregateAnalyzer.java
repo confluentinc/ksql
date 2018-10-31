@@ -28,9 +28,9 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-  private AggregateAnalysis aggregateAnalysis;
-  private Analysis analysis;
-  private FunctionRegistry functionRegistry;
+  private final AggregateAnalysis aggregateAnalysis;
+  private final Analysis analysis;
+  private final FunctionRegistry functionRegistry;
 
   private boolean hasAggregateFunction = false;
 

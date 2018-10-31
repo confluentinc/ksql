@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.JLineTerminal;
@@ -73,6 +74,9 @@ public final class Ksql {
     }
   }
 
+  @SuppressFBWarnings(
+      value = "OBL_UNSATISFIED_OBLIGATION",
+      justification = "'input' already in try with resource block - i.e. false positive")
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();

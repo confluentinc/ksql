@@ -19,10 +19,15 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Objects;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
-public class KsqlStream extends StructuredDataSource {
+public class KsqlStream<K> extends StructuredDataSource {
+
+  private final Serde<K> keySerde;
 
   public KsqlStream(
       final String sqlExpression,
@@ -30,7 +35,8 @@ public class KsqlStream extends StructuredDataSource {
       final Schema schema,
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final Serde<K> keySerde
   ) {
     super(
         sqlExpression,
@@ -41,43 +47,56 @@ public class KsqlStream extends StructuredDataSource {
         DataSourceType.KSTREAM,
         ksqlTopic
     );
+    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
+  }
+
+  public boolean hasWindowedKey() {
+    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
+        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
+  }
+
+  public Serde<K> getKeySerde() {
+    return keySerde;
   }
 
   @Override
   public StructuredDataSource copy() {
-    return new KsqlStream(
+    return new KsqlStream<>(
         sqlExpression,
         dataSourceName,
         schema,
         keyField,
         timestampExtractionPolicy,
-        ksqlTopic
+        ksqlTopic,
+        keySerde
     );
   }
 
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlStream(
+    return new KsqlStream<>(
         sqlExpression,
         dataSourceName,
         newSchema,
         keyField,
         timestampExtractionPolicy,
-        ksqlTopic
+        ksqlTopic,
+        keySerde
     );
   }
 
   @Override
   public StructuredDataSource cloneWithTimeExtractionPolicy(
       final TimestampExtractionPolicy policy) {
-    return new KsqlStream(
+    return new KsqlStream<>(
         sqlExpression,
         dataSourceName,
         schema,
         keyField,
         policy,
-        ksqlTopic
+        ksqlTopic,
+        keySerde
     );
   }
 

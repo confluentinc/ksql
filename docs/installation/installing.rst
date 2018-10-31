@@ -19,10 +19,6 @@ Docker support
 
 Watch the `screencast of Installing and Running KSQL <https://www.youtube.com/embed/icwHpPm-TCA>`_ on YouTube.
 
-.. contents::
-    :local:
-
-
 ---------------------------------------
 Supported Versions and Interoperability
 ---------------------------------------
@@ -86,7 +82,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
+    .. tip:: You can view the KSQL server help text by running ``<path-to-confluent>/bin/ksql-server-start --help``.
 
          ::
 

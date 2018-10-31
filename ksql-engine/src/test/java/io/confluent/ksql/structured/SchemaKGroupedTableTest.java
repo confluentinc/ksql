@@ -65,9 +65,9 @@ public class SchemaKGroupedTableTest {
 
   private SchemaKGroupedTable buildGroupedKTable(final String query, final String...groupByColumns) {
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(query);
-    final SchemaKTable initialSchemaKTable = new SchemaKTable(
+    final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), kTable, ksqlTable.getKeyField(), new ArrayList<>(),
-        false, SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
+        Serdes.String(), SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
@@ -76,7 +76,7 @@ public class SchemaKGroupedTableTest {
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
         initialSchemaKTable.getSchema(), null, false, () -> null);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
-        Serdes.String(), rowSerde, groupByExpressions);
+        rowSerde, groupByExpressions);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     return (SchemaKGroupedTable)groupedSchemaKTable;
   }

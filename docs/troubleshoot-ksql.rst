@@ -1,5 +1,8 @@
 .. _troubleshoot-ksql:
 
+Troubleshoot KSQL issues
+########################
+
 This guide contains tips and tricks for troubleshooting KSQL problems.
 
 SELECT query hangs and doesn’t stop
@@ -120,8 +123,8 @@ log:
      org.apache.kafka.common.errors.SerializationException: KsqlJsonDeserializer failed to deserialize data for topic: _confluent-metrics
      Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ((CTRL-CHAR, code 127)): expected a valid value (number, String, array, object, 'true', 'false' or 'null')
 
-Can’t create a stream from the output of windowed aggregate
-***********************************************************
+Can’t create a stream from the output of a windowed aggregate
+*************************************************************
 
 The output of a windowed aggregate is a record per grouping key and per window,
 and is not a single record. This is not currently supported in KSQL.
